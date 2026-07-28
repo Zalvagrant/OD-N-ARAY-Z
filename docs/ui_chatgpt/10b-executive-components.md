@@ -77,6 +77,10 @@ yükselmesi kötüdür). Yön glyph (▲ ▼ ■) + `sr-only` kelime ile verilir
 alanı zorunludur; yoksa değer `NoData`. 18.1'i 0.181 sanmak %1810 yazmaktır
 ve bu, eksik veriden tehlikelidir çünkü makul görünür.
 
+**Yüzde bir ondalıkla yazılır** (`fractionDigits: 1`). Intl varsayılanı
+yuvarlıyordu: ACOS 18.1 → "%18". Amazon tarafında o ondalık karar değiştirir;
+gerçek veriyi yuvarlayarak göstermek bilgi kaybıdır.
+
 **States:** Default · Focus (düğme) · Empty (`NoData`).
 **N/A:** Loading/Error → çağıran katmanın işi (`LoadingState`/`ErrorState`);
 kartın kendi hata görünümü içerik türünü gizlerdi.

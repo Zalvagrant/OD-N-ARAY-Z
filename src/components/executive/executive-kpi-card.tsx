@@ -63,15 +63,28 @@ const RISK = {
 function numProps(kpi: Pick<ExecutiveKPI, "unit" | "currency" | "scale">) {
   switch (kpi.unit) {
     case "currency":
-      return { format: "currency" as const, currency: kpi.currency, factor: 1 as number | null };
+      return {
+        format: "currency" as const,
+        currency: kpi.currency,
+        factor: 1 as number | null,
+        fractionDigits: undefined as number | undefined,
+      };
     case "percent":
       return {
         format: "percent" as const,
         currency: undefined,
         factor: kpi.scale === "0-1" ? 1 : kpi.scale === "0-100" ? 1 / 100 : null,
+        /* Intl varsayılanı yuvarlar: ACOS 18.1 → "%18". Amazon tarafında o
+           ondalık karar değiştirir, bilgi kaybı kabul edilemez. */
+        fractionDigits: 1 as number | undefined,
       };
     default:
-      return { format: "compact" as const, currency: undefined, factor: 1 as number | null };
+      return {
+        format: "compact" as const,
+        currency: undefined,
+        factor: 1 as number | null,
+        fractionDigits: undefined as number | undefined,
+      };
   }
 }
 
@@ -87,7 +100,7 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
 
-  const { format, currency, factor } = numProps(kpi);
+  const { format, currency, factor, fractionDigits } = numProps(kpi);
   const trend = TREND[kpi.trend?.direction] ?? TREND.flat;
   const risk = RISK[kpi.risk] ?? RISK.none;
   const action = kpi.recommendedAction;
@@ -122,6 +135,7 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
               value={scaled(kpi.value, factor)}
               format={format}
               currency={currency}
+              fractionDigits={fractionDigits}
               size="3xl"
               noDataReason={factor === null ? SCALE_MISSING : `${kpi.label} hesaplanamadı`}
             />
@@ -157,7 +171,10 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
               )}
             </div>
 
-            <dl className="grid gap-3 text-sm sm:grid-cols-3">
+            {/* min-w-0: grid hücresi içeriğine göre şişmesin — Forecast satırı
+                uzun (değer + ufuk + tahmin güveni) ve taşarsa Risk hücresinin
+                üstüne biner. */}
+            <dl className="grid gap-3 text-sm sm:grid-cols-3 [&>div]:min-w-0">
               <div>
                 <dt className="text-xs text-content-tertiary">Confidence</dt>
                 <dd className="mt-1">
@@ -171,11 +188,12 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
               </div>
               <div>
                 <dt className="text-xs text-content-tertiary">Forecast</dt>
-                <dd className="mt-1 flex items-baseline gap-2">
+                <dd className="mt-1 flex flex-wrap items-baseline gap-2">
                   <Num
                     value={scaled(kpi.forecast?.value, factor)}
                     format={format}
                     currency={currency}
+                    fractionDigits={fractionDigits}
                     noDataReason={factor === null ? SCALE_MISSING : "Tahmin üretilmedi"}
                   />
                   {kpi.forecast?.horizon && (
