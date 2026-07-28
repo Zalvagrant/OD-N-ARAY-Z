@@ -37,6 +37,7 @@ Bu klasör arayüzün tam spesifikasyonudur. **Bir şey yazmadan önce oku.**
 | `08-decision-log.md` | "Bu neden böyle?" sorusunun cevabı |
 | `09-data-contracts.md` | Veri çekerken, tip yazarken |
 | `10-component-library.md` | Her bileşende |
+| `10a-core-components.md` | S3 primitive'lerinin API'si ve durum matrisi |
 | `11-design-tokens.md` | Renk/boşluk/gölge yazarken |
 | `12-motion-system.md` | Animasyon yazarken |
 | `15-execution-plan.md` | Sprint sırası — hangi işi ne zaman |
@@ -168,7 +169,9 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 
 ### Sprint sırası
 
-`15-execution-plan.md` — S0…S13. Şu an: **S1 (Token katmanı).**
+`15-execution-plan.md` — S0…S13.
+Biten: **S1 (Token), S2 (App Shell), S3 (Core Components).**
+Sıradaki: **S4 — Executive Components.**
 
 ### Her sprint sonunda
 

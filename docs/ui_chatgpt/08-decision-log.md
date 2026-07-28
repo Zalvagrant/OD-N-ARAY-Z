@@ -752,3 +752,84 @@ kendi `ADR-0###` kaydını alır (ADR-0050).
 Reddedilme gerekçesi: arayüz kararları ayrı bir repoda yaşıyor ve ayrı bir
 yaşam döngüsüne sahip. Tek seride toplamak, iki repo arasında numara
 senkronizasyonu gerektirirdi.
+
+---
+
+## UI-ADR-086 — Bileşen durum modeli: ortak `state` prop'u yok
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 28 Temmuz 2026 — S3 Core Components
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde
+
+**Sorun:** `10-component-library.md` §6 her bileşenin 11 durumu (Default,
+Hover, Pressed, Focus, Disabled, Loading, Empty, Error, Success, Offline,
+Read Only) desteklemesini zorunlu kılıyor. Bunu doğrudan okumak, her bileşene
+`state: 'loading' | 'error' | …` biçiminde ortak bir prop koymaya götürür.
+
+**Karar:** Ortak `state` prop'u **kullanılmaz.** 11 durum bir **API
+zorunluluğu değil, durum/test matrisidir.** Kaynaklar:
+
+| Durum | Kaynak |
+|---|---|
+| Default · Hover · Pressed · Focus | CSS pseudo-class |
+| Disabled | native `disabled` |
+| Read Only | native `readOnly` / `aria-readonly` |
+| Loading | `loading` prop + `aria-busy="true"` |
+| Error | `aria-invalid="true"` + `aria-describedby` |
+| Success | `Field status="valid"` ya da `variant="success"` |
+| Offline | `offline` prop — yalnızca eylem bileşenlerinde |
+| Empty | verinin yokluğu — prop değil |
+
+Bir bileşen için anlamsız olan durum **sahte bir görsel duruma
+dönüştürülmez**; `10a-core-components.md`'de `N/A` + gerekçe olarak
+belgelenir.
+
+**Gerekçe:**
+1. Tek `state` prop'u geçersiz kombinasyon üretir: `loading` + `disabled`
+   aynı anda gerçek bir durumdur, union tip bunu ifade edemez.
+2. Native semantiği bozar. `disabled` bir attribute'tur; onu bir string'in
+   içine gömmek ekran okuyucudan bilgi saklar.
+3. Hover/Pressed/Focus prop OLMAMALIDIR — bunlar kullanıcının o anki
+   etkileşimidir, bileşenin bildirdiği bir değer değil.
+
+**Reddedilen alternatif:** Ortak bir `useComponentState` hook'u + `data-state`
+attribute'u. Reddedilme gerekçesi: 16 primitive için ortak bir durum makinesi
+kurmak, hiçbirinin ihtiyaç duymadığı bir soyutlama katmanı ekler; native HTML
+zaten bu işi yapıyor.
+
+**Etki:** Tüm `src/components/ui/*`. `data-state` iç kullanım için kalabilir,
+public API olmaz.
+
+---
+
+## UI-ADR-087 — Grafik: kütüphane yerine SVG primitive
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 28 Temmuz 2026 — S3 Core Components
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde
+
+**Sorun:** S3 "Chart temel seti (Recharts veya benzeri)" diyor. Recharts
+eklemek mi, elle SVG yazmak mı?
+
+**Karar:** **Grafik kütüphanesi eklenmez.** `Line` · `Area` · `Bar` elle
+yazılmış SVG olarak üretilir. Ölçekleme mantığı `src/lib/chart/scale.ts`
+içinde **saf fonksiyonlardır** ve birim testleri vardır.
+
+**Gerekçe:**
+1. Kapsam "executive glance": KPI trendi, ciro çizgisi, kampanya barları.
+   Recharts'ın getirdiği API yüzeyi ve bundle bu iş için orantısız.
+2. Token uyumu tam kontrol altında kalır — tüm renkler
+   `stroke-chart-*` / `fill-chart-*` sınıflarından gelir, ESLint kuralı
+   ihlal edilemez.
+3. Animasyon politikası doğrudan uygulanır: varsayılan **hareket yok**
+   (12-...md §1 — grafiğin "büyümesi" dekoratiftir).
+4. Anti-fake doğrudan uygulanır: eksik nokta interpolasyonla doldurulmaz,
+   veri yoksa `EmptyState` çıkar. Kütüphaneler varsayılan olarak boşluğu
+   kapatır — bu bizim en temel kuralımızı ihlal ederdi.
+
+**Reddedilen alternatif:** Recharts. **Yeniden değerlendirme koşulu:** zoom,
+brush, çoklu seri senkronizasyonu ya da karmaşık eksen ihtiyacı backlog'a
+girerse bu karar yeniden açılır.
+
+**Etki:** `src/components/ui/chart.tsx`, `src/components/ui/sparkline.tsx`,
+`src/lib/chart/scale.ts` (+ `scale.test.ts`). Yeni npm bağımlılığı YOK.

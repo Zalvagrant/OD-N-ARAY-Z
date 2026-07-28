@@ -15,6 +15,15 @@ export default defineConfig({
   test: {
     projects: [
       {
+        // Saf mantık testleri (chart ölçekleme gibi) — tarayıcı gerekmez.
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
+        },
+      },
+      {
         extends: true,
         plugins: [
           // The plugin will run tests for the stories defined in your Storybook config

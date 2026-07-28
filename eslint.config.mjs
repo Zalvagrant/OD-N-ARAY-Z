@@ -61,6 +61,14 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
   files: ["src/animations/motion.ts"],
   rules: { "no-restricted-syntax": "off" },
 }, {
+  /* Sanallaştırma boşluğu ve grafik yüksekliği DİNAMİK ÖLÇÜDÜR: değer
+     çalışma anında hesaplanır, token ile ifade edilemez. Bu, kuralın kendi
+     metnindeki açık istisnadır ("dinamik ölçü — renk asla"). Bu dosyalarda
+     inline style YALNIZCA height/transform için kullanılır; renk her zaman
+     Tailwind semantic sınıfından gelir. */
+  files: ["src/components/ui/table.tsx", "src/components/ui/chart.tsx"],
+  rules: { "react/forbid-dom-props": "off" },
+}, {
   /* AÇIK BORÇ — sahibin kararı bekleniyor.
      theme-provider.tsx `kod/` klasöründen geldi; KURULUM.md "içeriğini
      değiştirme" diyor. React 19'un yeni react-hooks/set-state-in-effect

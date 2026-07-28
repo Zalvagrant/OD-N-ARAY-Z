@@ -49,6 +49,64 @@
   backdrop-filter: blur(var(--odin-glass-overlay-blur));
 }
 
+/* ---------------------------------------------------------------------------
+   RESPONSIVE TYPOGRAPHY — 11-design-tokens.md §16
+   Taban ölçek (14px) her genişlikte aynı kalır; yalnızca hero ölçekleri
+   küçülür. Gerekçe: 1366px'de 56px'lik bir KPI değeri satırı taşırıyor,
+   14px'lik tablo metni ise her çözünürlükte doğru okunuyor.
+   tokens.css DEĞİŞTİRİLMEZ (kod/KURULUM.md) — override burada yaşar.
+   ------------------------------------------------------------------------ */
+
+@media (max-width: 1439px) {
+  :root {
+    --odin-text-4xl: 40px;
+    --odin-text-3xl: 32px;
+    --odin-text-2xl: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --odin-text-4xl: 32px;
+    --odin-text-3xl: 24px;
+    --odin-text-2xl: 20px;
+    --odin-text-xl: 18px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   SKELETON SHIMMER — 12-motion-system.md §7
+   Yumuşak, düşük kontrast, slow döngü. `prefers-reduced-motion` altında
+   tokens.css bu animasyonu tamamen durdurur (sabit gri kalır).
+   ------------------------------------------------------------------------ */
+
+@keyframes odin-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.odin-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.odin-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--odin-glass-light-border),
+    transparent
+  );
+  animation: odin-shimmer 1.6s var(--odin-ease-standard) infinite;
+}
+
 html {
   height: 100%;
 }
