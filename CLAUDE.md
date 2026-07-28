@@ -38,6 +38,7 @@ Bu klasör arayüzün tam spesifikasyonudur. **Bir şey yazmadan önce oku.**
 | `09-data-contracts.md` | Veri çekerken, tip yazarken |
 | `10-component-library.md` | Her bileşende |
 | `10a-core-components.md` | S3 primitive'lerinin API'si ve durum matrisi |
+| `10b-executive-components.md` | S4 executive bileşenlerinin API'si ve anti-fake kuralları |
 | `11-design-tokens.md` | Renk/boşluk/gölge yazarken |
 | `12-motion-system.md` | Animasyon yazarken |
 | `15-execution-plan.md` | Sprint sırası — hangi işi ne zaman |
@@ -171,7 +172,9 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 
 `15-execution-plan.md` — S0…S13.
 Biten: **S1 (Token), S2 (App Shell), S3 (Core Components).**
-Sıradaki: **S4 — Executive Components.**
+Üretildi, sahip onayı bekliyor: **S4 — Executive Components** (15 bileşen,
+`10b-executive-components.md`).
+Sıradaki: **S5** — bileşenlerin Executive Briefing ekranına yerleşmesi.
 
 ### Her sprint sonunda
 

@@ -338,3 +338,49 @@ Backend tarafında yapılacak işlerin sırası:
 | 8 | Event Bus | Gerçek zamanlılık |
 | 9 | Memory Classifier | Uzun vadeli sağlık |
 | 10 | Tahmin motoru | En son — diğerleri olmadan anlamsız |
+
+---
+
+## 13. S4'ten çıkan sorular (Executive Components)
+
+Bileşenler yazılırken sözleşmede karşılığı bulunamayan üç nokta. CLAUDE.md §7
+gereği kendi başımıza veri modeli değiştirmedik — **sorular burada.**
+
+### 13.1 `Decision.recommendation` alanı yok
+
+`05-dashboard.md` §3.2 karar kartında bir `Recommendation` satırı istiyor.
+`09-data-contracts.md` §2 `Decision` sözleşmesinde böyle bir alan yok;
+`alternatives` ve `directorOpinions` var ama bunların hiçbiri "kurulun nihai
+önerisi" değil.
+
+**Şimdilik yapılan:** `Decision.recommendation?: AIRecommendation` olarak
+**opsiyonel** eklendi. Gelirse gösterilir, gelmezse satır hiç çizilmez.
+Uydurma yapılmıyor.
+
+**Soru:** Decision Engine kurul sonunda tek bir `AIRecommendation` üretiyor mu?
+Üretmiyorsa kararın "önerisi" nedir — en yüksek destekli alternatif mi?
+Bu bir türetme olurdu ve arayüz türetme yapmamalı.
+
+### 13.2 Yüzde birimi ölçeği tanımsız
+
+`ExecutiveKPI.unit: "percent"` ve `trend.changePercent` için ölçek yazılmamış.
+ACOS 18,1 mi gelir, 0,181 mi?
+
+**Yapılan (UI-ADR-093, gavadolar danışıldı):** Varsayım **kaldırıldı.**
+`unit === "percent"` ise `scale: "0-1" | "0-100"` alanı **zorunludur.**
+Gelmezse değer render edilmez. Arayüz veriyi tamir etmez, tahmin etmez.
+
+**Backend'den istenen:** `ExecutiveKPI` üretirken `scale` alanını doldurun.
+Doldurulmadığı sürece yüzde KPI'ları arayüzde boş görünür — bu bilinçlidir.
+
+### 13.3 Confidence eşikleri UI kararı
+
+`ConfidenceBadge` renk eşikleri (≥80 yüksek, ≥50 orta, <50 düşük) dokümanda
+yok; `07-ai-directors.md` §11 yalnızca "yüksek → yeşil, düşük → amber" diyor.
+
+**Şimdilik yapılan:** Eşikler `confidence-badge.tsx` içinde tek yerde sabit
+(`CONFIDENCE_HIGH` / `CONFIDENCE_LOW`) ve dışa açık.
+
+**Soru:** Confidence Engine'in kalibrasyonu biliniyor mu? Model %70'te
+gerçekten %70 haklı çıkıyorsa eşikler böyle kalabilir; çıkmıyorsa eşikler
+kalibrasyona göre belirlenmeli. Bu bir tasarım tercihi değil, ölçüm sorusudur.

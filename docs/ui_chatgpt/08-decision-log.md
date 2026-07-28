@@ -833,3 +833,160 @@ girerse bu karar yeniden açılır.
 
 **Etki:** `src/components/ui/chart.tsx`, `src/components/ui/sparkline.tsx`,
 `src/lib/chart/scale.ts` (+ `scale.test.ts`). Yeni npm bağımlılığı YOK.
+
+---
+
+## UI-ADR-088 — Anti-fake zorlaması: `DataGuard` sarmalayıcısı
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S4 Executive Components
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde
+
+**Sorun:** `canRender()` her bileşenin gövdesine tek tek yazılırsa bir gün
+unutulur ve unutulduğunda hiçbir şey bağırmaz. Hook (`useEnvelope`), HOC ya da
+sarmalayıcı?
+
+**Karar:** **Sarmalayıcı.** Veri taşıyan her Executive bileşeninin tek public
+çıkışı `DataGuard` ile sarılıdır; içerideki `*View` bileşeni `env` değil,
+doğrulanmış `data` alır.
+
+**Gerekçe:** Hook da HOC da çağrılmayı unutulabilir — ikisi de yalnızca
+ergonomidir, garanti değildir. `DataGuard`'da zarfı atlamak **tip seviyesinde**
+mümkün değildir: `*View`'ın `env` diye bir prop'u yoktur. Ayrıca guard tek bir
+saf bileşen olarak test edilir; 15 bileşenin her birinde ayrı ayrı test edilmez.
+
+**Reddedilen alternatif:** `useEnvelope` hook'u.
+**Etki:** `src/components/executive/data-guard.tsx` + 15 bileşenin tamamı.
+
+---
+
+## UI-ADR-089 — Canlılık için tek merkezi saat
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S4
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde
+
+**Sorun:** DirectorCard "lastBeat > beatIntervalMs*3 ise offline" der. Bu her
+kartta `setInterval` ile mi hesaplanır? Ekranda 20 kart olabilir. Ayrıca
+`Date.now()` render içinde çağrılırsa sunucu ile istemci farklı değer üretir.
+
+**Karar:** Tek bir modül düzeyinde tick yayını (`useNow()`,
+`useSyncExternalStore`). Abone varken tek timer çalışır, son abone gidince
+timer durur. **`getServerSnapshot` daima `null` döner.**
+
+**Gerekçe:**
+1. 20 kart = 20 timer, 20 ayrı drift ve gereksiz render demektir.
+2. `now === null` iken canlılık **"bilinmiyor"** durumundadır — sunucuda ve
+   ilk hydration render'ında ne "canlı" ne "offline" yazılır. Hydration
+   mismatch kapanır ve aynı hamlede sahte durum üretimi de engellenir.
+3. Zaman mantığı (`liveness`, `relativeTime`) saf fonksiyondur ve tarayıcısız
+   birim testi vardır.
+
+**Reddedilen alternatif:** kart başına `setInterval`.
+**Etki:** `src/lib/clock/tick.ts` (+ `tick.test.ts`), DirectorCard,
+HeartbeatIndicator, TrustSignal, AlertStack, EvidenceChain, TelemetryBar.
+
+---
+
+## UI-ADR-090 — Heartbeat: atım başına tek nabız, geçmiş çubuğu yok
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S4
+
+**Sorun:** `07-ai-directors.md` §12 Director kartında `Heartbeat █████████`
+biçiminde bir nabız çubuğu gösteriyor. Ayrıca `02-design-principles.md` §11
+"hiçbir sinyal sonsuz döngüde değildir" diyor — sürekli dönen bir nabız
+animasyonu bu kuralla çelişiyor.
+
+**Karar:** İki değişiklik.
+1. **9 çubuk çizilmez.** 9 çubuk son 9 atımın geçmişini ima eder;
+   `DirectorHeartbeat` sözleşmesi yalnızca `lastBeat` verir. Olmayan bir
+   geçmişi çizmek sahte telemetridir.
+2. **Nabız sonsuz döngü değildir.** `key={lastBeat}` ile her gerçek atımda
+   bir kez atar. Yeni atım gelmezse hiçbir şey kıpırdamaz.
+
+**Gerekçe:** Canlılık hissi animasyondan değil veriden gelmelidir. Bu kurgu
+"animasyonu durdur" kuralını ayrıca uygulamayı gereksiz kılar — atım
+gelmediğinde animasyon zaten yoktur. Üçüncü bir durum eklendi: `lastBeat`
+yoksa **"bilinmiyor"**; bilmemek ile ölmüş olmak farklı şeylerdir.
+
+**Etki:** `heartbeat-indicator.tsx`, `director-card.tsx`.
+**Not:** `07-ai-directors.md` §12'deki ASCII çizim güncellenmelidir.
+
+---
+
+## UI-ADR-091 — Alternatifi 2'den az öneri: sessiz `null` + bastırma gerçeği
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S4
+**Danışılan:** gavadolar — **terra ve luna burada ayrıştı**, karar sentezdir
+
+**Sorun:** `alternatives.length < 2` olan bir AI önerisi gösterilmez. Peki
+kullanıcı bu bilgiyi hiç görmemeli mi? terra: sessizce `null` dön, UI kendi
+başına olay uydurmasın. luna: CEO bilgiyi kaçırmasın, bir yerde görünsün.
+
+**Karar:** İkisi de.
+- `AIRecommendationCard` **`null` döner.** Yerine "gösterilemiyor" kutusu
+  basılmaz — o kutu boş bir AI kartı üretip kuralı deler.
+- Bastırma gerçeğini **çağıran katman** yazar. `canRenderRecommendation()` ve
+  `missingExplainabilityFields()` dışa açıktır; `AIBrief` 🎯 adımında eksik
+  alanların adını yazar, `OpportunityCard` ve `ExecutiveKPICard` kendi
+  bağlamında bir satır düşer.
+- **Sahte `Alert` nesnesi üretilmez.** AlertStack yalnızca backend'den gelen
+  gerçek uyarıları listeler.
+
+**Gerekçe:** Bastırmayı bilen katman, bastırmanın olduğu yerdir. Uydurma
+yapılmadan görünürlük sağlanır. Aynı kural 7 explainability alanının
+tamamı için geçerlidir (09-...md §3).
+
+**Etki:** `ai-recommendation-card.tsx`, `ai-brief.tsx`, `opportunity-card.tsx`,
+`executive-kpi-card.tsx`.
+
+---
+
+## UI-ADR-092 — Bayat veride onay kilidi
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S4
+**Danışılan:** gavadolar (luna)
+
+**Sorun:** `freshness: "stale"` bir DecisionCard'da CEO yine de `Onayla`
+diyebilir. Bayat veriyle verilen onay geri alınamaz.
+
+**Karar:** `meta.freshness === "stale"` iken `Onayla` butonu `disabled`,
+sebebi butonun üstünde açık metinle yazılı. Sessizce disabled edilmez.
+`Analizi aç` açık kalır — okumak her zaman serbesttir.
+
+**Gerekçe:** Bayat veriyle verilen onay, sahte veriyle verilen onaydan
+farksızdır. Anti-fake kuralı yalnızca gösterimi değil, **eylemi** de kapsar.
+
+**Etki:** `decision-card.tsx`.
+
+---
+
+## UI-ADR-093 — Yüzde ölçeği bildirilir, tahmin edilmez
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S4 kapanışı
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde, ikisi de
+"varsayımı kaldırın" dedi
+
+**Sorum:** `ExecutiveKPI.unit: "percent"` için sözleşmede ölçek yazmıyor.
+ACOS 18.1 mi gelir, 0.181 mi? S4'te 0–100 varsayıp arayüzde 100'e bölmüştüm.
+
+**Karar:** Varsayım **kaldırıldı.** `unit === "percent"` ise
+`scale: "0-1" | "0-100"` alanı **zorunludur**. Gelmezse değer render edilmez,
+`NoData` çıkar ve sebebi yazılır.
+
+**Gerekçe:** Yanlış tahmin %18,1 yerine %1810 yazar. Bu, eksik veriden daha
+tehlikelidir: **makul görünür.** Anti-fake kuralı "veri yoksa gösterme" der;
+"ölçeği bilinmeyen veri" de bu kapsamdadır — sayı vardır ama anlamı yoktur.
+Otomatik düzeltme (100 kat böl/çarp) de yapılmaz; arayüz veriyi tamir etmez.
+
+**İstisna:** `trend.changePercent`. `05-dashboard.md` §4 anatomisi bu alanı
+`12 → "▲ %12"` örneğiyle açıkça 0–100 olarak dondurmuştur; orada tahmin yok,
+dondurulmuş bir sözleşme var.
+
+**Etki:** `types/executive.ts`, `executive-kpi-card.tsx`,
+`13-backend-recommendations.md` §13.2. Backend `scale` alanını üretene kadar
+yüzde KPI'ları boş görünür — bu bilinçli ve doğru davranıştır.
