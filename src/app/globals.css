@@ -16,6 +16,39 @@
     ui-monospace, Menlo, monospace;
 }
 
+/* Overlay perdesi — tokens.css'teki glass.overlay token'ının kullanıma hazır
+   sınıfı. Modal/command palette arkasında kullanılır (11-...md §11). */
+.odin-overlay-scrim {
+  background: var(--odin-glass-overlay-bg);
+}
+
+/* ---------------------------------------------------------------------------
+   CAM ONARIMI — araç zinciri hatası telafisi.
+
+   Lightning CSS (Turbopack'in CSS motoru) bir kuralda hem `backdrop-filter`
+   hem `-webkit-backdrop-filter` bulunca ikisini birleştirip YALNIZCA webkit
+   önekli olanı yayıyor. Chrome 148 ise `-webkit-backdrop-filter` alias'ını
+   artık desteklemiyor (CSS.supports ile doğrulandı) → cam efekti sessizce
+   kayboluyordu.
+
+   tokens.css'in içeriği DEĞİŞTİRİLMEZ (kod/KURULUM.md). Bu yüzden özellik
+   burada, yalnızca standart adıyla, ayrı bir kuralda geri veriliyor.
+   Lightning tek özellikli kuralı olduğu gibi bırakıyor.
+
+   Araç zinciri düzeldiğinde bu blok silinebilir.
+   ------------------------------------------------------------------------ */
+.odin-glass-medium {
+  backdrop-filter: blur(var(--odin-glass-medium-blur));
+}
+
+.odin-glass-modal {
+  backdrop-filter: blur(var(--odin-glass-modal-blur));
+}
+
+.odin-overlay-scrim {
+  backdrop-filter: blur(var(--odin-glass-overlay-blur));
+}
+
 html {
   height: 100%;
 }
