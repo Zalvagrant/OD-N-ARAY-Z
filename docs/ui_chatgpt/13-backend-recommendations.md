@@ -1,0 +1,340 @@
+# 13 — Backend Recommendations
+
+**Durum:** 🟡 ÖNERİ — hiçbiri mevcut ODIN backend'i ile doğrulanmadı
+**Kaynak:** dosya_3 (Memory, Universe), dosya_7 (AI Gateway, Project Intelligence), + arayüz kararlarından türetilenler
+
+⚠️ Bu dosyadaki hiçbir madde mevcut ODIN mimarisini değiştirme talebi
+değildir. Bunlar, tanımlanan arayüzün **çalışabilmesi için** backend'de
+karşılığı olması gereken şeylerin listesidir.
+
+---
+
+## 1. AI Gateway (Model Router) ⭐ EN ÖNCELİKLİ
+
+Bu, sohbetin en pratik ve en yüksek getirili teknik kararıdır.
+
+### Neden gerekli
+
+ODIN'in tüm AI özellikleri tek bir modele giderse maliyet kontrolsüz büyür ve
+tek sağlayıcıya bağımlılık oluşur.
+
+### Router mantığı
+
+Her AI isteği şu kapıdan geçer:
+
+```
+İstek gelir
+  ↓
+1. Bu iş gerçekten AI gerektiriyor mu?
+     Hayır → deterministik kod ile çöz, dön
+  ↓
+2. İş tipi nedir?
+     Küçük  → yerel / küçük model
+     Orta   → orta model
+     Büyük  → büyük model
+  ↓
+3. Önbellekte var mı? (aynı soru, aynı veri)
+     Evet → cache'ten dön
+  ↓
+4. Modeli çağır
+  ↓
+5. Sonucu logla: model, token, süre, maliyet
+```
+
+### İş tipi kademelendirmesi
+
+| Kademe | Örnek işler | Model |
+|---|---|---|
+| **Küçük** | Hatırlatma, dosya sınıflandırma, etiketleme, basit özet | Yerel / küçük |
+| **Orta** | E-posta yazma, rapor özetleme, tek modül analizi | Orta |
+| **Büyük** | Tüm Amazon hesabı analizi, strateji üretimi, finans tahmini, Council Debate | Büyük |
+
+### Sağlayıcı stratejisi
+
+| Sağlayıcı | Kullanım |
+|---|---|
+| Yerel model | Basit, sık tekrarlanan işler — 0 maliyet |
+| OpenAI | Karmaşık analizler |
+| Claude | Kod üretimi, büyük doküman işleme |
+| Diğer | İhtiyaca göre |
+
+### Zorunlu telemetri
+
+Router her çağrıyı kaydeder: `model` · `tokenIn` · `tokenOut` · `latencyMs`
+· `cost` · `module` · `cacheHit`
+
+Bu veri System Director'da gösterilir ve maliyet optimizasyonunun temelidir.
+
+### Maliyet gerçeği (kullanıcıya net cevap)
+
+| Aktivite | Token |
+|---|---|
+| Dashboard açmak | 0 |
+| Amazon siparişlerini görüntülemek | 0 |
+| Finans tablosu incelemek | 0 |
+| Grafik, rapor, senkronizasyon | 0 |
+| AI'a soru sormak | Token harcar |
+| Analiz istemek | Token harcar |
+
+ODIN çalışırken sürekli token yemez. **Yalnızca AI düşündüğünde** harcar.
+Yüksek limitli plan **geliştirme döneminde** işe yarar (Claude Code büyük
+dosyalarla çalışır); günlük kullanımda zorunlu değildir.
+
+---
+
+## 2. Multi-Tenancy / Universe Katmanı
+
+`01-product-vision.md` §13'teki Executive Universe kararının backend
+karşılığı.
+
+**Gereklilik:** Tüm veri modelinin bir `universe_id` boyutu taşıması.
+
+```
+universes
+  ├── id, name, type (business | personal | trading | holding)
+  ├── data_sources[]
+  └── active_directors[]
+
+her tablo → universe_id (indeksli, zorunlu)
+```
+
+⚠️ **DOĞRULANMADI:** Mevcut ODIN'de bu var mı? Yoksa, **şimdi eklenmesi
+sonradan eklenmesinden 10 kat ucuzdur.** Multi-tenancy, retrofit edilmesi en
+pahalı özelliklerden biridir.
+
+### Cross Universe Intelligence
+
+Evrenler arası olay akışı gerekir:
+
+```
+Trading Universe: kâr olayı
+  → Event Bus
+  → Finance Universe: nakit akışı güncelleme önerisi
+  → Decision Engine: yeni karar teklifi oluştur
+```
+
+Bu, bir **event bus** ve **kural motoru** gerektirir.
+
+---
+
+## 3. Üç Katmanlı Hafıza
+
+`07-ai-directors.md` §9'un backend karşılığı.
+
+| Katman | Saklama | Erişim hızı |
+|---|---|---|
+| Short-Term | Oturum / cache | Anında |
+| Working | Veritabanı, son N hafta | Hızlı |
+| Long-Term Executive | Kalıcı, vektör indeksli | Semantik arama |
+
+**En kritik bileşen: Memory Classifier**
+
+Her yeni bilgi bir sınıflandırmadan geçer:
+
+```
+Geçici mi? → at
+Kalıcı mı? → Working Memory
+Stratejik mi? → Long-Term Executive Memory
+Arşivlik mi? → Archive
+```
+
+Bu sınıflandırıcı olmadan Long-Term Memory çöplüğe döner ve `07-...` §9'daki
+"otomatik büyümez" kuralı ihlal edilir.
+
+---
+
+## 4. Amazon Veri Katmanı
+
+### Mevcut durum
+⚠️ SP-API bağlantısı olduğu biliniyor (Marketplace Participations, Orders,
+FBA Inventory, Sales & Traffic raporu).
+
+### Eksikler
+
+| Gereksinim | Durum |
+|---|---|
+| **Ads API** | ⚠️ Bağlı mı? PPC Intelligence bunsuz çalışmaz |
+| **Finance / Fees** | ⚠️ Net kâr için zorunlu |
+| **COGS** | ❌ Amazon'da yok — kullanıcı girmeli |
+| **Buy Box oranı** | ⚠️ Kaynağı belirsiz |
+| **Returns** | ⚠️ |
+| **Storage fees** | ⚠️ |
+
+### Net Kâr Hesabı — en riskli nokta
+
+`09-data-contracts.md` §8'de `netProfit` alanı var. Ama:
+
+```
+Net Kâr = Satış
+        − Amazon ücretleri (referral, FBA, storage)
+        − Reklam harcaması (Ads API)
+        − İade maliyeti
+        − COGS (kullanıcı girişi)
+        − Nakliye / gümrük
+```
+
+Bu kalemlerden biri eksikse gösterilen net kâr **yanlıştır.** Yanlış bir kâr
+rakamı, tüm ODIN'in güvenilirliğini bitirir.
+
+**Öneri:** Net kâr hesaplanamıyorsa gösterilmez. Yerine "Gross Profit
+(ücretler hariç)" gösterilir ve neyin hariç olduğu açıkça yazılır. Trust
+Signals kuralı burada en katı şekilde uygulanır.
+
+---
+
+## 5. Decision Engine — kalıcı saklama
+
+`06-workspaces.md` §2'deki Decision Center bir arayüz değil, bir **motor**
+gerektirir.
+
+Gerekenler:
+
+- `decisions` tablosu — Executive Decision DNA'nın 12 alanı
+- `decision_events` — timeline
+- `decision_relationships` — kararlar arası etki grafiği
+- `decision_scores` — tamamlanan kararın puanı
+- `director_opinions` — council kayıtları
+- `evidence` — kanıt referansları, kalıcı
+
+**Kritik:** `actualROI` ve `lessonsLearned` alanları, karar tamamlandıktan
+**sonra** doldurulur. Bu, bir arka plan işi gerektirir: karar uygulandıktan N
+gün sonra gerçek sonucu ölç ve geri yaz.
+
+Bu iş yapılmazsa Executive Decision Score hiçbir zaman dolmaz ve ODIN'in
+"öğrenen sistem" iddiası boşa çıkar.
+
+---
+
+## 6. Tahmin / Simülasyon Motoru
+
+`06-workspaces.md` §1.5 Executive Simulator ve KPI `forecast` alanı bunu
+gerektirir.
+
+⚠️ **Mevcut ODIN'de karşılığı yok.** Bu bağımsız bir çalışmadır.
+
+Minimum uygulanabilir yaklaşım:
+
+1. **Faz 1 — İstatistiksel:** Trend ekstrapolasyonu + mevsimsellik. Basit,
+   açıklanabilir, hızlı.
+2. **Faz 2 — Kural tabanlı:** "PPC %15 artarsa satış ~%9 artar" gibi geçmiş
+   veriden çıkarılmış elastikiyet katsayıları.
+3. **Faz 3 — Model:** Gerçek tahmin modeli.
+
+**Zorunlu:** Her simülasyon sonucu `assumptions[]` döndürür. Varsayımları
+gösterilmeyen simülasyon, Explainability sözleşmesini ihlal eder.
+
+---
+
+## 7. Telemetri ve Gözlemlenebilirlik
+
+Arayüzde 13 telemetri kanalı ve 7 AI Pulse kanalı tanımlandı. Bunların
+karşılığı olmalıdır:
+
+| Kanal grubu | Kaynak |
+|---|---|
+| Background Jobs, Scheduler, Event Queue | Job runner |
+| API Trafiği | Gateway metrikleri |
+| Memory Indexing, Knowledge Sync | Memory servisi |
+| AI Queue, Agent Bus | AI Orchestrator |
+| Reasoning/Planning/Learning/... | AI Orchestrator (7 kanal) |
+
+**Kural:** Karşılığı olmayan kanal `available: false` döner ve arayüzde
+**gösterilmez.** Sahte telemetri, "Fake Dashboard" yasağının ihlalidir.
+
+---
+
+## 8. Director Heartbeat Servisi
+
+Her Director için periyodik durum yayını gerekir:
+
+```
+GET /api/directors/heartbeat
+→ DirectorHeartbeat[]  (bkz. 09-data-contracts.md §4)
+```
+
+Gerçek zamanlı olması tercih edilir (WebSocket / SSE). Polling kullanılacaksa
+`beatIntervalMs` ile senkron olmalıdır.
+
+**Anti-fake:** `lastBeat` eskiyse Director `offline` olur. Backend
+"her zaman canlı" numarası yapmaz.
+
+---
+
+## 9. Confidence Score Üretimi ⚠️
+
+`02-design-principles.md` §1'de "Confidence Everywhere" kuralı var. Bu, her
+önemli bilginin bir güven skoru taşıması demek.
+
+**Kritik soru:** Bu skorlar nereden geliyor?
+
+| Kaynak | Meşru mu |
+|---|---|
+| Model logprob / self-reported confidence | 🟡 Kalibre edilmeli |
+| Kanıt sayısı ve kalitesi | ✅ |
+| Geçmiş tahmin doğruluğu | ✅ En güçlüsü |
+| Director'lar arası consensus | ✅ |
+| Rastgele / sabit sayı | ❌ **Kesinlikle hayır** |
+
+**Uyarı:** Kullanıcı bir kez sahte bir güven skoru fark ederse hiçbir skora
+bir daha güvenmez. Skor üretilemiyorsa **gösterilmez.**
+
+`DecisionScore.aiPredictionAccuracy` alanı tam da bu kalibrasyon için vardır:
+zamanla AI'ın kendi güven skorlarının ne kadar doğru olduğunu ölçer.
+
+---
+
+## 10. Event Bus
+
+Birçok özellik olay tabanlıdır:
+
+- Cross Universe Intelligence
+- Executive Timeline
+- Decision lifecycle geçişleri
+- Alert üretimi
+- Knowledge güncellemeleri
+
+Merkezi bir event bus olmadan bunların hepsi ayrı ayrı polling ile yazılır ve
+sistem dağılır.
+
+---
+
+## 11. ODIN Project Intelligence 🟡
+
+Sohbetin en iddialı önerisi: ODIN'in kendi geliştirme sürecini yönetmesi.
+
+Otomatik olarak:
+- Yapılacak işleri analiz eder
+- Eksik dokümanları bulur
+- Kod tekrarlarını raporlar
+- Kullanılmayan bileşenleri listeler
+- Eski bağımlılıkları tespit eder
+- Mimari ihlalleri gösterir
+- Teknik borç puanı üretir
+- Sprint ilerlemesini hesaplar
+- Sonraki önerilen işi belirler
+
+**Değerlendirme:** Fikir güçlü ama **v1.0 kapsamında değildir.** ODIN henüz
+çalışan bir arayüze sahip değilken kendi kendini denetleyen bir modül yazmak,
+tam olarak `08-decision-log.md` UI-ADR-063'te eleştirilen kapsam büyütmesidir.
+
+🟡 **Öneri:** v2.0 backlog'una alınsın. v1.0'da yerine basit bir CI kontrolü
+yeterlidir (lint + type check + test + token compliance).
+
+---
+
+## 12. Öncelik Sırası
+
+Backend tarafında yapılacak işlerin sırası:
+
+| # | İş | Neden bu sırada |
+|---|---|---|
+| 1 | Mevcut API envanteri çıkar | Neyin var olduğunu bilmeden plan yapılamaz |
+| 2 | `09-data-contracts.md` ile eşle | Boşluklar görünür olur |
+| 3 | Universe / multi-tenancy kararı | Sonradan eklemek 10 kat pahalı |
+| 4 | AI Gateway | Maliyet kontrolü, hemen getiri |
+| 5 | Director Heartbeat servisi | Arayüzün en görünür parçası |
+| 6 | Decision Engine kalıcı saklama | Ürünün çekirdeği |
+| 7 | Ads API + fee/COGS → net kâr | En yüksek iş değeri |
+| 8 | Event Bus | Gerçek zamanlılık |
+| 9 | Memory Classifier | Uzun vadeli sağlık |
+| 10 | Tahmin motoru | En son — diğerleri olmadan anlamsız |
