@@ -1,0 +1,455 @@
+/* ============================================================================
+   ODIN Design Tokens v1.0
+   Kaynak: docs/ui_chatgpt/11-design-tokens.md
+   ADR-069 (hibrit görsel dil) · ADR-075 (tema) · ADR-071 (renk semantiği)
+
+   KURAL: Hiçbir bileşen primitive token'ı doğrudan kullanmaz.
+          Her zaman semantic katmanı kullanılır.
+          --odin-gray-900  ❌
+          --odin-bg-primary ✅
+   ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+   KATMAN 1 — PRIMITIVE TOKENS
+   Ham değerler. Doğrudan kullanılmaz.
+   ------------------------------------------------------------------------ */
+
+:root {
+  /* --- Gray (nötr — arka plan ve yüzeyler) --- */
+  --odin-gray-50:  #F8FAFC;
+  --odin-gray-100: #F1F5F9;
+  --odin-gray-200: #E2E8F0;
+  --odin-gray-300: #CBD5E1;
+  --odin-gray-400: #94A3B8;
+  --odin-gray-500: #64748B;
+  --odin-gray-600: #475569;
+  --odin-gray-700: #334155;
+  --odin-gray-800: #1E293B;
+  --odin-gray-900: #111827;
+  --odin-gray-950: #070B14;
+
+  /* --- Purple (AI — birincil aksan) --- */
+  --odin-purple-300: #D8B4FE;
+  --odin-purple-400: #C084FC;
+  --odin-purple-500: #A855F7;
+  --odin-purple-600: #9333EA;
+  --odin-purple-700: #7E22CE;
+  --odin-purple-900: #4C1D95;
+
+  /* --- Cyan (İKİNCİL AKSAN — UI-ADR-084)
+         Mevcut cockpit.html'deki #00D4FF ile hizalı.
+         Turuncu bilinçli olarak KULLANILMIYOR: warning (amber) ile
+         karışma riski vardı. --- */
+  --odin-cyan-300: #67E8F9;
+  --odin-cyan-400: #22D3EE;
+  --odin-cyan-500: #00D4FF;
+  --odin-cyan-600: #0891B2;
+
+  /* --- Amber (WARNING — UI-ADR-069 / UI-ADR-084) --- */
+  --odin-amber-300: #FCD34D;
+  --odin-amber-400: #FBBF24;
+  --odin-amber-500: #F59E0B;
+  --odin-amber-600: #D97706;
+
+  /* --- Red (DANGER — yalnızca gerçek kriz) --- */
+  --odin-red-400: #F87171;
+  --odin-red-500: #EF4444;
+  --odin-red-600: #DC2626;
+
+  /* --- Green (SUCCESS) --- */
+  --odin-green-400: #4ADE80;
+  --odin-green-500: #22C55E;
+  --odin-green-600: #16A34A;
+
+  /* --- Blue (INFO) --- */
+  --odin-blue-400: #60A5FA;
+  --odin-blue-500: #3B82F6;
+  --odin-blue-600: #2563EB;
+
+  /* --- Radius --- */
+  --odin-radius-2:  2px;
+  --odin-radius-4:  4px;
+  --odin-radius-8:  8px;
+  --odin-radius-12: 12px;
+  --odin-radius-16: 16px;
+  --odin-radius-20: 20px;
+  --odin-radius-24: 24px;
+  --odin-radius-32: 32px;
+
+  /* --- Spacing (temel birim 8px, mikro hizalama 4px) --- */
+  --odin-space-1:  4px;
+  --odin-space-2:  8px;
+  --odin-space-3:  12px;
+  --odin-space-4:  16px;
+  --odin-space-5:  20px;
+  --odin-space-6:  24px;
+  --odin-space-8:  32px;
+  --odin-space-10: 40px;
+  --odin-space-12: 48px;
+  --odin-space-16: 64px;
+  --odin-space-20: 80px;
+  --odin-space-24: 96px;
+  --odin-space-32: 128px;
+
+  /* --- Blur (performans: 24px üstü dikkatli kullan) --- */
+  --odin-blur-xs: 4px;
+  --odin-blur-sm: 8px;
+  --odin-blur-md: 12px;
+  --odin-blur-lg: 20px;
+  --odin-blur-xl: 32px;
+}
+
+/* ---------------------------------------------------------------------------
+   KATMAN 2 — SEMANTIC TOKENS (Executive Dark)
+   Bileşenlerin kullandığı asıl katman.
+   ------------------------------------------------------------------------ */
+
+:root,
+[data-theme="executive-dark"] {
+  color-scheme: dark;
+
+  /* --- Arka plan --- */
+  --odin-bg-primary:   var(--odin-gray-950);   /* #070B14 — ana zemin */
+  --odin-bg-secondary: #0B1220;                /* hafif yükseltilmiş zemin */
+
+  /* --- Yüzeyler --- */
+  --odin-surface-default:  var(--odin-gray-900);  /* #111827 — panel */
+  --odin-surface-elevated: #16202F;               /* kart, widget */
+  --odin-surface-floating: #1B2739;               /* dropdown, popover */
+
+  /* --- Metin --- */
+  --odin-text-primary:   var(--odin-gray-100);
+  --odin-text-secondary: var(--odin-gray-400);
+  --odin-text-tertiary:  var(--odin-gray-500);
+  --odin-text-inverse:   var(--odin-gray-950);
+
+  /* --- Kenarlık --- */
+  --odin-border-default: var(--odin-gray-800);    /* #1E293B */
+  --odin-border-subtle:  #16202F;
+  --odin-border-focus:   var(--odin-purple-500);
+  --odin-border-active:  var(--odin-purple-600);
+
+  /* --- İkon --- */
+  --odin-icon-default: var(--odin-gray-400);
+  --odin-icon-active:  var(--odin-gray-100);
+  --odin-icon-muted:   var(--odin-gray-600);
+
+  /* --- DURUM RENKLERİ (semantiği ADR-069'da dondurulmuş) --- */
+  --odin-danger:      var(--odin-red-500);      /* gerçek kriz — SADECE */
+  --odin-danger-bg:   rgba(239, 68, 68, 0.10);
+  --odin-warning:     var(--odin-amber-500);    /* bekleyen risk */
+  --odin-warning-bg:  rgba(245, 158, 11, 0.10);
+  --odin-success:     var(--odin-green-500);    /* onay / sağlıklı */
+  --odin-success-bg:  rgba(34, 197, 94, 0.10);
+  --odin-info:        var(--odin-blue-500);     /* bilgi */
+  --odin-info-bg:     rgba(59, 130, 246, 0.10);
+
+  /* --- AKSAN --- */
+  --odin-accent-ai:        var(--odin-purple-500);  /* AI üretimi her şey */
+  --odin-accent-secondary: var(--odin-cyan-500);    /* #00D4FF — dekoratif */
+  --odin-accent-amazon:    #FF9900;
+  --odin-accent-finance:   var(--odin-green-500);
+  --odin-accent-trading:   var(--odin-cyan-400);
+  --odin-accent-knowledge: var(--odin-blue-400);
+}
+
+/* ---------------------------------------------------------------------------
+   ELEVATION — Shadow + Border + Glow kombinasyonu
+   Kural: bir ekranda en fazla 3 adet Level 3+ yüzey (performans)
+   ------------------------------------------------------------------------ */
+
+:root {
+  --odin-elevation-0: none;
+
+  --odin-elevation-1:
+    0 1px 2px rgba(0, 0, 0, 0.30);
+
+  --odin-elevation-2:
+    0 2px 8px rgba(0, 0, 0, 0.35),
+    0 0 0 1px var(--odin-border-subtle);
+
+  --odin-elevation-3:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 0 0 1px var(--odin-border-default);
+
+  --odin-elevation-4:
+    0 16px 48px rgba(0, 0, 0, 0.55),
+    0 0 0 1px var(--odin-border-default);
+
+  --odin-elevation-overlay:
+    0 24px 64px rgba(0, 0, 0, 0.65);
+
+  --odin-elevation-modal:
+    0 32px 80px rgba(0, 0, 0, 0.75),
+    0 0 0 1px var(--odin-border-default);
+}
+
+/* ---------------------------------------------------------------------------
+   GLASS — ADR-069: YALNIZCA overlay katmanında
+   Kural: üst üste en fazla 2 katman. glass-heavy ekranda en fazla 1 kez.
+          Hareketli içeriğin üzerinde glass-heavy KULLANILMAZ (FPS).
+   ------------------------------------------------------------------------ */
+
+:root {
+  --odin-glass-light-bg:     rgba(17, 24, 39, 0.60);
+  --odin-glass-light-blur:   var(--odin-blur-sm);
+  --odin-glass-light-border: rgba(255, 255, 255, 0.06);
+
+  --odin-glass-medium-bg:     rgba(17, 24, 39, 0.75);
+  --odin-glass-medium-blur:   var(--odin-blur-md);
+  --odin-glass-medium-border: rgba(255, 255, 255, 0.08);
+
+  --odin-glass-heavy-bg:     rgba(11, 18, 32, 0.88);
+  --odin-glass-heavy-blur:   var(--odin-blur-lg);
+  --odin-glass-heavy-border: rgba(255, 255, 255, 0.10);
+
+  --odin-glass-overlay-bg:   rgba(7, 11, 20, 0.72);
+  --odin-glass-overlay-blur: var(--odin-blur-md);
+
+  --odin-glass-modal-bg:     rgba(11, 18, 32, 0.92);
+  --odin-glass-modal-blur:   var(--odin-blur-lg);
+}
+
+/* Kullanıma hazır glass sınıfları */
+.odin-glass-medium {
+  background: var(--odin-glass-medium-bg);
+  backdrop-filter: blur(var(--odin-glass-medium-blur));
+  -webkit-backdrop-filter: blur(var(--odin-glass-medium-blur));
+  border: 1px solid var(--odin-glass-medium-border);
+}
+
+.odin-glass-modal {
+  background: var(--odin-glass-modal-bg);
+  backdrop-filter: blur(var(--odin-glass-modal-blur));
+  -webkit-backdrop-filter: blur(var(--odin-glass-modal-blur));
+  border: 1px solid var(--odin-glass-heavy-border);
+  box-shadow: var(--odin-elevation-modal);
+}
+
+/* ---------------------------------------------------------------------------
+   AI TOKENS — ADR-069 hibrit kuralı
+   AI bölgeleri belirgin mor glow alır. Çerçeve ve içerik sakin kalır.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --odin-ai-surface: rgba(168, 85, 247, 0.06);
+  --odin-ai-border:  rgba(168, 85, 247, 0.25);
+  --odin-ai-accent:  var(--odin-purple-500);
+  --odin-ai-text:    var(--odin-purple-300);
+
+  --odin-ai-glow:
+    0 0 0 1px rgba(168, 85, 247, 0.20),
+    0 0 24px rgba(168, 85, 247, 0.12);
+
+  --odin-ai-glow-strong:
+    0 0 0 1px rgba(168, 85, 247, 0.35),
+    0 0 40px rgba(168, 85, 247, 0.20);
+
+  --odin-ai-processing: var(--odin-purple-400);
+  --odin-ai-streaming:  var(--odin-purple-300);
+}
+
+/* AI bölgesi için hazır sınıf */
+.odin-ai-region {
+  background: var(--odin-ai-surface);
+  border: 1px solid var(--odin-ai-border);
+  box-shadow: var(--odin-ai-glow);
+  border-radius: var(--odin-radius-12);
+}
+
+/* ---------------------------------------------------------------------------
+   CHART TOKENS
+   Not: chart.positive/negative, success/danger'dan daha YUMUŞAK.
+   Her düşen çizgi kriz gibi görünmesin.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --odin-chart-line:     var(--odin-purple-400);
+  --odin-chart-area:     rgba(168, 85, 247, 0.15);
+  --odin-chart-grid:     rgba(148, 163, 184, 0.08);
+  --odin-chart-axis:     var(--odin-gray-600);
+  --odin-chart-tooltip:  var(--odin-surface-floating);
+
+  --odin-chart-positive: var(--odin-green-400);
+  --odin-chart-negative: var(--odin-red-400);
+  --odin-chart-neutral:  var(--odin-gray-500);
+
+  /* Çok serili grafikler için sıra */
+  --odin-chart-series-1: var(--odin-purple-500);
+  --odin-chart-series-2: var(--odin-cyan-500);
+  --odin-chart-series-3: var(--odin-cyan-300);
+  --odin-chart-series-4: var(--odin-blue-400);
+  --odin-chart-series-5: var(--odin-green-400);
+}
+
+/* ---------------------------------------------------------------------------
+   MOTION TOKENS — 12-motion-system.md §2
+   Kural: 400ms üstü geçiş YOK. Sadece transform ve opacity animate edilir.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --odin-duration-fast:   120ms;
+  --odin-duration-normal: 220ms;
+  --odin-duration-slow:   400ms;
+
+  --odin-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --odin-ease-enter:    cubic-bezier(0, 0, 0.2, 1);
+  --odin-ease-exit:     cubic-bezier(0.4, 0, 1, 1);
+
+  --odin-scale-hover:     1.01;   /* çok hafif — 1.05 zaten fazla */
+  --odin-opacity-disabled: 0.4;
+}
+
+/* ---------------------------------------------------------------------------
+   TYPOGRAPHY
+   KRİTİK: tabular-nums zorunlu. Sütunda hizalanmayan sayı = okunmayan tablo.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --odin-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    system-ui, sans-serif;
+  --odin-font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+
+  /* Type scale */
+  --odin-text-xs:   11px;
+  --odin-text-sm:   12px;
+  --odin-text-base: 14px;   /* veri yoğun arayüzde 14px taban */
+  --odin-text-md:   16px;
+  --odin-text-lg:   20px;
+  --odin-text-xl:   24px;
+  --odin-text-2xl:  32px;
+  --odin-text-3xl:  40px;
+  --odin-text-4xl:  56px;   /* hero KPI değeri */
+
+  /* Line height */
+  --odin-leading-tight:  1.2;
+  --odin-leading-snug:   1.35;
+  --odin-leading-normal: 1.5;
+  --odin-leading-relaxed: 1.65;
+
+  /* Weight */
+  --odin-weight-normal:   400;
+  --odin-weight-medium:   500;
+  --odin-weight-semibold: 600;
+  --odin-weight-bold:     700;
+
+  /* Tracking */
+  --odin-tracking-tight:  -0.02em;
+  --odin-tracking-normal: 0;
+  --odin-tracking-wide:   0.04em;   /* küçük büyük harf etiketler */
+}
+
+/* SAYILAR — bu iki sınıf zorunludur */
+.odin-num,
+[data-numeric="true"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  text-align: right;                /* 03-...md §11: sayılar sağa hizalı */
+}
+
+.odin-mono {
+  font-family: var(--odin-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   FOCUS — erişilebilirlik zorunluluğu (02-design-principles.md §13)
+   ------------------------------------------------------------------------ */
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--odin-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--odin-radius-4);
+}
+
+/* ---------------------------------------------------------------------------
+   REDUCED MOTION — 12-motion-system.md §9
+   Kural: hareket kalkar, BİLGİ KALKMAZ.
+   ------------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --odin-duration-fast:   1ms;
+    --odin-duration-normal: 1ms;
+    --odin-duration-slow:   1ms;
+    --odin-scale-hover:     1;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Ortam hareketleri tamamen durur */
+  .odin-ambient,
+  .odin-heartbeat,
+  .odin-pulse,
+  .odin-shimmer {
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   KATMAN 2b — EXECUTIVE LIGHT (v1.1 — yapı hazır, tasarım sonra)
+   ADR-075: Light tema v1.1'e ertelendi. Değerler şimdilik taslak.
+   ------------------------------------------------------------------------ */
+
+[data-theme="executive-light"] {
+  color-scheme: light;
+
+  --odin-bg-primary:   var(--odin-gray-50);
+  --odin-bg-secondary: #FFFFFF;
+
+  --odin-surface-default:  #FFFFFF;
+  --odin-surface-elevated: #FFFFFF;
+  --odin-surface-floating: #FFFFFF;
+
+  --odin-text-primary:   var(--odin-gray-900);
+  --odin-text-secondary: var(--odin-gray-600);
+  --odin-text-tertiary:  var(--odin-gray-500);
+  --odin-text-inverse:   var(--odin-gray-50);
+
+  --odin-border-default: var(--odin-gray-200);
+  --odin-border-subtle:  var(--odin-gray-100);
+
+  --odin-icon-default: var(--odin-gray-500);
+  --odin-icon-active:  var(--odin-gray-900);
+  --odin-icon-muted:   var(--odin-gray-400);
+
+  --odin-danger:  var(--odin-red-600);
+  --odin-warning: var(--odin-amber-600);
+  --odin-success: var(--odin-green-600);
+  --odin-info:    var(--odin-blue-600);
+
+  --odin-accent-ai: var(--odin-purple-600);
+
+  --odin-ai-surface: rgba(147, 51, 234, 0.05);
+  --odin-ai-border:  rgba(147, 51, 234, 0.20);
+  --odin-ai-glow:    0 0 0 1px rgba(147, 51, 234, 0.15);
+
+  --odin-glass-medium-bg:   rgba(255, 255, 255, 0.80);
+  --odin-glass-modal-bg:    rgba(255, 255, 255, 0.94);
+
+  --odin-elevation-1: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --odin-elevation-2: 0 2px 8px rgba(15, 23, 42, 0.08),
+                      0 0 0 1px var(--odin-border-subtle);
+  --odin-elevation-3: 0 8px 24px rgba(15, 23, 42, 0.10),
+                      0 0 0 1px var(--odin-border-default);
+}
+
+/* ---------------------------------------------------------------------------
+   TABAN
+   ------------------------------------------------------------------------ */
+
+html, body {
+  background: var(--odin-bg-primary);
+  color: var(--odin-text-primary);
+  font-family: var(--odin-font-sans);
+  font-size: var(--odin-text-base);
+  line-height: var(--odin-leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
