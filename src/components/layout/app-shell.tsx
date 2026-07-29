@@ -15,6 +15,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { MotionConfig } from "framer-motion";
 import { findGroupOf, findWorkspaceByPath } from "@/lib/navigation/registry";
+import { useAmazonStore } from "@/lib/store/amazon";
 import { useNavigationStore } from "@/lib/store/navigation";
 import { useUiStore } from "@/lib/store/ui";
 import { recordWorkspaceVisit } from "@/lib/usage/events";
@@ -26,6 +27,7 @@ import { StatusBar } from "./status-bar";
 import { CommandPalette } from "./command-palette";
 import { Workspace } from "./workspace";
 import { IntelligenceFeed } from "@/components/screens/intelligence-feed";
+import { AmazonSkuPanel } from "@/components/screens/amazon-sku-panel";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -35,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const setActiveWorkspace = useNavigationStore((s) => s.setActiveWorkspace);
   const resetContextPanel = useUiStore((s) => s.resetContextPanelOnNavigate);
+  const hasSelectedSku = useAmazonStore((s) => s.selectedSku !== null);
 
   /* Navigation store tek kaynaktır: aktif workspace yalnızca burada set edilir. */
   useEffect(() => {
@@ -81,9 +84,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Workspace workspaceKey={pathname}>{children}</Workspace>
           {/* Sağ panelin kabuğu sabittir; içerik sağlayıcısı workspace'e göre
               değişir (03-...md §7). Executive Briefing'de akan istihbarat
-              paneli vardır (05-...md §6); diğerlerinde seçili nesne detayı. */}
+              paneli vardır (05-...md §6); Amazon'da seçili SKU'nun detayı.
+              Amazon'da SKU SEÇİLİ DEĞİLKEN sağlayıcı verilmez — kabuğun
+              kendi "seçili nesne yok" boş durumu doğru olandır. */}
           <RightContextPanel workspaceLabel={workspace?.label ?? "ODIN"}>
-            {workspace?.id === "briefing" ? <IntelligenceFeed /> : undefined}
+            {workspace?.id === "briefing" ? (
+              <IntelligenceFeed />
+            ) : workspace?.id === "amazon" && hasSelectedSku ? (
+              <AmazonSkuPanel />
+            ) : undefined}
           </RightContextPanel>
         </div>
 
