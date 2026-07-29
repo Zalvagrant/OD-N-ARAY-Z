@@ -125,7 +125,8 @@ docs/ui_chatgpt/
 ├── 06-workspaces.md               8 Director workspace spesifikasyonu
 ├── 07-ai-directors.md             AI orkestrasyon, council, hafıza
 ├── 08-decision-log.md             ADR kayıtları (kararlar + gerekçeler)
-├── 09-data-contracts.md           Backend'den beklenen veri sözleşmeleri
+├── 09-data-contracts.md           ⚠️ tarihsel — doğrulanmamış türetme
+├── 09b-verified-contracts.md      ✅ KANONİK — ODIN okunarak doğrulandı
 ├── 10-component-library.md        Bileşen standardı ve envanteri
 ├── 11-design-tokens.md            Token mimarisi ve palet
 ├── 12-motion-system.md            Hareket dili

@@ -1124,3 +1124,66 @@ Profil ile anlamlı maliyet gösterilirse yeniden eklenir.
 
 **Etki:** `table.stories.tsx` (`SanallastirmaAltindaKaydirma`),
 `10a-core-components.md` §17 son madde.
+
+---
+
+## UI-ADR-098 — Kanonik kaynak ODIN'dir; arayüz ona uyarlanır
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S5 sonrası, S6 öncesi
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde, ikisi de
+"S6'dan ÖNCE düzeltin" dedi
+
+**Sorun:** `09-data-contracts.md` kendi başlığında "kaynakta hiç yoktu,
+arayüz bileşenlerinden geriye türetildi, DOĞRULANMADI" diyordu. S6 öncesi
+ODIN çekirdeği okundu ve doğrulama yapıldı. Sonuç: ciddi uyuşmazlık.
+
+Üç tür fark bulundu ve `09b-verified-contracts.md`'ye kaynak gösterilerek
+yazıldı:
+- **Uydurulmuş alan** — arayüzde var, ODIN'de yok (`priority`,
+  `expectedROI`, `reversibility`, `directorOpinions`, `beatIntervalMs`,
+  `currentGoal`, `memoryHealth` …).
+- **Kayıp alan** — ODIN üretiyor, arayüz göstermiyor (`flip_conditions`,
+  `assumptions`, `confidence_breakdown`, gecikme/başarı/maliyet metrikleri,
+  `monitoring_checkpoints`).
+- **Yer değiştirmiş alan** — `alternatives` ODIN'de **kararın** alanı
+  (minItems 2), arayüzde **önerinin** alanı ve "2'den az ise render etme"
+  sert kuralının dayanağı (UI-ADR-091).
+
+**Karar:** Kanonik kaynak **ODIN'dir.** Arayüz ona uyarlanır; backend
+doğrulanmamış bir UI modelini karşılamak için büyütülmez. Gerçekten ürün
+ihtiyacı olan yeni kavramlar (KPI seti, Alert, Opportunity, Mission)
+sahibin kararıyla ODIN governance'ına (ADR-0050 / R-006) **talep** olarak
+girer — arayüz onları icat etmez.
+
+**Zamanlama:** Düzeltme **S6'dan ÖNCE.** S6 diğer yedi workspace'in
+şablonudur; yanlış sözleşmeyle üretilen bir şablon hatayı sekize çoğaltır.
+Mock katmanının adapter sınırı olması tek başına güvence değildir — yanlış
+varsayımlar bileşen API'lerine, görünürlük kurallarına ve ekran
+hiyerarşisine gömülüdür.
+
+**En kritik bulgu:** `flip_conditions`. "Bu öneriyi ne değiştirir?"
+sorusunun cevabıdır, ODIN onu **zorunlu** tutar, arayüz hiç göstermez.
+Kayıp alan uydurulmuş alandan tehlikelidir: uydurulmuş alan hiç değilse
+`NoData` gösterir, kayıp alan sessizdir.
+
+**Doğrudan uygulanan (mühendislik, sahibe sorulmadı):**
+- Confidence eşikleri ODIN'in kanonik bantlarına hizalanır
+  (80/60/40/20 → very-high/high/moderate/low/very-low). Arayüzdeki 50
+  eşiğinin ODIN'de karşılığı yoktur, uydurulmuştur.
+- `confidence_breakdown` (8 bileşen) gösterilir.
+- `alternatives` karar seviyesinde gösterilir; UI-ADR-091'in "öneride
+  alternatives<2 ise null dön" kuralı **düzeltilir** — o alan önerinin
+  değildir.
+- Consensus metni düzeltilir: ODIN'de `disagreement = 100 - consensus`,
+  ikisi ayrı ölçüm değildir.
+- `aiReadiness` artık `null` değildir: `company_health_score`'un
+  "AI hazırlığı" bileşeni gerçek karşılığıdır.
+
+**Sahibe bırakılan:** onay UX'i ve gerekçe politikası, yeni ürün
+kavramlarının istenip istenmediği. `13-backend-recommendations.md` §15.
+
+**Etki:** `09-data-contracts.md` (kanonik değil işaretlendi),
+`09b-verified-contracts.md` (yeni), `types/executive.ts`,
+`confidence-badge.tsx`, `ai-recommendation-card.tsx`, `council-view.tsx`,
+`director-card.tsx`, `10b`, `10c`, sprint sırası (S5.5 eklendi).

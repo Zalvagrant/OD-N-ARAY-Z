@@ -478,3 +478,110 @@ Ekranda onay yalnızca **o oturum için** işaretleniyor ve altında
 ayrı bir `POST /api/decisions/{id}/approve` mi? ADR-0086 Human Sign-off
 Gate'in teknik karşılığı nedir — imza, kullanıcı kimliği ve zaman damgası
 saklanıyor mu?
+
+---
+
+## 15. SAHİBİN KARAR VERMESİ GEREKENLER
+
+29 Temmuz 2026, S5 sonrası. `09b-verified-contracts.md` ile ODIN çekirdeği
+doğrulandıktan sonra geriye kalan **beş karar.** Bunların hiçbiri
+mühendislik sorusu değildir; gavadolar iki tur danışıldı ve "bunlar sahip
+kararı" dedi. §14'teki soruların çoğu bu doğrulamayla **cevaplandı** ve
+aşağıda tekrarlanmıyor.
+
+Her madde bir soru değil, bir **seçim**. Cevap "A" ya da "B" olabilir.
+
+---
+
+### 15.1 Karar onayı: tek tık mı, gerekçeli mi?
+
+**Olgu:** ODIN'de onayın gideceği yer var —
+`record_decision(..., outcome, decided_by="human-owner", human_reasoning="")`.
+Şema `human_reasoning`'i **zorunlu tutmuyor** ama alanı taşıyor. Yani ODIN
+"insan neden böyle karar verdi" sorusunun cevabını saklamaya hazır.
+
+**A)** Tek tık onay. Hızlı; brifingde karar kartından çıkmadan onaylanır.
+`human_reasoning` boş kalır ve karar kaydında gerekçe olmaz.
+
+**B)** Gerekçe zorunlu. Onay tıklanınca küçük bir alan açılır, CEO bir
+cümle yazar. Karar kaydı tam olur; ileride `lessons_learned` ve
+`checkpoint_evaluations` ile karşılaştırılabilir.
+
+**C)** Tier'a göre: D3 tek tık, D1/D2 gerekçeli.
+
+> Bu bir UX tercihi değil, **karar kaydının kalitesi** tercihidir. ODIN'in
+> tüm öğrenme döngüsü (ADR-0046 Feedback Loop) insanın gerekçesine dayanır.
+
+---
+
+### 15.2 Reddetme ve erteleme arayüzde olacak mı?
+
+**Olgu:** ODIN'de `outcome` serbest metin; `record_decision` reddi de
+**kayıt** olarak saklar (`status: "closed"`). Yani "hayır" da bir karardır
+ve izi kalır.
+
+Arayüzde şu an yalnızca **Onayla** var.
+
+**A)** Yalnızca Onayla kalsın; ret ve erteleme Decision Center'da olsun.
+**B)** Karar kartında üçü de olsun: Onayla · Reddet · Ertele.
+
+> Ret bir eylem olarak yoksa CEO "karar vermemek" yoluyla erteler ve
+> ODIN bunu hiç öğrenmez.
+
+---
+
+### 15.3 Yeni ürün kavramları isteniyor mu?
+
+**Olgu:** Arayüzün beklediği dört kavramın ODIN'de karşılığı **yok**:
+
+| Kavram | Bugünkü durum |
+|---|---|
+| `ExecutiveKPI` (Revenue · Net Profit · Cash Flow · …) | ODIN parça parça üretiyor ama tek bir KPI sözleşmesi yok |
+| `Alert` (severity · requiresAction) | yok — `improvement_detectors` ve `finance/quality` benzer şeyler üretiyor |
+| `Opportunity` (revenueImpact · deadline) | `amazon_director` ve `innovation` içinde var ama ortak sözleşme yok |
+| `Mission` (görev tahtası) | yok |
+
+**A)** İstiyorum → ODIN'de ADR-0050 / R-006 üzerinden **talep satırı**
+açılır, sözleşme orada tanımlanır, arayüz sonra bağlanır.
+
+**B)** İstemiyorum → arayüz bu bölümleri kaldırır; ekranlar ODIN'in
+gerçekten ürettiği kavramlar üzerine kurulur (karar · öneri · kanıt ·
+sağlık skoru · olay akışı · onay kuyruğu).
+
+**C)** Kısmi — hangileri? (ör. KPI ve Alert evet, Mission hayır.)
+
+> Bu, arayüzün ne kadarının yaşayacağını belirler. B seçilirse Mission
+> Control'ün yarısı ve KPI şeridi gider; A seçilirse S7/S8 uzar.
+
+---
+
+### 15.4 Amazon verisi cockpit'e bağlanacak mı?
+
+**Olgu:** `odin/amazon_director.py` net kâr, ACOS, stok, BuyBox tarafında
+gerçek hesap yapıyor ve hesaplayamadığında dürüstçe `"Data Required"`
+yazıyor. Ama bu çıktı **`/api/state`'e bağlı değil** — cockpit onu
+görmüyor.
+
+**A)** Bağlansın → S6 Amazon Director ekranı gerçek veriyle çalışabilir
+(mock yalnızca eksik alanlar için kalır).
+**B)** Bağlanmasın → S6 tamamen mock kalır, gerçek veri S8'e ertelenir.
+
+> A, ODIN tarafında bir iş demektir (projection'a Amazon bölümü eklemek).
+> B, S6'nın şablon değerini düşürmez ama "çalışan ekran" hissini geciktirir.
+
+---
+
+### 15.5 Sprint sırası: S5.5 eklensin mi?
+
+**Olgu:** gavadolar (iki üye, aynı yönde) sözleşme düzeltmesinin **S6'dan
+önce** yapılmasını söyledi: S6 diğer yedi workspace'in şablonu olacak,
+yanlış sözleşmeyle üretilen şablon hatayı sekize çoğaltır.
+
+**A)** S5.5 — Sözleşme Hizalama sprinti eklensin (tahmini: bileşen
+refactor + mock güncelleme + contract fixture testleri).
+**B)** S6 mock'la devam etsin, hizalama S7'ye bırakılsın.
+**C)** İkisi paralel — görsel şablon S6'da, sözleşme S7'de.
+
+> gavadolar A dedi. C'yi terra açıkça riskli buldu: "yanlış varsayımlar
+> bileşen API'lerine gömülü, görsel kabuk paralel gidebilir ama veri
+> modeli ve bileşen şablonu contract düzeltmesi bitmeden genişletilmemeli."

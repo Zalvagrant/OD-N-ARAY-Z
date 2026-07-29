@@ -35,10 +35,12 @@ Bu klasör arayüzün tam spesifikasyonudur. **Bir şey yazmadan önce oku.**
 | `06-workspaces.md` | Her workspace ekranı |
 | `07-ai-directors.md` | AI ile ilgili her şey |
 | `08-decision-log.md` | "Bu neden böyle?" sorusunun cevabı |
-| `09-data-contracts.md` | Veri çekerken, tip yazarken |
+| `09-data-contracts.md` | ⚠️ ARTIK KANONİK DEĞİL — tarihsel kayıt |
+| `09b-verified-contracts.md` | **Veri çekerken, tip yazarken.** ODIN okunarak doğrulanmış sözleşmeler (UI-ADR-098) |
 | `10-component-library.md` | Her bileşende |
 | `10a-core-components.md` | S3 primitive'lerinin API'si ve durum matrisi |
 | `10b-executive-components.md` | S4 executive bileşenlerinin API'si ve anti-fake kuralları |
+| `10c-screens.md` | S5 ekran katmanı — Section, WorkspaceHeader, ekran dizilimleri |
 | `11-design-tokens.md` | Renk/boşluk/gölge yazarken |
 | `12-motion-system.md` | Animasyon yazarken |
 | `15-execution-plan.md` | Sprint sırası — hangi işi ne zaman |
@@ -176,7 +178,11 @@ S4 (Executive Components — 15 bileşen, `10b-executive-components.md`).**
 Üretildi, sahip onayı bekliyor: **S5 — Executive Briefing + Mission Control**
 (`10c-screens.md`). İlk gerçek ekranlar açıldı; veri **mock**, hepsi
 `meta.source === "mock"` ile işaretli (UI-ADR-094) ve S8'de değişecek.
-Sıradaki: **S6** — Amazon Director (diğer 7 workspace'in şablonu).
+Sıradaki: **S5.5 — Sözleşme Hizalama** (UI-ADR-098). S6'ya GİRMEDEN önce:
+ODIN çekirdeği okundu ve `09-data-contracts.md`'nin gerçek backend ile
+uyuşmadığı doğrulandı. Kanonik kaynak ODIN'dir; fark tablosu
+`09b-verified-contracts.md`'de, sahibin vermesi gereken 5 karar
+`13-backend-recommendations.md` §15'te. S6 (Amazon Director) ondan sonra.
 
 ### Her sprint sonunda
 

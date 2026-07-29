@@ -1,6 +1,14 @@
 # 09 — Data Contracts
 
-**Durum:** 🟡 ÖNERİ — kaynakta hiç yoktu, bu klasörde türetildi
+**Durum:** 🔴 ARTIK KANONİK DEĞİL — bkz. `09b-verified-contracts.md`
+
+> **29 Temmuz 2026, S5 sonrası:** aşağıdaki sözleşmeler ODIN çekirdeği
+> okunarak **doğrulandı** ve ciddi uyuşmazlıklar çıktı (uydurulmuş alanlar,
+> kayıp alanlar, yer değiştirmiş alanlar). Kanonik kaynak ODIN'in kendi
+> şemaları ve motorlarıdır. Yeni kod `09b-verified-contracts.md`'ye bakar;
+> bu dosya tarihsel kayıt olarak durur (karar: UI-ADR-098).
+
+**Eski durum:** 🟡 ÖNERİ — kaynakta hiç yoktu, bu klasörde türetildi
 **Kaynak:** Kaynak sohbette veri sözleşmesi **hiç tanımlanmadı.** Aşağıdakiler,
 tanımlanan arayüz bileşenlerinden geriye doğru türetilmiştir.
 
