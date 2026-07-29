@@ -29,6 +29,7 @@ import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
+import { Stat } from "@/components/ui/stat";
 import { Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
@@ -39,28 +40,6 @@ import { MissionBoard } from "@/components/executive/mission-board";
 /* --------------------------------------------------------------------------
    Operational Status — ölçüme dayalı, uydurmasız
    -------------------------------------------------------------------------- */
-
-function Stat({
-  label,
-  value,
-  note,
-  tone = "text-content",
-}: {
-  label: string;
-  value: number | string;
-  note: string;
-  tone?: string;
-}) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-content-tertiary">{label}</dt>
-      <dd className="mt-1">
-        <span className={`odin-num text-lg ${tone}`}>{value}</span>
-      </dd>
-      <p className="text-xs text-content-tertiary">{note}</p>
-    </div>
-  );
-}
 
 function OperationalStatus({
   directors,
@@ -82,17 +61,14 @@ function OperationalStatus({
     <Card density="compact">
       <CardBody density="compact">
         <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>div]:min-w-0">
-          {/* `odin-num` blok elemana verilmez: sınıf sayıları SAĞA hizalar
-              (03-...md §11) ve etiketinden koparır. Sayı satır içi bir
-              span'dedir; hizalama solda kalır, tabular-nums korunur. */}
           <Stat label="Telemetri kanalı" value={`${open} / ${total}`} note="açık / tanımlı" />
-          <Stat label="Canlı Director" value={live} note="son atım eşiğin içinde" tone="text-success" />
-          <Stat label="Offline" value={offline} note="atım gecikti" tone="text-warning" />
+          <Stat label="Canlı Director" value={live} note="son atım eşiğin içinde" tone="success" />
+          <Stat label="Offline" value={offline} note="atım gecikti" tone="warning" />
           <Stat
             label="Bilinmiyor"
             value={unknown}
             note="hiç atım yok — ölmüş demek değildir"
-            tone="text-content-tertiary"
+            tone="tertiary"
           />
         </dl>
       </CardBody>
