@@ -95,7 +95,11 @@ function DecisionView({
         <div className="flex flex-col gap-4">
           <Text tone="secondary">{decision.executiveSummary}</Text>
 
-          <dl className="grid gap-3 text-sm sm:grid-cols-4">
+          {/* Dört kolon ancak XL'de açılır. 640 px'te açılınca hücre ~110 px
+              kalıyordu ve "₺128.000,00" gibi bölünemeyen bir sayı komşu
+              hücrenin üstüne biniyordu (768 px'te görsel incelemede
+              yakalandı). min-w-0: hücre içeriğine göre şişmesin. */}
+          <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4 [&>div]:min-w-0">
             <div>
               <dt className="text-xs text-content-tertiary">Finansal etki</dt>
               {/* items-start ŞART: `.odin-num` sayıları sağa hizalar (03-...md
