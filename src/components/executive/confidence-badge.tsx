@@ -9,21 +9,35 @@
  *   <ConfidenceBadge meta={meta} />   → zarf seviyesinde (canShowConfidence)
  *   <ConfidenceBadge value={n} />     → alan seviyesinde (kpi.confidence vb.)
  *
- * Eşikler (07-...md §11 AI Body Language — yüksek güven yeşil, düşük amber):
- *   ≥80 success · ≥50 warning · <50 danger
- * Sayı her zaman yazılır; renk tek başına anlam taşımaz.
+ * EŞİKLER KANONİKTİR, UI KARARI DEĞİLDİR (UI-ADR-098 / 09b §2).
+ * ODIN `odin/trust.py::CONFIDENCE_LEVELS` beş bant tanımlar:
+ *
+ *   ≥80 very-high · ≥60 high · ≥40 moderate · ≥20 low · ≥0 very-low
+ *
+ * S4'te 80/50 kullanılmıştı; **50 bandının ODIN'de karşılığı yoktur**,
+ * uydurulmuş bir eşikti. 13-...md §13.3'teki "kalibrasyon sorusu" böylece
+ * cevaplandı: soru kalibrasyon değil, kanonik kaynağı okumamaktı.
+ *
+ * Beş bant üç renge indirilir (Badge'in anlamlı üç durumu var):
+ *   very-high/high → success · moderate → warning · low/very-low → danger
+ * Bant ADI `sr-only` metinde yazılır — renk tek başına anlam taşımaz ve
+ * kullanıcı hangi kanonik banda düştüğünü okuyabilir.
  */
 
 import { Badge } from "@/components/ui/badge";
 import { canShowConfidence, type DataMeta } from "@/types/data-envelope";
 
-export const CONFIDENCE_HIGH = 80;
-export const CONFIDENCE_LOW = 50;
+/** `odin/trust.py::CONFIDENCE_LEVELS` — sıra: yüksekten düşüğe. */
+export const CONFIDENCE_LEVELS = [
+  { min: 80, id: "very-high", label: "çok yüksek", tone: "success" },
+  { min: 60, id: "high", label: "yüksek", tone: "success" },
+  { min: 40, id: "moderate", label: "orta", tone: "warning" },
+  { min: 20, id: "low", label: "düşük", tone: "danger" },
+  { min: 0, id: "very-low", label: "çok düşük", tone: "danger" },
+] as const;
 
-function toneFor(v: number) {
-  if (v >= CONFIDENCE_HIGH) return "success" as const;
-  if (v >= CONFIDENCE_LOW) return "warning" as const;
-  return "danger" as const;
+export function confidenceLevel(v: number) {
+  return CONFIDENCE_LEVELS.find((l) => v >= l.min) ?? CONFIDENCE_LEVELS[4];
 }
 
 export function ConfidenceBadge({
@@ -43,10 +57,12 @@ export function ConfidenceBadge({
   if (score === null || score === undefined || !Number.isFinite(score)) return null;
 
   const v = Math.round(score);
+  const level = confidenceLevel(v);
   return (
-    <Badge variant={toneFor(v)} size={size}>
+    <Badge variant={level.tone} size={size}>
       <span className="sr-only">{label}: </span>
       {v}%
+      <span className="sr-only"> — {level.label}</span>
     </Badge>
   );
 }

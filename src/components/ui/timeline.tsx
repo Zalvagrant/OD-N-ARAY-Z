@@ -97,7 +97,12 @@ export function Timeline({
 
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="truncate text-base text-content">
+                {/* KIRPILMAZ, sarar. `truncate` idi ve 1024 px'te olay
+                    başlıklarının sonunu 100 px'e kadar yiyordu ("Karar
+                    onaylandı — iade politikası günce…"). Bir olayın NE
+                    olduğu başlığının sonundadır; kırpmak bilgiyi siler.
+                    Aynı düzeltme `CardHeader`'da da yapıldı (10c §7.5). */}
+                <span className="break-words text-base text-content">
                   <span aria-hidden className="mr-1 text-content-tertiary">
                     {tone.glyph}
                   </span>
