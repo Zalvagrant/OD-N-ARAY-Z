@@ -190,7 +190,7 @@ Kullanıcı ekran değiştirmeden tüm detayları görür.
 - [x] SP-API ve Ads API verileri **aynı yapıda** gösteriliyor — ikisi de
       `DataEnvelope` + `DataGuard` + `TrustSignal` zincirinden geçer
 - [ ] Gerçek veri bağlı değil — S8. `SkuHealth` sözleşmesi 🟡 TEKLİF
-      (13-...md §15.2), net kâr için sözleşme sapması onay bekliyor (§15.1)
+      (13-...md §16.2), net kâr için sözleşme sapması onay bekliyor (§16.1)
 
 ---
 
