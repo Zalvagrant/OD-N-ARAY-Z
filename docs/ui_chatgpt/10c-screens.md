@@ -5,7 +5,7 @@
 **Kaynak:** `05-dashboard.md` (tamamı), `06-workspaces.md` §1,
 `03-information-architecture.md` §3–§5
 **Kod:** `src/components/screens/*`, `src/components/layout/{section,workspace-header}.tsx`,
-`src/mocks/*`, `src/types/screens.ts`, `src/lib/store/amazon.ts`
+`src/mocks/*`, `src/types/screens.ts`, `src/lib/store/ui.ts` (`SelectedEntity`)
 
 `10a` primitive'leri, `10b` executive bileşenleri tarif eder. Bu dosya
 **ekran katmanını** tarif eder: bileşenlerin nasıl dizildiğini ve zarfın
@@ -210,20 +210,20 @@ Dar ekranda tek kolona inerken bu sıra korunur.
 | 3 · Deep Analysis | SKU seçilir → sağ bağlam paneli (§1.7). Ekran değişmez. |
 
 Layer 3'ün SKU-üstü kalemleri (Compare · Decision History · Related
-Documents) **çizilmedi**: sözleşmeleri yok, soru 13-...md §15.4'te.
+Documents) **çizilmedi**: sözleşmeleri yok, soru 13-...md §16.4'te.
 
 ### 7.4 Bilerek boş dört yer
 
 | Yer | Neden |
 |---|---|
-| Net Profit KPI'ı **yok** | COGS yok → hesaplanamaz. Yerine Gross Profit + hariç tutulanlar (UI-ADR-098) |
+| Net Profit KPI'ı **yok** | COGS yok → hesaplanamaz. Yerine Gross Profit + hariç tutulanlar (UI-ADR-099). 09b §8 doğruladı: `amazon_director.py` hesaplayamayınca `"Data Required"` yazıyor |
 | Profit After Ads | aynı sebep; kâr metriğidir |
 | Sales & Profit Analytics | 09-...md'de **etiketli zaman serisi yok**; `sparkline` yön gösterir, tarihli seri değildir |
 | Orders akışı | `AmazonSnapshot.orders` bir SAYIDIR; akış ve anomali ondan türetilemez |
 
 Ayrıca `SkuHealth.grossMarginPerUnit` her SKU'da `null`, `buyBoxRate`
 raporlanmayan SKU'da `null`, `healthScore` üretilmeyen SKU'da `null` —
-mock'ta bile doldurulmadı (UI-ADR-100 sıkılaştırması).
+mock'ta bile doldurulmadı (UI-ADR-101 sıkılaştırması).
 
 ### 7.5 Görsel incelemede yakalananlar
 
@@ -235,7 +235,7 @@ nedende düzeltildi:
 |---|---|---|
 | 768'de yatay kayma (13 px). **Aynı hata S5'in briefing ekranında da vardı** — S5 yalnızca 1920 ve 1440'ta bakılmıştı | KPI kolonu `md`de ikiye bölünüyordu; kart içi 172 px'e düşüyor, `text-3xl` para değeri (`₺2.640.000,00` ≈ 185 px) sığmıyordu. Sayı bölünemez | Kolon eşikleri `lg` / `2xl`e taşındı (her iki ekranda); kart içinde değer bloğuna `min-w-0` |
 | "Gross Profit (ücretler hariç)" başlığı kırpılıyordu — 1280'de 71 px, 1920'de 11 px. Kartın dürüstlüğünü taşıyan parantez kayboluyordu | `CardHeader` başlığı `truncate` idi | `truncate` → `break-words`. Kısa başlıklarda davranış değişmez |
-| ACOS %14,2 → %18,1 **yükselirken sparkline YEŞİL** | `Sparkline` varsayılanı `tone="auto"`, yükselişi olumlu sayar. Kartın kendi kuralı ("trend renklendirilmez") ihlal ediliyordu | UI-ADR-101 → kart `tone="neutral"` verir |
+| ACOS %14,2 → %18,1 **yükselirken sparkline YEŞİL** | `Sparkline` varsayılanı `tone="auto"`, yükselişi olumlu sayar. Kartın kendi kuralı ("trend renklendirilmez") ihlal ediliyordu | UI-ADR-102 → kart `tone="neutral"` verir |
 
 Ek olarak mock hijyeni: `remainingTime` aşağı yuvarladığı için tam 9 gün
 sonrası "8 gün kaldı" yazıyor ve yanındaki `daysOfSupply: 9` ile
@@ -255,13 +255,34 @@ dev DOM'unda ayrıca doğrulandı.
 | Parça | Nerede | Nasıl kopyalanır |
 |---|---|---|
 | Ekran iskeleti | `WorkspaceHeader` → PRIMARY (Glance + şerit) → bağımsız kolonlar → tam genişlik derinlik bölümü | Bölüm adları değişir, iskelet değişmez |
-| `Metric` | `executive/metric.tsx` | Etiket · değer · not üçlüsü olan her yerde |
+| `Stat` | `ui/stat.tsx` | Etiket · değer · not üçlüsü olan her yerde |
 | `percentFactor` / `toPercentUnit` | `lib/format/percent.ts` | Yüzde taşıyan HER modül; ölçek bildirilmemişse `NoData` |
-| Kâr kuralı | `PROFIT_NEEDS_COGS` + UI-ADR-098 | Finance/Trading'de de kâr metriği aynı kapıdan geçer |
+| Kâr kuralı | `PROFIT_NEEDS_COGS` + UI-ADR-099 | Finance/Trading'de de kâr metriği aynı kapıdan geçer |
 | Sözleşmesi olmayan bölüm deseni | `noContract()` (ekran içi yardımcı) | Başlık + neden + sorunun düşüldüğü yer |
-| Bağlam paneli sağlayıcısı | `app-shell.tsx` içindeki seçim + `lib/store/amazon.ts` deseni | Yeni workspace kendi store'unu açar, panel KABUĞU değişmez |
-| Simülatör kuralı | UI-ADR-099 | Motoru olmayan her "ne olur?" özelliği |
+| Bağlam paneli sağlayıcısı | `SelectedEntity {workspaceId, kind, id}` + app-shell'de `kind` eşleşmesi | Yeni workspace kendi `kind`'ını tanımlar; panel KABUĞU değişmez. **Kopya değil kimlik** saklanır |
+| Simülatör kuralı | UI-ADR-100 | Motoru olmayan her "ne olur?" özelliği |
 | Görsel doğrulama betiği | taşma + kırpılma + üst üste binme taraması | Her ekran için yeniden çalıştırılır |
+
+### 7.7 S5.5 ile hizalama — S6 sonrası düzeltmeler
+
+S6, `09-data-contracts.md` üzerine kuruldu. Paralel yürüyen S5.5
+(UI-ADR-098) o dosyanın **kanonik olmadığını** kanıtladı: ODIN çekirdeği
+okundu, uydurulmuş ve kayıp alanlar `09b-verified-contracts.md`'ye yazıldı.
+S6'nın etkilenen yerleri kapanışta hizalandı:
+
+| 09b bulgusu | S6'da ne yapıldı |
+|---|---|
+| §8 `amazon_director.py` net kârı hesaplayamayınca `"Data Required"` yazıyor | UI-ADR-099 **doğrulandı** — kural bir arayüz tercihi değil, backend'in zaten uyguladığı davranış. ADR'ye kaynak eklendi |
+| §2 confidence bantları kanonik: ≥80 · ≥60 · ≥40 · ≥20 (`odin/trust.py`) | `confidence-badge.tsx` 80/50'den kanonik beş banda geçti; bant adı `sr-only`da yazılıyor. S6'nın her güven rozeti bundan besleniyor |
+| S5.5'in `SelectedEntity {workspaceId, kind, id}` deseni | S6'nın `store/amazon.ts`'i **elendi**. Panel artık SKU'nun kopyasını değil kimliğini tutuyor; liste yenilenince bayat kayıt kalmıyor, kimlik bulunamazsa detay uydurulmuyor |
+| S5.5'in `ui/stat.tsx` primitive'i | S6'nın `executive/metric.tsx`'i **elendi**. İki oturum aynı bileşeni iki adla üretmişti; envanterde tek kayıt kaldı |
+
+**S6 kapsamı dışında bırakılanlar** (09b §9'un 1. maddesi, ayrı iş):
+`Decision`'ın `flip_conditions` · `assumptions` · `confidence_breakdown`
+kayıpları · `alternatives`'ın kararın alanı olması (UI-ADR-091'in dayanağı)
+· `DirectorHeartbeat`'in gerçek sağlık metrikleri · consensus metninin
+düzeltilmesi. Bunlar S4 bileşenlerini yeniden yazmayı gerektirir ve
+Amazon Director'ın kapsamında değildir.
 
 ---
 
@@ -301,4 +322,4 @@ dev DOM'unda ayrıca doğrulandı.
 - [x] Görsel incelemede üç hata bulundu ve kök nedende düzeltildi (§7.5);
       biri S5'ten kalan gizli bir hataydı
 - [ ] **Gerçek veri bağlı değil** — S8. `SkuHealth` sözleşmesi 🟡 TEKLİF,
-      sahip onayı bekliyor (13-...md §15.2)
+      sahip onayı bekliyor (13-...md §16.2)

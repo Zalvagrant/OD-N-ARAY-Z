@@ -601,7 +601,7 @@ burada.** §14'teki beş soru hâlâ açıktır ve tekrarlanmadı; §15'teki be�
 karar da sahibi bekliyor.
 İlgili kararlar: UI-ADR-099 · 100 · 101.
 
-### 15.1 Kâr alanları hesaplanamayan durumu ifade edemiyor ⚠️ EN ÖNCELİKLİ
+### 16.1 Kâr alanları hesaplanamayan durumu ifade edemiyor ⚠️ EN ÖNCELİKLİ
 
 `09-...md` §8 `netProfit: Money` ve §9 `profitAfterAds: Money` — ikisi de
 **zorunlu.** Ama §4'te (bu dosya) yazdığımız gerçek şu: COGS Amazon'da yok,
@@ -630,7 +630,7 @@ yerine "Gross Profit (ücretler hariç)" ve hariç tutulan kalemler listeleniyor
 4. COGS girişi hangi ekrandan yapılacak? Bu, arayüzde **yeni bir yazma
    akışı** demektir ve S6 kapsamında değildi.
 
-### 15.2 SKU sözleşmesi yok — `SkuHealth` 🟡 TEKLİF
+### 16.2 SKU sözleşmesi yok — `SkuHealth` 🟡 TEKLİF
 
 `09-...md` SKU için hiçbir şey tanımlamıyor; oysa Amazon Director'ın
 merkezinde SKU Health tablosu (§1.4) ve SKU bağlam paneli (§1.7) var.
@@ -660,7 +660,7 @@ adSalesLast30d · acos · grossMarginPerUnit · price`.
 6. SKU **olay geçmişi** (§1.7 "History") için sözleşme var mı? Yoksa o bölüm
    boş kalmaya devam eder.
 
-### 15.3 `AmazonSnapshot` ve `PPCOverview` yüzde ölçeği bildirmiyor
+### 16.3 `AmazonSnapshot` ve `PPCOverview` yüzde ölçeği bildirmiyor
 
 UI-ADR-093 "yüzde ölçeği bildirilir, tahmin edilmez" diyor ve `ExecutiveKPI`
 için `scale` alanı zorunlu. Ama §8'in `acos · tacos · buyBoxRate ·
@@ -674,7 +674,7 @@ atlayamaz. Metrik başına alan eklemek gürültü olurdu.
 (“ODIN'de tüm yüzdeler 0–100”) bir kez mi dondurulsun? İkincisi daha temiz
 ama o zaman `ExecutiveKPI.scale` da kalkmalı — ikisi bir arada tutarsız.
 
-### 15.4 Zaman serisi ve sipariş akışı sözleşmesi yok
+### 16.4 Zaman serisi ve sipariş akışı sözleşmesi yok
 
 İki bölüm bu yüzden gerekçeli boş durumda (UI-ADR-096 deseni):
 
@@ -692,7 +692,7 @@ ama o zaman `ExecutiveKPI.scale` da kalkmalı — ikisi bir arada tutarsız.
 2. Sipariş akışı SP-API Orders'tan mı gelecek? Anomali tespiti backend'de mi
    yapılacak, yoksa arayüz mü sınıflandıracak? (Arayüz sınıflandırmamalı.)
 
-### 15.5 Simülasyon motoru — §6'nın somut karşılığı
+### 16.5 Simülasyon motoru — §6'nın somut karşılığı
 
 Panel yazıldı ama **hesap yapmıyor** (UI-ADR-099): senaryolar zarftan gelir,
 `assumptions[]` boşsa senaryo hiç gösterilmez, mock kaynakta

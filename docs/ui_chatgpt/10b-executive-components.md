@@ -49,7 +49,13 @@ Dört ayrı yokluk durumu, dört ayrı davranış (tek `NoData`'ya indirgenmez):
 | `Disclosure` | Katmanlı açılma | KPI / Decision / Recommendation aynı davranışı paylaşır |
 | `Meter` | 0–100 segmentli skor | Sürekli çubuk dinamik `style` isterdi → token kuralı ihlali |
 | `useNow()` | Paylaşılan saat | 20 kart = 20 timer olmasın (UI-ADR-089) |
-| `Metric` (S6) | etiket · değer · not üçlüsü | S6'da üç yerde aynı üçlü gerekti (Glance · PPC Overview · SKU paneli); `odin-num`'ın sağa hizalamasıyla başı dertte olan tek yer burasıdır |
+
+**Not (S6):** etiket · değer · not üçlüsü için ayrı bir Executive yardımcısı
+YAZILMADI. S5.5'te aynı üçlü `Stat` adıyla **primitive** katmana çıkarılmıştı
+(`ui/stat.tsx`, Mission Control'ün Operational Status'ünden); S6'nın üç
+ihtiyacı (Glance · PPC Overview · SKU paneli) onu kullanır. İki oturum aynı
+bileşeni iki adla üretmişti; `Metric` elendi, `Stat` kaldı — envanterde tek
+kayıt olur.
 
 ### 0.4 Adlandırma notu
 
@@ -87,7 +93,7 @@ ve bu, eksik veriden tehlikelidir çünkü makul görünür.
 yuvarlıyordu: ACOS 18.1 → "%18". Amazon tarafında o ondalık karar değiştirir;
 gerçek veriyi yuvarlayarak göstermek bilgi kaybıdır.
 
-**Sparkline `tone="neutral"` ile çizilir** (UI-ADR-101, S6). `auto` kipi
+**Sparkline `tone="neutral"` ile çizilir** (UI-ADR-102, S6). `auto` kipi
 yükselişi yeşil boyuyordu; ACOS yükselirken yeşil çizgi, kartın kendi
 kuralının tersini söyler. Sözleşmede metriğin kutbu yok → doğru renk
 bilinemez → renk iddiası yapılmaz.
@@ -196,8 +202,12 @@ Skor üretilmemişse **hiç görünmez** (`null`). "Confidence —" yazmak bile
 yanlıştır: kullanıcı orada bir skor bekler.
 
 İki kullanım: `meta` (→ `canShowConfidence`) veya `value` (alan seviyesi).
-Eşikler: ≥80 success · ≥50 warning · <50 danger (07-...md §11). Sayı her
-zaman yazılır; renk tek başına anlam taşımaz.
+**Eşikler KANONİKTİR, UI kararı değildir** (S5.5 · UI-ADR-098 / 09b §2):
+`odin/trust.py::CONFIDENCE_LEVELS` → ≥80 very-high · ≥60 high · ≥40
+moderate · ≥20 low · ≥0 very-low. S4'teki 50 eşiğinin ODIN'de karşılığı
+yoktu, uydurulmuştu. Beş bant üç renge iner (success · warning · danger);
+bant ADI `sr-only` metinde yazılır. Sayı her zaman yazılır; renk tek başına
+anlam taşımaz.
 
 ---
 
@@ -311,7 +321,7 @@ sözleşmesi trend · sparkline · forecast · aiInsight · confidence ister;
 `PPCOverview` bunların hiçbirini içermez. Altı KPI nesnesi üretmek, altı
 uydurma trend ve altı uydurma tahmin üretmek olurdu.
 
-**Profit After Ads bilerek boştur** (UI-ADR-098): kâr metriğidir, COGS
+**Profit After Ads bilerek boştur** (UI-ADR-099): kâr metriğidir, COGS
 olmadan hesaplanamaz. Gerekçesi hücrenin altında ve kartın dibinde yazılıdır.
 `PROFIT_NEEDS_COGS` sabiti dışa açıktır — aynı gerekçe SKU panelinde de
 kullanılır, iki yerde iki farklı cümle yazılmaz.
@@ -345,7 +355,7 @@ anda açık olsa ekran bir rapora döner. Açıklanabilirlik şartını sağlama
 
 ## 19. SimulationPanel (S6)
 
-**Dosya:** `simulation-panel.tsx` · **Karar:** UI-ADR-099
+**Dosya:** `simulation-panel.tsx` · **Karar:** UI-ADR-100
 **Kaynak:** 06-...md §1.5 K4, 09-...md §9 `SimulationResult`
 
 Bu bir **hesap makinesi değildir.** Backend'de tahmin motoru yok (13-...md §6),
