@@ -12,7 +12,7 @@ export default meta;
 const base = ppcOverviewMock();
 
 /**
- * ⭐ Profit After Ads BOŞ: COGS Amazon'da yok, kâr hesaplanamaz (UI-ADR-098).
+ * ⭐ Profit After Ads BOŞ: COGS Amazon'da yok, kâr hesaplanamaz (UI-ADR-099).
  * Bu bir eksiklik değil, kuralın çalıştığının kanıtıdır.
  */
 export const KarHesaplanamiyor: StoryObj = {

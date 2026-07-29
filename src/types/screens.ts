@@ -96,11 +96,11 @@ export interface IntelligenceItem {
    -------------------------------------------------------------------------- */
 
 /**
- * 🟡 TEKLİF — sözleşmesi YOK, ekrandan geriye türetildi. Soru: 13-...md §15.2.
+ * 🟡 TEKLİF — sözleşmesi YOK, ekrandan geriye türetildi. Soru: 13-...md §16.2.
  *
  * `09-data-contracts.md` SKU için hiçbir şey tanımlamıyor; oysa Amazon
  * Director'ın merkezinde SKU Health tablosu ve SKU bağlam paneli var.
- * S5'te `Mission` için izlenen yol burada da izlendi (UI-ADR-100).
+ * S5'te `Mission` için izlenen yol burada da izlendi (UI-ADR-101).
  *
  * ÖLÇEK BİLDİRİLİR, TAHMİN EDİLMEZ (UI-ADR-093): buradaki tüm yüzde alanları
  * **0–100** aralığındadır ve bu, teklifin bir parçasıdır.
@@ -139,7 +139,7 @@ export interface SkuHealth {
   /** 0–100 */
   acos: number | null;
 
-  /* Kâr — COGS OLMADAN HESAPLANAMAZ, kalıcı olarak null (UI-ADR-098) */
+  /* Kâr — COGS OLMADAN HESAPLANAMAZ, kalıcı olarak null (UI-ADR-099) */
   grossMarginPerUnit: Money | null;
 
   price: Money | null;

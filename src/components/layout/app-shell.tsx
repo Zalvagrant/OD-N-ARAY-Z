@@ -15,7 +15,6 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { MotionConfig } from "framer-motion";
 import { findGroupOf, findWorkspaceByPath } from "@/lib/navigation/registry";
-import { useAmazonStore } from "@/lib/store/amazon";
 import { useNavigationStore } from "@/lib/store/navigation";
 import { useUiStore } from "@/lib/store/ui";
 import { recordWorkspaceVisit } from "@/lib/usage/events";
@@ -27,7 +26,7 @@ import { StatusBar } from "./status-bar";
 import { CommandPalette } from "./command-palette";
 import { Workspace } from "./workspace";
 import { IntelligenceFeed } from "@/components/screens/intelligence-feed";
-import { AmazonSkuPanel } from "@/components/screens/amazon-sku-panel";
+import { AMAZON_SKU_KIND, AmazonSkuPanel } from "@/components/screens/amazon-sku-panel";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -37,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const setActiveWorkspace = useNavigationStore((s) => s.setActiveWorkspace);
   const resetContextPanel = useUiStore((s) => s.resetContextPanelOnNavigate);
-  const hasSelectedSku = useAmazonStore((s) => s.selectedSku !== null);
+  const selectedKind = useUiStore((s) => s.selectedEntity?.kind ?? null);
 
   /* Navigation store tek kaynaktır: aktif workspace yalnızca burada set edilir. */
   useEffect(() => {
@@ -90,7 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <RightContextPanel workspaceLabel={workspace?.label ?? "ODIN"}>
             {workspace?.id === "briefing" ? (
               <IntelligenceFeed />
-            ) : workspace?.id === "amazon" && hasSelectedSku ? (
+            ) : workspace?.id === "amazon" && selectedKind === AMAZON_SKU_KIND ? (
               <AmazonSkuPanel />
             ) : undefined}
           </RightContextPanel>

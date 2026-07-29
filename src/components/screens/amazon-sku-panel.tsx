@@ -8,12 +8,16 @@
  *
  * PANELİN KABUĞU DEĞİŞMEZ. Bu dosya yalnızca S5'te açılan `children`
  * slot'unu doldurur (03-...md §7: kabuk sabit, içerik sağlayıcısı değişken).
- * Seçili SKU yokken hiçbir şey basmaz — kabuk kendi "seçili nesne yok" boş
- * durumunu gösterir.
+ *
+ * SEÇİM KOPYA DEĞİL, KİMLİKTİR (UI-ADR-098 / `SelectedEntity`). Store'da
+ * yalnızca `{workspaceId, kind, id}` durur; panel SKU'yu aynı kanonik
+ * kaynaktan `id` ile okur. Nesnenin kopyasını saklamak, listeyi yenileyince
+ * panelde BAYAT bir kayıt bırakırdı — kaynağıyla çelişen bir kopya, sahte
+ * veriye giden en sessiz yoldur. Kimlik bulunamazsa detay UYDURULMAZ.
  *
  * ANTI-FAKE — bu panelde üç yer bilerek boştur:
- *  · Birim kâr: COGS yok, hesaplanamaz (UI-ADR-098).
- *  · History: SKU olay geçmişi sözleşmesi yok (13-...md §15.3).
+ *  · Birim kâr: COGS yok, hesaplanamaz (UI-ADR-099).
+ *  · History: SKU olay geçmişi sözleşmesi yok (13-...md §16.2).
  *  · Actions: yazma uçları bağlı değil. Hiçbir şey yapmayan bir düğme,
  *    sahte bir yetenektir; çizilmez.
  */
@@ -23,16 +27,20 @@ import type { DataEnvelope } from "@/types/data-envelope";
 import type { SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
-import { useAmazonStore } from "@/lib/store/amazon";
-import { amazonAlertsMock } from "@/mocks/amazon";
+import { useUiStore } from "@/lib/store/ui";
+import { amazonAlertsMock, skusMock } from "@/mocks/amazon";
 import { useMockData } from "@/mocks/use-mock";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { NoData } from "@/components/ui/no-data";
+import { Stat } from "@/components/ui/stat";
 import { Heading, Mono, Num, Text } from "@/components/ui/typography";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { Meter } from "@/components/executive/meter";
-import { Metric } from "@/components/executive/metric";
 import { PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
+
+/** Bu panelin çizildiği seçim türü. App Shell bu sabitle eşleştirir. */
+export const AMAZON_SKU_KIND = "sku";
 
 export const SKU_STATUS: Record<
   SkuHealth["status"],
@@ -59,12 +67,30 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export function AmazonSkuPanel() {
-  const sku = useAmazonStore((s) => s.selectedSku);
+  const selected = useUiStore((s) => s.selectedEntity);
   const now = useNow();
+  const skus = useMockData(skusMock);
   const alerts = useMockData(amazonAlertsMock);
 
-  /* Seçim yoksa hiçbir şey basma — kabuğun boş durumu doğru olandır. */
-  if (!sku) return null;
+  /* Kimlikten kanonik kayda: kopya tutulmadığı için burada okunur. */
+  const sku =
+    selected?.kind === AMAZON_SKU_KIND
+      ? (skus.data?.data.find((s) => s.sku === selected.id) ?? null)
+      : null;
+
+  if (!selected || selected.kind !== AMAZON_SKU_KIND) return null;
+
+  /* Seçim var ama kayıt yok: liste yenilenmiş ve SKU düşmüş olabilir.
+     Detay uydurulmaz — ne olduğu yazılır. */
+  if (!sku) {
+    return (
+      <EmptyState
+        title="Seçili SKU artık listede yok"
+        description={`${selected.id} kimliği güncel SKU listesinde bulunamadı; veri yenilenmiş olabilir.`}
+        suggestion="Tablodan yeniden bir satır seç."
+      />
+    );
+  }
 
   const status = SKU_STATUS[sku.status];
   const stockout = remainingTime(sku.estimatedStockoutAt, now);
@@ -94,18 +120,21 @@ export function AmazonSkuPanel() {
             </Mono>
           </p>
           <dl className="grid gap-3">
-            <Metric
+            <Stat
               label="Health Score"
               note={sku.healthScore === null ? "skor hesaplanmadı" : undefined}
-            >
-              <Meter
-                value={sku.healthScore}
-                label={`${sku.sku} sağlık skoru`}
-                tone={sku.status === "critical" ? "danger" : "ai"}
-                noDataReason="Sağlık skoru hesaplanmadı"
-              />
-              <Num value={sku.healthScore} size="sm" noDataReason="Skor yok" />
-            </Metric>
+              value={
+                <>
+                  <Meter
+                    value={sku.healthScore}
+                    label={`${sku.sku} sağlık skoru`}
+                    tone={sku.status === "critical" ? "danger" : "ai"}
+                    noDataReason="Sağlık skoru hesaplanmadı"
+                  />
+                  <Num value={sku.healthScore} size="sm" noDataReason="Skor yok" />
+                </>
+              }
+            />
           </dl>
         </div>
       </Group>
@@ -113,109 +142,148 @@ export function AmazonSkuPanel() {
       {/* 2 — Financial Metrics */}
       <Group title="Financial Metrics">
         <dl className="grid gap-3">
-          <Metric label="Ciro (30 gün)">
-            <Num
-              value={sku.revenueLast30d?.amount ?? null}
-              format="currency"
-              currency={sku.revenueLast30d?.currency}
-              size="lg"
-              noDataReason="30 günlük ciro gelmedi"
-            />
-          </Metric>
-          <Metric label="Fiyat">
-            <Num
-              value={sku.price?.amount ?? null}
-              format="currency"
-              currency={sku.price?.currency}
-              noDataReason="Fiyat gelmedi"
-            />
-          </Metric>
-          <Metric label="Satılan adet (30 gün)">
-            <Num value={sku.unitsSoldLast30d} noDataReason="Adet gelmedi" />
-          </Metric>
-          <Metric label="Dönüşüm oranı">
-            <Num
-              value={toPercentUnit(sku.conversionRate, SKU_SCALE)}
-              format="percent"
-              fractionDigits={1}
-              noDataReason="Dönüşüm oranı ölçülmedi"
-            />
-          </Metric>
+          <Stat
+            label="Ciro (30 gün)"
+            value={
+              <Num
+                value={sku.revenueLast30d?.amount ?? null}
+                format="currency"
+                currency={sku.revenueLast30d?.currency}
+                size="lg"
+                noDataReason="30 günlük ciro gelmedi"
+              />
+            }
+          />
+          <Stat
+            label="Fiyat"
+            value={
+              <Num
+                value={sku.price?.amount ?? null}
+                format="currency"
+                currency={sku.price?.currency}
+                noDataReason="Fiyat gelmedi"
+              />
+            }
+          />
+          <Stat
+            label="Satılan adet (30 gün)"
+            value={<Num value={sku.unitsSoldLast30d} noDataReason="Adet gelmedi" />}
+          />
+          <Stat
+            label="Dönüşüm oranı"
+            value={
+              <Num
+                value={toPercentUnit(sku.conversionRate, SKU_SCALE)}
+                format="percent"
+                fractionDigits={1}
+                noDataReason="Dönüşüm oranı ölçülmedi"
+              />
+            }
+          />
           {/* Birim kâr KALICI OLARAK boştur — COGS Amazon'da yoktur. */}
-          <Metric label="Birim kâr" note={PROFIT_NEEDS_COGS}>
-            <NoData reason={PROFIT_NEEDS_COGS} />
-          </Metric>
+          <Stat
+            label="Birim kâr"
+            note={PROFIT_NEEDS_COGS}
+            value={<NoData reason={PROFIT_NEEDS_COGS} />}
+          />
         </dl>
       </Group>
 
       {/* 3 — Advertising */}
       <Group title="Advertising">
         <dl className="grid gap-3">
-          <Metric label="Reklam harcaması (30 gün)">
-            <Num
-              value={sku.adSpendLast30d?.amount ?? null}
-              format="currency"
-              currency={sku.adSpendLast30d?.currency}
-              noDataReason="Ads API'den harcama gelmedi"
-            />
-          </Metric>
-          <Metric label="Reklam satışı (30 gün)">
-            <Num
-              value={sku.adSalesLast30d?.amount ?? null}
-              format="currency"
-              currency={sku.adSalesLast30d?.currency}
-              noDataReason="Ads API'den satış gelmedi"
-            />
-          </Metric>
-          <Metric label="ACOS">
-            <Num
-              value={toPercentUnit(sku.acos, SKU_SCALE)}
-              format="percent"
-              fractionDigits={1}
-              noDataReason="ACOS hesaplanmadı"
-            />
-          </Metric>
-          <Metric label="BuyBox oranı">
-            <Num
-              value={toPercentUnit(sku.buyBoxRate, SKU_SCALE)}
-              format="percent"
-              fractionDigits={1}
-              noDataReason="BuyBox oranı raporlanmadı"
-            />
-          </Metric>
+          <Stat
+            label="Reklam harcaması (30 gün)"
+            value={
+              <Num
+                value={sku.adSpendLast30d?.amount ?? null}
+                format="currency"
+                currency={sku.adSpendLast30d?.currency}
+                noDataReason="Ads API'den harcama gelmedi"
+              />
+            }
+          />
+          <Stat
+            label="Reklam satışı (30 gün)"
+            value={
+              <Num
+                value={sku.adSalesLast30d?.amount ?? null}
+                format="currency"
+                currency={sku.adSalesLast30d?.currency}
+                noDataReason="Ads API'den satış gelmedi"
+              />
+            }
+          />
+          <Stat
+            label="ACOS"
+            value={
+              <Num
+                value={toPercentUnit(sku.acos, SKU_SCALE)}
+                format="percent"
+                fractionDigits={1}
+                noDataReason="ACOS hesaplanmadı"
+              />
+            }
+          />
+          <Stat
+            label="BuyBox oranı"
+            value={
+              <Num
+                value={toPercentUnit(sku.buyBoxRate, SKU_SCALE)}
+                format="percent"
+                fractionDigits={1}
+                noDataReason="BuyBox oranı raporlanmadı"
+              />
+            }
+          />
         </dl>
       </Group>
 
       {/* 4 — Inventory */}
       <Group title="Inventory">
         <dl className="grid gap-3">
-          <Metric label="Stok">
-            <Num value={sku.unitsAvailable} noDataReason="Stok adedi gelmedi" />
-            <span className="text-xs text-content-tertiary">adet</span>
-          </Metric>
-          <Metric
+          <Stat
+            label="Stok"
+            value={
+              <>
+                <Num value={sku.unitsAvailable} noDataReason="Stok adedi gelmedi" />
+                <span className="text-xs text-content-tertiary">adet</span>
+              </>
+            }
+          />
+          <Stat
             label="Tahmini tükenme"
             note={sku.estimatedStockoutAt ? "kalan süre" : undefined}
-          >
-            {/* GELECEK tarih → `remainingTime`. `relativeTime` bir YAŞ
-                fonksiyonudur ve buraya "birazdan" yazardı (S5 dersi). */}
-            {stockout ? (
-              <time dateTime={sku.estimatedStockoutAt!} className="text-content">
-                {stockout}
-              </time>
-            ) : (
-              <NoData reason="Tükenme tarihi hesaplanmadı" />
-            )}
-          </Metric>
-          <Metric label="Kalan gün">
-            <Num value={sku.daysOfSupply} noDataReason="Satış hızı ölçülmedi" />
-          </Metric>
-          <Metric label="Önerilen sipariş">
-            <Num value={sku.reorderUnits} noDataReason="Sipariş önerisi üretilmedi" />
-            {sku.reorderUnits !== null && (
-              <span className="text-xs text-content-tertiary">adet</span>
-            )}
-          </Metric>
+            value={
+              /* GELECEK tarih → `remainingTime`. `relativeTime` bir YAŞ
+                 fonksiyonudur ve buraya "birazdan" yazardı (S5 dersi). */
+              stockout ? (
+                <time dateTime={sku.estimatedStockoutAt!} className="text-content">
+                  {stockout}
+                </time>
+              ) : (
+                <NoData reason="Tükenme tarihi hesaplanmadı" />
+              )
+            }
+          />
+          <Stat
+            label="Kalan gün"
+            value={<Num value={sku.daysOfSupply} noDataReason="Satış hızı ölçülmedi" />}
+          />
+          <Stat
+            label="Önerilen sipariş"
+            value={
+              <>
+                <Num
+                  value={sku.reorderUnits}
+                  noDataReason="Sipariş önerisi üretilmedi"
+                />
+                {sku.reorderUnits !== null && (
+                  <span className="text-xs text-content-tertiary">adet</span>
+                )}
+              </>
+            }
+          />
         </dl>
       </Group>
 
@@ -224,7 +292,7 @@ export function AmazonSkuPanel() {
         <Text size="sm" tone="tertiary">
           SKU olay geçmişi için veri sözleşmesi tanımlı değil. Uydurulmuş bir
           zaman çizgisi göstermek yerine boş bırakıldı; soru
-          13-backend-recommendations.md §15.3&apos;e düşüldü.
+          13-backend-recommendations.md §16.2&apos;ye düşüldü.
         </Text>
       </Group>
 
@@ -236,7 +304,7 @@ export function AmazonSkuPanel() {
           <Text size="sm" tone="tertiary">
             Bu SKU&apos;yu etkileyen, aksiyon gerektiren bir uyarı yok. SKU
             seviyesinde ayrı bir AI önerisi sözleşmesi de tanımlı değil
-            (13-...md §15.3).
+            (13-...md §16.2).
           </Text>
         )}
       </Group>

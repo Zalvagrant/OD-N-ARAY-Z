@@ -45,7 +45,7 @@ export function Stat({
   label: string;
   /** Düz sayı/metin satır içi `odin-num` ile yazılır; düğüm olduğu gibi geçer. */
   value: ReactNode;
-  note?: string;
+  note?: ReactNode;
   tone?: StatTone;
   size?: keyof typeof SIZE;
 }) {
@@ -54,7 +54,9 @@ export function Stat({
   return (
     <div>
       <dt className="text-xs uppercase tracking-wide text-content-tertiary">{label}</dt>
-      <dd className="mt-1">
+      {/* flex-wrap + gap: bir hücrede birden fazla düğüm olabiliyor
+          (Meter + Num, ya da Num + birim). S6'da üç yerde gerekti. */}
+      <dd className="mt-1 flex flex-wrap items-baseline gap-2">
         {plain ? (
           <span className={`odin-num ${SIZE[size]} ${TONE[tone]}`}>{value}</span>
         ) : (

@@ -5,7 +5,7 @@
  *
  * ANTI-FAKE, MOCK'TA DA GEÇERLİ — bu dosyada üç somut örneği var:
  *  1. `netProfit: null` ve `profitAfterAds: null`. COGS Amazon'da yoktur ve
- *     girilmemiştir; net kâr UYDURULMAZ (UI-ADR-098). Yerine `grossProfit`
+ *     girilmemiştir; net kâr UYDURULMAZ (UI-ADR-099). Yerine `grossProfit`
  *     ve neyin hariç tutulduğu gelir.
  *  2. `SkuHealth.grossMarginPerUnit` her SKU'da `null` — aynı sebep.
  *  3. Ölçülmeyen alanlar (bazı SKU'larda `healthScore`, `buyBoxRate`,
@@ -348,7 +348,7 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
       healthScore: 78,
       revenue: { amount: 4_182_000, currency: TRY },
 
-      /* NET KÂR HESAPLANAMIYOR — UI-ADR-098. Uydurulmaz. */
+      /* NET KÂR HESAPLANAMIYOR — UI-ADR-099. Uydurulmaz. */
       netProfit: null,
       grossProfit: { amount: 2_640_000, currency: TRY },
       profitBasis: {
@@ -395,7 +395,7 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
 /* --------------------------------------------------------------------------
    Executive KPI Strip — 06-workspaces.md §1.2 (sekiz kalem, aynı sırada)
 
-   "Net Profit" kartı YOKTUR (UI-ADR-098): hesaplanamayan bir kâr rakamı
+   "Net Profit" kartı YOKTUR (UI-ADR-099): hesaplanamayan bir kâr rakamı
    yerine "Gross Profit (ücretler hariç)" gösterilir ve neyin hariç tutulduğu
    şeridin altında yazılır.
    -------------------------------------------------------------------------- */
@@ -552,7 +552,7 @@ export function ppcOverviewMock(): DataEnvelope<PPCOverview> {
       sales: { amount: 18_300, currency: USD },
       acos: 18.1,
       roas: 5.4,
-      /* Kâr metriği — COGS olmadan hesaplanamaz (UI-ADR-098). */
+      /* Kâr metriği — COGS olmadan hesaplanamaz (UI-ADR-099). */
       profitAfterAds: null,
     } satisfies PPCOverview,
     { confidence: 88 }
@@ -665,7 +665,7 @@ export function simulationsMock(): DataEnvelope<SimulationCase[]> {
 }
 
 /* --------------------------------------------------------------------------
-   SkuHealth — 🟡 TEKLİF sözleşme (UI-ADR-100). Ölçülmeyen alan `null`.
+   SkuHealth — 🟡 TEKLİF sözleşme (UI-ADR-101). Ölçülmeyen alan `null`.
    -------------------------------------------------------------------------- */
 
 function sku(over: Partial<SkuHealth> & Pick<SkuHealth, "sku" | "asin" | "title">): SkuHealth {
@@ -683,7 +683,7 @@ function sku(over: Partial<SkuHealth> & Pick<SkuHealth, "sku" | "asin" | "title"
     adSpendLast30d: null,
     adSalesLast30d: null,
     acos: null,
-    /* COGS yok → birim kâr HİÇBİR SKU'da hesaplanamaz (UI-ADR-098). */
+    /* COGS yok → birim kâr HİÇBİR SKU'da hesaplanamaz (UI-ADR-099). */
     grossMarginPerUnit: null,
     price: null,
     ...over,
