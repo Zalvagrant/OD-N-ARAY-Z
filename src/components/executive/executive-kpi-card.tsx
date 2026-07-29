@@ -25,6 +25,7 @@
 import { useId, useState } from "react";
 import type { ExecutiveKPI } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
+import { PERCENT_SCALE_MISSING, percentFactor } from "@/lib/format/percent";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +74,7 @@ function numProps(kpi: Pick<ExecutiveKPI, "unit" | "currency" | "scale">) {
       return {
         format: "percent" as const,
         currency: undefined,
-        factor: kpi.scale === "0-1" ? 1 : kpi.scale === "0-100" ? 1 / 100 : null,
+        factor: percentFactor(kpi.scale),
         /* Intl varsayılanı yuvarlar: ACOS 18.1 → "%18". Amazon tarafında o
            ondalık karar değiştirir, bilgi kaybı kabul edilemez. */
         fractionDigits: 1 as number | undefined,
@@ -94,7 +95,7 @@ function scaled(value: number | undefined, factor: number | null): number | null
   return Number.isFinite(value as number) ? (value as number) * factor : null;
 }
 
-const SCALE_MISSING = "Yüzde ölçeği (scale) bildirilmedi — değer gösterilmiyor";
+const SCALE_MISSING = PERCENT_SCALE_MISSING;
 
 function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
   const [open, setOpen] = useState(false);
@@ -130,7 +131,11 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
       <CardBody>
         {/* ---------- LEVEL 1 — her zaman görünür ---------- */}
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
+          {/* min-w-0: değer bloğu esneyebilsin. Olmadan blok, içindeki
+              BÖLÜNEMEZ para sayısı kadar geniş olmayı dayatır ve dar kolonda
+              satırı kartın dışına iter. Kartın kendisi kaç kolona sığdığını
+              bilemez — kolon genişliği kuralı çağıranın gridindedir (§1 notu). */}
+          <div className="min-w-0">
             <Num
               value={scaled(kpi.value, factor)}
               format={format}
@@ -153,7 +158,18 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
             </p>
           </div>
 
-          <Sparkline values={kpi.sparkline ?? []} label={`${kpi.label} trendi`} />
+          {/* tone="neutral" ZORUNLU. Sparkline'ın `auto` kipi yükselişi YEŞİL
+              boyar; ACOS yükselirken yeşil çizgi, kartın kendi kuralının
+              (bkz. dosya başlığı: "Trend RENKLENDİRİLMEZ") tam tersini söyler.
+              ExecutiveKPI sözleşmesinde metriğin kutbu (yukarı iyi mi?) YOK,
+              dolayısıyla doğru renk BİLİNEMEZ — bilinmeyen bir şeyi renkle
+              iddia etmektense hiç iddia etmemek doğrudur. Yön glyph + sr-only
+              kelimeyle zaten veriliyor. (S6 görsel incelemesinde yakalandı.) */}
+          <Sparkline
+            values={kpi.sparkline ?? []}
+            label={`${kpi.label} trendi`}
+            tone="neutral"
+          />
         </div>
 
         {/* ---------- LEVEL 2 + 3 — açılınca ---------- */}
