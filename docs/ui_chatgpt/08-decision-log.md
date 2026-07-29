@@ -1187,3 +1187,168 @@ kavramlarının istenip istenmediği. `13-backend-recommendations.md` §15.
 `09b-verified-contracts.md` (yeni), `types/executive.ts`,
 `confidence-badge.tsx`, `ai-recommendation-card.tsx`, `council-view.tsx`,
 `director-card.tsx`, `10b`, `10c`, sprint sırası (S5.5 eklendi).
+
+---
+
+## UI-ADR-099 — Hesaplanamayan kâr gösterilmez; yerine Gross Profit + hariç tutulanlar
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S6 Amazon Director
+**Danışılan:** gavadolar (terra · luna) — ikisi de "Net Profit sayısal KPI
+olarak çizilmesin" dedi; **ayrıldıkları nokta** ikame kartın yanına ayrı bir
+"hesaplanamıyor" satırının konup konmayacağıydı (terra: gereksiz gürültü,
+luna: açıkça yazılsın). Karar sentezdir: ikame kart TEK, gerekçe TEK yerde
+(Executive Glance) ve şeridin altında tek satır atıf.
+
+**Sorun:** `09-data-contracts.md` §8 `netProfit: Money` diyor — zorunlu alan.
+Gerçekte net kâr = satış − Amazon ücretleri − reklam − iade − COGS − nakliye.
+**COGS Amazon'da yoktur**, kullanıcı girer ve girilmemiştir. Zorunlu bir alan
+"hesaplanamadı"yı ifade edemez; tek çıkış uydurmaktır.
+
+**Karar:** Üç parça.
+
+1. **Net kâr hesaplanamıyorsa hiç çizilmez.** KPI şeridinde "Net Profit" adlı
+   bir kart YOKTUR. Boş bir Net Profit kartı da basılmaz — kalıcı olarak boş
+   bir gösterge bilgi kirliliğidir (UI-ADR-096'daki `AI Readiness` dersi).
+2. **Yerine `Gross Profit (ücretler hariç)`** ve **neyin hariç tutulduğu
+   listelenir.** Liste süs değildir: `profitBasis.excluded` doldurulmadan
+   gross profit gösterilmez.
+3. **Aynı kural her kâr metriğine uygulanır.** `PPCOverview.profitAfterAds`
+   ve `SkuHealth.grossMarginPerUnit` de kâr metriğidir; ikisi de `null` gelir
+   ve gerekçesiyle boş görünür. Kural metriğe göre değil, **kavrama** göre
+   çalışır — yoksa bir sonraki kâr alanında yeniden tartışılır.
+
+**Sözleşme sapması (13-...md §15.1'e soru olarak düşüldü):**
+`netProfit: Money | null` · opsiyonel `grossProfit` · opsiyonel
+`profitBasis.excluded` · `PPCOverview.profitAfterAds: Money | null`.
+Ayrıca `AmazonSnapshot` ve `PPCOverview` için zorunlu `percentScale`
+(UI-ADR-093'ün §8/§9'da karşılığı yoktu).
+
+**Gerekçe:** Yanlış bir kâr rakamı, eksik bir kâr rakamından tehlikelidir —
+**makul görünür ve sorgulanmaz.** 13-...md §4 zaten bunu emrediyordu; bu ADR
+onu arayüz davranışına çeviriyor ve diğer yedi workspace'e kopyalanacak
+şablonu belirliyor.
+
+**🟢 BACKEND'DE KARŞILIĞI VAR — sonradan doğrulandı.** UI-ADR-098 (S5.5) ODIN
+deposunu okudu ve `09b-verified-contracts.md` §8'e şunu yazdı:
+`odin/amazon_director.py` net kâr için `realized_net_profit_usd` hesaplıyor,
+**hesaplayamıyorsa alana `"Data Required"` yazıyor.** Yani bu karar bir
+arayüz tercihi değil, backend'in zaten uyguladığı davranışın arayüzdeki
+karşılığıdır. `netProfit: null` ↔ `"Data Required"` eşlemesi S8'de
+doğrudan kurulur.
+
+**Reddedilen alternatif:** "Net Profit" kartını çizip değerini `NoData`
+yapmak. Kalıcı boş kart, gürültü üretir ve CEO her gün aynı boşluğa bakar.
+
+**Etki:** `types/executive.ts`, `mocks/amazon.ts`,
+`screens/amazon-director.tsx`, `executive/ppc-overview.tsx`,
+`screens/amazon-sku-panel.tsx`.
+
+---
+
+## UI-ADR-100 — Simülatör hesap yapmaz; senaryolar veriden gelir
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S6
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde, ikisi de
+kaydırıcılı istemci hesabını açıkça reddetti.
+
+**Sorun:** `06-workspaces.md` §1.5 K4 "PPC bütçesini %15 artırırsak ne olur?"
+istiyor. ODIN'de tahmin/simülasyon motoru **yok** (13-...md §6). Kaydırıcı
+koyup elastikiyet katsayısıyla istemcide hesaplasak — formülü göstersek bile —
+olur mu?
+
+**Karar:** Hayır. Üç kural.
+
+1. **İstemci hiçbir sayı hesaplamaz.** Senaryolar zarftan gelir; kullanıcı
+   yalnızca hazır vakalar arasında seçim yapar.
+2. **`assumptions[]` boşsa sonuç HİÇ gösterilmez** ve elenen senaryo sayısı
+   yazılır. Varsayımları görünmeyen simülasyon, açıklanmamış bir AI
+   çıktısıdır (09-...md §9).
+3. **Kaynak gerçek bir motor değilse etiket görünür:** `meta.source === "mock"`
+   iken başlıkta `SİMÜLASYON — MOCK`. Hiç senaryo yoksa panel gerekçeli boş
+   durum gösterir, kendi senaryosunu üretmez.
+
+**Gerekçe (terra'nın cümlesi):** elastikiyet katsayısının veri/model kaynağı
+yoksa bu "hesap makinesi" değil, **sahte tahmindir**; formülü göstermek onu
+meşrulaştırmaz. İleride kaynağı sözleşmeli, açıkça "deterministik
+hesaplayıcı" adıyla ayrı bir özellik olabilir — "AI Simulator" olamaz.
+
+**Etki:** `executive/simulation-panel.tsx`, `types/executive.ts`
+(`SimulationCase`), `mocks/amazon.ts`.
+
+---
+
+## UI-ADR-101 — Sözleşmesi olmayan bölüm: ne zaman teklif, ne zaman boş
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S6
+**Danışılan:** gavadolar — **ikisi de bu kararın tersini önerdi.** Karar
+gerekçesiyle birlikte aşağıda; çelişki bilinçlidir.
+
+**Sorun:** S5'te iki farklı şey yapıldı: `Mission` için 🟡 TEKLİF sözleşme
+yazılıp mock ile beslendi, `Project`/`ResourceAllocation`/`AutomationQueue`
+için gerekçeli boş durum bırakıldı (UI-ADR-096). Ayrım kriteri yazılmamıştı.
+S6'da aynı soru SKU için çıktı: `09-data-contracts.md`'de SKU sözleşmesi
+**yok**, ama ekranın merkezinde SKU Health tablosu ve SKU bağlam paneli var.
+
+**gavadolar'ın görüşü:** ikisi de **(a) boş bırak** dedi. terra'nın kriteri:
+"teklif ancak her alanın kaynak karşılığı varsa". luna'nın kriteri: "bölüm
+merkezîyse ve kullanıcı operasyonel gerçeklik sanacaksa boş bırak".
+
+**Karar: SKU için TEKLİF yazıldı (b).** Kriter şudur:
+
+| Koşul | Sonuç |
+|---|---|
+| Alanların **kaynağı** biliniyor (SP-API / Ads API / hesaplanabilir) | 🟡 TEKLİF + mock |
+| Alanların kaynağı da yok, bölüm başka bir workspace'in görünümü | gerekçeli boş durum |
+
+SKU alanları — stok, satış hızı, dönüşüm, ACOS, BuyBox — **SP-API ve Ads
+API'de kaynağı olan** ölçümlerdir; eksik olan sözleşme yazımıdır, ölçüm
+değil. `Project`/`ResourceAllocation`'da ise ölçümün kendisi yoktur.
+
+**luna'nın "merkezî bölüm" kriteri REDDEDİLDİ:** aynı kriter S5'te Mission
+Board'u da yasaklardı — o Mission Control'ün Primary Focus Area'sıydı, sahip
+onayladı ve yayına girdi. Merkezîlik bir dürüstlük ölçüsü değildir; **kaynağın
+varlığı** ölçüdür. Merkezî bölümü boş bırakmak, referans modülü boş bir ekrana
+çevirir ve S6'nın amacı olan "diğer yedi workspace'in şablonu"nu üretemez.
+
+**Yerine alınan sıkılaştırma (gavadolar'ın haklı olduğu yer):** teklif
+sözleşmedeki her alan mock'ta doldurulmaz — kaynağı olmayan alan mock'ta da
+`null` kalır. `SkuHealth.grossMarginPerUnit` (COGS ister) her SKU'da `null`,
+`buyBoxRate` kaynağı doğrulanmamış SKU'da `null`, `healthScore` üretilmemişse
+`null`. Bölüm başlığı sözleşmenin **teklif** olduğunu söyler.
+
+**Etki:** `types/screens.ts` (`SkuHealth`), `mocks/amazon.ts`,
+`screens/amazon-director.tsx`, `screens/amazon-sku-panel.tsx`,
+`13-backend-recommendations.md` §15.2.
+
+---
+
+## UI-ADR-102 — Kutbu bilinmeyen metrik renklendirilmez
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S6 görsel incelemesi
+
+**Sorun:** `ExecutiveKPICard` dosyasında "Trend RENKLENDİRİLMEZ — yukarı her
+metrik için iyi değildir (ACOS yükselmesi kötüdür)" yazıyor. Ama kartın
+içindeki `Sparkline` varsayılan `tone="auto"` ile çalışıyor ve **yükselişi
+yeşil** boyuyor. Ekranda ACOS %14,2 → %18,1 yükselirken çizgi yeşildi: kart
+kendi kuralının tam tersini söylüyordu. Hiçbir test bunu yakalamadı; yalnızca
+768 px'te ekrana bakınca görüldü.
+
+**Karar:** `ExecutiveKPI` sözleşmesinde metriğin **kutbu** (yukarı iyi mi?)
+yoktur; dolayısıyla doğru renk **bilinemez**. Bilinmeyen bir şeyi renkle iddia
+etmektense hiç iddia etmemek doğrudur → `ExecutiveKPICard` sparkline'ı
+`tone="neutral"` ile çizer. Yön zaten glyph (▲ ▼ ■) ve `sr-only` kelimeyle
+veriliyor; renk bilgi eklemiyordu, **yanlış bilgi ekliyordu.**
+
+`Sparkline`'ın `auto` kipi kaldırılmadı: kutbu gerçekten bilinen bir çağıran
+onu kullanabilir. Karar, varsayımın nerede yapıldığıyla ilgilidir.
+
+**Aynı ailedeki iki görsel düzeltme (ADR gerektirmedi, 10c §7.5'te kayıtlı):**
+kart başlığı artık kırpılmıyor (sarıyor) ve KPI kolonu belirli bir genişliğin
+altına inmiyor.
+
+**Etki:** `executive/executive-kpi-card.tsx`. Executive Briefing de aynı
+kartı kullandığı için oradaki KPI'lar da düzeldi.
