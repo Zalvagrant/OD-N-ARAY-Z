@@ -180,12 +180,17 @@ Kullanıcı ekran değiştirmeden tüm detayları görür.
 
 ### 1.8 Kalite kriterleri
 
-- [ ] Mission Control tasarım dili korunuyor
-- [ ] Aynı component kütüphanesi kullanılıyor
-- [ ] Aynı grid sistemi
-- [ ] Sağ panel davranışı değişmemiş
-- [ ] AI önerileri kanıtlarla destekleniyor
-- [ ] SP-API ve Ads API verileri **aynı yapıda** gösteriliyor
+**S6'da üretildi** — ekran katmanı `10c-screens.md` §7'de tarif edilir.
+
+- [x] Mission Control tasarım dili korunuyor
+- [x] Aynı component kütüphanesi kullanılıyor
+- [x] Aynı grid sistemi — üç kolon bağımsız akışa çevrildi, gerekçe 10c §7.2
+- [x] Sağ panel davranışı değişmemiş — kabuğa dokunulmadı, `children` doldu
+- [x] AI önerileri kanıtlarla destekleniyor (`EvidenceChain`, UI-ADR-091)
+- [x] SP-API ve Ads API verileri **aynı yapıda** gösteriliyor — ikisi de
+      `DataEnvelope` + `DataGuard` + `TrustSignal` zincirinden geçer
+- [ ] Gerçek veri bağlı değil — S8. `SkuHealth` sözleşmesi 🟡 TEKLİF
+      (13-...md §15.2), net kâr için sözleşme sapması onay bekliyor (§15.1)
 
 ---
 

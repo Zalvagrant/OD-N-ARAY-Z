@@ -40,7 +40,7 @@ Bu klasör arayüzün tam spesifikasyonudur. **Bir şey yazmadan önce oku.**
 | `10-component-library.md` | Her bileşende |
 | `10a-core-components.md` | S3 primitive'lerinin API'si ve durum matrisi |
 | `10b-executive-components.md` | S4 executive bileşenlerinin API'si ve anti-fake kuralları |
-| `10c-screens.md` | S5 ekran katmanı — Section, WorkspaceHeader, ekran dizilimleri |
+| `10c-screens.md` | S5 + S6 ekran katmanı — Section, WorkspaceHeader, ekran dizilimleri, Amazon Director (§7) |
 | `11-design-tokens.md` | Renk/boşluk/gölge yazarken |
 | `12-motion-system.md` | Animasyon yazarken |
 | `15-execution-plan.md` | Sprint sırası — hangi işi ne zaman |
@@ -174,15 +174,23 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 
 `15-execution-plan.md` — S0…S13.
 Biten: **S1 (Token), S2 (App Shell), S3 (Core Components),
-S4 (Executive Components — 15 bileşen, `10b-executive-components.md`).**
-Üretildi, sahip onayı bekliyor: **S5 — Executive Briefing + Mission Control**
-(`10c-screens.md`). İlk gerçek ekranlar açıldı; veri **mock**, hepsi
-`meta.source === "mock"` ile işaretli (UI-ADR-094) ve S8'de değişecek.
-Sıradaki: **S5.5 — Sözleşme Hizalama** (UI-ADR-098). S6'ya GİRMEDEN önce:
-ODIN çekirdeği okundu ve `09-data-contracts.md`'nin gerçek backend ile
-uyuşmadığı doğrulandı. Kanonik kaynak ODIN'dir; fark tablosu
+S4 (Executive Components — 15 bileşen, `10b-executive-components.md`),
+S5 (Executive Briefing + Mission Control, `10c-screens.md` §3–§4),
+S5.5 (Sözleşme Hizalama — UI-ADR-098).**
+
+**S5.5:** ODIN çekirdeği okundu ve `09-data-contracts.md`'nin gerçek
+backend ile uyuşmadığı doğrulandı. Kanonik kaynak ODIN'dir; fark tablosu
 `09b-verified-contracts.md`'de, sahibin vermesi gereken 5 karar
-`13-backend-recommendations.md` §15'te. S6 (Amazon Director) ondan sonra.
+`13-backend-recommendations.md` §15'te.
+
+Üretildi, sahip onayı bekliyor: **S6 — Amazon Director** (`10c-screens.md`
+§7) — diğer 7 workspace'in şablonu; 3 yeni Executive bileşeni
+(`10b` §17–§19) ve 4 yeni karar (UI-ADR-099…102). S6, S5.5'in bulgularıyla
+hizalandı; kalan hizalama işleri (Decision · Heartbeat · confidence
+breakdown) S6 kapsamı dışıdır ve 09b §9'un 1. maddesindedir.
+Veri hâlâ **mock**, hepsi `meta.source === "mock"` ile işaretli
+(UI-ADR-094) ve S8'de değişecek.
+Sıradaki: sahibin 13-...md §15'teki beş kararı, sonra 09b §9 hizalaması.
 
 ### Her sprint sonunda
 

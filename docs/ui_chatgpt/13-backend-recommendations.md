@@ -613,3 +613,124 @@ refactor + mock güncelleme + contract fixture testleri).
 > gavadolar A dedi. C'yi terra açıkça riskli buldu: "yanlış varsayımlar
 > bileşen API'lerine gömülü, görsel kabuk paralel gidebilir ama veri
 > modeli ve bileşen şablonu contract düzeltmesi bitmeden genişletilmemeli."
+
+**Ne oldu:** S6 sahibin talimatıyla **C** yolundan gitti — görsel şablon
+üretildi, sözleşme hizalaması S5.5'te ayrı yürüdü. terra'nın uyarısı kısmen
+gerçekleşti: S6 `09-data-contracts.md` üzerine kuruldu ve §16'daki sapmaların
+bir kısmı 09b ile yeniden hizalanmak zorunda kaldı. Ayrıntı `10c` §7.7.
+
+---
+
+## 16. S6'dan çıkan sorular (Amazon Director)
+
+Referans modül kurulurken sözleşmede karşılığı bulunamayan noktalar.
+CLAUDE.md §7 gereği veri modeli tek başımıza değiştirilmedi — **sorular
+burada.** §14'teki beş soru hâlâ açıktır ve tekrarlanmadı; §15'teki beş
+karar da sahibi bekliyor.
+İlgili kararlar: UI-ADR-099 · 100 · 101.
+
+### 15.1 Kâr alanları hesaplanamayan durumu ifade edemiyor ⚠️ EN ÖNCELİKLİ
+
+`09-...md` §8 `netProfit: Money` ve §9 `profitAfterAds: Money` — ikisi de
+**zorunlu.** Ama §4'te (bu dosya) yazdığımız gerçek şu: COGS Amazon'da yok,
+kullanıcı girmeli ve girilmemiş. Zorunlu bir alan "hesaplanamadı"yı ifade
+edemez; tek çıkış uydurmaktır.
+
+**Arayüzde şimdilik yapılan (UI-ADR-098):**
+
+```ts
+AmazonSnapshot.netProfit: Money | null      // SAPMA
+AmazonSnapshot.grossProfit?: Money          // SAPMA — net kâr yokken ikame
+AmazonSnapshot.profitBasis?: { excluded: string[] }   // SAPMA — zorunlu görünür
+PPCOverview.profitAfterAds: Money | null    // SAPMA
+```
+
+Net kâr `null` iken KPI şeridinde "Net Profit" kartı **hiç çizilmiyor**;
+yerine "Gross Profit (ücretler hariç)" ve hariç tutulan kalemler listeleniyor.
+
+**Sorular:**
+1. `netProfit` nullable yapılabilir mi? Yapılamıyorsa arayüz hesaplanabilirliği
+   neresinden anlayacak — arayüz türetme yapmamalı.
+2. `grossProfit`'in tanımı ne olacak? Şu an mock'ta *satış − reklam
+   harcaması*. Backend hangi kalemleri düşüyor?
+3. `profitBasis.excluded` `string[]` mi olsun, enum mu? terra enum önerdi
+   (çeviri arayüzün i18n katmanında kalsın diye). Karar sizin.
+4. COGS girişi hangi ekrandan yapılacak? Bu, arayüzde **yeni bir yazma
+   akışı** demektir ve S6 kapsamında değildi.
+
+### 15.2 SKU sözleşmesi yok — `SkuHealth` 🟡 TEKLİF
+
+`09-...md` SKU için hiçbir şey tanımlamıyor; oysa Amazon Director'ın
+merkezinde SKU Health tablosu (§1.4) ve SKU bağlam paneli (§1.7) var.
+S5'te `Mission` için izlenen yol izlendi (UI-ADR-100): tip
+`types/screens.ts`'te **teklif** olarak yazıldı, mock ile beslendi, kaynağı
+olmayan alanlar `null` bırakıldı.
+
+**Teklif edilen alanlar:** `sku · asin · title · healthScore (0–100, yoksa
+null) · status (healthy|watch|at_risk|critical) · unitsAvailable ·
+daysOfSupply · estimatedStockoutAt (ISO) · reorderUnits · unitsSoldLast30d ·
+revenueLast30d · conversionRate · buyBoxRate · adSpendLast30d ·
+adSalesLast30d · acos · grossMarginPerUnit · price`.
+**Tüm yüzdeler 0–100** — teklifin parçası olarak bildirildi (UI-ADR-093).
+
+**Sorular:**
+1. `healthScore` formülü ne? Türetilmiş bir skordur ve arayüz türetme
+   yapmaz — backend'in üretmesi gerekir. Üretilemiyorsa alan kalkmalı.
+2. `status` eşikleri nedir, kim belirler?
+3. `daysOfSupply` ve `estimatedStockoutAt` **aynı gerçeğin iki biçimi**.
+   İkisi de mi gelecek, biri ötekinden mi türetilecek? Türetilecekse hangisi
+   kaynaktır (yuvarlama farkı ekranda çelişki gibi görünüyor)?
+4. `buyBoxRate`'in kaynağı §4'te "⚠️ belirsiz" yazıyor. Sales & Traffic
+   raporundaki Buy Box yüzdesi mi? Yeni listelenen SKU'da gelmiyorsa `null`
+   mü döner?
+5. SKU seviyesinde bir `AIRecommendation` üretiliyor mu? Şu an panel yalnızca
+   `Alert.affectedEntities` eşleşmesini gösteriyor — türetme yapılmadı.
+6. SKU **olay geçmişi** (§1.7 "History") için sözleşme var mı? Yoksa o bölüm
+   boş kalmaya devam eder.
+
+### 15.3 `AmazonSnapshot` ve `PPCOverview` yüzde ölçeği bildirmiyor
+
+UI-ADR-093 "yüzde ölçeği bildirilir, tahmin edilmez" diyor ve `ExecutiveKPI`
+için `scale` alanı zorunlu. Ama §8'in `acos · tacos · buyBoxRate ·
+inventoryHealth` ve §9'un `acos` alanlarında böyle bir bilgi **yok.**
+
+**Yapılan:** her iki arayüze zarf başına tek `percentScale: PercentScale`
+alanı eklendi ve **zorunlu** yapıldı — TypeScript zorladığı için backend
+atlayamaz. Metrik başına alan eklemek gürültü olurdu.
+
+**Soru:** Bu tercih uygun mu, yoksa ölçek global bir sözleşme kuralı olarak
+(“ODIN'de tüm yüzdeler 0–100”) bir kez mi dondurulsun? İkincisi daha temiz
+ama o zaman `ExecutiveKPI.scale` da kalkmalı — ikisi bir arada tutarsız.
+
+### 15.4 Zaman serisi ve sipariş akışı sözleşmesi yok
+
+İki bölüm bu yüzden gerekçeli boş durumda (UI-ADR-096 deseni):
+
+| Bölüm | Eksik olan |
+|---|---|
+| Sales & Profit Analytics (§1.4 "günlük/haftalık/aylık/yıllık") | **Etiketli zaman serisi.** `ExecutiveKPI.sparkline` sadece `number[]` — yön gösterir, tarihi yoktur. Eksen etiketi uydurulamaz |
+| Orders (§1.4 "sipariş akışı ve anomaliler") | Sipariş seviyesinde sözleşme. `AmazonSnapshot.orders` bir SAYIDIR |
+| Layer 3'ün SKU-üstü kalemleri (§1.3: Compare · Decision History · Related Documents / Missions / Directors) | Hiçbirinin sözleşmesi yok |
+
+**Sorular:**
+1. Zaman serisi için ortak bir tip yazılsın mı? Öneri:
+   `MetricSeries { metric: string; points: { at: string; value: number | null }[]; granularity: "day"|"week"|"month"|"year" }`.
+   `value: null` "o gün ölçülmedi" demektir ve `Chart` onu interpolasyonla
+   doldurmaz (UI-ADR-087).
+2. Sipariş akışı SP-API Orders'tan mı gelecek? Anomali tespiti backend'de mi
+   yapılacak, yoksa arayüz mü sınıflandıracak? (Arayüz sınıflandırmamalı.)
+
+### 15.5 Simülasyon motoru — §6'nın somut karşılığı
+
+Panel yazıldı ama **hesap yapmıyor** (UI-ADR-099): senaryolar zarftan gelir,
+`assumptions[]` boşsa senaryo hiç gösterilmez, mock kaynakta
+"SİMÜLASYON — MOCK" rozeti çıkar.
+
+**Sorular:**
+1. §6'daki Faz 1 (trend ekstrapolasyonu) ne zaman gelir? Gelene kadar panel
+   "motor yok" boş durumunda kalacak.
+2. Uç noktası ne olacak — `POST /api/simulate` mi, hazır senaryo listesi mi?
+   Arayüz şu an **liste** bekliyor (`SimulationCase[]`); serbest parametreli
+   bir uç gelirse kullanıcı girdi verebilecek ve panel yeniden tasarlanır.
+3. `SimulationResult.confidence` nereden gelir? §9'daki uyarı burada da
+   geçerli: üretilemiyorsa gösterilmemeli.

@@ -1,8 +1,13 @@
 # 10b — Executive Components (S4)
 
 **Durum:** ✅ Üretildi — S4 · Executive Components
+**Genişletildi:** S6 — §17 PPCOverviewCard · §18 CampaignIntelligenceList
+· §19 SimulationPanel (üçü de Amazon Director'ın PPC Intelligence Center'ı
+için; hiçbiri mevcut bir bileşenin ikinci sürümü değildir, gerekçeleri
+kendi bölümlerinde). §1'e iki S6 notu eklendi.
 **Kaynak:** `10-component-library.md` §10 envanteri (Executive Components satırı)
-**Kod:** `src/components/executive/*`, `src/lib/clock/tick.ts`, `src/types/executive.ts`
+**Kod:** `src/components/executive/*`, `src/lib/clock/tick.ts`,
+`src/lib/format/percent.ts`, `src/types/executive.ts`
 
 Bunlar ODIN'i ODIN yapan bileşenlerdir. Başka üründe yoktur. `10a`'daki
 primitive'ler üzerine kurulurlar; hiçbiri primitive yeniden yazmaz.
@@ -44,6 +49,7 @@ Dört ayrı yokluk durumu, dört ayrı davranış (tek `NoData`'ya indirgenmez):
 | `Disclosure` | Katmanlı açılma | KPI / Decision / Recommendation aynı davranışı paylaşır |
 | `Meter` | 0–100 segmentli skor | Sürekli çubuk dinamik `style` isterdi → token kuralı ihlali |
 | `useNow()` | Paylaşılan saat | 20 kart = 20 timer olmasın (UI-ADR-089) |
+| `Metric` (S6) | etiket · değer · not üçlüsü | S6'da üç yerde aynı üçlü gerekti (Glance · PPC Overview · SKU paneli); `odin-num`'ın sağa hizalamasıyla başı dertte olan tek yer burasıdır |
 
 ### 0.4 Adlandırma notu
 
@@ -80,6 +86,18 @@ ve bu, eksik veriden tehlikelidir çünkü makul görünür.
 **Yüzde bir ondalıkla yazılır** (`fractionDigits: 1`). Intl varsayılanı
 yuvarlıyordu: ACOS 18.1 → "%18". Amazon tarafında o ondalık karar değiştirir;
 gerçek veriyi yuvarlayarak göstermek bilgi kaybıdır.
+
+**Sparkline `tone="neutral"` ile çizilir** (UI-ADR-101, S6). `auto` kipi
+yükselişi yeşil boyuyordu; ACOS yükselirken yeşil çizgi, kartın kendi
+kuralının tersini söyler. Sözleşmede metriğin kutbu yok → doğru renk
+bilinemez → renk iddiası yapılmaz.
+
+**Kolon genişliği çağıranın sorumluluğudur** (S6 görsel incelemesi). Bir KPI
+kartı ~260 px'in altına indiğinde `text-3xl` bir para değeri
+(`₺2.640.000,00`) kartın dışına taşar; sayı bölünemez, kırpmak da rakam
+gizlemek olur. Kart kaç kolona sığdığını bilemez, bu yüzden **grid** karar
+verir: ikinci kolon `md` değil `lg`de, dördüncü kolon `2xl`de açılır.
+Kartın içinde ayrıca değer bloğu `min-w-0`dır — esneyebilmesi için.
 
 **States:** Default · Focus (düğme) · Empty (`NoData`).
 **N/A:** Loading/Error → çağıran katmanın işi (`LoadingState`/`ErrorState`);
@@ -282,7 +300,72 @@ geçmişini ima eder, sözleşme yalnızca `lastBeat` verir.
 
 ---
 
-## 16. Kalite kapıları — S4 durumu
+## 17. PPCOverviewCard ⭐ (S6)
+
+**Dosya:** `ppc-overview.tsx` · **Kaynak:** 06-...md §1.5 K1, 09-...md §9
+
+PPC Health · Spend · Sales · ACOS · ROAS · **Profit After Ads**
+
+**Neden ayrı bileşen, neden 6 adet `ExecutiveKPICard` değil:** `ExecutiveKPI`
+sözleşmesi trend · sparkline · forecast · aiInsight · confidence ister;
+`PPCOverview` bunların hiçbirini içermez. Altı KPI nesnesi üretmek, altı
+uydurma trend ve altı uydurma tahmin üretmek olurdu.
+
+**Profit After Ads bilerek boştur** (UI-ADR-098): kâr metriğidir, COGS
+olmadan hesaplanamaz. Gerekçesi hücrenin altında ve kartın dibinde yazılıdır.
+`PROFIT_NEEDS_COGS` sabiti dışa açıktır — aynı gerekçe SKU panelinde de
+kullanılır, iki yerde iki farklı cümle yazılmaz.
+
+**ACOS** `percentScale` ile çizilir; ölçek gelmezse `NoData` (UI-ADR-093).
+**States:** Default · Empty (`NoData`). **N/A:** etkileşim durumları.
+
+---
+
+## 18. CampaignIntelligenceList (S6)
+
+**Dosya:** `campaign-intelligence.tsx` · **Kaynak:** 06-...md §1.5 K2, 09-...md §9
+
+Beş durum: `underperforming` · `acos_rising` · `budget_exhausting` ·
+`scalable` · `healthy`. Her birinin Türkçe metin etiketi ve Badge glyph'i var;
+renk tek başına anlam taşımaz.
+
+**Sıralama SORUNLUDAN sağlıklıya**, alfabetik değil. Gerekçe `EvidenceChain`
+ile aynıdır: çelişen kanıt listenin dibine gömülmez. Sorunlu kampanyayı
+alfabetik sıranın ortasına gömmek, onu hiç göstermemekten iyi değildir.
+Kural `sortCampaigns()` içinde tek yerdedir.
+
+**Öneriler bir tık ötededir** (`Disclosure`) — beş kampanyanın önerisi aynı
+anda açık olsa ekran bir rapora döner. Açıklanabilirlik şartını sağlamayan
+öneri çizilmez ve **kaç tanesinin elendiği satırın altında yazar**
+(UI-ADR-091: bastırmayı bilen katman yazar).
+
+**States:** Default · Empty (kampanya yok) · `NoData` (zarf yok).
+
+---
+
+## 19. SimulationPanel (S6)
+
+**Dosya:** `simulation-panel.tsx` · **Karar:** UI-ADR-099
+**Kaynak:** 06-...md §1.5 K4, 09-...md §9 `SimulationResult`
+
+Bu bir **hesap makinesi değildir.** Backend'de tahmin motoru yok (13-...md §6),
+bu yüzden:
+
+1. Senaryolar zarftan gelir; `SegmentedControl` yalnızca hazır vakalar
+   arasında seçim yapar. İstemcide hiçbir sayı hesaplanmaz.
+2. `assumptions[]` **her zaman görünürdür** — açılır bölümde değil. Boşsa
+   senaryo hiç gösterilmez (`canRenderSimulation()`), elenen sayısı yazılır.
+3. `meta.source === "mock"` iken başlıkta **`SİMÜLASYON — MOCK`** rozeti.
+4. Gösterilecek senaryo yoksa gerekçeli boş durum: "motor yok".
+
+`expectedChange` **metindir** (sözleşme öyle diyor) ve sayıya çevrilip
+yeniden biçimlenmez — olmayan bir kesinlik iddia etmemek için.
+
+**States:** Default · Empty (senaryo yok / varsayım yok) · `NoData`.
+
+---
+
+## 20. Kalite kapıları — S4 durumu
 
 - [x] Bağımlılık zinciri ihlal edilmiyor (Executive → Primitive, tek yön)
 - [x] S3 primitive'i yeniden yazılmadı
