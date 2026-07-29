@@ -12,6 +12,8 @@
  * çıkar (UI-ADR-096).
  */
 
+import type { Money } from "./executive";
+
 /* --------------------------------------------------------------------------
    05-dashboard.md §3.1 — Hero Section
    -------------------------------------------------------------------------- */
@@ -87,4 +89,58 @@ export interface IntelligenceItem {
   priority: 1 | 2 | 3 | 4 | 5;
   /** Olayı üreten Director / modül */
   actor?: string;
+}
+
+/* --------------------------------------------------------------------------
+   06-workspaces.md §1.4 — SKU Health · §1.7 SKU bağlam paneli
+   -------------------------------------------------------------------------- */
+
+/**
+ * 🟡 TEKLİF — sözleşmesi YOK, ekrandan geriye türetildi. Soru: 13-...md §15.2.
+ *
+ * `09-data-contracts.md` SKU için hiçbir şey tanımlamıyor; oysa Amazon
+ * Director'ın merkezinde SKU Health tablosu ve SKU bağlam paneli var.
+ * S5'te `Mission` için izlenen yol burada da izlendi (UI-ADR-100).
+ *
+ * ÖLÇEK BİLDİRİLİR, TAHMİN EDİLMEZ (UI-ADR-093): buradaki tüm yüzde alanları
+ * **0–100** aralığındadır ve bu, teklifin bir parçasıdır.
+ *
+ * ÖLÇÜLEMEYEN ALAN `null` GELİR — mock'ta bile doldurulmaz:
+ *   `grossMarginPerUnit` COGS gerektirir, COGS Amazon'da yoktur → kalıcı null.
+ */
+export interface SkuHealth {
+  sku: string;
+  asin: string;
+  title: string;
+  /** 0–100. Türetilmiş bir skordur; formülü backend'in sorumluluğunda. */
+  healthScore: number | null;
+  status: "healthy" | "watch" | "at_risk" | "critical";
+
+  /* Envanter — FBA Inventory */
+  unitsAvailable: number | null;
+  /** Kalan gün = stok / satış hızı. Ölçülemiyorsa null. */
+  daysOfSupply: number | null;
+  /** ISO 8601 — tahmini tükenme tarihi. GELECEK bir tarihtir. */
+  estimatedStockoutAt: string | null;
+  /** Yeniden sipariş önerisi (adet). Üretilmediyse null. */
+  reorderUnits: number | null;
+
+  /* Satış — Sales & Traffic raporu */
+  unitsSoldLast30d: number | null;
+  revenueLast30d: Money | null;
+  /** 0–100 */
+  conversionRate: number | null;
+  /** 0–100 — kaynağı doğrulanmalı (13-...md §4 "Buy Box oranı ⚠️"). */
+  buyBoxRate: number | null;
+
+  /* Reklam — Ads API */
+  adSpendLast30d: Money | null;
+  adSalesLast30d: Money | null;
+  /** 0–100 */
+  acos: number | null;
+
+  /* Kâr — COGS OLMADAN HESAPLANAMAZ, kalıcı olarak null (UI-ADR-098) */
+  grossMarginPerUnit: Money | null;
+
+  price: Money | null;
 }
