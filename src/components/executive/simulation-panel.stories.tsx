@@ -14,7 +14,7 @@ const base = simulationsMock();
 /**
  * Kaynak mock olduğu için başlıkta "SİMÜLASYON — MOCK" yazar.
  * Üçüncü senaryonun varsayımı yoktur → gösterilmez, elendiği altta yazılır.
- * İstemci hiçbir sayı hesaplamaz (UI-ADR-099).
+ * İstemci hiçbir sayı hesaplamaz (UI-ADR-100).
  */
 export const HazirSenaryolar: StoryObj = {
   render: () => (

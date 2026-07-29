@@ -17,13 +17,13 @@
  * VERİ: hepsi mock (`meta.source === "mock"`, UI-ADR-094). Gerçek veri S8.
  *
  * ANTI-FAKE — bu ekranda dört yer BİLEREK boştur:
- *   · Net Profit          COGS yok → hesaplanamaz (UI-ADR-098)
+ *   · Net Profit          COGS yok → hesaplanamaz (UI-ADR-099)
  *   · Profit After Ads    aynı sebep
- *   · Sales & Profit seri sözleşmesi yok (13-...md §15.4)
+ *   · Sales & Profit seri sözleşmesi yok (13-...md §16.4)
  *   · Orders akışı        sözleşme yok (aynı yer)
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AmazonSnapshot } from "@/types/executive";
@@ -31,7 +31,7 @@ import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
-import { useAmazonStore } from "@/lib/store/amazon";
+import { useUiStore } from "@/lib/store/ui";
 import {
   amazonAlertsMock,
   amazonKpisMock,
@@ -50,6 +50,7 @@ import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
 import { NoData } from "@/components/ui/no-data";
 import { Search } from "@/components/ui/search";
+import { Stat } from "@/components/ui/stat";
 import { Mono, Num, Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
@@ -60,12 +61,11 @@ import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { Meter } from "@/components/executive/meter";
-import { Metric } from "@/components/executive/metric";
 import { OpportunityCard } from "@/components/executive/opportunity-card";
 import { PPCOverviewCard, PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 import { SimulationPanel } from "@/components/executive/simulation-panel";
 import { TrustSignal } from "@/components/executive/trust-signal";
-import { SKU_STATUS } from "./amazon-sku-panel";
+import { AMAZON_SKU_KIND, SKU_STATUS } from "./amazon-sku-panel";
 
 /* --------------------------------------------------------------------------
    Layer 1 — Executive Glance. §1.3: "Grafik karmaşası yok, sadece:"
@@ -85,95 +85,121 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
         </div>
 
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Metric label="Amazon Health" note="0–100">
-            <Meter
-              value={s.healthScore}
-              label="Amazon sağlık skoru"
-              tone={s.healthScore >= 80 ? "success" : "warning"}
-              noDataReason="Sağlık skoru hesaplanmadı"
-            />
-            <Num value={s.healthScore} size="lg" noDataReason="Skor yok" />
-          </Metric>
+          <Stat
+            label="Amazon Health"
+            note="0–100"
+            value={
+              <>
+                <Meter
+                  value={s.healthScore}
+                  label="Amazon sağlık skoru"
+                  tone={s.healthScore >= 80 ? "success" : "warning"}
+                  noDataReason="Sağlık skoru hesaplanmadı"
+                />
+                <Num value={s.healthScore} size="lg" noDataReason="Skor yok" />
+              </>
+            }
+          />
 
-          <Metric label="Revenue">
-            <Num
-              value={s.revenue?.amount ?? null}
-              format="currency"
-              currency={s.revenue?.currency}
-              size="lg"
-              noDataReason="Ciro gelmedi"
-            />
-          </Metric>
+          <Stat
+            label="Revenue"
+            value={
+              <Num
+                value={s.revenue?.amount ?? null}
+                format="currency"
+                currency={s.revenue?.currency}
+                size="lg"
+                noDataReason="Ciro gelmedi"
+              />
+            }
+          />
 
-          {/* NET KÂR: hesaplanamıyorsa GÖSTERİLMEZ — UI-ADR-098.
+          {/* NET KÂR: hesaplanamıyorsa GÖSTERİLMEZ — UI-ADR-099.
               Yerine gross profit + neyin hariç tutulduğu. */}
           {s.netProfit ? (
-            <Metric label="Net Profit">
-              <Num
-                value={s.netProfit.amount}
-                format="currency"
-                currency={s.netProfit.currency}
-                size="lg"
-              />
-            </Metric>
+            <Stat
+              label="Net Profit"
+              value={
+                <Num
+                  value={s.netProfit.amount}
+                  format="currency"
+                  currency={s.netProfit.currency}
+                  size="lg"
+                />
+              }
+            />
           ) : (
-            <Metric
+            <Stat
               label="Gross Profit (ücretler hariç)"
               note="Net kâr DEĞİL — hariç tutulanlar aşağıda"
-            >
-              <Num
-                value={s.grossProfit?.amount ?? null}
-                format="currency"
-                currency={s.grossProfit?.currency}
-                size="lg"
-                noDataReason={PROFIT_NEEDS_COGS}
-              />
-            </Metric>
+              value={
+                <Num
+                  value={s.grossProfit?.amount ?? null}
+                  format="currency"
+                  currency={s.grossProfit?.currency}
+                  size="lg"
+                  noDataReason={PROFIT_NEEDS_COGS}
+                />
+              }
+            />
           )}
 
-          <Metric label="Orders">
-            <Num value={s.orders} size="lg" noDataReason="Sipariş sayısı gelmedi" />
-          </Metric>
+          <Stat
+            label="Orders"
+            value={<Num value={s.orders} size="lg" noDataReason="Sipariş sayısı gelmedi" />}
+          />
 
-          <Metric label="ACOS">
-            <Num
-              value={toPercentUnit(s.acos, scale)}
-              format="percent"
-              fractionDigits={1}
-              size="lg"
-              noDataReason="ACOS ölçeği bildirilmedi"
-            />
-          </Metric>
+          <Stat
+            label="ACOS"
+            value={
+              <Num
+                value={toPercentUnit(s.acos, scale)}
+                format="percent"
+                fractionDigits={1}
+                size="lg"
+                noDataReason="ACOS ölçeği bildirilmedi"
+              />
+            }
+          />
 
-          <Metric label="TACOS">
-            <Num
-              value={toPercentUnit(s.tacos, scale)}
-              format="percent"
-              fractionDigits={1}
-              size="lg"
-              noDataReason="TACOS ölçeği bildirilmedi"
-            />
-          </Metric>
+          <Stat
+            label="TACOS"
+            value={
+              <Num
+                value={toPercentUnit(s.tacos, scale)}
+                format="percent"
+                fractionDigits={1}
+                size="lg"
+                noDataReason="TACOS ölçeği bildirilmedi"
+              />
+            }
+          />
 
-          <Metric label="Buy Box">
-            <Num
-              value={toPercentUnit(s.buyBoxRate, scale)}
-              format="percent"
-              fractionDigits={1}
-              size="lg"
-              noDataReason="BuyBox oranı gelmedi"
-            />
-          </Metric>
+          <Stat
+            label="Buy Box"
+            value={
+              <Num
+                value={toPercentUnit(s.buyBoxRate, scale)}
+                format="percent"
+                fractionDigits={1}
+                size="lg"
+                noDataReason="BuyBox oranı gelmedi"
+              />
+            }
+          />
 
-          <Metric label="Inventory Health">
-            <Num
-              value={toPercentUnit(s.inventoryHealth, scale)}
-              format="percent"
-              fractionDigits={1}
-              size="lg"
-              noDataReason="Stok sağlığı hesaplanmadı"
-            />
-          </Metric>
+          <Stat
+            label="Inventory Health"
+            value={
+              <Num
+                value={toPercentUnit(s.inventoryHealth, scale)}
+                format="percent"
+                fractionDigits={1}
+                size="lg"
+                noDataReason="Stok sağlığı hesaplanmadı"
+              />
+            }
+          />
         </dl>
 
         {/* Net kârın neden yazılmadığı — 13-...md §4'ün somut karşılığı. */}
@@ -202,28 +228,40 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
 
         {/* Top Risk · Top Opportunity · Mission Progress */}
         <dl className="grid gap-4 border-t border-line-subtle pt-4 sm:grid-cols-3">
-          <Metric label="Top Risk">
-            {s.topRisk ? (
-              <span className="text-sm text-content">{s.topRisk.title}</span>
-            ) : (
-              <NoData reason="Açık kritik risk yok" />
-            )}
-          </Metric>
-          <Metric label="Top Opportunity">
-            {s.topOpportunity ? (
-              <span className="text-sm text-content">{s.topOpportunity.title}</span>
-            ) : (
-              <NoData reason="Ölçülmüş fırsat yok" />
-            )}
-          </Metric>
-          <Metric label="Mission Progress" note="günün Amazon hedefi">
-            <Meter
-              value={s.missionProgress}
-              label="Görev ilerlemesi"
-              noDataReason="İlerleme ölçülmüyor"
-            />
-            <Num value={s.missionProgress} size="sm" noDataReason="Ölçülmedi" />
-          </Metric>
+          <Stat
+            label="Top Risk"
+            value={
+              s.topRisk ? (
+                <span className="text-sm text-content">{s.topRisk.title}</span>
+              ) : (
+                <NoData reason="Açık kritik risk yok" />
+              )
+            }
+          />
+          <Stat
+            label="Top Opportunity"
+            value={
+              s.topOpportunity ? (
+                <span className="text-sm text-content">{s.topOpportunity.title}</span>
+              ) : (
+                <NoData reason="Ölçülmüş fırsat yok" />
+              )
+            }
+          />
+          <Stat
+            label="Mission Progress"
+            note="günün Amazon hedefi"
+            value={
+              <>
+                <Meter
+                  value={s.missionProgress}
+                  label="Görev ilerlemesi"
+                  noDataReason="İlerleme ölçülmüyor"
+                />
+                <Num value={s.missionProgress} size="sm" noDataReason="Ölçülmedi" />
+              </>
+            }
+          />
         </dl>
       </CardBody>
 
@@ -325,7 +363,7 @@ function noContract(name: string, why: string) {
     emptyTitle: `${name} sözleşmesi tanımlı değil`,
     emptyDescription: why,
     emptySuggestion:
-      "Soru 13-backend-recommendations.md §15.4'e düşüldü; sözleşme geldiğinde bölüm aynı yere oturur.",
+      "Soru 13-backend-recommendations.md §16.4'e düşüldü; sözleşme geldiğinde bölüm aynı yere oturur.",
   };
 }
 
@@ -342,13 +380,13 @@ export function AmazonDirector({
   const router = useRouter();
   const now = useNow();
   const [query, setQuery] = useState("");
-  const selectSku = useAmazonStore((s) => s.selectSku);
-  const selectedSku = useAmazonStore((s) => s.selectedSku);
-
-  /* Workspace'ten çıkınca seçim düşer: başka bir ekranın sağ panelinde
-     Amazon SKU'su asılı kalmaz (04-...md §11 panel sıfırlaması ile aynı
-     gerekçe). */
-  useEffect(() => () => selectSku(null), [selectSku]);
+  /* Seçimde NESNE DEĞİL KİMLİK saklanır (UI-ADR-098 `SelectedEntity`):
+     kopya, liste yenilendiğinde panelde bayat bir kayıt bırakırdı.
+     Workspace'ten çıkınca seçim store'un kendi kuralıyla düşer. */
+  const setSelectedEntity = useUiStore((st) => st.setSelectedEntity);
+  const selectedSkuId = useUiStore((st) =>
+    st.selectedEntity?.kind === AMAZON_SKU_KIND ? st.selectedEntity.id : null
+  );
 
   const snapshot = useMockData(snapshotMock);
   const kpis = useMockData(amazonKpisMock);
@@ -451,7 +489,7 @@ export function AmazonDirector({
           Şeritte <strong>Net Profit yoktur</strong>: COGS Amazon&apos;da
           bulunmadığı ve girilmediği için net kâr hesaplanamıyor. Yerine
           &quot;Gross Profit (ücretler hariç)&quot; gösteriliyor; neyin hariç
-          tutulduğu Executive Glance&apos;te listelenmiştir (UI-ADR-098).
+          tutulduğu Executive Glance&apos;te listelenmiştir (UI-ADR-099).
         </Text>
       </Section>
 
@@ -483,14 +521,20 @@ export function AmazonDirector({
             columns={skuColumns(now)}
             globalFilter={query}
             density="compact"
-            onSelect={selectSku}
+            onSelect={(row) =>
+              setSelectedEntity(
+                row
+                  ? { workspaceId: "amazon", kind: AMAZON_SKU_KIND, id: row.sku }
+                  : null
+              )
+            }
             getRowId={(r) => r.sku}
             emptyTitle="SKU yok"
             emptyDescription="SP-API'den aktif SKU gelmedi."
           />
-          {selectedSku && (
+          {selectedSkuId && (
             <Text size="sm" tone="tertiary" className="mt-2">
-              Seçili: {selectedSku.sku} — detay sağ bağlam panelinde.
+              Seçili: {selectedSkuId} — detay sağ bağlam panelinde.
             </Text>
           )}
         </Section>

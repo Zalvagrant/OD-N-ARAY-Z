@@ -13,7 +13,7 @@
  *
  * ⭐ Profit After Ads reklam metriği değil KÂR metriğidir — ve tam bu yüzden
  * net kâr ile aynı kaderi paylaşır: COGS yoksa hesaplanamaz. `null` geldiğinde
- * sayı UYDURULMAZ, gerekçesi yazılır (UI-ADR-098). Kasten boş görünen bu
+ * sayı UYDURULMAZ, gerekçesi yazılır (UI-ADR-099). Kasten boş görünen bu
  * hücre, yanlış bir kâr rakamından iyidir.
  */
 
@@ -21,10 +21,10 @@ import type { PPCOverview } from "@/types/executive";
 import type { DataEnvelope } from "@/types/data-envelope";
 import { toPercentUnit } from "@/lib/format/percent";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
+import { Stat } from "@/components/ui/stat";
 import { Num, Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
 import { Meter } from "./meter";
-import { Metric } from "./metric";
 import { TrustSignal } from "./trust-signal";
 
 /** COGS olmadan kâr hesaplanamaz — gerekçe tek yerde, dört yerde değil. */
@@ -45,72 +45,87 @@ export function PPCOverviewCard({
           <CardHeader title={title} description="Katman 1 — reklamın kâra etkisi" />
           <CardBody>
             <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <Metric
+              <Stat
                 label="PPC Health"
                 note={
                   Number.isFinite(ppc.health) ? `${Math.round(ppc.health)} / 100` : undefined
                 }
-              >
-                <Meter
-                  value={Number.isFinite(ppc.health) ? ppc.health : null}
-                  label="PPC sağlık skoru"
-                  tone="ai"
-                  noDataReason="PPC sağlık skoru üretilmedi"
-                />
-              </Metric>
+                value={
+                  <Meter
+                    value={Number.isFinite(ppc.health) ? ppc.health : null}
+                    label="PPC sağlık skoru"
+                    tone="ai"
+                    noDataReason="PPC sağlık skoru üretilmedi"
+                  />
+                }
+              />
 
-              <Metric label="Spend">
-                <Num
-                  value={ppc.spend?.amount ?? null}
-                  format="currency"
-                  currency={ppc.spend?.currency}
-                  size="xl"
-                  noDataReason="Reklam harcaması gelmedi"
-                />
-              </Metric>
+              <Stat
+                label="Spend"
+                value={
+                  <Num
+                    value={ppc.spend?.amount ?? null}
+                    format="currency"
+                    currency={ppc.spend?.currency}
+                    size="xl"
+                    noDataReason="Reklam harcaması gelmedi"
+                  />
+                }
+              />
 
-              <Metric label="Sales">
-                <Num
-                  value={ppc.sales?.amount ?? null}
-                  format="currency"
-                  currency={ppc.sales?.currency}
-                  size="xl"
-                  noDataReason="Reklam satışı gelmedi"
-                />
-              </Metric>
+              <Stat
+                label="Sales"
+                value={
+                  <Num
+                    value={ppc.sales?.amount ?? null}
+                    format="currency"
+                    currency={ppc.sales?.currency}
+                    size="xl"
+                    noDataReason="Reklam satışı gelmedi"
+                  />
+                }
+              />
 
-              <Metric label="ACOS">
-                <Num
-                  value={toPercentUnit(ppc.acos, ppc.percentScale)}
-                  format="percent"
-                  fractionDigits={1}
-                  size="xl"
-                  noDataReason="ACOS ölçeği bildirilmedi (UI-ADR-093)"
-                />
-              </Metric>
+              <Stat
+                label="ACOS"
+                value={
+                  <Num
+                    value={toPercentUnit(ppc.acos, ppc.percentScale)}
+                    format="percent"
+                    fractionDigits={1}
+                    size="xl"
+                    noDataReason="ACOS ölçeği bildirilmedi (UI-ADR-093)"
+                  />
+                }
+              />
 
-              <Metric label="ROAS" note="reklam satışı / reklam harcaması">
-                <Num
-                  value={Number.isFinite(ppc.roas) ? ppc.roas : null}
-                  fractionDigits={1}
-                  size="xl"
-                  noDataReason="ROAS hesaplanmadı"
-                />
-              </Metric>
+              <Stat
+                label="ROAS"
+                note="reklam satışı / reklam harcaması"
+                value={
+                  <Num
+                    value={Number.isFinite(ppc.roas) ? ppc.roas : null}
+                    fractionDigits={1}
+                    size="xl"
+                    noDataReason="ROAS hesaplanmadı"
+                  />
+                }
+              />
 
               {/* ⭐ Ayırt edici metrik — ve anti-fake kuralının en sert testi. */}
-              <Metric
+              <Stat
                 label="Profit After Ads"
                 note={ppc.profitAfterAds ? "reklam sonrası kâr" : PROFIT_NEEDS_COGS}
-              >
-                <Num
-                  value={ppc.profitAfterAds?.amount ?? null}
-                  format="currency"
-                  currency={ppc.profitAfterAds?.currency}
-                  size="xl"
-                  noDataReason={PROFIT_NEEDS_COGS}
-                />
-              </Metric>
+                value={
+                  <Num
+                    value={ppc.profitAfterAds?.amount ?? null}
+                    format="currency"
+                    currency={ppc.profitAfterAds?.currency}
+                    size="xl"
+                    noDataReason={PROFIT_NEEDS_COGS}
+                  />
+                }
+              />
             </dl>
 
             {!ppc.profitAfterAds && (

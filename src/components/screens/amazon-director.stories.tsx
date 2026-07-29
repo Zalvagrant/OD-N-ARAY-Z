@@ -13,7 +13,7 @@ export default meta;
 
 /**
  * Referans modül. Primary Focus: Executive Glance + KPI Strip.
- * Net kâr ve Profit After Ads BİLEREK boştur (UI-ADR-098); Sales & Profit ile
+ * Net kâr ve Profit After Ads BİLEREK boştur (UI-ADR-099); Sales & Profit ile
  * Orders bölümlerinin sözleşmesi yoktur (UI-ADR-096).
  */
 export const Amazon: StoryObj = {

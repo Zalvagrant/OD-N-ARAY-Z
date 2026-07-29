@@ -274,7 +274,7 @@ export interface ExecutiveBrief {
    -------------------------------------------------------------------------- */
 
 /**
- * SAPMA — UI-ADR-098 (gavadolar danışıldı, terra · luna aynı yönde).
+ * SAPMA — UI-ADR-099 (gavadolar danışıldı, terra · luna aynı yönde).
  *
  * Sözleşme `netProfit: Money` diyor, yani ZORUNLU. Gerçekte:
  *   Net kâr = satış − Amazon ücretleri − reklam − iade − COGS − nakliye
@@ -282,7 +282,7 @@ export interface ExecutiveBrief {
  * alan, hesaplanamayan bir değeri ifade edemez; tek çıkış uydurmaktır ve
  * yanlış bir kâr rakamı tüm ODIN'in güvenilirliğini bitirir (13-...md §4).
  *
- * Üç değişiklik, üçü de 13-...md §15.1'e soru olarak düşüldü:
+ * Üç değişiklik, üçü de 13-...md §16.1'e soru olarak düşüldü:
  *   netProfit    → `Money | null`
  *   grossProfit  → opsiyonel; net kâr yokken gösterilebilen TEK kâr
  *   profitBasis  → neyin hariç tutulduğu; gösterilmesi ZORUNLUDUR
@@ -290,7 +290,7 @@ export interface ExecutiveBrief {
 export interface AmazonSnapshot {
   /**
    * UI-ADR-093 — yüzde ölçeği BİLDİRİLİR, tahmin edilmez. Sözleşme §8 bunu
-   * yazmıyor; zarf başına tek alan olarak eklendi (SAPMA, 13-...md §15.1).
+   * yazmıyor; zarf başına tek alan olarak eklendi (SAPMA, 13-...md §16.1).
    * `acos` · `tacos` · `buyBoxRate` · `inventoryHealth` bu ölçektedir.
    * TypeScript zorunlu kıldığı için backend atlayamaz.
    */
@@ -334,7 +334,7 @@ export interface PPCOverview {
   roas: number;
   /**
    * ⭐ Ayırt edici metrik — reklam değil KÂR metriği.
-   * SAPMA (UI-ADR-098): sözleşmede `Money` zorunlu. Kâr olduğu için net kâr
+   * SAPMA (UI-ADR-099): sözleşmede `Money` zorunlu. Kâr olduğu için net kâr
    * ile aynı kaderi paylaşır: COGS yoksa hesaplanamaz → `null` gelir ve
    * ekranda gerekçesiyle boş görünür.
    */
@@ -372,7 +372,7 @@ export interface SimulationResult {
 /**
  * İki sözleşme tipinin eşlemesi — yeni ALAN yoktur.
  * Simülatör hazır vakaları listeler; istemci hiçbir sayı HESAPLAMAZ
- * (UI-ADR-099).
+ * (UI-ADR-100).
  */
 export interface SimulationCase {
   request: SimulationRequest;

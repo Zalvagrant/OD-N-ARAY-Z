@@ -5,7 +5,7 @@
  * Kaynak: 06-workspaces.md §1.5 K4, 09-data-contracts.md §9 `SimulationResult`.
  *
  * ⚠️ BACKEND'DE TAHMİN MOTORU YOK (13-...md §6). Bu yüzden panel bir
- * HESAP MAKİNESİ DEĞİLDİR — UI-ADR-099:
+ * HESAP MAKİNESİ DEĞİLDİR — UI-ADR-100:
  *
  *  1. Senaryolar zarftan gelir; istemci HİÇBİR sayı hesaplamaz. Kaydırıcıyla
  *     "bütçe +%15 → satış +%9" hesaplamak, katsayının kaynağı olmadığı için
