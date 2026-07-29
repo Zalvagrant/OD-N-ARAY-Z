@@ -284,6 +284,29 @@ kayıpları · `alternatives`'ın kararın alanı olması (UI-ADR-091'in dayana�
 düzeltilmesi. Bunlar S4 bileşenlerini yeniden yazmayı gerektirir ve
 Amazon Director'ın kapsamında değildir.
 
+### 7.8 Kapanış incelemesi — iki hata daha
+
+S6, iki oturumun işi birleştikten sonra bir kez daha 1920 · 1440 · 768'de
+gözden geçirildi. Testlerin (32 birim + 139 story) yakalamadığı **iki hata**
+çıktı; ikisi de kök nedende düzeltildi.
+
+| Bulgu | Kök neden | Düzeltme |
+|---|---|---|
+| PPC kartındaki dört sayı birbirini yalanlıyordu: `$2.420 / $18.300` ile ACOS %18,1 ve ROAS 5,4 bir arada duramaz. TACOS ise harcamayla **160 kat** uyumsuzdu. Üstelik ekranın tamamı ₺ iken bu kart $ idi | Değerler `06-...md` §1.5'teki örnek tablodan birebir kopyalanmıştı; **dokümanın kendi örneği tutarsız** | UI-ADR-103. Mock tek para birimine (₺) çekildi ve türetilebilir alanlar bileşenlerinden yazıldı. `mocks/amazon.test.ts` bu ilişkileri **kalıcı olarak** koruyor — ilk koşumda gözden kaçan bir tutarsızlığı (şeritte ROAS 5,4 / kartta 5,5) hemen yakaladı |
+| PPC kartında SPEND ile SALES **üst üste biniyordu**: 1920'de bitişik, **1440'ta 45 px iç içe** | `grid-cols-3` → Tailwind `minmax(0,1fr)` üretir; sütun içeriğinin altına inebilir ve para değeri sarmadığı için taşar. Kart zaten ekranın 1/3'ünde | Kartta en fazla **iki** kolon + değerler `xl` → `lg`. Her genişlikte pay pozitif (en dar durum 1440'ta 18 px) |
+
+**Ölçüm dersi — 1440 listeye eklendi.** İkinci hata 1920'de "bitişik" görünüp
+768'de hiç görünmüyordu; en kötü hâli **aradaki** genişlikteydi. En dar ve en
+geniş ekrana bakmak yetmiyor.
+
+**§7.5'teki ortam notu artık geçerli değil:** bu koşumda `next dev` sorunsuz
+hydrate oldu (mock veri geldi, `MockBadge` göründü, konsol hatası 0). Görsel
+doğrulama dev sunucusunda yapılabiliyor. Betikte dikkat edilecek tek şey
+bekleme koşuludur: `networkidle` HMR yüzünden hiç gerçekleşmez ve `Section`
+yükleme durumunda başlığını zaten bastığı için **başlık beklemek de yetmez** —
+yalnızca veri geldiğinde var olan bir düğüm beklenmeli (DataTable'ın satır
+sayacı). Erken ölçüm 768'de sayfayı 11.478 yerine 4.700 px sanıyordu.
+
 ---
 
 ## 8. Kalite kapıları — S5 durumu
@@ -315,11 +338,16 @@ Amazon Director'ın kapsamında değildir.
 - [x] Ölçüm kaynağı olmayan alan boş — mock'ta bile uydurma yok
 - [x] Sağ panel davranışı S2'deki ile aynı; kabuk DEĞİŞTİRİLMEDİ, yalnızca
       S5'te açılan `children` slot'u dolduruldu
-- [x] Testler: 32 birim + 139 story testi yeşil (44/44 story dosyası)
+- [x] Testler: 40 birim + 143 story testi yeşil (45/45 story dosyası).
+      Kapanışta eklenenler: `mocks/amazon.test.ts` (mock iç tutarlılık kapısı,
+      UI-ADR-103) ve SKU bağlam panelinin dört story'si
 - [x] Yedi genişlikte (768 · 1024 · 1280 · 1366 · 1440 · 1536 · 1920) yatay
       taşma = 0, üst üste binme = 0, kırpılan görünür metin = 0 —
       üç ekranda birden (Amazon · Briefing · Mission Control)
-- [x] Görsel incelemede üç hata bulundu ve kök nedende düzeltildi (§7.5);
-      biri S5'ten kalan gizli bir hataydı
+- [x] Görsel incelemede **beş** hata bulundu ve kök nedende düzeltildi
+      (§7.5 üç + §7.8 iki); biri S5'ten kalan gizli bir hataydı, biri de
+      yalnızca 1440'ta görünüyordu
+- [x] Mock veri iç tutarlı: ACOS · ROAS · TACOS bileşenlerinden çıkıyor,
+      ekranda tek para birimi var, hepsi birim testiyle korunuyor
 - [ ] **Gerçek veri bağlı değil** — S8. `SkuHealth` sözleşmesi 🟡 TEKLİF,
       sahip onayı bekliyor (13-...md §16.2)
