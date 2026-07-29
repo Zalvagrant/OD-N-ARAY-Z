@@ -666,27 +666,59 @@ S5'te `Mission` için izlenen yol izlendi (UI-ADR-100): tip
 `types/screens.ts`'te **teklif** olarak yazıldı, mock ile beslendi, kaynağı
 olmayan alanlar `null` bırakıldı.
 
-**Teklif edilen alanlar:** `sku · asin · title · healthScore (0–100, yoksa
-null) · status (healthy|watch|at_risk|critical) · unitsAvailable ·
-daysOfSupply · estimatedStockoutAt (ISO) · reorderUnits · unitsSoldLast30d ·
-revenueLast30d · conversionRate · buyBoxRate · adSpendLast30d ·
-adSalesLast30d · acos · grossMarginPerUnit · price`.
-**Tüm yüzdeler 0–100** — teklifin parçası olarak bildirildi (UI-ADR-093).
+**⚙️ TEKLİF REVİZE EDİLDİ (UI-ADR-104, gavadolar danışıldı).** Aşağıdaki
+sorulardan üçü revizyonla **kapandı**; kalanlar hâlâ backend'i bekliyor.
 
-**Sorular:**
-1. `healthScore` formülü ne? Türetilmiş bir skordur ve arayüz türetme
-   yapmaz — backend'in üretmesi gerekir. Üretilemiyorsa alan kalkmalı.
-2. `status` eşikleri nedir, kim belirler?
-3. `daysOfSupply` ve `estimatedStockoutAt` **aynı gerçeğin iki biçimi**.
-   İkisi de mi gelecek, biri ötekinden mi türetilecek? Türetilecekse hangisi
-   kaynaktır (yuvarlama farkı ekranda çelişki gibi görünüyor)?
-4. `buyBoxRate`'in kaynağı §4'te "⚠️ belirsiz" yazıyor. Sales & Traffic
-   raporundaki Buy Box yüzdesi mi? Yeni listelenen SKU'da gelmiyorsa `null`
-   mü döner?
-5. SKU seviyesinde bir `AIRecommendation` üretiliyor mu? Şu an panel yalnızca
+**Güncel alanlar:** `sku · asin · title · healthScore (0–100, yoksa null) ·
+healthScoreExplanation (ScoreFactor[]) · status · statusBasis
+(health_score|rule_set) · inventoryAsOf (ISO) · unitsAvailable ·
+daysOfSupply · estimatedStockoutAt (ISO) · reorderUnits ·
+sales { period, unitsSold, revenue, conversionRate, buyBoxRate } ·
+advertising { period, spend, sales, acos } · price`.
+**Tüm yüzdeler 0–100** — teklifin parçası olarak bildirildi (UI-ADR-093).
+`grossMarginPerUnit` **kaldırıldı**: kalıcı olarak null kalacak bir alan,
+sözleşmede sahte bir yetenektir.
+
+**Kapanan sorular:**
+
+- ~~`status` eşikleri kim belirler?~~ → Eşikler **backend politikasıdır**.
+  Sözleşmeye `statusBasis` eklendi: `health_score` ise durum skorla tutarlı
+  olmak zorunda, `rule_set` ise skordan bağımsız bir kuraldan gelir ve ekran
+  bunu söyler. Arayüz eşik hesabı YAPMAZ ve çelişki çözmez.
+- ~~`daysOfSupply` ve `estimatedStockoutAt` aynı gerçeğin iki biçimi mi?~~ →
+  **Hayır, değiller** (gavadolar'ın ikisi de aynı görüşte): biri anlık
+  kapasite, diğeri tahmin politikasının (satış hızı penceresi, tedarik
+  takvimi, zaman dilimi) çıktısı. İkisi de backend'den gelir, arayüz
+  birinden ötekini türetmez. Yuvarlama çelişkisi `inventoryAsOf` ile
+  bağlama oturdu.
+- ~~SKU olay geçmişi (History)~~ → Sözleşme hâlâ yok, bölüm gerekçeli boş
+  kalmaya devam ediyor. Soru aşağıda sürüyor.
+
+**Açık sorular:**
+
+1. **`healthScore` formülü ne, ve gerekçesini kim üretecek?** Skorun kendisi
+   kadar `healthScoreExplanation` da backend'in işidir. Kural sert:
+   **katkılar 100'den skora götürmek zorunda** — toplamayan bir gerekçe,
+   gerekçe değildir. `message` metnini backend yazar; arayüz cümle kurmaz.
+   Skor üretilemiyorsa gerekçe **neden üretilemediğini** söylemeli
+   (`AD_DATA_MISSING` gibi).
+2. **`buyBoxRate` kaynağı hâlâ belirsiz** (§4'te "⚠️"). gavadolar alanın
+   kaynağı netleşene kadar sözleşmeye alınmamasını önerdi; **alan tutuldu**
+   çünkü BuyBox Rate şartnamede zorunlu bir KPI ve ekranda kendi bölümü var.
+   Ama şu dört soru cevaplanmalı: **kaynak** (Sales & Traffic raporu mu?),
+   **marketplace**, **ölçüm dönemi** ve **payda** (gösterim mi, oturum mu,
+   saat mi?). Yeni listelenen SKU'da gelmiyorsa `null` döner mi?
+3. SKU seviyesinde bir `AIRecommendation` üretiliyor mu? Şu an panel yalnızca
    `Alert.affectedEntities` eşleşmesini gösteriyor — türetme yapılmadı.
-6. SKU **olay geçmişi** (§1.7 "History") için sözleşme var mı? Yoksa o bölüm
+4. SKU **olay geçmişi** (§1.7 "History") için sözleşme var mı? Yoksa o bölüm
    boş kalmaya devam eder.
+5. **Politika sürümü gerekli mi?** terra `statusPolicyVersion` /
+   `policyVersion` önerdi (audit için). Uygulanmadı: bugün üreten backend,
+   tüketen arayüz yok. Denetim izi gerekiyorsa eklenir — bu bir sahip
+   kararıdır.
+6. Çok dönemli karşılaştırma (7/30/90 gün) istenecek mi? Şema artık dönemi
+   veride taşıyor, yani tek alan değişikliğiyle diziye çıkar; ama bugün
+   hiçbir ekran istemiyor, o yüzden dizi YAPILMADI.
 
 ### 16.3 `AmazonSnapshot` ve `PPCOverview` yüzde ölçeği bildirmiyor
 

@@ -1446,3 +1446,85 @@ kalır; Amazon workspace'i marketplace para birimindedir (USD). İkisi
 **toplanamaz ve oranlanamaz.** Dönüştürme backend'in işidir ve kullanılan
 kur + kur tarihi zarfa girmelidir; arayüz kur çevirmez (13-...md §16.6).
 Bu kural gelene kadar hiçbir ekran iki birimi tek bir hesapta birleştirmez.
+
+
+---
+
+## UI-ADR-104 — `SkuHealth` revizyonu: dönem veride, skor gerekçeli, durum eşikli
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S6 kapanışı, sahibin talimatıyla
+**Danışılan:** gavadolar (terra · luna) — **dört maddede de aynı yönde**,
+ikisi de "sözleşme yetersiz, S8'den önce revize edin" dedi
+
+**Sorun:** `SkuHealth` bir 🟡 TEKLİFTİ (UI-ADR-101) ve dört yerde eksikti.
+Sözleşme henüz ratifiye edilmediği için düzeltmenin maliyeti bugün sıfıra
+yakın; S8'de gerçek veri bağlandıktan sonra yüksek olurdu.
+
+**Karar — dört değişiklik:**
+
+**1. Dönem alan adından veriye taşındı.**
+`unitsSoldLast30d` · `revenueLast30d` · `adSpendLast30d` gibi alanlar pencereyi
+ADLARINDA taşıyordu. 7/30/90 gün karşılaştırması istendiği an bu şema
+üçe katlanırdı. Artık `sales: { period, … }` ve `advertising: { period, … }`.
+Ek bir kural: satış ile reklam **aynı dönemi** kullanmak zorunda — farklı
+pencerelerin ACOS'u ile cirosu yan yana gösterilirse karşılaştırılamaz iki
+sayı üretilir (test bunu doğruluyor).
+
+**2. Türetilmiş skorun gerekçesi zorunlu oldu — ADR-0085.**
+`healthScore` bir formülün çıktısıydı ve **neden o değer olduğu hiçbir yerde
+yazmıyordu.** ODIN'in Explainability Envelope kuralı tam olarak bunu yasaklar:
+gerekçesiz türetilmiş skor, açıklanamayan bir AI çıktısıdır. Kullanıcı "38"
+görür, ne yapacağını bilemez.
+
+`healthScoreExplanation: ScoreFactor[]` eklendi; `code` (makine) + `message`
+(insan, **backend yazar** — arayüz cümle kurmaz) + `contribution` + `direction`.
+
+Sert kural: **katkılar 100'den skora götürmek zorunda** (100 − 28 − 22 − 12 = 38).
+Toplamayan bir gerekçe gerekçe değildir; kullanıcı katkıları toplar, skoru
+bulamazsa açıklamanın uydurma olduğunu düşünür — ki haklıdır.
+
+terra'nın ek noktası alındı: **skor `null` iken de gerekçe gelebilir.**
+Bir şeyin NEDEN hesaplanamadığı da bir açıklamadır (`AD_DATA_MISSING`).
+
+**3. `status` ile `healthScore` arasındaki çelişki kapatıldı.**
+İkisi ayrı alandı ve hangisinin kazandığı belirsizdi. Mock'ta zaten
+çelişiyorlardı: **SKU-4102 skoru 55 iken "İzlemede", SKU-1188 skoru 64 iken
+"Riskli"** — daha kötü skorlu SKU daha iyi etiketliydi.
+
+`statusBasis: "health_score" | "rule_set"` eklendi. `health_score` ise durum
+eşik tablosuyla tutarlı olmak zorundadır (test doğruluyor); `rule_set` ise
+durum skordan bağımsız bir kuraldan gelir ve **ekran bunu açıkça söyler**.
+
+Eşik tablosu **backend politikasıdır**; arayüz onu render için kullanmaz.
+Mock'ta durmasının tek sebebi mock'un backend yerine geçmesidir.
+
+**4. `grossMarginPerUnit` KALDIRILDI.**
+COGS Amazon'da yok ve girilmemiş; alan kalıcı olarak `null` kalacaktı.
+terra'nın ifadesiyle bu **sahte bir sözleşme kapasitesidir**: "bir gün
+dolacak" izlenimi verir, dolmaz. Anti-fake kuralı burada sözleşmenin
+kendisine uygulandı.
+
+**Alan kalktı ama açıklama kaldı:** panelde "Birim kâr — COGS girilmediği
+için hesaplanamıyor" satırı duruyor. Bu bir veri alanı değil, bir cevaptır;
+CEO'nun birim kârı neden göremediğini bilmesi gerekir.
+
+**Ek: `inventoryAsOf`.** Envanter anlık görüntüsünün yaşı, zarfın
+`lastUpdated`'ından farklıdır — satış raporu 30 dakikalık, FBA envanteri
+6 saatlik olabilir ve **tükenme kararı bu tazeliğe bağlıdır.**
+
+**Uygulanmayan öneriler ve gerekçesi:**
+- `statusPolicyVersion` / `policyVersion` (terra) — üreten backend, tüketen
+  arayüz yok. Sürüm dizesi bugün hiçbir soruyu cevaplamıyor; ihtiyaç
+  doğduğunda eklenir. §16.2'ye not düşüldü.
+- Çok dönemli dizi (`sales: […]`, luna) — 7/90 gün karşılaştırması hiçbir
+  ekranda yok. Tek dönem nesnesi şemayı bugünden generic yapar, olmayan bir
+  arayüzü inşa etmeden.
+- `buyBoxRate`'in sözleşmeden çıkarılması (terra/luna) — **uygulanmadı.**
+  BuyBox Rate sahibin şartnamesinde zorunlu bir KPI ve ekranda kendi bölümü
+  var; kaldırmak tanımlı bir özelliği silmek olurdu. Asıl istenen şey
+  **kaynağın netleşmesi**; soru §16.2'de keskinleştirildi.
+
+**Etki:** `types/screens.ts`, `mocks/amazon.ts`, `mocks/amazon.test.ts`
+(+6 değişmez, toplam 50 birim testi), `screens/amazon-director.tsx`,
+`screens/amazon-sku-panel.tsx` (skor gerekçesi artık ekranda).
