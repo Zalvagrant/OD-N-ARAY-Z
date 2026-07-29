@@ -1352,3 +1352,64 @@ altına inmiyor.
 
 **Etki:** `executive/executive-kpi-card.tsx`. Executive Briefing de aynı
 kartı kullandığı için oradaki KPI'lar da düzeldi.
+
+---
+
+## UI-ADR-103 — Mock veri iç tutarlılığı: sayılar birbirini doğrulamak zorundadır
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S6 kapanış görsel incelemesi
+**Danışılan:** gavadolar (terra · luna) — "ihlal mi?" sorusunda ikisi de aynı
+yönde; **çapa seçiminde ayrıştılar**, karar sentezdir
+
+**Sorun:** PPC Performance kartı dört sayıyı YAN YANA gösteriyor:
+
+```
+Spend  $2.420    Sales  $18.300    ACOS  %18,1    ROAS  5,4
+```
+
+Bu dördü birbirini yalanlıyordu: `2.420 / 18.300 = %13,2` ve oran `7,6`.
+Beşinci bir çelişki daha vardı: TACOS %9,4 iddiası, ekrandaki harcamayla
+`2.420 / 4.182.000 = %0,058` — **160 kat** uyumsuz. Üstelik ekranın tamamı ₺
+iken yalnızca bu kart $ idi.
+
+Değerler `06-workspaces.md` §1.5'teki örnek tablodan birebir kopyalanmıştı;
+**dokümanın kendi örneği tutarsız.**
+
+**Karar:** Mock veri, gerçek veri kadar **iç tutarlı** olmak zorundadır.
+Anti-fake kuralı "veri uydurma" ile bitmez; **birbirini yalanlayan sayılar
+da sahtedir.** Üç uygulama:
+
+1. **Tek para birimi.** Ekranda TEK birim (₺) vardır. Farklı birimdeki
+   harcama ciroyla oranlanamaz; TACOS böyle bir ekranda anlamsızdır.
+2. **Türetilebilir alanlar birbirinden türetilerek yazılır.** PPC kartı
+   artık `135.000 / 745.900` taşıyor: ACOS %18,1 ✓, ROAS 5,5 ✓,
+   TACOS `135.000 / 4.182.000` = %3,2 ✓ ve bu değer snapshot ile aynı.
+   Her SKU'nun kendi ACOS'u da harcama/satışından birebir çıkıyor.
+3. **Doküman örneği düzeltilmez, işaretlenir.** §1.5'teki tablo bir
+   ÖRNEKTİR, sözleşme değil; oraya not düşüldü.
+
+**Çapa neden ACOS/TACOS değil, harcama/satış oldu — terra ile luna burada
+ayrıştı.** terra ACOS %18,1'i sabit tutup satışı türetmek istedi (ACOS
+ekranda dört yerde geçiyor); luna harcama/satışı sabit tutup ACOS'u %13,2'ye
+çekmek istedi. İkisi de **TACOS'u kontrol etmemişti.** TACOS hesaba katılınca
+terra'nın çapası %52 reklam-atıflı ciro üretiyordu — matematiksel olarak
+tutarlı ama iş olarak abartılı. Seçilen üçüncü yol her iki sınavı da geçiyor:
+ACOS %18,1 korunur (dört yerdeki metin bozulmaz), harcama gerçekçi kalır
+(₺135.000 / ₺4,18M) ve tek değişen görünen değer TACOS'tur — o da zaten
+**hiçbir zaman doğrulanabilir değildi.**
+
+**Gerekçe:** Kullanıcının bir gösterge tablosuna güveni, sayıların birbirini
+doğrulamasından gelir. Bir CEO kafadan bölme yapar. İlk çelişkiyi gördüğü an
+— veri mock olsun ya da olmasın — ekrandaki hiçbir sayıya bir daha güvenmez.
+UI-ADR-094'ün "mock zararsızdır çünkü fark edilebilir" gerekçesi, mock'un
+**kendi içinde tutarlı** olmasına bağlıdır; tutarsız mock, S8'de gerçek veri
+gelince fark edilmez ve sessizce kalır.
+
+**Arayüz yine hesap yapmaz.** Tutarlılık üretici katmanda (`src/mocks/`)
+kurulur; UI dört sayıyı da olduğu gibi basar (UI-ADR-093 / UI-ADR-099 ile
+aynı yön). Bu bir türetme değil, **veri kalitesi kuralıdır.**
+
+**Etki:** `src/mocks/amazon.ts` (PPC kartı, TACOS, 14 SKU reklam alanı, CPC
+kanıtı, öneri sayıları), `13-backend-recommendations.md` §16.6,
+`06-workspaces.md` §1.5 notu.

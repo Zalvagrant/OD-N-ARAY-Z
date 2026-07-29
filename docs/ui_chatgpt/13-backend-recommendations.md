@@ -706,3 +706,37 @@ Panel yazıldı ama **hesap yapmıyor** (UI-ADR-099): senaryolar zarftan gelir,
    bir uç gelirse kullanıcı girdi verebilecek ve panel yeniden tasarlanır.
 3. `SimulationResult.confidence` nereden gelir? §9'daki uyarı burada da
    geçerli: üretilemiyorsa gösterilmemeli.
+
+### 16.6 Para birimi ve türetilebilir metriklerin tutarlılığı
+
+S6 kapanış incelemesinde PPC kartındaki dört sayı birbirini yalanlıyordu
+(UI-ADR-103). Mock tarafı düzeltildi, ama gerçek veri geldiğinde aynı sorun
+**backend'de** doğar. İki soru:
+
+**1. Reklam verisi hangi para biriminde gelecek?**
+
+Ads API harcamayı marketplace para biriminde (US için USD) verir; SP-API
+cirosu ise raporlama para biriminde gelebilir. TACOS = reklam harcaması /
+toplam satış olduğu için ikisi **aynı birimde** olmak zorundadır.
+
+- Backend tek bir raporlama para birimine mi çevirecek? Çeviriyorsa
+  **hangi kur, hangi tarihli**? Bu bilgi zarfa girmeli — arayüz kur
+  çevirmez, çeviremez.
+- Yoksa her `Money` kendi biriminde mi gelecek? O zaman TACOS gibi
+  ORANLAR backend'de hesaplanmalı; arayüz farklı birimdeki iki tutarı
+  oranlamaz, `NoData` gösterir.
+
+luna bu noktada `Money`'ye kur + kur tarihi eklenmesini önerdi. Bu bir veri
+modeli değişikliğidir; CLAUDE.md §7 gereği **karar sahibindedir**, arayüz
+kendi başına alan eklemedi.
+
+**2. Türetilebilir metrikleri kim üretecek?**
+
+`ACOS = spend / adSales`, `ROAS = adSales / spend`, `TACOS = spend / revenue`.
+Backend bu üçünü **kendi bileşenlerinden** üretmeli ve aynı yanıtta tutarlı
+göndermelidir. Arayüz hiçbirini hesaplamaz (UI-ADR-093 · UI-ADR-099) ve
+tutarsızlığı **düzeltemez** — yalnızca gösterir. Tutarsız bir üçlü ekrana
+düştüğü an kullanıcı tüm göstergelere olan güvenini kaybeder.
+
+Öneri: bu üç oranın tutarlılığı için backend tarafında bir doğrulama testi
+bulunsun (ODIN'in `tests/test_math_audit.py` deseni).
