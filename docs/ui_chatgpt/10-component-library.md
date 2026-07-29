@@ -265,8 +265,11 @@ konmuştu.
 
 ### Layout & Navigation
 `AppShell` · `TopHeader` · `LeftSidebar` · `RightContextPanel` · `StatusBar`
-· `WorkspaceContainer` · `WorkspaceHeader` · `CommandPalette` · `Tabs`
-· `Tree` · `Breadcrumb / ContextChain`
+· `WorkspaceContainer` · `WorkspaceHeader` · `Section` · `CommandPalette`
+· `Tabs` · `Tree` · `Breadcrumb / ContextChain`
+
+`Section` S5'te eklendi (`10c-screens.md` §1): bir workspace bölümünün
+çerçevesi ve dört durumu. Veri bileşeni değildir, dizilim bileşenidir.
 
 ### Primitives
 `Button` · `Input` · `Search` · `Filter` · `Checkbox` · `Radio` · `Toggle`
@@ -285,6 +288,11 @@ konmuştu.
 · `KnowledgeGraph` · `MemoryGraph` · `AICoreVisualization`
 · `TelemetryBar` · `HeartbeatIndicator` · `ConfidenceBadge`
 · `TrustSignal` · `AlertStack` · `OpportunityCard` · `SimulatorPanel`
+· `MissionBoard` · `SystemReadiness`
+
+`MissionBoard` ve `SystemReadiness` S5'te eklendi (`10c-screens.md`).
+`DecisionQueue` ve `ActivityFeed` de S5'te üretildi — ikisi de bu listede
+zaten adı geçen kalemlerdir.
 
 ### Feedback
 `Notification` · `Alert` · `EmptyState` · `ErrorState` · `LoadingState`

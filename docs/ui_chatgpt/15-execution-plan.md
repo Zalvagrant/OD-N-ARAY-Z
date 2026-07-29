@@ -521,10 +521,10 @@ FAZ A  İSKELET
 
 FAZ B  BİLEŞENLER
   ⬜ S3   Core Components
-  ⬜ S4   Executive Components
+  ✅ S4   Executive Components
 
 FAZ C  İLK EKRANLAR
-  ⬜ S5   Briefing + Mission Control
+  ✅ S5   Briefing + Mission Control
   ⬜ S6   Amazon Director
 
 FAZ D  CANLI VERİ

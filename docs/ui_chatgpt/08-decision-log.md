@@ -990,3 +990,137 @@ dondurulmuş bir sözleşme var.
 **Etki:** `types/executive.ts`, `executive-kpi-card.tsx`,
 `13-backend-recommendations.md` §13.2. Backend `scale` alanını üretene kadar
 yüzde KPI'ları boş görünür — bu bilinçli ve doğru davranıştır.
+
+---
+
+## UI-ADR-094 — Mock veri zarfta ayrı bir kaynaktır
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S5 Executive Briefing + Mission Control
+
+**Sorun:** S5 ekranları mock veriyle besleniyor; gerçek veri S8'de gelecek.
+Mock'u nasıl işaretleriz ki S8'de hiçbiri sessizce kalmasın?
+
+**Karar:** Üç katmanlı işaretleme.
+1. `DataSource` union'ına `"mock"` eklendi (`types/data-envelope.ts`). Mock
+   üreten tek kapı `mocks/envelope.ts`'tir ve `meta.source` alanını her
+   zaman `"mock"` yazar — başka değer yazmak tip seviyesinde mümkün ama
+   kural olarak yasaktır.
+2. `TrustSignal` bu kaynağı **saklamaz**: kartın altında
+   "Mock veri (S8'de gerçek kaynakla değişecek)" yazar.
+3. Dev derlemesinde ekranda `MockBadge` görünür; üretim derlemesinde
+   bileşen `null` döner.
+
+**Gerekçe:** Mock veri "geçici" olduğu için değil, **fark edilebilir**
+olduğu için zararsızdır. Tek arama (`source: "mock"`) tüm mock'ları bulur;
+S8'de unutulan bir mock, sahte veriye dönüşür ve anti-fake kuralını
+sessizce deler. Rozet nötr tondadır (amber değil): bir uyarı değil, bir
+etikettir — her ekranı alarma çevirmemek için (UI-ADR-091 ile aynı gerekçe).
+
+**Ek kural — mock'ta da anti-fake:** karşılığı olmayan alan mock'ta da
+doldurulmaz. `Knowledge Health` / `Memory Health` KPI'ları ölçüm kaynağı
+olmadığı için (registry'de `knowledge_sync` / `memory_indexing`
+`available: false`) değersiz gelir ve ekranda `NoData` çıkar.
+
+**Etki:** `types/data-envelope.ts`, `trust-signal.tsx`, `src/mocks/*`.
+
+---
+
+## UI-ADR-095 — Açılış durum şeridi registry'den beslenir
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S5
+
+**Sorun:** `05-dashboard.md` §2 açılışın ilk 0–3 saniyesinde altı durumun
+"sırayla canlanmasını" istiyor: AI Core aktif · Voice Core Online ·
+Knowledge Connected · Memory Synced · Background Jobs Running · Data
+Sources Connected. ODIN'de bu altı servisin **dördü yok.**
+
+**Karar:** Şerit çizilir ama içeriği telemetry registry'den gelir
+(`SystemReadiness`). Kapalı kanal "Online" yazmaz, **"bağlı değil"** yazar.
+
+**Gerekçe:** Altı yeşil tik göstermek en kolay şeydir ve tam olarak
+"Fake Dashboard" yasağının ihlalidir. Registry, hangi altsistemin gerçekten
+var olduğunun tek kaynağıdır (UI-ADR-083); şerit onu okur. Yeni bir servis
+canlıya çıkınca tek iş yine `available: true` — şeride dokunulmaz.
+
+**Süre:** 6 satır × 0,12 sn = 0,72 sn. Popup yok, ses yok; satırlar sessizce
+belirir. 3 saniyelik bütçenin içindedir.
+
+**Etki:** `system-readiness.tsx`, `lib/telemetry/registry.ts` (okunur).
+
+---
+
+## UI-ADR-096 — Sözleşmesi olmayan bölüm boş bırakılır, uydurulmaz
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S5
+
+**Sorun:** `05-dashboard.md` §5 Mission Control için dokuz bölüm sayıyor.
+`09-data-contracts.md` bunlardan yalnızca dördünü karşılıyor. Kalan üçü
+(Active Projects · Resource Allocation · Automation Queue) için veri
+sözleşmesi **yok.** Ekranı tamamlamak için sözleşme uydurmalı mıyız?
+
+**Karar:** Hayır. Üç bölüm de çizilir ama **gerekçesi yazılı boş durum**
+gösterir: "sözleşmesi tanımlı değil, uydurulmuş bir liste göstermek yerine
+boş bırakıldı" + sorunun düşüldüğü yer (13-...md §14.2).
+
+Ekranın karşılığı olan parçaları için sözleşme **teklif** olarak yazıldı
+(`types/screens.ts`: `ExecutiveHero`, `Mission`, `IntelligenceItem`) —
+09-...md'nin kendisi gibi, ekrandan geriye türetilmiş ve 🟡 işaretli.
+Bu bir veri modeli değişikliği değildir; CLAUDE.md §7 gereği karar sahibe
+bırakılmıştır.
+
+**Gerekçe:** Boş bir bölüm, uydurulmuş bir bölümden dürüsttür ve
+**eksikliği görünür kılar** — uydurma ise eksikliği gizler. Aynı ilke Hero'daki
+`AI Readiness` alanında da uygulandı: sözleşmede karşılığı olmadığı için
+`null` gelir ve ekranda `NoData` çıkar.
+
+**Etki:** `mission-control.tsx`, `types/screens.ts`,
+`13-backend-recommendations.md` §14.
+
+---
+
+## UI-ADR-097 — S3 borcu: FPS ve long task kapı değildir, invariant kapıdır
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 29 Temmuz 2026 — S5
+**Danışılan:** gavadolar (terra · luna) — iki tur, iki görüş de aynı yönde
+
+**Sorun:** S3'te FPS ölçülememişti (otomasyon sekmesinde `requestAnimationFrame`
+kısıtlı). Yerine "10.000 satırda kaydırma altında 50 ms üzeri long task = 0"
+kriteri önerilmişti.
+
+**Ölçüm:** Kriter denendi ve **taşınabilir olmadığı kanıtlandı.**
+
+| Koşum | Tekerlek senaryosu, >50 ms long task |
+|---|---|
+| Kontrol grubu (kaydırma yok) | 0 |
+| Aynı kod, koşum 1 | 5 |
+| Aynı kod + `table-layout: fixed` (teorik İYİLEŞTİRME) | 18 |
+| `Intl.NumberFormat` önbelleği eklendiğinde | 20 → 19 |
+
+Performansı iyileştirmesi beklenen bir değişiklik ölçümü 3,6 kat
+**kötüleştirdi.** Sinyal koda değil, o andaki makine yüküne tepki veriyor.
+
+**Karar:** İki parça.
+1. **Long task ve FPS kapı DEĞİLDİR.** Kırmızı ama güvenilmez bir test,
+   testsizlikten kötüdür: insanlara kırmızıyı yok saymayı öğretir.
+2. Yerine sanallaştırmanın **dört makineden bağımsız invariant'ı** kapıdır:
+   DOM satır sayısı pencere + overscan sınırını aşmaz · adım başına DOM
+   değişimi sınırlıdır (tüm liste yeniden kurulmaz) · `scrollHeight` kaymaz
+   (tolerans: bir satır) · kaydırma sonrası **doğru veri aralığı** görünür.
+
+Sabit "≤30 satır" eşiği de kullanılmadı: sınır viewport yüksekliğine
+bağlıdır (60vh + 32 px satır + `overscan: 12` → yapısal alt sınır ~39).
+Eşik ekrandan **hesaplanır**.
+
+**Reddedilen alternatifler:** eşiği ölçüme göre yükseltmek (ölçüme göre
+bütçe ayarlamak olurdu); kontrol grubuna göre göreli eşik (aynı gürültü).
+
+**Ek karar — `Intl.NumberFormat` önbelleği geri alındı.** 20 → 19 gürültü
+bandındadır; "teorik olarak doğru" olması kanıt gereksinimini karşılamaz.
+Profil ile anlamlı maliyet gösterilirse yeniden eklenir.
+
+**Etki:** `table.stories.tsx` (`SanallastirmaAltindaKaydirma`),
+`10a-core-components.md` §17 son madde.

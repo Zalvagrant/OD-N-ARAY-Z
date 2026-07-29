@@ -365,7 +365,11 @@ Offline/ReadOnly — sekmenin **içeriği** kendi durumunu gösterir.
 - [x] Uzun listeler sanallaştırılmış (DataTable)
 - [x] Veri sözleşmesi: `NoData` / `EmptyState` ile anti-fake
 - [x] Dokümantasyon şablonu dolduruldu (bu dosya)
-- [ ] **FPS ölçülmedi** — otomatik tarayıcı sekmesi arka planda çalıştığı için
-      `requestAnimationFrame` kısıtlanıyor. Sanallaştırma yapısal olarak
-      doğrulandı (10.000 satırda 14 DOM satırı). Gerçek FPS'i sahip
-      Storybook'ta kaydırarak doğrulamalı.
+- [x] **Sanallaştırma kaydırma altında doğrulandı** (S5'te kapatıldı,
+      UI-ADR-097). FPS ve "long task = 0" kriterlerinin ikisi de **taşınabilir
+      değil**: aynı kodda tekerlek senaryosu bir koşumda 5, diğerinde 18 long
+      task verdi ve teorik olarak iyileştirici bir değişiklikten sonra sayı
+      arttı. Yerine dört makineden bağımsız invariant kapı oldu — DOM satır
+      sınırı · adım başına sınırlı DOM değişimi · `scrollHeight` kaymaması ·
+      kaydırma sonrası doğru veri aralığı. Test:
+      `table.stories.tsx` → `SanallastirmaAltindaKaydirma`.

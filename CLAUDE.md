@@ -171,10 +171,12 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 ### Sprint sırası
 
 `15-execution-plan.md` — S0…S13.
-Biten: **S1 (Token), S2 (App Shell), S3 (Core Components).**
-Üretildi, sahip onayı bekliyor: **S4 — Executive Components** (15 bileşen,
-`10b-executive-components.md`).
-Sıradaki: **S5** — bileşenlerin Executive Briefing ekranına yerleşmesi.
+Biten: **S1 (Token), S2 (App Shell), S3 (Core Components),
+S4 (Executive Components — 15 bileşen, `10b-executive-components.md`).**
+Üretildi, sahip onayı bekliyor: **S5 — Executive Briefing + Mission Control**
+(`10c-screens.md`). İlk gerçek ekranlar açıldı; veri **mock**, hepsi
+`meta.source === "mock"` ile işaretli (UI-ADR-094) ve S8'de değişecek.
+Sıradaki: **S6** — Amazon Director (diğer 7 workspace'in şablonu).
 
 ### Her sprint sonunda
 

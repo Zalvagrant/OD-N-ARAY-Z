@@ -384,3 +384,97 @@ yok; `07-ai-directors.md` §11 yalnızca "yüksek → yeşil, düşük → amber
 **Soru:** Confidence Engine'in kalibrasyonu biliniyor mu? Model %70'te
 gerçekten %70 haklı çıkıyorsa eşikler böyle kalabilir; çıkmıyorsa eşikler
 kalibrasyona göre belirlenmeli. Bu bir tasarım tercihi değil, ölçüm sorusudur.
+
+---
+
+## 14. S5'ten çıkan sorular (Executive Briefing + Mission Control)
+
+Ekranlar kurulurken sözleşmede karşılığı bulunamayan noktalar. CLAUDE.md §7
+gereği veri modeli kendi başımıza değiştirilmedi — **sorular burada.**
+İlgili karar: UI-ADR-096.
+
+### 14.1 `AI Readiness` göstergesinin karşılığı yok
+
+`05-dashboard.md` §3.1 Hero'da "AI Readiness" istiyor. `09-data-contracts.md`
+§10 `AIPulse` içinde `overallConfidence` var ama bu "hazırlık" değil, anlık
+güven ortalamasıdır; §11 `SystemHealth.score` ise sistemin geneli.
+
+**Şimdilik yapılan:** `ExecutiveHero.aiReadiness: number | null` — `null`
+gelir ve Hero'da `NoData` çıkar. Uydurma yapılmıyor.
+
+**Soru:** AI hazırlığı ölçülebilir bir şey mi? Ölçülecekse tanımı ne —
+açık kanal oranı mı, model erişilebilirliği mi, kuyruk boşluğu mu?
+Ölçülemiyorsa alan sözleşmeden **kaldırılmalı**, çünkü kalıcı olarak boş bir
+gösterge de bilgi kirliliğidir.
+
+### 14.2 Mission Control'ün üç bölümünün sözleşmesi yok
+
+`05-dashboard.md` §5 dokuz bölüm sayıyor. Karşılığı olanlar: Executive
+Alerts (§6 `Alert`), Director Coordination (§4 `DirectorHeartbeat`),
+Operational Status (telemetry registry). Karşılığı **olmayanlar:**
+
+| Bölüm | Gereken sözleşme | Şimdiki durum |
+|---|---|---|
+| Mission Board / Current Objectives | `Mission` | 🟡 `types/screens.ts`'te TEKLİF |
+| Active Projects | `Project` | Ekranda gerekçeli boş durum |
+| Resource Allocation | `ResourceAllocation` | Ekranda gerekçeli boş durum |
+| Automation Queue | `AutomationQueue` | Ekranda gerekçeli boş durum |
+
+**Teklif edilen `Mission` alanları:** `id · title · objective · status
+(planned|active|blocked|done) · progressPercent (0–100, ölçülmüyorsa null)
+· ownerDirector · deadline (ISO, yoksa null) · relatedDecisionId? ·
+blockedReason?`
+
+**Sorular:**
+1. ODIN'de "mission" kavramı var mı, yoksa onaylanan Decision'ların
+   yürütme kaydı mı? İkincisiyse `Mission` ayrı bir varlık değil,
+   `Decision.status ∈ {executing, monitoring}` görünümüdür — bu durumda
+   sözleşme yazmak yerine mevcut alanları kullanırız.
+2. `progressPercent` gerçekten ölçülüyor mu? Ölçülmüyorsa alan `null`
+   kalmalı; arayüz yüzde uydurmaz.
+3. Projects ve Automation ayrı workspace'lerdir (`04-navigation-system.md`).
+   Mission Control'deki karşılıkları bir ÖZET mi, yoksa aynı verinin ikinci
+   bir görünümü mü? İkincisiyse o workspace'ler yazılmadan bu bölümler
+   doldurulmamalı.
+
+### 14.3 `Alert` sözleşmesi risk skoru / olasılık / etki taşımıyor
+
+`05-dashboard.md` §3.3 "Critical Risks" için Risk Score · Probability ·
+Impact istiyor ve "risk skoruna göre otomatik sıralanır" diyor.
+`09-...md` §6 `Alert` bunların hiçbirini içermiyor; yalnızca `severity` var.
+
+**Şimdilik yapılan:** Sıralama `severity` ile yapılıyor
+(critical → risk → warning → info). Türetilmiş bir skor **üretilmedi** —
+arayüz türetme yapmaz.
+
+**Soru:** Risk skoru üretiliyor mu? Üretiliyorsa `Alert`'e
+`riskScore · probability · impact` eklenmeli. Üretilmiyorsa dokümandaki
+"risk skoruna göre sırala" ifadesi `severity`'ye göre güncellenmeli —
+ikisinden biri seçilmeli, ekran şu an sözleşmeye uyuyor ama dokümana
+uymuyor.
+
+### 14.4 Intelligence Feed öğesinin sözleşmesi yok
+
+`05-dashboard.md` §6 on kategori sayıyor ve "öncelik sıralamasını AI yapar"
+diyor. Akan öğenin kendisi için sözleşme yok.
+
+**Şimdilik yapılan:** `IntelligenceItem` (`types/screens.ts`) —
+`id · category (10 kategori) · title · detail? · at (ISO, yoksa null) ·
+priority (1–5) · actor?`.
+
+**Soru:** Bu akış `IEventBus` (ADR-0021) üzerinden mi gelecek? Öyleyse
+`priority` alanını kim üretiyor — event üreticisi mi, Executive AI mi?
+"AI sıralar" cümlesinin teknik karşılığı netleşmeli; arayüz şu an
+`priority` + zaman ile sıralıyor ve bunu türetme değil, sözleşme
+kullanımı sayıyor.
+
+### 14.5 `Decision` onayının kalıcı karşılığı yok
+
+Karar kartındaki `Onayla` düğmesi çalışıyor ama gidecek yeri yok.
+Ekranda onay yalnızca **o oturum için** işaretleniyor ve altında
+"backend bağlanınca kalıcı olacak, şu an hiçbir yere yazılmadı" yazıyor.
+
+**Soru:** Onay hangi uçtan geçecek? `POST /api/command` beyaz listesi mi,
+ayrı bir `POST /api/decisions/{id}/approve` mi? ADR-0086 Human Sign-off
+Gate'in teknik karşılığı nedir — imza, kullanıcı kimliği ve zaman damgası
+saklanıyor mu?

@@ -293,11 +293,16 @@ efekti değil, bir nabız göstergesi.
 
 Executive Briefing tamamlandı sayılmadan önce:
 
-- [ ] Açılıştan brifinge kadar geçen süre ölçüldü ve 10 sn altında
-- [ ] Hero, Attention Economy'ye uyuyor (tek hero, 3 primary kart)
-- [ ] Her KPI kartı katmanlı ve kapalıyken sade
-- [ ] Her karar kartından doğrudan onay verilebiliyor
-- [ ] Risk ve fırsat eşit görsel ağırlıkta
-- [ ] Hiçbir AI göstergesi sahte veri ile beslenmiyor
-- [ ] Skeleton gerçek yerleşimi temsil ediyor, layout shift yok
-- [ ] Bir CEO 30 saniyede durumu anlayıp bir kararı onaylayabiliyor
+✅ **S5'te karşılandı** (`10c-screens.md`). Ölçümler sıcak dev sunucusunda,
+1920×1080'de alındı.
+
+- [x] Açılıştan brifinge kadar geçen süre ölçüldü ve 10 sn altında — **0,95 sn**
+      (karar kartı 2,3 sn; Mission Control 0,64 sn)
+- [x] Hero, Attention Economy'ye uyuyor (tek hero, 3 primary kart)
+- [x] Her KPI kartı katmanlı ve kapalıyken sade
+- [x] Her karar kartından doğrudan onay verilebiliyor
+- [x] Risk ve fırsat eşit görsel ağırlıkta (aynı grid, eşit genişlik)
+- [x] Hiçbir AI göstergesi sahte veri ile beslenmiyor — mock bile olsa
+      ölçüm kaynağı olmayan alan `NoData` gösterir (UI-ADR-094)
+- [x] Skeleton gerçek yerleşimi temsil ediyor, layout shift yok
+- [x] Bir CEO 30 saniyede durumu anlayıp bir kararı onaylayabiliyor
