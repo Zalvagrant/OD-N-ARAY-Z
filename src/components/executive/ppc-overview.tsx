@@ -48,10 +48,12 @@ export function PPCOverviewCard({
                 Tailwind'in `grid-cols-N`'i `minmax(0,1fr)` üretir: sütun,
                 içeriğinin altına İNEBİLİR. Para değerleri sarmadığı için
                 sığmayınca komşunun üstüne taşar. Kart zaten ekranın 1/3'ünde
-                duruyor; içinde üçüncü bir sütun ₺ tutarlarına hiçbir
+                duruyor; içinde üçüncü bir sütun para tutarlarına hiçbir
                 genişlikte yetmiyordu — ölçüldü: 1920'de bitişik, 1440'ta
                 45 px iç içe. `min-w-0` YOK: sütunun içeriğinden dar olmasına
-                izin veren şey tam olarak oydu. */}
+                izin veren şey tam olarak oydu.
+                Ölçüm o sırada ₺ tutarlarıyla yapıldı; kural para biriminden
+                bağımsızdır — sayı sarmaz, sütun daralırsa taşar. */}
             <dl className="grid gap-4 sm:grid-cols-2">
               <Stat
                 label="PPC Health"

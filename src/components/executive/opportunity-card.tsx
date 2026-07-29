@@ -75,7 +75,13 @@ export function OpportunityCard({
 
             <CardBody>
               <div className="flex flex-col gap-4">
-                <dl className="grid gap-3 text-sm sm:grid-cols-3">
+                {/* İki kolon — üç değil. `grid-cols-3` `minmax(0,1fr)` üretir
+                    ve sütun içeriğinin altına inebilir; para değeri sarmadığı
+                    için taşar (1440'ta "Gelir etkisi" 8 px taşıyordu, kart
+                    ekranın 1/3'ünde). Sayıyı küçültmek çözüm DEĞİL: gelir
+                    etkisi fırsatın manşet rakamıdır ve fırsatlar risklerle
+                    eşit görsel ağırlıkta olmak zorundadır (05-...md §3.4). */}
+                <dl className="grid gap-3 text-sm sm:grid-cols-2">
                   <div>
                     <dt className="text-xs text-content-tertiary">Gelir etkisi</dt>
                     <dd className="mt-1">
