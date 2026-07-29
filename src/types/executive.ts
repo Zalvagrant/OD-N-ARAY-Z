@@ -268,3 +268,113 @@ export interface ExecutiveBrief {
   /** 📑 Evidence */
   evidence: EvidenceRef[];
 }
+
+/* --------------------------------------------------------------------------
+   §8 AmazonSnapshot — 06-workspaces.md §1.3 Layer 1 "Executive Glance"
+   -------------------------------------------------------------------------- */
+
+/**
+ * SAPMA — UI-ADR-098 (gavadolar danışıldı, terra · luna aynı yönde).
+ *
+ * Sözleşme `netProfit: Money` diyor, yani ZORUNLU. Gerçekte:
+ *   Net kâr = satış − Amazon ücretleri − reklam − iade − COGS − nakliye
+ * COGS Amazon'da YOKTUR, kullanıcı girer ve şu an girilmemiştir. Zorunlu bir
+ * alan, hesaplanamayan bir değeri ifade edemez; tek çıkış uydurmaktır ve
+ * yanlış bir kâr rakamı tüm ODIN'in güvenilirliğini bitirir (13-...md §4).
+ *
+ * Üç değişiklik, üçü de 13-...md §15.1'e soru olarak düşüldü:
+ *   netProfit    → `Money | null`
+ *   grossProfit  → opsiyonel; net kâr yokken gösterilebilen TEK kâr
+ *   profitBasis  → neyin hariç tutulduğu; gösterilmesi ZORUNLUDUR
+ */
+export interface AmazonSnapshot {
+  /**
+   * UI-ADR-093 — yüzde ölçeği BİLDİRİLİR, tahmin edilmez. Sözleşme §8 bunu
+   * yazmıyor; zarf başına tek alan olarak eklendi (SAPMA, 13-...md §15.1).
+   * `acos` · `tacos` · `buyBoxRate` · `inventoryHealth` bu ölçektedir.
+   * TypeScript zorunlu kıldığı için backend atlayamaz.
+   */
+  percentScale: PercentScale;
+
+  /* Layer 1 — Executive Glance */
+  healthScore: number;
+  revenue: Money;
+  /** null → hesaplanamıyor. Arayüz bu durumda net kâr YAZMAZ. */
+  netProfit: Money | null;
+  /** Net kâr yokken gösterilen ikame. Tek başına asla "kâr" diye anılmaz. */
+  grossProfit?: Money;
+  /** Hariç tutulan kalemler — grossProfit gösteriliyorsa yazılması zorunlu. */
+  profitBasis?: { excluded: string[] };
+  orders: number;
+  acos: number;
+  tacos: number;
+  buyBoxRate: number;
+  inventoryHealth: number;
+  activeSKUs: number;
+  inventoryValue: Money;
+  topRisk: Alert | null;
+  topOpportunity: Opportunity | null;
+  missionProgress: number;
+
+  /* Layer 2 — Executive Intelligence (5 adımlı format, ExecutiveBrief ile aynı) */
+  intelligence: ExecutiveBrief;
+}
+
+/* --------------------------------------------------------------------------
+   §9 PPCData — 06-workspaces.md §1.5 PPC Intelligence Center
+   -------------------------------------------------------------------------- */
+
+export interface PPCOverview {
+  /** UI-ADR-093 — `acos` bu ölçektedir. SAPMA, AmazonSnapshot ile aynı gerekçe. */
+  percentScale: PercentScale;
+  health: number;
+  spend: Money;
+  sales: Money;
+  acos: number;
+  roas: number;
+  /**
+   * ⭐ Ayırt edici metrik — reklam değil KÂR metriği.
+   * SAPMA (UI-ADR-098): sözleşmede `Money` zorunlu. Kâr olduğu için net kâr
+   * ile aynı kaderi paylaşır: COGS yoksa hesaplanamaz → `null` gelir ve
+   * ekranda gerekçesiyle boş görünür.
+   */
+  profitAfterAds: Money | null;
+}
+
+export type CampaignStatus =
+  | "healthy"
+  | "acos_rising"
+  | "budget_exhausting"
+  | "scalable"
+  | "underperforming";
+
+export interface CampaignIntelligence {
+  campaignId: string;
+  name: string;
+  status: CampaignStatus;
+  aiSummary: string;
+  suggestedActions: AIRecommendation[];
+}
+
+export interface SimulationRequest {
+  /** "ppc_budget" */
+  parameter: string;
+  changePercent: number;
+}
+
+export interface SimulationResult {
+  scenarios: Array<{ metric: string; expectedChange: string }>;
+  confidence: number;
+  /** ⚠️ ZORUNLU — varsayımları gösterilmeyen simülasyon açıklanmamış AI çıktısıdır. */
+  assumptions: string[];
+}
+
+/**
+ * İki sözleşme tipinin eşlemesi — yeni ALAN yoktur.
+ * Simülatör hazır vakaları listeler; istemci hiçbir sayı HESAPLAMAZ
+ * (UI-ADR-099).
+ */
+export interface SimulationCase {
+  request: SimulationRequest;
+  result: SimulationResult;
+}
