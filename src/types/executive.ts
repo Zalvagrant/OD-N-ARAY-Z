@@ -148,61 +148,154 @@ export interface ExecutiveKPI {
    §2 Decision
    -------------------------------------------------------------------------- */
 
-export type DecisionStatus =
-  | "proposed" | "collecting_evidence" | "under_review"
-  | "approved" | "rejected" | "deferred"
-  | "executing" | "monitoring" | "completed";
+/*
+ * ⚙️ KANONİK HALE GETİRİLDİ — UI-ADR-105 (S7).
+ *
+ * Bu tip artık ODIN'in `schemas/decision-record.schema.json` şemasının
+ * arayüz karşılığıdır; ekrandan geriye türetilmiş eski hâli DEĞİL.
+ * Kaynak ve fark tablosu: `09b-verified-contracts.md` §1.
+ *
+ * Neden yeniden yazıldı: eski tipin 13 alanının ODIN'de karşılığı yoktu,
+ * buna karşılık ODIN'in **zorunlu tuttuğu dört alan arayüzde hiç yoktu.**
+ * Kayıp alan uydurulmuş alandan tehlikelidir: uydurulmuş alan en azından
+ * `NoData` gösterir, kayıp alan sessizdir — CEO o bilgiyi hiç görmemiş olur.
+ */
 
-export interface DecisionScore {
-  outcomeSuccess: number;
-  onTime: boolean;
-  expectedROI: number;
-  actualROI: number;
-  riskManagement: number;
-  evidenceQuality: number;
-  aiPredictionAccuracy: number;
+/** ODIN kararı üç kademeye ayırır. Arayüzün `priority: 1..5`'i uydurmaydı. */
+export type DecisionTier = "D1" | "D2" | "D3";
+
+/** ODIN'de ÜÇ durum vardır, arayüzdeki dokuz değil. */
+export type DecisionStatus = "open" | "monitoring" | "closed";
+
+/**
+ * Güven skorunun bileşeni — `odin/trust.py::CONFIDENCE_COMPONENTS`.
+ * Sekiz bileşen ağırlıklı toplanır; beşi olumlu, üçü olumsuz yönde.
+ */
+export interface ConfidenceComponent {
+  /** Makine tarafı ad: `knowledge_coverage`, `evidence_strength`, … */
+  key: string;
+  /** İnsan tarafı etiket — backend yazar, arayüz cümle kurmaz. */
+  label: string;
+  /** 0–100 */
+  score: number;
+  weight: number;
+  /** `risk_level` · `missing_information` · `decision_complexity` negatiftir. */
+  direction: "positive" | "negative";
 }
 
-export interface DecisionEvent {
+/** `odin/consensus.py::aggregate` → `minority_opinions` listesi. */
+export interface MinorityOpinion {
+  member: string;
+  option: string;
+  rationale: string;
+}
+
+/**
+ * Kararın önerisi — şemada iç içe nesne, **on alanı da zorunlu**.
+ * `odin/decision.py::build_recommendation` eksik alan varsa öneriyi HİÇ
+ * üretmez (`IncompleteRecommendation`) — arayüzün "eksikse gösterme"
+ * kuralının backend'de zaten karşılığı vardır.
+ *
+ * `AIRecommendation` ile KARIŞTIRILMAZ: o, fırsat/KPI gibi yerlerdeki
+ * serbest AI önerisidir; bu, bir kararın şemaya bağlı önerisidir.
+ */
+export interface DecisionRecommendation {
+  text: string;
+  /** 0–100 */
+  confidence: number;
+  /** Güvenin NEDEN o değer olduğu. Boş gelirse skor gösterilmez. */
+  confidenceBreakdown: ConfidenceComponent[];
+  evidenceSnapshot: EvidenceRef[];
+  risks: string[];
+  /** Öneri neye dayanıyor — varsayım gösterilmeyen öneri açıklanmamıştır. */
+  assumptions: string[];
+  /** 0–100 */
+  consensusScore: number;
+  /**
+   * TÜRETİLMİŞTİR: `100 - consensusScore` (`odin/consensus.py`).
+   * 10b §11'in "ikisi ayrı ölçümdür" iddiası YANLIŞTI — tek ölçüm var.
+   */
+  disagreementScore: number;
+  minorityOpinions: MinorityOpinion[];
+  /**
+   * 🔴 EN KRİTİK ALAN: "Bu öneriyi ne değiştirir?"
+   * ODIN bunu ZORUNLU tutar, arayüz hiç göstermiyordu. Flip koşulu
+   * olmayan bir öneri, sorgulanamayan bir öneridir.
+   */
+  flipConditions: string[];
+}
+
+/**
+ * İnsanın kararı. `decided_by` şemada **const: "human-owner"** —
+ * ODIN kendi kendine karar kapatamaz (09b §4).
+ */
+export interface HumanDecision {
+  /** Serbest metin: onay, ret ve erteleme aynı alanda kayıt olur. */
+  outcome: string;
+  decidedBy: "human-owner";
+  /**
+   * Sahibin gerekçesi. Şema zorunlu tutmuyor ama alan var; D1/D2'de
+   * arayüz zorunlu kılar (sahip kararı §15.1-C, UI-ADR-106).
+   */
+  reasoning?: string;
+  /** ISO 8601 */
+  decidedAt?: string;
+}
+
+/** İzleme kontrol noktası — kararın sonucu ne zaman ölçülecek. */
+export interface MonitoringCheckpoint {
   id: string;
+  /** ISO 8601 */
   at: string;
-  title: string;
-  description?: string;
+  metric: string;
+  /** Beklenen değer/eşik — metin, çünkü şema serbest bırakıyor. */
+  expected: string;
+}
+
+/** Kontrol noktasının sonucu — karar KAPANDIKTAN sonra doldurulur. */
+export interface CheckpointEvaluation {
+  checkpointId: string;
+  /** ISO 8601 */
+  evaluatedAt: string;
+  observed: string;
+  verdict: "on_track" | "off_track" | "inconclusive";
 }
 
 export interface Decision {
   id: string;
-  type: "finance" | "amazon" | "trading" | "strategy" | "operations";
-  title: string;
-  executiveSummary: string;
-  priority: 1 | 2 | 3 | 4 | 5;
+  /** ISO 8601 — şemada zorunlu. */
+  date: string;
+  /** Kararın SORUSU. Eski `title` bunun karşılığıdır. */
+  question: string;
+  tier: DecisionTier;
+  /**
+   * En az 2 — ve bu, **KARARIN** alanıdır, önerinin değil (09b §1).
+   * UI-ADR-091 alternatif kuralını öneriye bağlamıştı; dayanağı oynadı.
+   */
+  alternatives: Alternative[];
+  recommendation: DecisionRecommendation;
+  /** Karar verilmediyse `null` — "henüz karar yok" ile "ret" farklıdır. */
+  humanDecision: HumanDecision | null;
   status: DecisionStatus;
 
-  strategicImpact: "low" | "medium" | "high";
-  financialImpact: { amount: number; currency: string; horizon: string };
-  riskLevel: "low" | "medium" | "high" | "critical";
-  aiConfidence: number;
-  evidenceQuality: number;
-  reversibility: "reversible" | "partially" | "irreversible";
-  executionComplexity: "low" | "medium" | "high";
-  expectedROI: number;
-  actualROI?: number;
+  /* --- Şemada opsiyonel --- */
+  domain?: string;
+  reason?: string;
+  expectedOutcome?: string;
+  actualOutcome?: string;
   lessonsLearned?: string;
+  monitoringCheckpoints?: MonitoringCheckpoint[];
+  checkpointEvaluations?: CheckpointEvaluation[];
+  relatedDecisions?: string[];
+  relatedGoals?: string[];
+  linkedStandards?: string[];
+  linkedExperiments?: string[];
 
-  directorOpinions: DirectorOpinion[];
-  consensus: number;
-  disagreement: number;
-  minorityOpinion?: DirectorOpinion;
-
-  /** En az 2 — backend bu kuralı ihlal eden Decision üretemez. */
-  alternatives: Alternative[];
-  evidence: EvidenceRef[];
-  relatedDecisions: string[];
-  timeline: DecisionEvent[];
-  score?: DecisionScore;
-
-  /** Sözleşme dışı, opsiyonel — dosya başlığındaki "TEK SAPMA" notuna bak. */
-  recommendation?: AIRecommendation;
+  /* --- ODIN'de KARŞILIĞI YOK, doküman istiyor (06-...md §2.4 "Decision DNA").
+     Uydurulmadı: opsiyonel bırakıldı, gelmezse ilgili satır HİÇ ÇİZİLMEZ.
+     Governance talebi sorusu 13-...md §17.1'de. --- */
+  financialImpact?: { amount: number; currency: string; horizon: string };
+  riskLevel?: "low" | "medium" | "high" | "critical";
 }
 
 /* --------------------------------------------------------------------------

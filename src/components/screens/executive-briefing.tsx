@@ -191,7 +191,9 @@ export function ExecutiveBriefing({
     pulse.reload();
   };
 
-  const onApprove = (d: Decision) => setApproved((a) => [...new Set([...a, d.id])]);
+  /* Onay · ret · erteleme üçü de kayıttır (§15.2-B). Mock aşamasında
+     yalnızca oturumda işaretlenir; altında hiçbir yere yazılmadığı yazar. */
+  const onDecide = (d: Decision) => setApproved((a) => [...new Set([...a, d.id])]);
   const onOpenAnalysis = () => router.push("/decisions");
 
   return (
@@ -239,7 +241,7 @@ export function ExecutiveBriefing({
         <DecisionQueue
           env={isEmpty ? empty(decisions.data) : decisions.data}
           limit={3}
-          onApprove={onApprove}
+          onDecide={onDecide}
           onOpenAnalysis={onOpenAnalysis}
         />
         {approved.length > 0 && (

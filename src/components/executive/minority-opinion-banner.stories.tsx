@@ -17,7 +17,7 @@ export default meta;
 export const Bastirilmis: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
-      <MinorityOpinionBanner opinion={decision.minorityOpinion} />
+      <MinorityOpinionBanner opinion={decision.recommendation.minorityOpinions[0]} />
     </div>
   ),
 };
