@@ -8,6 +8,7 @@
 import { useMemo, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ColumnDef } from "@tanstack/react-table";
+import { expect, waitFor } from "storybook/test";
 import { DataTable, type TableDensity } from "./table";
 import { Mono, Num } from "./typography";
 import { Badge } from "./badge";
@@ -117,6 +118,130 @@ export const TenThousandRows: StoryObj = {
         density="dense"
       />
     );
+  },
+};
+
+/**
+ * S3 BORCUNUN KAPANIŞI — UI-ADR-097.
+ *
+ * NE ÖLÇÜLMÜYOR VE NEDEN: ne FPS ne de "50 ms üzeri long task sayısı".
+ * İkisi de zaman temellidir ve bu ortamda TAŞINABİLİR DEĞİLDİR. Ölçtüm:
+ * aynı kodda tekerlek senaryosu bir koşumda 5, diğerinde 18 long task
+ * verdi; `table-layout: fixed` gibi teorik olarak İYİLEŞTİRMESİ gereken bir
+ * değişiklikten sonra sayı 3,6 kat arttı. Yani sinyal koda değil, o andaki
+ * makine yüküne tepki veriyor (kontrol grubu her koşumda 0 —
+ * dolayısıyla gürültü kaydırmadan değil, zamanlamadan geliyor).
+ * Kırmızı ama güvenilmez bir test, testsizlikten kötüdür: insanlara
+ * kırmızıyı yok saymayı öğretir. (gavadolar · terra + luna, aynı yönde;
+ * karar 08-decision-log.md UI-ADR-097'de.)
+ *
+ * NE ÖLÇÜLÜYOR: sanallaştırmanın makineden bağımsız DÖRT INVARIANT'I.
+ * Bunlar "scroll başına O(N) DOM işi yapmıyoruz" garantisinin doğrudan
+ * karşılığıdır ve her makinede aynı sonucu verir:
+ *   1. DOM satır sayısı pencere + overscan sınırını aşmaz (veri
+ *      büyüklüğünden bağımsız: 10.000 satırda ~40 DOM satırı).
+ *   2. Kaydırma adımı başına DOM değişimi sınırlıdır — tüm liste yeniden
+ *      kurulmaz.
+ *   3. `scrollHeight` kaydırma boyunca kaymaz.
+ *   4. Kaydırma konumu değişince DOĞRU veri aralığı görünür (sanallaştırma
+ *      hızlı ama yanlış satırı göstermiyor).
+ *
+ * SABİT "≤30" EŞİĞİ KULLANILMADI: sınır viewport yüksekliğine bağlıdır.
+ * 60vh'lik tabloda 32 px satırla ~15 satır görünür, `overscan: 12` iki
+ * yönde 24 satır ekler — yapısal alt sınır zaten ~39'dur. Ölçülen değeri
+ * kırpmak yerine sınır EKRANDAN HESAPLANIR; test 1080p'de de 4K'da da
+ * doğru şeyi ölçer.
+ */
+export const SanallastirmaAltindaKaydirma: StoryObj = {
+  render: function Render() {
+    const data = useMemo(() => makeRows(10_000), []);
+    return (
+      <DataTable
+        label="10.000 satır — kaydırma altında sanallaştırma"
+        data={data}
+        columns={columns}
+        density="dense"
+      />
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const grid = canvasElement.querySelector<HTMLElement>('[role="grid"]');
+    expect(grid).not.toBeNull();
+
+    const indices = () =>
+      [...grid!.querySelectorAll<HTMLElement>("tbody tr[data-index]")].map((tr) =>
+        Number(tr.dataset.index)
+      );
+
+    await waitFor(() => expect(indices().length).toBeGreaterThan(0));
+
+    const heightBefore = grid!.scrollHeight;
+
+    /* Sınır ekrandan hesaplanır: görünen satır + iki yönde overscan + pay. */
+    const OVERSCAN = 12;
+    const rowPx =
+      grid!.querySelector("tbody tr[data-index]")!.getBoundingClientRect().height || 32;
+    const visibleRows = Math.ceil(grid!.clientHeight / rowPx);
+    const domRowBudget = visibleRows + 2 * OVERSCAN + 2;
+
+    const twoFrames = () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      );
+
+    let maxRows = indices().length;
+    let maxChurn = 0;
+    const wrongRange: string[] = [];
+
+    const scrollTo = async (top: number) => {
+      const before = new Set(indices());
+      grid!.scrollTop = top;
+      await twoFrames();
+
+      const after = indices();
+      maxRows = Math.max(maxRows, after.length);
+
+      /* 2 — adım başına DOM değişimi: kaç satır yenilendi? */
+      maxChurn = Math.max(maxChurn, after.filter((i) => !before.has(i)).length);
+
+      /* 4 — doğru aralık mı? İlk görünen satır scrollTop'tan hesaplanandır;
+         overscan payıyla birlikte aralık onu KAPSAMALIDIR. Ayrıca satırın
+         metni deterministik üreticiyle eşleşmelidir (makeRows). */
+      const expectedTop = Math.floor(grid!.scrollTop / rowPx);
+      if (!after.includes(expectedTop)) {
+        wrongRange.push(`aralık ${after[0]}..${after.at(-1)} içinde ${expectedTop} yok`);
+      } else {
+        const tr = grid!.querySelector(`tbody tr[data-index="${expectedTop}"]`);
+        const sku = `LLU-${String(expectedTop).padStart(5, "0")}`;
+        if (!tr?.textContent?.includes(sku)) {
+          wrongRange.push(`satır ${expectedTop} ${sku} göstermiyor`);
+        }
+      }
+    };
+
+    /* Gerçek kullanıcı kaydırması — fare tekerleği ≈ 4 satır. */
+    for (let step = 1; step <= 30; step++) await scrollTo(grid!.scrollTop + rowPx * 4);
+
+    /* Stres — scrollbar sürükleme, adım başına ~500 satır atlama. */
+    const span = grid!.scrollHeight - grid!.clientHeight;
+    for (let step = 1; step <= 20; step++) await scrollTo((span * step) / 20);
+
+    /* 1 — DOM satır sayısı sınırlı ve veri büyüklüğünden bağımsız. */
+    expect(maxRows).toBeLessThanOrEqual(domRowBudget);
+    expect(maxRows).toBeLessThan(100);
+
+    /* 2 — adım başına yenilenen satır sayısı bir pencereyi aşamaz. Sıçramalı
+       kaydırmada pencerenin tamamı değişir, bu beklenendir; ölçülen şey
+       "10.000 satırın hepsi yeniden kurulmuyor"dur. */
+    expect(maxChurn).toBeLessThanOrEqual(domRowBudget);
+
+    /* 3 — yükseklik kaymıyor. Tam eşitlik beklenmez: sanallaştırıcı gerçek
+       satır yüksekliğini ölçtükçe tahmini düzeltir (ölçülen sapma 320.035 →
+       320.038 px = 3 px). Kabul sınırı BİR SATIR; üstü zıplama demektir. */
+    expect(Math.abs(grid!.scrollHeight - heightBefore)).toBeLessThanOrEqual(rowPx);
+
+    /* 4 — hızlı olmak yetmez, DOĞRU satır görünmeli. */
+    expect(wrongRange).toEqual([]);
   },
 };
 
