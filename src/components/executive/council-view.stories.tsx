@@ -24,9 +24,6 @@ export const SadeceGosterge: StoryObj = {
       <ConsensusIndicator
         consensus={91}
         disagreement={9}
-        evidenceQuality={97}
-        financialRisk="low"
-        executionComplexity="medium"
       />
     </div>
   ),
@@ -39,9 +36,6 @@ export const OlculmemisGostergeler: StoryObj = {
       <ConsensusIndicator
         consensus={null}
         disagreement={null}
-        evidenceQuality={null}
-        financialRisk={null}
-        executionComplexity={null}
       />
     </div>
   ),
@@ -52,7 +46,11 @@ export const KurulToplanmadi: StoryObj = {
   render: () => (
     <div className="max-w-3xl">
       <CouncilView
-        decision={{ ...decision, directorOpinions: [], minorityOpinion: undefined }}
+        decision={{
+          ...decision,
+          alternatives: [],
+          recommendation: { ...decision.recommendation, minorityOpinions: [] },
+        }}
       />
     </div>
   ),

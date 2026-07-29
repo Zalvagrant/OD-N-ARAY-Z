@@ -15,7 +15,7 @@ export const KararVerilebilir: StoryObj = {
     <div className="max-w-2xl">
       <DecisionCard
         env={envelope(decision, { source: "ai" })}
-        onApprove={(d) => console.log("approved", d.id)}
+        onDecide={(d) => console.log("approved", d.id)}
         onOpenAnalysis={(d) => console.log("open", d.id)}
       />
     </div>
@@ -28,7 +28,7 @@ export const BayatVeriOnayKilitli: StoryObj = {
     <div className="max-w-2xl">
       <DecisionCard
         env={envelope(decision, { freshness: "stale", lastUpdated: new Date(Date.now() - 26 * 3600_000).toISOString() })}
-        onApprove={() => {}}
+        onDecide={() => {}}
         onOpenAnalysis={() => {}}
       />
     </div>
@@ -40,8 +40,8 @@ export const Onaylanmis: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
       <DecisionCard
-        env={envelope({ ...decision, status: "approved" as const })}
-        onApprove={() => {}}
+        env={envelope({ ...decision, status: "closed" as const })}
+        onDecide={() => {}}
         onOpenAnalysis={() => {}}
       />
     </div>

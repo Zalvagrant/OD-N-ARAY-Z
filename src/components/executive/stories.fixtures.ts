@@ -137,59 +137,47 @@ export const kpiEksik: ExecutiveKPI = {
   owner: "",
 };
 
+/**
+ * Kanonik `DecisionRecord` fikstürü — UI-ADR-105.
+ * Eski fikstür 13 uydurulmuş alan taşıyordu; ODIN'de karşılığı olmayan
+ * hiçbir alan artık burada yok.
+ */
 export const decision: Decision = {
   id: "dec-1",
-  type: "amazon",
-  title: "Amazon PPC bütçesini %7 artır",
-  executiveSummary:
+  date: "2026-07-29T06:00:00.000Z",
+  question: "Amazon PPC bütçesini %7 artırmalı mıyız?",
+  tier: "D2",
+  domain: "amazon",
+  status: "open",
+  humanDecision: null,
+  reason:
     "Gösterim payı iki haftadır düşüyor. Kademeli bütçe artışı kârı korurken satış kaybını durduruyor.",
-  priority: 1,
-  status: "under_review",
-  strategicImpact: "medium",
+  alternatives: recommendation.alternatives,
+  recommendation: {
+    text: "PPC bütçesini %7 artır, 7 gün sonra tekrar değerlendir.",
+    confidence: 96,
+    confidenceBreakdown: [
+      { key: "knowledge_coverage", label: "Bilgi kapsamı", score: 82, weight: 20, direction: "positive" },
+      { key: "evidence_strength", label: "Kanıt gücü", score: 88, weight: 20, direction: "positive" },
+      { key: "expert_agreement", label: "Uzman uzlaşması", score: 74, weight: 15, direction: "positive" },
+      { key: "risk_level", label: "Risk seviyesi", score: 45, weight: 10, direction: "negative" },
+    ],
+    evidenceSnapshot: evidence,
+    risks: ["Kur artarsa birim maliyet yükselir"],
+    assumptions: ["Dönüşüm oranı son 14 günün ortalamasında kalır"],
+    consensusScore: 91,
+    disagreementScore: 9,
+    minorityOpinions: [
+      {
+        member: "Trading AI",
+        option: "Bütçeyi sabit tut",
+        rationale: "USD riski nedeniyle 48 saat beklenmesini öneriyorum.",
+      },
+    ],
+    flipConditions: ["Gösterim payı kendiliğinden %28'in üzerine dönerse"],
+  },
   financialImpact: { amount: 82000, currency: "TRY", horizon: "30 gün" },
   riskLevel: "medium",
-  aiConfidence: 96,
-  evidenceQuality: 97,
-  reversibility: "reversible",
-  executionComplexity: "low",
-  expectedROI: 2.4,
-  directorOpinions: [
-    {
-      directorId: "Amazon AI",
-      position: "support",
-      argument: "PPC artırılmalı; gösterim payı kaybı satış kaybına dönüştü.",
-      confidence: 94,
-      evidence: [evidence[0]!],
-    },
-    {
-      directorId: "Finance AI",
-      position: "neutral",
-      argument: "Nakit akışı uygun ama hafta sonu ödemeleri sıkışık.",
-      confidence: 71,
-      evidence: [],
-    },
-    {
-      directorId: "Trading AI",
-      position: "oppose",
-      argument: "USD yukarı gidiyor; 48 saat beklemek maliyeti düşürebilir.",
-      confidence: 68,
-      evidence: [evidence[2]!],
-    },
-  ],
-  consensus: 91,
-  disagreement: 9,
-  minorityOpinion: {
-    directorId: "Trading AI",
-    position: "oppose",
-    argument: "USD riski nedeniyle 48 saat beklenmesini öneriyorum.",
-    confidence: 68,
-    evidence: [evidence[2]!],
-  },
-  alternatives: recommendation.alternatives,
-  evidence,
-  relatedDecisions: [],
-  timeline: [],
-  recommendation,
 };
 
 export const director: DirectorHeartbeat = {

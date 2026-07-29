@@ -13,19 +13,18 @@
  * Bu yüzden dokümandaki `⚠` glyph'i yerine nötr `◂` kullanılır.
  */
 
-import type { DirectorOpinion } from "@/types/executive";
+import type { MinorityOpinion } from "@/types/executive";
 import { Text } from "@/components/ui/typography";
-import { ConfidenceBadge } from "./confidence-badge";
 
 export function MinorityOpinionBanner({
   opinion,
   className = "",
 }: {
-  opinion: DirectorOpinion | null | undefined;
+  opinion: MinorityOpinion | null | undefined;
   className?: string;
 }) {
   /* Azınlık görüşü yoksa kutu da yok — boş "görüş yok" kutusu gürültüdür. */
-  if (!opinion || !opinion.argument) return null;
+  if (!opinion || !opinion.rationale) return null;
 
   return (
     <aside
@@ -35,11 +34,12 @@ export function MinorityOpinionBanner({
       <p className="flex flex-wrap items-center gap-2 text-xs text-content-tertiary">
         <span aria-hidden="true">◂</span>
         <span className="uppercase tracking-wide">Azınlık görüşü</span>
-        <span className="text-content-secondary">{opinion.directorId}</span>
-        <ConfidenceBadge value={opinion.confidence} size="xs" />
+        <span className="text-content-secondary">{opinion.member}</span>
+        {/* Hangi seçeneği savunduğu — ODIN `minority_opinions[].option`. */}
+        <span className="text-content-tertiary">→ {opinion.option}</span>
       </p>
       <Text size="sm" tone="secondary" className="mt-1">
-        {opinion.argument}
+        {opinion.rationale}
       </Text>
     </aside>
   );
