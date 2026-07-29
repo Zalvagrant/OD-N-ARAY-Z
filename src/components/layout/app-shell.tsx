@@ -25,6 +25,7 @@ import { ExecutiveTimeline } from "./executive-timeline";
 import { StatusBar } from "./status-bar";
 import { CommandPalette } from "./command-palette";
 import { Workspace } from "./workspace";
+import { IntelligenceFeed } from "@/components/screens/intelligence-feed";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -78,7 +79,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             pathname={pathname}
           />
           <Workspace workspaceKey={pathname}>{children}</Workspace>
-          <RightContextPanel workspaceLabel={workspace?.label ?? "ODIN"} />
+          {/* Sağ panelin kabuğu sabittir; içerik sağlayıcısı workspace'e göre
+              değişir (03-...md §7). Executive Briefing'de akan istihbarat
+              paneli vardır (05-...md §6); diğerlerinde seçili nesne detayı. */}
+          <RightContextPanel workspaceLabel={workspace?.label ?? "ODIN"}>
+            {workspace?.id === "briefing" ? <IntelligenceFeed /> : undefined}
+          </RightContextPanel>
         </div>
 
         <ExecutiveTimeline />

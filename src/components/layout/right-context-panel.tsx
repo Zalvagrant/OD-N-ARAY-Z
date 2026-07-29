@@ -22,8 +22,14 @@ const WIDTH: Record<Exclude<ContextPanelState, "closed">, string> = {
 
 export function RightContextPanel({
   workspaceLabel,
+  children,
 }: {
   workspaceLabel: string;
+  /**
+   * Workspace'in içerik sağlayıcısı (§7: kabuk sabit, içerik değişken).
+   * Verilmezse "seçili nesne yok" boş durumu kalır.
+   */
+  children?: React.ReactNode;
 }) {
   const state = useUiStore((s) => s.contextPanel);
   const setState = useUiStore((s) => s.setContextPanel);
@@ -97,12 +103,14 @@ export function RightContextPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
-        <EmptyState
-          title="Seçili nesne yok"
-          description="Bu panel seçtiğin nesnenin detayını gösterir: ilgili kararlar, görevler, belgeler ve AI analizi."
-          suggestion="Bir workspace'te satır ya da kart seç; detay ekran değiştirmeden burada açılır."
-          example="Amazon → SKU seç → finansal metrikler + AI önerisi"
-        />
+        {children ?? (
+          <EmptyState
+            title="Seçili nesne yok"
+            description="Bu panel seçtiğin nesnenin detayını gösterir: ilgili kararlar, görevler, belgeler ve AI analizi."
+            suggestion="Bir workspace'te satır ya da kart seç; detay ekran değiştirmeden burada açılır."
+            example="Amazon → SKU seç → finansal metrikler + AI önerisi"
+          />
+        )}
       </div>
     </aside>
   );
