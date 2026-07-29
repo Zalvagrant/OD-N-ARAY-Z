@@ -119,6 +119,12 @@ Profit After Ads   +$4.120
 
 Kritik nokta: **Profit After Ads.** Reklam metriği değil, kâr metriği.
 
+⚠️ **Bu tablo bir ÖRNEKTİR ve sayıları kendi içinde tutarsızdır** (UI-ADR-103):
+`2.420 / 18.300 = %13,2`, ROAS ise `7,6` — tabloda yazan %18,1 ve 5,4 değil.
+Ayrıca bu harcama, §1.2'deki TACOS %9,4 ile 160 kat uyumsuzdur. Düzen ve alan
+listesi geçerlidir; **değerler kopyalanmaz.** Uygulamada tutarlı değerler
+`src/mocks/amazon.ts`'tedir ve bir birim testiyle korunur.
+
 **Katman 2 — AI Campaign Intelligence**
 
 AI her kampanyayı tek tek analiz eder ve özetler:

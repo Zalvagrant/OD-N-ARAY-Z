@@ -34,8 +34,9 @@ import type {
 import type { SkuHealth } from "@/types/screens";
 import { ago, ahead, mockEnvelope } from "./envelope";
 
+/* Ekranda TEK para birimi — UI-ADR-103. Reklam tutarları da TRY'dir:
+   farklı birimdeki harcama ciroyla oranlanamaz ve TACOS anlamsızlaşır. */
 const TRY = "TRY";
-const USD = "USD";
 
 /**
  * "n gün sonra" — yarım gün payla.
@@ -76,7 +77,7 @@ function adsEvidence(): EvidenceRef[] {
       id: "ev-cpc",
       type: "metric",
       title: "Ortalama CPC",
-      excerpt: "CPC 0,74 USD'den 0,91 USD'ye çıktı.",
+      excerpt: "CPC ₺31'den ₺38'e çıktı.",
       sourceQuality: 86,
       freshness: ago(50 * 60_000),
       supportsOrContradicts: "supports",
@@ -121,7 +122,7 @@ function bidRecommendation(): AIRecommendation {
     id: "rec-bid-curve",
     recommendation:
       "Kampanya B'de teklifleri %12 düşür, bütçeyi Kampanya D'ye kaydır.",
-    numbers: { ACOS: 31.4, "Hedef ACOS": 18, "Harcama (USD)": 640, ROAS: 3.2 },
+    numbers: { ACOS: 31.4, "Hedef ACOS": 18, "Harcama (₺)": 26_880, ROAS: 3.2 },
     causeAnalysis:
       "Kampanya B'de rakip teklifleri yükseldi; CPC arttı ama dönüşüm artmadı.",
     impactAnalysis:
@@ -362,7 +363,8 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
 
       orders: 3_914,
       acos: 18.1,
-      tacos: 9.4,
+      /* 135.000 / 4.182.000 = %3,2 — bkz. UI-ADR-103. */
+      tacos: 3.2,
       buyBoxRate: 91.6,
       inventoryHealth: 63.4,
       activeSKUs: 41,
@@ -376,12 +378,12 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
           "Ciro (₺)": 4_182_000,
           "Gross Profit (₺)": 2_640_000,
           ACOS: 18.1,
-          TACOS: 9.4,
+          TACOS: 3.2,
           "BuyBox (%)": 91.6,
           Sipariş: 3_914,
         },
         analysis:
-          "ACOS artışının tamamı Kampanya B'den geliyor: CPC 0,74 → 0,91 USD çıktı, dönüşüm sabit kaldı. Diğer üç kampanya hedef bandında.",
+          "ACOS artışının tamamı Kampanya B'den geliyor: CPC ₺31'den ₺38'e çıktı, dönüşüm sabit kaldı. Diğer üç kampanya hedef bandında.",
         interpretation:
           "Sorun bütçe değil, tek bir kampanyanın teklif seviyesidir. Bütçe D'ye kaydırılırsa toplam satış korunurken ACOS ~%15'e iner. Asıl kısıt reklam değil, SKU-1042 stoğudur: 9 gün sonra tükenirse reklam harcaması boşa gider.",
         recommendation: bidRecommendation(),
@@ -470,24 +472,30 @@ export function amazonKpisMock(): DataEnvelope<ExecutiveKPI[]> {
     kpi({
       id: "am-kpi-tacos",
       label: "TACOS",
-      value: 9.4,
+      /* 135.000 / 4.182.000 — PPC harcaması ile ciro arasındaki gerçek oran
+         (UI-ADR-103). Eskiden 9,4 yazıyordu; o değer ekrandaki harcamayla
+         160 kat uyumsuzdu. */
+      value: 3.2,
       unit: "percent",
       scale: "0-100",
       trend: { direction: "up", changePercent: 12, comparedTo: "geçen hafta" },
-      sparkline: [8.1, 8.3, 8.6, 8.9, 9.1, 9.3, 9.4],
+      sparkline: [2.7, 2.8, 2.9, 3.0, 3.1, 3.1, 3.2],
       aiInsight: "Toplam ciroya göre reklam yükü artıyor; organik satış payı düşüyor.",
       confidence: 88,
-      forecast: { value: 8.6, horizon: "14 gün", confidence: 64 },
+      forecast: { value: 3.5, horizon: "14 gün", confidence: 64 },
       risk: "medium",
       evidence: adsEvidence().slice(0, 2),
     }),
     kpi({
       id: "am-kpi-roas",
       label: "ROAS",
-      value: 5.4,
+      /* PPC kartıyla AYNI değer: 745.900 / 135.000 = 5,5 (UI-ADR-103).
+         Şerit ile kart farklı ROAS söylerse ikisi de inandırıcılığını
+         kaybeder. `amazon.test.ts` bu eşitliği koruyor. */
+      value: 5.5,
       unit: "score",
       trend: { direction: "down", changePercent: 14, comparedTo: "geçen hafta" },
-      sparkline: [7.1, 6.8, 6.4, 6.1, 5.8, 5.6, 5.4],
+      sparkline: [7.1, 6.8, 6.4, 6.1, 5.9, 5.7, 5.5],
       aiInsight: "ACOS'un aynası; kampanya B düzeltilirse 6,5 bandına döner.",
       confidence: 90,
       forecast: { value: 6.5, horizon: "14 gün", confidence: 69 },
@@ -548,10 +556,17 @@ export function ppcOverviewMock(): DataEnvelope<PPCOverview> {
     {
       percentScale: "0-100",
       health: 71,
-      spend: { amount: 2_420, currency: USD },
-      sales: { amount: 18_300, currency: USD },
+      /* UI-ADR-103 — dört sayı birbirini DOĞRULAR:
+           ACOS  = 135.000 / 745.900 = %18,1
+           ROAS  = 745.900 / 135.000 = 5,5
+           TACOS = 135.000 / 4.182.000 = %3,2  (snapshot ile aynı)
+         Önceki değerler (2.420 / 18.300 / 18,1 / 5,4) `06-...md` §1.5'teki
+         örnek tablodan birebir kopyalanmıştı ve o örnek kendi içinde
+         tutarsız: 2.420/18.300 = %13,2, oran ise 7,6. */
+      spend: { amount: 135_000, currency: TRY },
+      sales: { amount: 745_900, currency: TRY },
       acos: 18.1,
-      roas: 5.4,
+      roas: 5.5,
       /* Kâr metriği — COGS olmadan hesaplanamaz (UI-ADR-099). */
       profitAfterAds: null,
     } satisfies PPCOverview,
@@ -706,8 +721,8 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       revenueLast30d: { amount: 1_134_000, currency: TRY },
       conversionRate: 11.4,
       buyBoxRate: 62.0,
-      adSpendLast30d: { amount: 640, currency: USD },
-      adSalesLast30d: { amount: 2_040, currency: USD },
+      adSpendLast30d: { amount: 26_880, currency: TRY },
+      adSalesLast30d: { amount: 85_680, currency: TRY },
       acos: 31.4,
       price: { amount: 599, currency: TRY },
     }),
@@ -725,8 +740,8 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       revenueLast30d: { amount: 654_500, currency: TRY },
       conversionRate: 8.9,
       buyBoxRate: 71.3,
-      adSpendLast30d: { amount: 410, currency: USD },
-      adSalesLast30d: { amount: 2_870, currency: USD },
+      adSpendLast30d: { amount: 17_220, currency: TRY },
+      adSalesLast30d: { amount: 120_540, currency: TRY },
       acos: 14.3,
       price: { amount: 549, currency: TRY },
     }),
@@ -743,8 +758,8 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       revenueLast30d: { amount: 418_600, currency: TRY },
       conversionRate: 12.7,
       buyBoxRate: 78.4,
-      adSpendLast30d: { amount: 220, currency: USD },
-      adSalesLast30d: { amount: 1_980, currency: USD },
+      adSpendLast30d: { amount: 9_240, currency: TRY },
+      adSalesLast30d: { amount: 83_160, currency: TRY },
       acos: 11.1,
       price: { amount: 350, currency: TRY },
     }),
@@ -761,8 +776,8 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       revenueLast30d: { amount: 469_300, currency: TRY },
       conversionRate: 9.6,
       buyBoxRate: 98.2,
-      adSpendLast30d: { amount: 180, currency: USD },
-      adSalesLast30d: { amount: 1_610, currency: USD },
+      adSpendLast30d: { amount: 7_560, currency: TRY },
+      adSalesLast30d: { amount: 67_620, currency: TRY },
       acos: 11.2,
       price: { amount: 1_299, currency: TRY },
     }),
@@ -779,8 +794,8 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       revenueLast30d: { amount: 243_750, currency: TRY },
       conversionRate: 14.2,
       buyBoxRate: 99.1,
-      adSpendLast30d: { amount: 96, currency: USD },
-      adSalesLast30d: { amount: 1_120, currency: USD },
+      adSpendLast30d: { amount: 4_032, currency: TRY },
+      adSalesLast30d: { amount: 47_040, currency: TRY },
       acos: 8.6,
       price: { amount: 250, currency: TRY },
     }),
@@ -813,8 +828,8 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       revenueLast30d: { amount: 158_200, currency: TRY },
       conversionRate: 6.4,
       /* Yeni listelendi — BuyBox oranı henüz raporlanmadı (13-...md §4). */
-      adSpendLast30d: { amount: 74, currency: USD },
-      adSalesLast30d: { amount: 390, currency: USD },
+      adSpendLast30d: { amount: 3_108, currency: TRY },
+      adSalesLast30d: { amount: 16_380, currency: TRY },
       acos: 19.0,
       price: { amount: 700, currency: TRY },
     }),
@@ -831,8 +846,8 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       revenueLast30d: { amount: 392_400, currency: TRY },
       conversionRate: 10.8,
       buyBoxRate: 96.5,
-      adSpendLast30d: { amount: 130, currency: USD },
-      adSalesLast30d: { amount: 1_040, currency: USD },
+      adSpendLast30d: { amount: 5_460, currency: TRY },
+      adSalesLast30d: { amount: 43_680, currency: TRY },
       acos: 12.5,
       price: { amount: 900, currency: TRY },
     }),
