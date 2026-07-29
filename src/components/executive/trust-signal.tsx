@@ -22,6 +22,8 @@ const SOURCE_LABEL: Record<DataMeta["source"], string> = {
   ai: "AI üretimi",
   manual: "Elle girildi",
   computed: "Hesaplandı",
+  /* UI-ADR-094 — gerçek veri değil. Kaynak satırı bunu SAKLAMAZ. */
+  mock: "Mock veri (S8'de gerçek kaynakla değişecek)",
 };
 
 const FRESHNESS: Record<Freshness, { glyph: string; label: string; cls: string }> = {

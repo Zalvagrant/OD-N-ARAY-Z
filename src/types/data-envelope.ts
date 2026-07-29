@@ -10,8 +10,15 @@
  * düşünmemelidir.
  */
 
+/**
+ * `mock` — UI-ADR-094. S5'te ekranlar mock veriyle beslenir. Mock'un
+ * zarfta AYRI BİR KAYNAK olması şart: böylece gerçek veriden tip
+ * seviyesinde ayrılır, TrustSignal onu "mock" diye yazar ve S8'de
+ * geçiş yapılırken hiçbir mock sessizce kalamaz (`meta.source === "mock"`
+ * araması tamamını bulur).
+ */
 export type DataSource =
-  | "sp-api" | "ads-api" | "internal" | "ai" | "manual" | "computed";
+  | "sp-api" | "ads-api" | "internal" | "ai" | "manual" | "computed" | "mock";
 
 export type Freshness = "live" | "recent" | "stale";
 
