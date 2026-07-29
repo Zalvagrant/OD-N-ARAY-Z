@@ -305,7 +305,11 @@ export function ExecutiveBriefing({
         emptyTitle="KPI üretilmedi"
         emptyDescription="Hiçbir metrik hesaplanamadı."
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+        {/* KPI kolonu ~260px altına inemez: `text-3xl` bir para değeri
+            (₺1.284.000,00) o genişliğe sığmaz ve kartın dışına taşar.
+            768px'te ölçüldü (S6 görsel incelemesi) — bu yüzden ikinci kolon
+            `md` değil `lg`de açılır. */}
+        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
           {kpis.data?.data.map((k) => (
             <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.data!.meta }} />
           ))}

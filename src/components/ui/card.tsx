@@ -84,8 +84,13 @@ export function CardHeader({
       className={`flex items-start justify-between gap-4 border-b border-line-subtle ${PAD[density]} pb-3`}
     >
       <div className="min-w-0">
+        {/* Başlık KIRPILMAZ, sarar. `truncate` idi ve uzun bir başlığın
+            SONUNU yiyordu: "Gross Profit (ücretler hariç)" → "…(ücretler
+            hariç" — yani kartın dürüstlüğünü taşıyan parantez kayboluyordu
+            (S6 görsel incelemesi, 1280 ve 1920'de ölçüldü). Kısa başlıklarda
+            davranış değişmez; uzun olan ikinci satıra iner. */}
         {title && (
-          <div className="truncate text-md font-medium text-content">{title}</div>
+          <div className="break-words text-md font-medium text-content">{title}</div>
         )}
         {description && (
           <div className="mt-1 text-sm text-content-secondary">{description}</div>
