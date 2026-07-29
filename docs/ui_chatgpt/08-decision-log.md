@@ -1380,11 +1380,12 @@ Değerler `06-workspaces.md` §1.5'teki örnek tablodan birebir kopyalanmıştı
 Anti-fake kuralı "veri uydurma" ile bitmez; **birbirini yalanlayan sayılar
 da sahtedir.** Üç uygulama:
 
-1. **Tek para birimi.** Ekranda TEK birim (₺) vardır. Farklı birimdeki
+1. **Tek para birimi.** Ekranda TEK birim vardır. Farklı birimdeki
    harcama ciroyla oranlanamaz; TACOS böyle bir ekranda anlamsızdır.
+   **Hangi birim olduğu sahibin kararıdır — bkz. aşağıdaki ♻️ notu.**
 2. **Türetilebilir alanlar birbirinden türetilerek yazılır.** PPC kartı
-   artık `135.000 / 745.900` taşıyor: ACOS %18,1 ✓, ROAS 5,5 ✓,
-   TACOS `135.000 / 4.182.000` = %3,2 ✓ ve bu değer snapshot ile aynı.
+   artık `3.187 / 17.608` taşıyor: ACOS %18,1 ✓, ROAS 5,5 ✓,
+   TACOS `3.187 / 99.600` = %3,2 ✓ ve bu değer snapshot ile aynı.
    Her SKU'nun kendi ACOS'u da harcama/satışından birebir çıkıyor.
 3. **Doküman örneği düzeltilmez, işaretlenir.** §1.5'teki tablo bir
    ÖRNEKTİR, sözleşme değil; oraya not düşüldü.
@@ -1396,7 +1397,7 @@ ekranda dört yerde geçiyor); luna harcama/satışı sabit tutup ACOS'u %13,2'y
 terra'nın çapası %52 reklam-atıflı ciro üretiyordu — matematiksel olarak
 tutarlı ama iş olarak abartılı. Seçilen üçüncü yol her iki sınavı da geçiyor:
 ACOS %18,1 korunur (dört yerdeki metin bozulmaz), harcama gerçekçi kalır
-(₺135.000 / ₺4,18M) ve tek değişen görünen değer TACOS'tur — o da zaten
+($3.187 / $99.600) ve tek değişen görünen değer TACOS'tur — o da zaten
 **hiçbir zaman doğrulanabilir değildi.**
 
 **Gerekçe:** Kullanıcının bir gösterge tablosuna güveni, sayıların birbirini
@@ -1411,5 +1412,37 @@ kurulur; UI dört sayıyı da olduğu gibi basar (UI-ADR-093 / UI-ADR-099 ile
 aynı yön). Bu bir türetme değil, **veri kalitesi kuralıdır.**
 
 **Etki:** `src/mocks/amazon.ts` (PPC kartı, TACOS, 14 SKU reklam alanı, CPC
-kanıtı, öneri sayıları), `13-backend-recommendations.md` §16.6,
-`06-workspaces.md` §1.5 notu.
+kanıtı, öneri sayıları), `src/mocks/amazon.test.ts`,
+`13-backend-recommendations.md` §16.6, `06-workspaces.md` §1.5 notu.
+
+---
+
+### ♻️ Güncellendi — para birimi USD (sahip kararı, 29 Temmuz 2026)
+
+Kararın **ilkesi değişmedi**: ekranda tek para birimi olur ve türetilebilir
+alanlar bileşenlerinden yazılır. Değişen, o birimin hangisi olduğudur.
+
+İlk uygulamada ₺ seçilmişti (ekranın geri kalanı ₺ idi). **Sahip USD dedi:**
+
+> "para birimi Amazon'daki gibi dolar olsun çünkü kurlar devamlı değişiyor"
+
+**Gerekçe — ve bu gerekçe teknik olarak da doğrudur:** Amazon US
+marketplace'inde satış, referral/FBA ücretleri ve reklam harcaması USD
+cinsinden gerçekleşir. Bunları ₺'ye çevirmek her raporu **değişken bir kura**
+bağlar: SKU'nun ACOS'u hiç değişmese bile ₺ karşılığı her gün oynar ve dünkü
+ekranla bugünkü ekran karşılaştırılamaz hâle gelir. Operasyonel bir kararın
+(teklif düşür, stok aç) kur hareketiyle kirlenmemesi gerekir. **Kur riski
+Trading workspace'inin konusudur, Amazon operasyonunun değil.**
+
+Tüm Amazon mock'u USD'ye çevrildi (42 tutar). Oranlar birimsiz olduğu için
+ACOS · ROAS · TACOS **birebir korundu** ve bunu `amazon.test.ts` doğruladı —
+dönüşüm sonrası 44 testin tamamı ilk koşumda yeşil geçti. Kapı bu yüzden
+var: para birimi değişikliği gibi geniş bir dokunuş, elle kontrolle güvenli
+yapılamaz.
+
+**Sınır — iki para birimi bir arada YAŞAR, ama karşılaştırılmaz:** Executive
+Briefing gibi şirket geneli ekranlar sahibin raporlama para biriminde (₺)
+kalır; Amazon workspace'i marketplace para birimindedir (USD). İkisi
+**toplanamaz ve oranlanamaz.** Dönüştürme backend'in işidir ve kullanılan
+kur + kur tarihi zarfa girmelidir; arayüz kur çevirmez (13-...md §16.6).
+Bu kural gelene kadar hiçbir ekran iki birimi tek bir hesapta birleştirmez.

@@ -34,9 +34,12 @@ import type {
 import type { SkuHealth } from "@/types/screens";
 import { ago, ahead, mockEnvelope } from "./envelope";
 
-/* Ekranda TEK para birimi — UI-ADR-103. Reklam tutarları da TRY'dir:
-   farklı birimdeki harcama ciroyla oranlanamaz ve TACOS anlamsızlaşır. */
-const TRY = "TRY";
+/* Ekranda TEK para birimi — UI-ADR-103, sahip kararıyla USD.
+   Gerekçe: Amazon US marketplace'inde satış, ücret ve reklam USD'dir;
+   TRY'ye çevirmek her raporu değişken bir kura bağlar ve dünkü ekranla
+   bugünküyü karşılaştırılamaz kılar. Kur riski Trading tarafının konusudur,
+   Amazon operasyonunun değil. */
+const USD = "USD";
 
 /**
  * "n gün sonra" — yarım gün payla.
@@ -77,7 +80,7 @@ function adsEvidence(): EvidenceRef[] {
       id: "ev-cpc",
       type: "metric",
       title: "Ortalama CPC",
-      excerpt: "CPC ₺31'den ₺38'e çıktı.",
+      excerpt: "CPC $0,74'ten $0,91'e çıktı.",
       sourceQuality: 86,
       freshness: ago(50 * 60_000),
       supportsOrContradicts: "supports",
@@ -122,11 +125,11 @@ function bidRecommendation(): AIRecommendation {
     id: "rec-bid-curve",
     recommendation:
       "Kampanya B'de teklifleri %12 düşür, bütçeyi Kampanya D'ye kaydır.",
-    numbers: { ACOS: 31.4, "Hedef ACOS": 18, "Harcama (₺)": 26_880, ROAS: 3.2 },
+    numbers: { ACOS: 31.4, "Hedef ACOS": 18, "Harcama ($)": 640, ROAS: 3.2 },
     causeAnalysis:
       "Kampanya B'de rakip teklifleri yükseldi; CPC arttı ama dönüşüm artmadı.",
     impactAnalysis:
-      "Mevcut tempoda ayda ~₺31.000 reklam israfı; aynı bütçe D'de 1,8 kat dönüyor.",
+      "Mevcut tempoda ayda ~$740 reklam israfı; aynı bütçe D'de 1,8 kat dönüyor.",
     alternatives: [
       {
         title: "Teklifi %12 düşür, bütçeyi D'ye kaydır",
@@ -141,7 +144,7 @@ function bidRecommendation(): AIRecommendation {
         risk: "medium",
       },
     ],
-    expectedFinancialResult: { amount: 31_000, currency: TRY },
+    expectedFinancialResult: { amount: 740, currency: USD },
     confidence: 91,
     evidence: adsEvidence().slice(0, 3),
     whyGenerated: "Kampanya B'nin ACOS'u 14 gündür hedefin iki katında.",
@@ -163,7 +166,7 @@ function scaleRecommendation(): AIRecommendation {
     causeAnalysis:
       "Kampanya D bütçesini her gün öğleden sonra bitiriyor; talep karşılanmıyor.",
     impactAnalysis:
-      "Kaçırılan gösterimler günde ~₺4.100 satış demek; ACOS hedefin çok altında.",
+      "Kaçırılan gösterimler günde ~$98 satış demek; ACOS hedefin çok altında.",
     alternatives: [
       {
         title: "Bütçeyi %20 artır",
@@ -178,7 +181,7 @@ function scaleRecommendation(): AIRecommendation {
         risk: "low",
       },
     ],
-    expectedFinancialResult: { amount: 118_000, currency: TRY },
+    expectedFinancialResult: { amount: 2_810, currency: USD },
     confidence: 87,
     evidence: adsEvidence().slice(0, 2),
     whyGenerated: "Bütçe 9 gündür gün bitmeden tükeniyor ve ACOS hedefin altında.",
@@ -210,7 +213,7 @@ function stockRecommendation(): AIRecommendation {
         risk: "low",
       },
     ],
-    expectedFinancialResult: { amount: 128_000, currency: TRY },
+    expectedFinancialResult: { amount: 3_050, currency: USD },
     confidence: 88,
     evidence: stockEvidence(),
     whyGenerated: "Tahmini tükenme süresi tedarik süresinin altına indi.",
@@ -296,7 +299,7 @@ export function amazonOpportunitiesMock(): DataEnvelope<Opportunity[]> {
       id: "am-opp-scale",
       title: "Kampanya D ölçeklenebilir — bütçe gün bitmeden tükeniyor",
       category: "advertising",
-      revenueImpact: { amount: 118_000, currency: TRY },
+      revenueImpact: { amount: 2_810, currency: USD },
       confidence: 87,
       deadline: ahead(9 * 24 * 60 * 60_000),
       recommendedAction: scaleRecommendation(),
@@ -306,7 +309,7 @@ export function amazonOpportunitiesMock(): DataEnvelope<Opportunity[]> {
       id: "am-opp-keyword",
       title: "Yükselen arama terimi — 'katlanır kamp sandalyesi'",
       category: "keyword",
-      revenueImpact: { amount: 64_000, currency: TRY },
+      revenueImpact: { amount: 1_520, currency: USD },
       confidence: 83,
       deadline: ahead(7 * 24 * 60 * 60_000),
       recommendedAction: bidRecommendation(),
@@ -316,7 +319,7 @@ export function amazonOpportunitiesMock(): DataEnvelope<Opportunity[]> {
       id: "am-opp-pricing",
       title: "SKU-2988 fiyatı rakip bandının %8 altında",
       category: "pricing",
-      revenueImpact: { amount: 27_500, currency: TRY },
+      revenueImpact: { amount: 655, currency: USD },
       confidence: 76,
       deadline: ahead(14 * 24 * 60 * 60_000),
       recommendedAction: scaleRecommendation(),
@@ -326,7 +329,7 @@ export function amazonOpportunitiesMock(): DataEnvelope<Opportunity[]> {
       id: "am-opp-bundle",
       title: "SKU-1188 + SKU-2001 paket satışı",
       category: "bundle",
-      revenueImpact: { amount: 41_000, currency: TRY },
+      revenueImpact: { amount: 975, currency: USD },
       confidence: 71,
       deadline: ahead(21 * 24 * 60 * 60_000),
       recommendedAction: stockRecommendation(),
@@ -347,11 +350,11 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
     {
       percentScale: "0-100",
       healthScore: 78,
-      revenue: { amount: 4_182_000, currency: TRY },
+      revenue: { amount: 99_600, currency: USD },
 
       /* NET KÂR HESAPLANAMIYOR — UI-ADR-099. Uydurulmaz. */
       netProfit: null,
-      grossProfit: { amount: 2_640_000, currency: TRY },
+      grossProfit: { amount: 62_860, currency: USD },
       profitBasis: {
         excluded: [
           "COGS (Amazon'da yok, kullanıcı girmeli)",
@@ -368,22 +371,25 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
       buyBoxRate: 91.6,
       inventoryHealth: 63.4,
       activeSKUs: 41,
-      inventoryValue: { amount: 1_930_000, currency: TRY },
+      inventoryValue: { amount: 45_950, currency: USD },
       topRisk: alerts.find((a) => a.severity === "critical") ?? null,
       topOpportunity: opportunities[0] ?? null,
       missionProgress: 62,
 
       intelligence: {
         numbers: {
-          "Ciro (₺)": 4_182_000,
-          "Gross Profit (₺)": 2_640_000,
+          /* Glance ile AYNI sayılar. Brifingin "📊 Numbers" adımı kartların
+             tekrarıdır; farklı bir sayı yazarsa ekran kendi kendisiyle
+             çelişir. `amazon.test.ts` bu eşitliği koruyor. */
+          "Ciro ($)": 99_600,
+          "Gross Profit ($)": 62_860,
           ACOS: 18.1,
           TACOS: 3.2,
           "BuyBox (%)": 91.6,
           Sipariş: 3_914,
         },
         analysis:
-          "ACOS artışının tamamı Kampanya B'den geliyor: CPC ₺31'den ₺38'e çıktı, dönüşüm sabit kaldı. Diğer üç kampanya hedef bandında.",
+          "ACOS artışının tamamı Kampanya B'den geliyor: CPC $0,74'ten $0,91'e çıktı, dönüşüm sabit kaldı. Diğer üç kampanya hedef bandında.",
         interpretation:
           "Sorun bütçe değil, tek bir kampanyanın teklif seviyesidir. Bütçe D'ye kaydırılırsa toplam satış korunurken ACOS ~%15'e iner. Asıl kısıt reklam değil, SKU-1042 stoğudur: 9 gün sonra tükenirse reklam harcaması boşa gider.",
         recommendation: bidRecommendation(),
@@ -426,29 +432,29 @@ export function amazonKpisMock(): DataEnvelope<ExecutiveKPI[]> {
     kpi({
       id: "am-kpi-net-sales",
       label: "Net Sales",
-      value: 4_182_000,
+      value: 99_600,
       unit: "currency",
-      currency: TRY,
+      currency: USD,
       trend: { direction: "up", changePercent: 8, comparedTo: "önceki ay" },
-      sparkline: [3_410, 3_620, 3_580, 3_910, 4_040, 4_120, 4_182],
+      sparkline: [81.2, 86.2, 85.2, 93.1, 96.2, 98.1, 99.6],
       aiInsight: "Büyüme adetten değil, ortalama sepet tutarından geliyor.",
       confidence: 92,
-      forecast: { value: 4_400_000, horizon: "30 gün", confidence: 78 },
+      forecast: { value: 104_800, horizon: "30 gün", confidence: 78 },
       risk: "low",
       evidence: adsEvidence().slice(0, 2),
     }),
     kpi({
       id: "am-kpi-gross-profit",
       label: "Gross Profit (ücretler hariç)",
-      value: 2_640_000,
+      value: 62_860,
       unit: "currency",
-      currency: TRY,
+      currency: USD,
       trend: { direction: "down", changePercent: 4, comparedTo: "önceki ay" },
-      sparkline: [2_810, 2_784, 2_742, 2_705, 2_688, 2_661, 2_640],
+      sparkline: [66.9, 66.3, 65.3, 64.4, 64.0, 63.4, 62.9],
       aiInsight:
         "Bu NET KÂR DEĞİLDİR: Amazon ücretleri, COGS, iade ve nakliye düşülmemiştir. Net kâr COGS girilene kadar hesaplanamaz.",
       confidence: 84,
-      forecast: { value: 2_580_000, horizon: "30 gün", confidence: 66 },
+      forecast: { value: 61_430, horizon: "30 gün", confidence: 66 },
       risk: "medium",
       recommendedAction: bid,
       evidence: adsEvidence().slice(0, 3),
@@ -518,14 +524,14 @@ export function amazonKpisMock(): DataEnvelope<ExecutiveKPI[]> {
     kpi({
       id: "am-kpi-inventory-value",
       label: "Inventory Value",
-      value: 1_930_000,
+      value: 45_950,
       unit: "currency",
-      currency: TRY,
+      currency: USD,
       trend: { direction: "down", changePercent: 9, comparedTo: "önceki ay" },
-      sparkline: [2_210, 2_160, 2_090, 2_040, 1_990, 1_954, 1_930],
+      sparkline: [52.6, 51.4, 49.8, 48.6, 47.4, 46.5, 45.9],
       aiInsight: "Düşüş satıştan; yeniden sipariş açılmazsa 3 hafta içinde riskli.",
       confidence: 86,
-      forecast: { value: 1_640_000, horizon: "30 gün", confidence: 73 },
+      forecast: { value: 39_050, horizon: "30 gün", confidence: 73 },
       risk: "high",
       recommendedAction: stock,
       evidence: stockEvidence(),
@@ -563,8 +569,8 @@ export function ppcOverviewMock(): DataEnvelope<PPCOverview> {
          Önceki değerler (2.420 / 18.300 / 18,1 / 5,4) `06-...md` §1.5'teki
          örnek tablodan birebir kopyalanmıştı ve o örnek kendi içinde
          tutarsız: 2.420/18.300 = %13,2, oran ise 7,6. */
-      spend: { amount: 135_000, currency: TRY },
-      sales: { amount: 745_900, currency: TRY },
+      spend: { amount: 3_187, currency: USD },
+      sales: { amount: 17_608, currency: USD },
       acos: 18.1,
       roas: 5.5,
       /* Kâr metriği — COGS olmadan hesaplanamaz (UI-ADR-099). */
@@ -718,13 +724,13 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       estimatedStockoutAt: inDays(9),
       reorderUnits: 600,
       unitsSoldLast30d: 1_890,
-      revenueLast30d: { amount: 1_134_000, currency: TRY },
+      revenueLast30d: { amount: 27_000, currency: USD },
       conversionRate: 11.4,
       buyBoxRate: 62.0,
-      adSpendLast30d: { amount: 26_880, currency: TRY },
-      adSalesLast30d: { amount: 85_680, currency: TRY },
+      adSpendLast30d: { amount: 640, currency: USD },
+      adSalesLast30d: { amount: 2_040, currency: USD },
       acos: 31.4,
-      price: { amount: 599, currency: TRY },
+      price: { amount: 14.26, currency: USD },
     }),
     sku({
       sku: "SKU-1188",
@@ -737,13 +743,13 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       estimatedStockoutAt: inDays(31),
       reorderUnits: 400,
       unitsSoldLast30d: 1_190,
-      revenueLast30d: { amount: 654_500, currency: TRY },
+      revenueLast30d: { amount: 15_580, currency: USD },
       conversionRate: 8.9,
       buyBoxRate: 71.3,
-      adSpendLast30d: { amount: 17_220, currency: TRY },
-      adSalesLast30d: { amount: 120_540, currency: TRY },
+      adSpendLast30d: { amount: 410, currency: USD },
+      adSalesLast30d: { amount: 2_870, currency: USD },
       acos: 14.3,
-      price: { amount: 549, currency: TRY },
+      price: { amount: 13.07, currency: USD },
     }),
     sku({
       sku: "SKU-2001",
@@ -755,13 +761,13 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       daysOfSupply: 58,
       estimatedStockoutAt: inDays(58),
       unitsSoldLast30d: 1_196,
-      revenueLast30d: { amount: 418_600, currency: TRY },
+      revenueLast30d: { amount: 9_970, currency: USD },
       conversionRate: 12.7,
       buyBoxRate: 78.4,
-      adSpendLast30d: { amount: 9_240, currency: TRY },
-      adSalesLast30d: { amount: 83_160, currency: TRY },
+      adSpendLast30d: { amount: 220, currency: USD },
+      adSalesLast30d: { amount: 1_980, currency: USD },
       acos: 11.1,
-      price: { amount: 350, currency: TRY },
+      price: { amount: 8.33, currency: USD },
     }),
     sku({
       sku: "SKU-2450",
@@ -773,13 +779,13 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       daysOfSupply: 74,
       estimatedStockoutAt: inDays(74),
       unitsSoldLast30d: 361,
-      revenueLast30d: { amount: 469_300, currency: TRY },
+      revenueLast30d: { amount: 11_170, currency: USD },
       conversionRate: 9.6,
       buyBoxRate: 98.2,
-      adSpendLast30d: { amount: 7_560, currency: TRY },
-      adSalesLast30d: { amount: 67_620, currency: TRY },
+      adSpendLast30d: { amount: 180, currency: USD },
+      adSalesLast30d: { amount: 1_610, currency: USD },
       acos: 11.2,
-      price: { amount: 1_299, currency: TRY },
+      price: { amount: 30.93, currency: USD },
     }),
     sku({
       sku: "SKU-2988",
@@ -791,13 +797,13 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       daysOfSupply: 96,
       estimatedStockoutAt: inDays(96),
       unitsSoldLast30d: 975,
-      revenueLast30d: { amount: 243_750, currency: TRY },
+      revenueLast30d: { amount: 5_800, currency: USD },
       conversionRate: 14.2,
       buyBoxRate: 99.1,
-      adSpendLast30d: { amount: 4_032, currency: TRY },
-      adSalesLast30d: { amount: 47_040, currency: TRY },
+      adSpendLast30d: { amount: 96, currency: USD },
+      adSalesLast30d: { amount: 1_120, currency: USD },
       acos: 8.6,
-      price: { amount: 250, currency: TRY },
+      price: { amount: 5.95, currency: USD },
     }),
     sku({
       sku: "SKU-3310",
@@ -809,10 +815,10 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       unitsAvailable: 410,
       daysOfSupply: 120,
       unitsSoldLast30d: 102,
-      revenueLast30d: { amount: 45_900, currency: TRY },
+      revenueLast30d: { amount: 1_090, currency: USD },
       conversionRate: 2.1,
       buyBoxRate: 88.0,
-      price: { amount: 450, currency: TRY },
+      price: { amount: 10.71, currency: USD },
     }),
     sku({
       sku: "SKU-4102",
@@ -825,13 +831,13 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       estimatedStockoutAt: inDays(17),
       reorderUnits: 250,
       unitsSoldLast30d: 226,
-      revenueLast30d: { amount: 158_200, currency: TRY },
+      revenueLast30d: { amount: 3_770, currency: USD },
       conversionRate: 6.4,
       /* Yeni listelendi — BuyBox oranı henüz raporlanmadı (13-...md §4). */
-      adSpendLast30d: { amount: 3_108, currency: TRY },
-      adSalesLast30d: { amount: 16_380, currency: TRY },
+      adSpendLast30d: { amount: 74, currency: USD },
+      adSalesLast30d: { amount: 390, currency: USD },
       acos: 19.0,
-      price: { amount: 700, currency: TRY },
+      price: { amount: 16.67, currency: USD },
     }),
     sku({
       sku: "SKU-5077",
@@ -843,13 +849,13 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       daysOfSupply: 44,
       estimatedStockoutAt: inDays(44),
       unitsSoldLast30d: 436,
-      revenueLast30d: { amount: 392_400, currency: TRY },
+      revenueLast30d: { amount: 9_340, currency: USD },
       conversionRate: 10.8,
       buyBoxRate: 96.5,
-      adSpendLast30d: { amount: 5_460, currency: TRY },
-      adSalesLast30d: { amount: 43_680, currency: TRY },
+      adSpendLast30d: { amount: 130, currency: USD },
+      adSalesLast30d: { amount: 1_040, currency: USD },
       acos: 12.5,
-      price: { amount: 900, currency: TRY },
+      price: { amount: 21.43, currency: USD },
     }),
   ] satisfies SkuHealth[]);
 }

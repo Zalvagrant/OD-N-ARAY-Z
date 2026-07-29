@@ -13,11 +13,16 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  amazonAlertsMock,
   amazonKpisMock,
+  amazonOpportunitiesMock,
   ppcOverviewMock,
   skusMock,
   snapshotMock,
 } from "./amazon";
+
+/** Amazon US marketplace'inin para birimi — sahip kararı (UI-ADR-103). */
+const MARKETPLACE_CURRENCY = "USD";
 
 /** Yüzde karşılaştırması: sözleşme bir ondalık yazıyor, kapı da öyle. */
 const pct = (n: number) => Number(n.toFixed(1));
@@ -58,23 +63,86 @@ describe("amazon mock — iç tutarlılık (UI-ADR-103)", () => {
     }
   });
 
-  it("ekranda tek para birimi vardır", () => {
-    const ppc = ppcOverviewMock().data;
-    const snap = snapshotMock().data;
-    const monies = [
-      snap.revenue,
-      snap.inventoryValue,
-      ppc.spend,
-      ppc.sales,
-      ...skusMock().data.flatMap((s) => [
-        s.revenueLast30d,
-        s.price,
-        s.adSpendLast30d,
-        s.adSalesLast30d,
-      ]),
-    ].filter((m): m is { amount: number; currency: string } => m != null);
+  it("ekrandaki HER tutar tek para biriminde — marketplace para birimi", () => {
+    /* Tek tek alan saymak yerine ağacın tamamı taranır: yeni bir mock alanı
+       eklendiğinde bu kapı kendiliğinden onu da kapsar. Elle yazılmış bir
+       liste, eklenen alanı sessizce dışarıda bırakırdı. */
+    const found = new Set<string>();
+    const walk = (v: unknown) => {
+      if (Array.isArray(v)) return v.forEach(walk);
+      if (v && typeof v === "object") {
+        const o = v as Record<string, unknown>;
+        if (typeof o.currency === "string" && typeof o.amount === "number") {
+          found.add(o.currency);
+        }
+        Object.values(o).forEach(walk);
+      }
+    };
+    walk([
+      snapshotMock().data,
+      ppcOverviewMock().data,
+      skusMock().data,
+      amazonKpisMock().data,
+      amazonOpportunitiesMock().data,
+    ]);
 
-    expect([...new Set(monies.map((m) => m.currency))]).toEqual(["TRY"]);
+    expect(found.size).toBeGreaterThan(0);
+    expect([...found]).toEqual([MARKETPLACE_CURRENCY]);
+  });
+
+  it("para taşıyan KPI'lar currency alanını bildirir", () => {
+    for (const k of amazonKpisMock().data) {
+      if (k.unit !== "currency") continue;
+      expect(k.currency).toBe(MARKETPLACE_CURRENCY);
+    }
+  });
+
+  it("KPI şeridi ile Executive Glance aynı tutarları söyler", () => {
+    /* İki ayrı yerde yazılan aynı sayı, en kolay çelişme noktasıdır. */
+    const snap = snapshotMock().data;
+    expect(kpiValue("am-kpi-net-sales")).toBe(snap.revenue.amount);
+    expect(kpiValue("am-kpi-inventory-value")).toBe(snap.inventoryValue.amount);
+    expect(kpiValue("am-kpi-gross-profit")).toBe(snap.grossProfit?.amount);
+  });
+
+  it("AI brifinginin sayıları Executive Glance ile aynıdır", () => {
+    /* Bu kapı görsel incelemede yakalanan bir hatadan doğdu: para birimi
+       USD'ye çevrilirken `intelligence.numbers` düz sayı olduğu için
+       dönüşümün dışında kaldı — etiket "$" oldu, değer TRY kaldı. Glance
+       $99.600, brifing 4.182.000 diyordu. Bu alan `Money` değil, bu yüzden
+       para birimi kapısı da görmemişti. */
+    const snap = snapshotMock().data;
+    const n = snap.intelligence.numbers;
+    expect(n["Ciro ($)"]).toBe(snap.revenue.amount);
+    expect(n["Gross Profit ($)"]).toBe(snap.grossProfit?.amount);
+    expect(pct(n.ACOS as number)).toBe(pct(snap.acos));
+    expect(pct(n.TACOS as number)).toBe(pct(snap.tacos));
+    expect(pct(n["BuyBox (%)"] as number)).toBe(pct(snap.buyBoxRate));
+    expect(n["Sipariş"]).toBe(snap.orders);
+  });
+
+  it("Top Risk ve Top Opportunity gerçekten listelerde vardır", () => {
+    const snap = snapshotMock().data;
+    if (snap.topRisk) {
+      expect(amazonAlertsMock().data.map((a) => a.id)).toContain(snap.topRisk.id);
+    }
+    if (snap.topOpportunity) {
+      expect(amazonOpportunitiesMock().data.map((o) => o.id)).toContain(
+        snap.topOpportunity.id
+      );
+    }
+  });
+
+  it("uyarıların işaret ettiği SKU'lar SKU listesinde vardır", () => {
+    /* Var olmayan bir SKU'ya bağlı uyarı, sağ panelde "kayıt yok" boş
+       durumunu tetikler ve ekran kendi kendisiyle çelişir. */
+    const known = new Set(skusMock().data.map((s) => s.sku));
+    for (const a of amazonAlertsMock().data) {
+      for (const e of a.affectedEntities ?? []) {
+        if (!e.startsWith("SKU-")) continue;
+        expect(known, `${a.id} → ${e}`).toContain(e);
+      }
+    }
   });
 
   it("KPI şeridi snapshot ile aynı ACOS ve TACOS'u söyler", () => {

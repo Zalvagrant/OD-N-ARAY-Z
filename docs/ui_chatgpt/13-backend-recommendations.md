@@ -741,7 +741,11 @@ S6 kapanış incelemesinde PPC kartındaki dört sayı birbirini yalanlıyordu
 (UI-ADR-103). Mock tarafı düzeltildi, ama gerçek veri geldiğinde aynı sorun
 **backend'de** doğar. İki soru:
 
-**1. Reklam verisi hangi para biriminde gelecek?**
+**1. Reklam verisi hangi para biriminde gelecek?** — ✅ **SAHİP CEVAPLADI
+(29 Temmuz 2026): marketplace para birimi, yani USD.** Gerekçe: kurlar
+sürekli değişiyor; ₺'ye çevrilen bir Amazon raporu her gün başka bir sayı
+gösterir ve dünküyle karşılaştırılamaz. Arayüz tarafı uygulandı
+(UI-ADR-103 ♻️ notu). **Backend'den beklenen** aşağıda sürüyor.
 
 Ads API harcamayı marketplace para biriminde (US için USD) verir; SP-API
 cirosu ise raporlama para biriminde gelebilir. TACOS = reklam harcaması /
@@ -757,6 +761,22 @@ toplam satış olduğu için ikisi **aynı birimde** olmak zorundadır.
 luna bu noktada `Money`'ye kur + kur tarihi eklenmesini önerdi. Bu bir veri
 modeli değişikliğidir; CLAUDE.md §7 gereği **karar sahibindedir**, arayüz
 kendi başına alan eklemedi.
+
+**Sahibin USD kararından sonra geriye kalan iş:** Amazon verisi USD kalacağı
+için Amazon workspace'i içinde çevrim gerekmiyor — asıl soru **şirket geneli
+ekranlarda** doğuyor. Executive Briefing'in `Revenue` KPI'ı Amazon + Finance
++ Trading toplamıdır; Amazon USD, diğerleri ₺ ise bu toplam **kur olmadan
+alınamaz.** İki yol var:
+
+- **(a)** Backend şirket geneli ekranlar için tek raporlama para birimine
+  çevirir ve kullanılan kur + kur tarihini zarfa yazar. Arayüz çevirmez,
+  yalnızca "şu kurla, şu tarihte" diye gösterir.
+- **(b)** Çevrim yapılmaz; şirket geneli toplamlar para birimi kırılımıyla
+  gösterilir (ör. "$99.600 + ₺1.240.000") ve tek bir sayıya indirilmez.
+
+Karar verilene kadar arayüz iki birimi **tek hesapta birleştirmez**; Amazon
+workspace'i kendi içinde tutarlıdır ve Briefing'in Amazon satırı bu yüzden
+S8'de yeniden ele alınmalıdır.
 
 **2. Türetilebilir metrikleri kim üretecek?**
 
