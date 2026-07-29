@@ -18,6 +18,7 @@ import {
   amazonOpportunitiesMock,
   ppcOverviewMock,
   skusMock,
+  statusForScore,
   snapshotMock,
 } from "./amazon";
 
@@ -52,14 +53,69 @@ describe("amazon mock — iç tutarlılık (UI-ADR-103)", () => {
 
   it("her SKU'nun ACOS'u kendi harcama/reklam satışından çıkar", () => {
     for (const s of skusMock().data) {
+      const ad = s.advertising;
       /* Ölçülmemiş alan null'dır ve oran da null olmalıdır — anti-fake. */
-      if (s.adSpendLast30d === null || s.adSalesLast30d === null) {
-        expect(s.acos).toBeNull();
+      if (ad.spend === null || ad.sales === null) {
+        expect(ad.acos).toBeNull();
         continue;
       }
-      expect(pct((s.adSpendLast30d.amount / s.adSalesLast30d.amount) * 100)).toBe(
-        pct(s.acos!)
+      expect(pct((ad.spend.amount / ad.sales.amount) * 100)).toBe(pct(ad.acos!));
+    }
+  });
+
+  /* ---- UI-ADR-104: revize edilen sözleşmenin değişmezleri ---- */
+
+  it("skor doluysa gerekçesi de doludur (ADR-0085)", () => {
+    for (const s of skusMock().data) {
+      if (s.healthScore === null) continue;
+      expect(s.healthScoreExplanation, s.sku).toBeTruthy();
+      expect(s.healthScoreExplanation!.length, s.sku).toBeGreaterThan(0);
+    }
+  });
+
+  it("gerekçe katkıları 100'den skora götürür", () => {
+    /* Toplamayan bir gerekçe, gerekçe değildir: kullanıcı katkıları toplar
+       ve skoru bulamazsa açıklamanın uydurma olduğunu düşünür. */
+    for (const s of skusMock().data) {
+      if (s.healthScore === null || !s.healthScoreExplanation) continue;
+      const sum = s.healthScoreExplanation.reduce(
+        (n, x) => n + (x.contribution ?? 0),
+        0
       );
+      expect(100 + sum, `${s.sku} katkı toplamı`).toBe(s.healthScore);
+    }
+  });
+
+  it("katkı yönü işaretiyle tutarlıdır", () => {
+    for (const s of skusMock().data) {
+      for (const x of s.healthScoreExplanation ?? []) {
+        if (x.contribution === null) {
+          expect(x.direction, `${s.sku}/${x.code}`).toBe("neutral");
+        } else {
+          expect(x.direction, `${s.sku}/${x.code}`).toBe(
+            x.contribution >= 0 ? "positive" : "negative"
+          );
+        }
+      }
+    }
+  });
+
+  it("statusBasis=health_score olan SKU eşik tablosuna uyar", () => {
+    /* Eskiden skor 55 olan SKU "İzlemede", skor 64 olan "Riskli" idi: daha
+       kötü skorlu SKU daha iyi etiketliydi. Eşik tablosu bunu kapatıyor. */
+    for (const s of skusMock().data) {
+      if (s.statusBasis !== "health_score") continue;
+      expect(s.healthScore, `${s.sku} skorsuz health_score olamaz`).not.toBeNull();
+      expect(s.status, s.sku).toBe(statusForScore(s.healthScore!));
+    }
+  });
+
+  it("ölçüm penceresi geçerlidir ve satış/reklam aynı dönemi kullanır", () => {
+    for (const s of skusMock().data) {
+      expect(s.sales.period.from < s.sales.period.to, s.sku).toBe(true);
+      /* Farklı dönemlerin ACOS'u ile cironun yan yana gösterilmesi
+         karşılaştırılamaz iki sayı üretir. */
+      expect(s.advertising.period, s.sku).toEqual(s.sales.period);
     }
   });
 

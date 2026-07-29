@@ -24,7 +24,7 @@
 
 import type { Alert } from "@/types/executive";
 import type { DataEnvelope } from "@/types/data-envelope";
-import type { SkuHealth } from "@/types/screens";
+import type { MetricPeriod, SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
@@ -55,12 +55,46 @@ export const SKU_STATUS: Record<
 /** SKU yüzdeleri 0–100 ölçeğindedir; teklif sözleşmesinde bildirilmiştir. */
 const SKU_SCALE = "0-100" as const;
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+/** Skor gerekçesinin yönü — renk tek başına anlam taşımaz (10a §0.2). */
+const DIRECTION = {
+  positive: { glyph: "▲", word: "olumlu" },
+  negative: { glyph: "▼", word: "olumsuz" },
+  neutral: { glyph: "■", word: "nötr" },
+} as const;
+
+/**
+ * Ölçüm penceresini yazar. Dönem artık ALAN ADINDA DEĞİL VERİDE (UI-ADR-104);
+ * etiketlere "(30 gün)" gömmek, pencere değiştiği gün etiketi yalancı yapardı.
+ * Gün sayısı HESAPLANMAZ — pencerenin kendisi yazılır.
+ */
+function periodLabel(p: MetricPeriod): string {
+  const d = (iso: string) =>
+    new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "2-digit" }).format(
+      new Date(iso)
+    );
+  return `${d(p.from)} – ${d(p.to)}`;
+}
+
+function Group({
+  title,
+  period,
+  children,
+}: {
+  title: string;
+  /** Bölümün ölçüm penceresi — verilirse başlığın altında yazılır. */
+  period?: MetricPeriod;
+  children: React.ReactNode;
+}) {
   return (
     <section className="border-t border-line-subtle pt-3 first:border-t-0 first:pt-0">
       <Heading level={3} size={4}>
         {title}
       </Heading>
+      {period && (
+        <p className="mt-1 text-xs text-content-tertiary">
+          Dönem: <span className="odin-num">{periodLabel(period)}</span>
+        </p>
+      )}
       <div className="mt-2">{children}</div>
     </section>
   );
@@ -136,21 +170,67 @@ export function AmazonSkuPanel() {
               }
             />
           </dl>
+
+          {/* Skorun GEREKÇESİ — ADR-0085, UI-ADR-104.
+              Türetilmiş bir skoru gerekçesiz göstermek, açıklanamayan bir AI
+              çıktısı göstermektir: kullanıcı "38" görür, ne yapacağını bilemez.
+              Skor yokken de gerekçe gelebilir — NEDEN hesaplanamadığı da bir
+              açıklamadır. Metni backend yazar, arayüz cümle kurmaz. */}
+          {sku.healthScoreExplanation?.length ? (
+            <div className="border-t border-line-subtle pt-2">
+              <p className="text-xs uppercase tracking-wide text-content-tertiary">
+                {sku.healthScore === null
+                  ? "Skor neden hesaplanmadı"
+                  : "Skoru ne belirledi"}
+              </p>
+              <ul className="mt-2 flex flex-col gap-2">
+                {sku.healthScoreExplanation.map((x) => (
+                  <li key={x.code} className="flex items-baseline gap-2">
+                    {/* Renkten bağımsız yön göstergesi — glyph + sr-only. */}
+                    <span aria-hidden="true" className="text-content-tertiary">
+                      {DIRECTION[x.direction].glyph}
+                    </span>
+                    <span className="sr-only">{DIRECTION[x.direction].word}: </span>
+                    <span className="min-w-0 flex-1 text-sm text-content-secondary">
+                      {x.message}
+                    </span>
+                    {x.contribution !== null && (
+                      <span className="odin-num shrink-0 text-xs text-content-tertiary">
+                        {x.contribution > 0 ? "+" : ""}
+                        {x.contribution}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {sku.statusBasis === "rule_set" && (
+                <Text size="sm" tone="tertiary" className="mt-2">
+                  Durum etiketi skordan değil, bir kural setinden geliyor.
+                </Text>
+              )}
+            </div>
+          ) : (
+            sku.healthScore !== null && (
+              <Text size="sm" tone="tertiary">
+                Skorun gerekçesi üretilmedi.
+              </Text>
+            )
+          )}
         </div>
       </Group>
 
       {/* 2 — Financial Metrics */}
-      <Group title="Financial Metrics">
+      <Group title="Financial Metrics" period={sku.sales.period}>
         <dl className="grid gap-3">
           <Stat
-            label="Ciro (30 gün)"
+            label="Ciro"
             value={
               <Num
-                value={sku.revenueLast30d?.amount ?? null}
+                value={sku.sales.revenue?.amount ?? null}
                 format="currency"
-                currency={sku.revenueLast30d?.currency}
+                currency={sku.sales.revenue?.currency}
                 size="lg"
-                noDataReason="30 günlük ciro gelmedi"
+                noDataReason="Dönem cirosu gelmedi"
               />
             }
           />
@@ -166,21 +246,25 @@ export function AmazonSkuPanel() {
             }
           />
           <Stat
-            label="Satılan adet (30 gün)"
-            value={<Num value={sku.unitsSoldLast30d} noDataReason="Adet gelmedi" />}
+            label="Satılan adet"
+            value={<Num value={sku.sales.unitsSold} noDataReason="Adet gelmedi" />}
           />
           <Stat
             label="Dönüşüm oranı"
             value={
               <Num
-                value={toPercentUnit(sku.conversionRate, SKU_SCALE)}
+                value={toPercentUnit(sku.sales.conversionRate, SKU_SCALE)}
                 format="percent"
                 fractionDigits={1}
                 noDataReason="Dönüşüm oranı ölçülmedi"
               />
             }
           />
-          {/* Birim kâr KALICI OLARAK boştur — COGS Amazon'da yoktur. */}
+          {/* Birim kâr SÖZLEŞMEDE ARTIK YOK (UI-ADR-104): kalıcı olarak null
+              kalacak bir alan, sözleşmede sahte bir yetenektir — "bir gün
+              dolacak" izlenimi verir, dolmaz. Alan kalktı; EKSİKLİĞİN
+              AÇIKLAMASI kaldı, çünkü CEO'nun birim kârı neden göremediğini
+              bilmesi gerekir. Bu bir veri alanı değil, bir cevaptır. */}
           <Stat
             label="Birim kâr"
             note={PROFIT_NEEDS_COGS}
@@ -190,26 +274,26 @@ export function AmazonSkuPanel() {
       </Group>
 
       {/* 3 — Advertising */}
-      <Group title="Advertising">
+      <Group title="Advertising" period={sku.advertising.period}>
         <dl className="grid gap-3">
           <Stat
-            label="Reklam harcaması (30 gün)"
+            label="Reklam harcaması"
             value={
               <Num
-                value={sku.adSpendLast30d?.amount ?? null}
+                value={sku.advertising.spend?.amount ?? null}
                 format="currency"
-                currency={sku.adSpendLast30d?.currency}
+                currency={sku.advertising.spend?.currency}
                 noDataReason="Ads API'den harcama gelmedi"
               />
             }
           />
           <Stat
-            label="Reklam satışı (30 gün)"
+            label="Reklam satışı"
             value={
               <Num
-                value={sku.adSalesLast30d?.amount ?? null}
+                value={sku.advertising.sales?.amount ?? null}
                 format="currency"
-                currency={sku.adSalesLast30d?.currency}
+                currency={sku.advertising.sales?.currency}
                 noDataReason="Ads API'den satış gelmedi"
               />
             }
@@ -218,7 +302,7 @@ export function AmazonSkuPanel() {
             label="ACOS"
             value={
               <Num
-                value={toPercentUnit(sku.acos, SKU_SCALE)}
+                value={toPercentUnit(sku.advertising.acos, SKU_SCALE)}
                 format="percent"
                 fractionDigits={1}
                 noDataReason="ACOS hesaplanmadı"
@@ -229,7 +313,7 @@ export function AmazonSkuPanel() {
             label="BuyBox oranı"
             value={
               <Num
-                value={toPercentUnit(sku.buyBoxRate, SKU_SCALE)}
+                value={toPercentUnit(sku.sales.buyBoxRate, SKU_SCALE)}
                 format="percent"
                 fractionDigits={1}
                 noDataReason="BuyBox oranı raporlanmadı"

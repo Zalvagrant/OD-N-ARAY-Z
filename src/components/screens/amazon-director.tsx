@@ -330,7 +330,8 @@ function skuColumns(now: number | null): ColumnDef<SkuHealth, unknown>[] {
     },
     {
       id: "buyBoxRate",
-      accessorKey: "buyBoxRate",
+      /* Dönem artık alan adında değil veride: `sales.buyBoxRate`. */
+      accessorFn: (r) => r.sales.buyBoxRate,
       header: "BuyBox",
       meta: { numeric: true },
       cell: (c) => (
@@ -427,8 +428,8 @@ export function AmazonDirector({
     (s) => s.status === "critical" || s.status === "at_risk"
   );
   const losingBuyBox = skuRows
-    .filter((s) => s.buyBoxRate !== null && s.buyBoxRate < 90)
-    .sort((a, b) => (a.buyBoxRate ?? 0) - (b.buyBoxRate ?? 0));
+    .filter((s) => s.sales.buyBoxRate !== null && s.sales.buyBoxRate < 90)
+    .sort((a, b) => (a.sales.buyBoxRate ?? 0) - (b.sales.buyBoxRate ?? 0));
 
   return (
     <div className="flex max-w-screen-2xl flex-col gap-8">
@@ -688,7 +689,7 @@ export function AmazonDirector({
               >
                 <Mono size="sm">{s.sku}</Mono>
                 <Num
-                  value={toPercentUnit(s.buyBoxRate, SKU_SCALE)}
+                  value={toPercentUnit(s.sales.buyBoxRate, SKU_SCALE)}
                   format="percent"
                   fractionDigits={1}
                   size="sm"

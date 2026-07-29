@@ -307,6 +307,28 @@ yükleme durumunda başlığını zaten bastığı için **başlık beklemek de 
 yalnızca veri geldiğinde var olan bir düğüm beklenmeli (DataTable'ın satır
 sayacı). Erken ölçüm 768'de sayfayı 11.478 yerine 4.700 px sanıyordu.
 
+### 7.9 Sözleşme revizyonu — `SkuHealth` (UI-ADR-104)
+
+Sahibin talimatıyla `SkuHealth` teklifi gavadolar'a danışıldı; dört maddede
+de "yetersiz, S8'den önce revize edin" cevabı geldi ve uygulandı. Ekrana
+yansıyan iki değişiklik var:
+
+**Sağ panelde skorun gerekçesi.** Health Score artık yalnız bir sayı değil;
+altında **"Skoru ne belirledi"** listesi var ve katkılar 100'den skora
+götürüyor (−28 · −22 · −12 → 38). CEO toplayıp skoru doğrulayabiliyor.
+Skor hesaplanamamışsa başlık **"Skor neden hesaplanmadı"** olur ve eksik
+kaynaklar yazılır — bir şeyin neden üretilemediği de bir açıklamadır.
+
+**Dönem artık etikette değil veride.** "Ciro (30 gün)" gibi etiketler
+pencereyi adlarında taşıyordu; pencere değiştiği gün etiket yalan söylerdi.
+Bölüm başlığının altında **"Dönem: 30/06 – 29/07"** yazıyor ve doğrudan
+`sales.period` / `advertising.period`'dan geliyor. Gün sayısı hesaplanmıyor,
+pencerenin kendisi yazılıyor.
+
+Ayrıca tabloda **iki etiket düzeldi**: SKU-4102 skoru 55 iken "İzlemede",
+SKU-1188 skoru 64 iken "Riskli" görünüyordu — daha kötü skorlu SKU daha iyi
+etiketliydi. Eşik tablosu (`statusBasis`) bunu kapattı.
+
 ---
 
 ## 8. Kalite kapıları — S5 durumu
@@ -348,6 +370,11 @@ sayacı). Erken ölçüm 768'de sayfayı 11.478 yerine 4.700 px sanıyordu.
       (§7.5 üç + §7.8 iki); biri S5'ten kalan gizli bir hataydı, biri de
       yalnızca 1440'ta görünüyordu
 - [x] Mock veri iç tutarlı: ACOS · ROAS · TACOS bileşenlerinden çıkıyor,
-      ekranda tek para birimi var, hepsi birim testiyle korunuyor
-- [ ] **Gerçek veri bağlı değil** — S8. `SkuHealth` sözleşmesi 🟡 TEKLİF,
-      sahip onayı bekliyor (13-...md §16.2)
+      ekranda tek para birimi (USD, sahip kararı) var, KPI şeridi ile Glance
+      ve AI brifingi aynı sayıları söylüyor, uyarıların işaret ettiği SKU'lar
+      gerçekten listede — hepsi birim testiyle korunuyor
+- [x] Türetilmiş skor gerekçeli (ADR-0085): katkılar 100'den skora götürüyor
+      ve `status` eşik tablosuyla tutarlı (UI-ADR-104)
+- [ ] **Gerçek veri bağlı değil** — S8. `SkuHealth` sözleşmesi 🟡 TEKLİF
+      olmayı sürdürüyor ama revize edildi (UI-ADR-104); açık kalan sorular
+      13-...md §16.2'de — en önemlisi `buyBoxRate`'in kaynağı

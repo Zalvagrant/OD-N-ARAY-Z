@@ -7,10 +7,11 @@
  *  1. `netProfit: null` ve `profitAfterAds: null`. COGS Amazon'da yoktur ve
  *     girilmemiştir; net kâr UYDURULMAZ (UI-ADR-099). Yerine `grossProfit`
  *     ve neyin hariç tutulduğu gelir.
- *  2. `SkuHealth.grossMarginPerUnit` her SKU'da `null` — aynı sebep.
- *  3. Ölçülmeyen alanlar (bazı SKU'larda `healthScore`, `buyBoxRate`,
- *     `conversionRate`) `null` bırakıldı; "0" yazmak "ölçülmedi" demek
- *     değildir.
+ *  2. Ölçülmeyen alanlar (bazı SKU'larda `healthScore`, `buyBoxRate`,
+ *     `conversionRate`, `inventoryAsOf`) `null` bırakıldı; "0" yazmak
+ *     "ölçülmedi" demek değildir.
+ *  3. `SkuHealth.grossMarginPerUnit` alanı KALDIRILDI (UI-ADR-104): kalıcı
+ *     olarak null kalacak bir alan, sözleşmede sahte bir yetenektir.
  *
  * Yüzde alanlarında ölçek BİLDİRİLİR (`percentScale: "0-100"`, UI-ADR-093);
  * bildirilmeseydi kartlar bilerek boş görünürdü.
@@ -31,7 +32,7 @@ import type {
   PPCOverview,
   SimulationCase,
 } from "@/types/executive";
-import type { SkuHealth } from "@/types/screens";
+import type { MetricPeriod, ScoreFactor, SkuHealth } from "@/types/screens";
 import { ago, ahead, mockEnvelope } from "./envelope";
 
 /* Ekranda TEK para birimi — UI-ADR-103, sahip kararıyla USD.
@@ -689,23 +690,66 @@ export function simulationsMock(): DataEnvelope<SimulationCase[]> {
    SkuHealth — 🟡 TEKLİF sözleşme (UI-ADR-101). Ölçülmeyen alan `null`.
    -------------------------------------------------------------------------- */
 
-function sku(over: Partial<SkuHealth> & Pick<SkuHealth, "sku" | "asin" | "title">): SkuHealth {
+/**
+ * Sağlık skoru → durum eşikleri. **BACKEND POLİTİKASIDIR**, arayüz bunu
+ * render için ASLA kullanmaz; mock burada backend'in yerine geçtiği için
+ * duruyor ve `amazon.test.ts` mock'un kendi politikasına uyduğunu doğrular.
+ *
+ * Eşikler olmadan `status` ile `healthScore` sessizce çelişiyordu: SKU-4102
+ * skoru 55 iken "İzlemede", SKU-1188 skoru 64 iken "Riskli" idi — daha kötü
+ * skorlu SKU daha iyi etiketliydi (S6 kapanışında yakalandı, UI-ADR-104).
+ */
+export const SKU_STATUS_BANDS = [
+  { min: 80, status: "healthy" as const },
+  { min: 65, status: "watch" as const },
+  { min: 45, status: "at_risk" as const },
+  { min: 0, status: "critical" as const },
+];
+
+export function statusForScore(score: number): SkuHealth["status"] {
+  return (
+    SKU_STATUS_BANDS.find((b) => score >= b.min) ?? SKU_STATUS_BANDS[SKU_STATUS_BANDS.length - 1]!
+  ).status;
+}
+
+/** Son 30 günlük ölçüm penceresi — dönem artık alan adında değil, veride. */
+function last30(): MetricPeriod {
+  const to = new Date();
+  const from = new Date(to.getTime() - 29 * 24 * 60 * 60_000);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return { from: iso(from), to: iso(to) };
+}
+
+/** Skor gerekçesi kısayolu: kod · mesaj · puan katkısı. */
+const f = (code: string, message: string, contribution: number | null): ScoreFactor => ({
+  code,
+  message,
+  contribution,
+  direction:
+    contribution === null ? "neutral" : contribution >= 0 ? "positive" : "negative",
+});
+
+function sku(
+  over: Partial<SkuHealth> & Pick<SkuHealth, "sku" | "asin" | "title">
+): SkuHealth {
   return {
     healthScore: null,
+    healthScoreExplanation: null,
     status: "healthy",
+    statusBasis: "health_score",
+    inventoryAsOf: ago(4 * 60 * 60_000),
     unitsAvailable: null,
     daysOfSupply: null,
     estimatedStockoutAt: null,
     reorderUnits: null,
-    unitsSoldLast30d: null,
-    revenueLast30d: null,
-    conversionRate: null,
-    buyBoxRate: null,
-    adSpendLast30d: null,
-    adSalesLast30d: null,
-    acos: null,
-    /* COGS yok → birim kâr HİÇBİR SKU'da hesaplanamaz (UI-ADR-099). */
-    grossMarginPerUnit: null,
+    sales: {
+      period: last30(),
+      unitsSold: null,
+      revenue: null,
+      conversionRate: null,
+      buyBoxRate: null,
+    },
+    advertising: { period: last30(), spend: null, sales: null, acos: null },
     price: null,
     ...over,
   };
@@ -718,18 +762,31 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       asin: "B0C4KJ9QW1",
       title: "Katlanır Kamp Sandalyesi — Antrasit",
       healthScore: 38,
+      /* Katkılar 100'den skora GÖTÜRÜR: 100 − 28 − 22 − 12 = 38.
+         Toplamayan bir gerekçe, gerekçe değildir; test bunu doğruluyor. */
+      healthScoreExplanation: [
+        f("LOW_DAYS_OF_SUPPLY", "Tahmini tükenme 9 gün; tedarik süresi 21 gün.", -28),
+        f("BUYBOX_LOST", "BuyBox payı %62,0 — üç rakip fiyat kırdı.", -22),
+        f("ACOS_ABOVE_TARGET", "ACOS %31,4, hedefin iki katı.", -12),
+      ],
       status: "critical",
       unitsAvailable: 567,
       daysOfSupply: 9,
       estimatedStockoutAt: inDays(9),
       reorderUnits: 600,
-      unitsSoldLast30d: 1_890,
-      revenueLast30d: { amount: 27_000, currency: USD },
-      conversionRate: 11.4,
-      buyBoxRate: 62.0,
-      adSpendLast30d: { amount: 640, currency: USD },
-      adSalesLast30d: { amount: 2_040, currency: USD },
-      acos: 31.4,
+      sales: {
+        period: last30(),
+        unitsSold: 1_890,
+        revenue: { amount: 27_000, currency: USD },
+        conversionRate: 11.4,
+        buyBoxRate: 62.0,
+      },
+      advertising: {
+        period: last30(),
+        spend: { amount: 640, currency: USD },
+        sales: { amount: 2_040, currency: USD },
+        acos: 31.4,
+      },
       price: { amount: 14.26, currency: USD },
     }),
     sku({
@@ -737,18 +794,28 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       asin: "B0B9XN2PLT",
       title: "Kamp Masası — Alüminyum 60×40",
       healthScore: 64,
+      healthScoreExplanation: [
+        f("BUYBOX_PRESSURE", "BuyBox payı %71,3 — fiyat rekabeti sürüyor.", -20),
+        f("LOW_CONVERSION", "Dönüşüm %8,9, kategori ortalamasının altında.", -16),
+      ],
       status: "at_risk",
       unitsAvailable: 1_240,
       daysOfSupply: 31,
       estimatedStockoutAt: inDays(31),
       reorderUnits: 400,
-      unitsSoldLast30d: 1_190,
-      revenueLast30d: { amount: 15_580, currency: USD },
-      conversionRate: 8.9,
-      buyBoxRate: 71.3,
-      adSpendLast30d: { amount: 410, currency: USD },
-      adSalesLast30d: { amount: 2_870, currency: USD },
-      acos: 14.3,
+      sales: {
+        period: last30(),
+        unitsSold: 1_190,
+        revenue: { amount: 15_580, currency: USD },
+        conversionRate: 8.9,
+        buyBoxRate: 71.3,
+      },
+      advertising: {
+        period: last30(),
+        spend: { amount: 410, currency: USD },
+        sales: { amount: 2_870, currency: USD },
+        acos: 14.3,
+      },
       price: { amount: 13.07, currency: USD },
     }),
     sku({
@@ -756,17 +823,27 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       asin: "B0D1FF7KLM",
       title: "Termos 1L — Çift Cidarlı",
       healthScore: 72,
+      healthScoreExplanation: [
+        f("BUYBOX_PRESSURE", "BuyBox payı %78,4 — ara ara kaybediliyor.", -16),
+        f("VELOCITY_SLOWING", "Satış hızı üç haftada %9 yavaşladı.", -12),
+      ],
       status: "watch",
       unitsAvailable: 2_310,
       daysOfSupply: 58,
       estimatedStockoutAt: inDays(58),
-      unitsSoldLast30d: 1_196,
-      revenueLast30d: { amount: 9_970, currency: USD },
-      conversionRate: 12.7,
-      buyBoxRate: 78.4,
-      adSpendLast30d: { amount: 220, currency: USD },
-      adSalesLast30d: { amount: 1_980, currency: USD },
-      acos: 11.1,
+      sales: {
+        period: last30(),
+        unitsSold: 1_196,
+        revenue: { amount: 9_970, currency: USD },
+        conversionRate: 12.7,
+        buyBoxRate: 78.4,
+      },
+      advertising: {
+        period: last30(),
+        spend: { amount: 220, currency: USD },
+        sales: { amount: 1_980, currency: USD },
+        acos: 11.1,
+      },
       price: { amount: 8.33, currency: USD },
     }),
     sku({
@@ -774,17 +851,27 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       asin: "B0BQ4HG8ZR",
       title: "Uyku Tulumu — 3 Mevsim",
       healthScore: 88,
+      healthScoreExplanation: [
+        f("BUYBOX_STRONG", "BuyBox payı %98,2 — rekabet baskısı yok.", 6),
+        f("LOW_CONVERSION", "Dönüşüm %9,6, kategori ortalamasının altında.", -18),
+      ],
       status: "healthy",
       unitsAvailable: 890,
       daysOfSupply: 74,
       estimatedStockoutAt: inDays(74),
-      unitsSoldLast30d: 361,
-      revenueLast30d: { amount: 11_170, currency: USD },
-      conversionRate: 9.6,
-      buyBoxRate: 98.2,
-      adSpendLast30d: { amount: 180, currency: USD },
-      adSalesLast30d: { amount: 1_610, currency: USD },
-      acos: 11.2,
+      sales: {
+        period: last30(),
+        unitsSold: 361,
+        revenue: { amount: 11_170, currency: USD },
+        conversionRate: 9.6,
+        buyBoxRate: 98.2,
+      },
+      advertising: {
+        period: last30(),
+        spend: { amount: 180, currency: USD },
+        sales: { amount: 1_610, currency: USD },
+        acos: 11.2,
+      },
       price: { amount: 30.93, currency: USD },
     }),
     sku({
@@ -792,32 +879,54 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       asin: "B0CG7YT4NN",
       title: "Kamp Lambası — Şarjlı 500lm",
       healthScore: 91,
+      healthScoreExplanation: [
+        f("HIGH_CONVERSION", "Dönüşüm %14,2 — kategori ortalamasının üstünde.", 5),
+        f("OVERSTOCK", "96 günlük envanter; sermaye bağlıyor.", -14),
+      ],
       status: "healthy",
       unitsAvailable: 3_120,
       daysOfSupply: 96,
       estimatedStockoutAt: inDays(96),
-      unitsSoldLast30d: 975,
-      revenueLast30d: { amount: 5_800, currency: USD },
-      conversionRate: 14.2,
-      buyBoxRate: 99.1,
-      adSpendLast30d: { amount: 96, currency: USD },
-      adSalesLast30d: { amount: 1_120, currency: USD },
-      acos: 8.6,
+      sales: {
+        period: last30(),
+        unitsSold: 975,
+        revenue: { amount: 5_800, currency: USD },
+        conversionRate: 14.2,
+        buyBoxRate: 99.1,
+      },
+      advertising: {
+        period: last30(),
+        spend: { amount: 96, currency: USD },
+        sales: { amount: 1_120, currency: USD },
+        acos: 8.6,
+      },
       price: { amount: 5.95, currency: USD },
     }),
     sku({
       sku: "SKU-3310",
       asin: "B0DHH2MMQ4",
       title: "Kamp Ocağı — Katlanır Bek",
-      /* Listeleme hatası var; sağlık skoru HESAPLANMADI. "0" yazmak
-         "ölçülmedi" demek değildir — null kalır ve ekranda NoData çıkar. */
+      /* Skor HESAPLANMADI. Gerekçe yine de gelir: NEDEN hesaplanamadığı da
+         bir açıklamadır. "0" yazmak "ölçülmedi" demek değildir. */
+      healthScore: null,
+      healthScoreExplanation: [
+        f("AD_DATA_MISSING", "Ads API bu SKU için veri döndürmedi.", null),
+        f("LISTING_ERROR", "Listeleme hatası nedeniyle ölçüm penceresi eksik.", null),
+      ],
+      /* Durum skordan DEĞİL, kuraldan geliyor — skor zaten yok. */
       status: "at_risk",
+      statusBasis: "rule_set",
+      /* Envanter anlık görüntüsü de gelmedi: tazelik bilinmiyor, uydurulmaz. */
+      inventoryAsOf: null,
       unitsAvailable: 410,
       daysOfSupply: 120,
-      unitsSoldLast30d: 102,
-      revenueLast30d: { amount: 1_090, currency: USD },
-      conversionRate: 2.1,
-      buyBoxRate: 88.0,
+      sales: {
+        period: last30(),
+        unitsSold: 102,
+        revenue: { amount: 1_090, currency: USD },
+        conversionRate: 2.1,
+        buyBoxRate: 88.0,
+      },
       price: { amount: 10.71, currency: USD },
     }),
     sku({
@@ -825,18 +934,31 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       asin: "B0F2ZK1WQP",
       title: "Portatif Duş — 12V",
       healthScore: 55,
-      status: "watch",
+      healthScoreExplanation: [
+        f("LOW_CONVERSION", "Dönüşüm %6,4 — kategorinin en düşüğü.", -25),
+        f("LOW_DAYS_OF_SUPPLY", "Tahmini tükenme 17 gün.", -12),
+        f("ACOS_ABOVE_TARGET", "ACOS %19,0, hedefin bir puan üstünde.", -8),
+      ],
+      /* Eskiden "watch" idi ve 64 puanlı SKU-1188 "at_risk"ti — daha kötü
+         skorlu SKU daha iyi etiketliydi. Eşik tablosuna uyduruldu. */
+      status: "at_risk",
       unitsAvailable: 128,
       daysOfSupply: 17,
       estimatedStockoutAt: inDays(17),
       reorderUnits: 250,
-      unitsSoldLast30d: 226,
-      revenueLast30d: { amount: 3_770, currency: USD },
-      conversionRate: 6.4,
-      /* Yeni listelendi — BuyBox oranı henüz raporlanmadı (13-...md §4). */
-      adSpendLast30d: { amount: 74, currency: USD },
-      adSalesLast30d: { amount: 390, currency: USD },
-      acos: 19.0,
+      sales: {
+        period: last30(),
+        unitsSold: 226,
+        revenue: { amount: 3_770, currency: USD },
+        conversionRate: 6.4,
+        buyBoxRate: null,
+      },
+      advertising: {
+        period: last30(),
+        spend: { amount: 74, currency: USD },
+        sales: { amount: 390, currency: USD },
+        acos: 19.0,
+      },
       price: { amount: 16.67, currency: USD },
     }),
     sku({
@@ -844,17 +966,30 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       asin: "B0E8RRT3LV",
       title: "Şişme Mat — Çift Kişilik",
       healthScore: 79,
-      status: "healthy",
+      healthScoreExplanation: [
+        f("BUYBOX_STRONG", "BuyBox payı %96,5 — stabil.", 4),
+        f("LOW_CONVERSION", "Dönüşüm %10,8, ortalamanın hafif altında.", -17),
+        f("REORDER_WINDOW", "44 günlük stok; sipariş penceresi yaklaşıyor.", -8),
+      ],
+      /* 79 puan `healthy` eşiğinin (80) bir puan altında — eskiden "healthy"
+         yazıyordu. Eşik tablosu bunu da düzeltti. */
+      status: "watch",
       unitsAvailable: 640,
       daysOfSupply: 44,
       estimatedStockoutAt: inDays(44),
-      unitsSoldLast30d: 436,
-      revenueLast30d: { amount: 9_340, currency: USD },
-      conversionRate: 10.8,
-      buyBoxRate: 96.5,
-      adSpendLast30d: { amount: 130, currency: USD },
-      adSalesLast30d: { amount: 1_040, currency: USD },
-      acos: 12.5,
+      sales: {
+        period: last30(),
+        unitsSold: 436,
+        revenue: { amount: 9_340, currency: USD },
+        conversionRate: 10.8,
+        buyBoxRate: 96.5,
+      },
+      advertising: {
+        period: last30(),
+        spend: { amount: 130, currency: USD },
+        sales: { amount: 1_040, currency: USD },
+        acos: 12.5,
+      },
       price: { amount: 21.43, currency: USD },
     }),
   ] satisfies SkuHealth[]);

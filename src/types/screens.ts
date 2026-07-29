@@ -95,6 +95,29 @@ export interface IntelligenceItem {
    06-workspaces.md §1.4 — SKU Health · §1.7 SKU bağlam paneli
    -------------------------------------------------------------------------- */
 
+/** Ölçüm penceresi. ISO tarih (YYYY-MM-DD); `to` dahildir. */
+export interface MetricPeriod {
+  from: string;
+  to: string;
+}
+
+/**
+ * Türetilmiş bir skorun GEREKÇESİ — ADR-0085 Explainability Envelope.
+ *
+ * `healthScore` bir formülün çıktısıdır. Gerekçesiz gösterilen türetilmiş
+ * skor, açıklanamayan bir AI çıktısıdır: kullanıcı "38" görür, ne yapacağını
+ * bilemez. Skor doluysa bu alan da doludur (UI-ADR-104).
+ */
+export interface ScoreFactor {
+  /** Makine tarafı kod — ör. "LOW_DAYS_OF_SUPPLY". Arayüz metni bundan üretmez. */
+  code: string;
+  /** İnsan tarafı açıklama — backend yazar, arayüz cümle kurmaz. */
+  message: string;
+  direction: "positive" | "negative" | "neutral";
+  /** Skora katkısı (puan). Ölçülemiyorsa null — uydurulmaz. */
+  contribution: number | null;
+}
+
 /**
  * 🟡 TEKLİF — sözleşmesi YOK, ekrandan geriye türetildi. Soru: 13-...md §16.2.
  *
@@ -102,45 +125,76 @@ export interface IntelligenceItem {
  * Director'ın merkezinde SKU Health tablosu ve SKU bağlam paneli var.
  * S5'te `Mission` için izlenen yol burada da izlendi (UI-ADR-101).
  *
+ * ⚙️ S6 kapanışında gavadolar danışılarak REVİZE EDİLDİ (UI-ADR-104):
+ * dönem alan adına gömülüydü, türetilmiş skorun gerekçesi yoktu, `status`
+ * ile skorun hangisinin kazandığı belirsizdi ve kalıcı olarak `null` kalacak
+ * bir alan taşınıyordu. Dördü de düzeltildi — gerekçeler ADR'de.
+ *
  * ÖLÇEK BİLDİRİLİR, TAHMİN EDİLMEZ (UI-ADR-093): buradaki tüm yüzde alanları
  * **0–100** aralığındadır ve bu, teklifin bir parçasıdır.
- *
- * ÖLÇÜLEMEYEN ALAN `null` GELİR — mock'ta bile doldurulmaz:
- *   `grossMarginPerUnit` COGS gerektirir, COGS Amazon'da yoktur → kalıcı null.
  */
 export interface SkuHealth {
   sku: string;
   asin: string;
   title: string;
-  /** 0–100. Türetilmiş bir skordur; formülü backend'in sorumluluğunda. */
+
+  /** 0–100. Türetilmiş skor; formülü backend'in sorumluluğunda. */
   healthScore: number | null;
+  /**
+   * Skorun gerekçesi. `healthScore` doluyken bu BOŞ OLAMAZ — gerekçesiz skor
+   * gösterilmez, `NoData`'ya düşer (UI-ADR-104).
+   */
+  healthScoreExplanation: ScoreFactor[] | null;
+
   status: "healthy" | "watch" | "at_risk" | "critical";
+  /**
+   * Durumun nereden geldiği. `health_score` ise backend, durumu skorla
+   * TUTARLI üretmek zorundadır; `rule_set` ise durum skordan bağımsız bir
+   * kuraldan gelir (ör. veri eksikliği) ve ekran bunu söyler.
+   *
+   * Arayüz çelişki ÇÖZMEZ: skor 38 iken "healthy" gelirse bu bir backend
+   * hatasıdır, arayüzün tamir edeceği bir şey değildir.
+   */
+  statusBasis: "health_score" | "rule_set";
 
   /* Envanter — FBA Inventory */
+  /**
+   * ISO 8601 — envanter anlık görüntüsünün alındığı an. Zarfın
+   * `lastUpdated`'ından FARKLIDIR: satış raporu 30 dakikalık, FBA envanteri
+   * 6 saatlik olabilir ve tükenme kararı bu tazeliğe bağlıdır.
+   */
+  inventoryAsOf: string | null;
   unitsAvailable: number | null;
   /** Kalan gün = stok / satış hızı. Ölçülemiyorsa null. */
   daysOfSupply: number | null;
-  /** ISO 8601 — tahmini tükenme tarihi. GELECEK bir tarihtir. */
+  /**
+   * ISO 8601 — tahmini tükenme tarihi, GELECEK bir tarih.
+   * `daysOfSupply`'dan TÜRETİLMEZ: biri anlık kapasite, diğeri tahmin
+   * politikasının (satış hızı penceresi, tedarik takvimi) çıktısıdır.
+   */
   estimatedStockoutAt: string | null;
   /** Yeniden sipariş önerisi (adet). Üretilmediyse null. */
   reorderUnits: number | null;
 
-  /* Satış — Sales & Traffic raporu */
-  unitsSoldLast30d: number | null;
-  revenueLast30d: Money | null;
-  /** 0–100 */
-  conversionRate: number | null;
-  /** 0–100 — kaynağı doğrulanmalı (13-...md §4 "Buy Box oranı ⚠️"). */
-  buyBoxRate: number | null;
+  /* Satış — Sales & Traffic raporu. Dönem ALAN ADINDA DEĞİL, veride. */
+  sales: {
+    period: MetricPeriod;
+    unitsSold: number | null;
+    revenue: Money | null;
+    /** 0–100 */
+    conversionRate: number | null;
+    /** 0–100 — kaynağı doğrulanmalı (13-...md §16.2). */
+    buyBoxRate: number | null;
+  };
 
   /* Reklam — Ads API */
-  adSpendLast30d: Money | null;
-  adSalesLast30d: Money | null;
-  /** 0–100 */
-  acos: number | null;
-
-  /* Kâr — COGS OLMADAN HESAPLANAMAZ, kalıcı olarak null (UI-ADR-099) */
-  grossMarginPerUnit: Money | null;
+  advertising: {
+    period: MetricPeriod;
+    spend: Money | null;
+    sales: Money | null;
+    /** 0–100 */
+    acos: number | null;
+  };
 
   price: Money | null;
 }
