@@ -98,3 +98,33 @@ export function relativeTime(
   if (diff < DAY) return `${Math.floor(diff / HOUR)} sa önce`;
   return `${Math.floor(diff / DAY)} gün önce`;
 }
+
+/**
+ * "9 gün kaldı" — GELECEK bir tarih için kalan süre.
+ *
+ * `relativeTime` bir YAŞ fonksiyonudur; gelecek bir tarihte "birazdan" der.
+ * Bir terminde bu yanlıştır: 46 gün sonraki termin de "birazdan" görünür.
+ * Termin ile yaş farklı sorulardır, ayrı fonksiyonlarla cevaplanır.
+ *
+ * Geçmiş bir termin gecikmedir ve öyle yazılır. Zaman ya da damga yoksa
+ * `null` döner — çağıran hiçbir şey yazmaz.
+ */
+export function remainingTime(
+  iso: string | null | undefined,
+  nowMs: number | null
+): string | null {
+  if (nowMs === null || !iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+
+  const diff = t - nowMs;
+  if (diff < 0) {
+    const late = -diff;
+    if (late < HOUR) return "süresi doldu";
+    if (late < DAY) return `${Math.floor(late / HOUR)} sa gecikti`;
+    return `${Math.floor(late / DAY)} gün gecikti`;
+  }
+  if (diff < HOUR) return `${Math.max(1, Math.floor(diff / MINUTE))} dk kaldı`;
+  if (diff < DAY) return `${Math.floor(diff / HOUR)} sa kaldı`;
+  return `${Math.floor(diff / DAY)} gün kaldı`;
+}

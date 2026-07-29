@@ -98,7 +98,13 @@ function DecisionView({
           <dl className="grid gap-3 text-sm sm:grid-cols-4">
             <div>
               <dt className="text-xs text-content-tertiary">Finansal etki</dt>
-              <dd className="mt-1 flex flex-col">
+              {/* items-start ŞART: `.odin-num` sayıları sağa hizalar (03-...md
+                  §11, tablo/KPI karşılaştırması için). Esnek bir sütunda Num
+                  hücre genişliğine yayılıyor ve sayı etiketinden kopup sağ
+                  kenara kaçıyordu — S4 story'lerinde kart dar olduğu için
+                  görünmüyordu, brifing ekranında tam genişlikte ortaya çıktı.
+                  Tanım listesinde sayı etiketinin ALTINDA durur. */}
+              <dd className="mt-1 flex flex-col items-start">
                 <Num
                   value={Number.isFinite(fin?.amount) ? fin.amount : null}
                   format="currency"

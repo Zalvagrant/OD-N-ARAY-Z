@@ -22,7 +22,7 @@ import { DataGuard } from "./data-guard";
 import { ConfidenceBadge } from "./confidence-badge";
 import { TrustSignal } from "./trust-signal";
 import { AIRecommendationView, canRenderRecommendation } from "./ai-recommendation-card";
-import { relativeTime, useNow } from "@/lib/clock/tick";
+import { remainingTime, useNow } from "@/lib/clock/tick";
 
 const CATEGORY: Record<Opportunity["category"], string> = {
   product: "Ürün",
@@ -45,7 +45,11 @@ export function OpportunityCard({
   return (
     <DataGuard env={env} reason="Fırsat verisi yok">
       {(o, meta) => {
-        const due = relativeTime(o.deadline, now);
+        /* Son tarih GELECEKTEDİR: `relativeTime` bir yaş fonksiyonudur ve
+           gelecek tarihlerin hepsine "birazdan" der — 7 gün sonrası da,
+           21 gün sonrası da. Fırsatın ne zaman kaçacağı kalan süreyle
+           yazılır (brifing ekranında görsel incelemede yakalandı). */
+        const due = remainingTime(o.deadline, now);
         const recOk = canRenderRecommendation(o.recommendedAction);
 
         return (
