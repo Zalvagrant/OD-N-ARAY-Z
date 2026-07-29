@@ -44,7 +44,15 @@ export function PPCOverviewCard({
         <Card>
           <CardHeader title={title} description="Katman 1 — reklamın kâra etkisi" />
           <CardBody>
-            <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {/* EN FAZLA İKİ KOLON — üç değil.
+                Tailwind'in `grid-cols-N`'i `minmax(0,1fr)` üretir: sütun,
+                içeriğinin altına İNEBİLİR. Para değerleri sarmadığı için
+                sığmayınca komşunun üstüne taşar. Kart zaten ekranın 1/3'ünde
+                duruyor; içinde üçüncü bir sütun ₺ tutarlarına hiçbir
+                genişlikte yetmiyordu — ölçüldü: 1920'de bitişik, 1440'ta
+                45 px iç içe. `min-w-0` YOK: sütunun içeriğinden dar olmasına
+                izin veren şey tam olarak oydu. */}
+            <dl className="grid gap-4 sm:grid-cols-2">
               <Stat
                 label="PPC Health"
                 note={
@@ -67,7 +75,7 @@ export function PPCOverviewCard({
                     value={ppc.spend?.amount ?? null}
                     format="currency"
                     currency={ppc.spend?.currency}
-                    size="xl"
+                    size="lg"
                     noDataReason="Reklam harcaması gelmedi"
                   />
                 }
@@ -80,7 +88,7 @@ export function PPCOverviewCard({
                     value={ppc.sales?.amount ?? null}
                     format="currency"
                     currency={ppc.sales?.currency}
-                    size="xl"
+                    size="lg"
                     noDataReason="Reklam satışı gelmedi"
                   />
                 }
@@ -93,7 +101,7 @@ export function PPCOverviewCard({
                     value={toPercentUnit(ppc.acos, ppc.percentScale)}
                     format="percent"
                     fractionDigits={1}
-                    size="xl"
+                    size="lg"
                     noDataReason="ACOS ölçeği bildirilmedi (UI-ADR-093)"
                   />
                 }
@@ -106,7 +114,7 @@ export function PPCOverviewCard({
                   <Num
                     value={Number.isFinite(ppc.roas) ? ppc.roas : null}
                     fractionDigits={1}
-                    size="xl"
+                    size="lg"
                     noDataReason="ROAS hesaplanmadı"
                   />
                 }
@@ -121,7 +129,7 @@ export function PPCOverviewCard({
                     value={ppc.profitAfterAds?.amount ?? null}
                     format="currency"
                     currency={ppc.profitAfterAds?.currency}
-                    size="xl"
+                    size="lg"
                     noDataReason={PROFIT_NEEDS_COGS}
                   />
                 }
