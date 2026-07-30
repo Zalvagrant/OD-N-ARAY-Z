@@ -1187,3 +1187,93 @@ kavramlarının istenip istenmediği. `13-backend-recommendations.md` §15.
 `09b-verified-contracts.md` (yeni), `types/executive.ts`,
 `confidence-badge.tsx`, `ai-recommendation-card.tsx`, `council-view.tsx`,
 `director-card.tsx`, `10b`, `10c`, sprint sırası (S5.5 eklendi).
+
+---
+
+## UI-ADR-099 — Kabuk onarımı, durum hafızası ve saf getSnapshot (S5.5)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026 — S5.5 Sözleşme Hizalama
+**Kaynak:** 16-audit-s1-s5.md (üç gerçek eksik + bir kesin kod hatası)
+
+**Dört düzeltme:**
+
+1. **Belge scroll invariant'ı (P0).** `html, body { height:100%;
+   overflow:hidden }`. Kabuktaki `h-screen overflow-hidden` yetmiyordu;
+   Space/Home/End belgeyi kaydırıp header'ı ekrandan çıkarabiliyordu.
+   Ölçüm: onarım sonrası tekerlek/End/Space üçü de `scrollY 0`.
+   Not: programatik `scrollTo` overflow:hidden'da bile çalışır — bu
+   tehdit değildir ve test KULLANICI eylemini ölçer.
+2. **Scroll restore.** Yazılmıştı ama ÇALIŞMIYORDU: kayıt
+   `useLayoutEffect` cleanup'ındaydı; o an yeni içerik commit edilmiş ve
+   tarayıcı scrollTop'u kısa içeriğe clamp'lemiş oluyordu — her geçiş 0
+   kaydediyordu. Kayıt artık scroll OLAYINDA (rAF-throttle); geri
+   yükleme, mock içerik effect tick'inde geldiği için hedefe ulaşana dek
+   en fazla 10 frame dener.
+3. **Kart açıklığı hafızası.** Bileşen-yerel `useState`,
+   `key={pathname}` unmount'unda kayboluyordu. `useDisclosureMemory`
+   (navigation store, workspace-kimlikli `expandedIds`) — BELLEK-İÇİ,
+   diske yazılmaz: dünkü açık kart bugünün verisinde anlamsızdır.
+4. **`useMockData` saf değildi.** `getSnapshot` içinde cache doldurmak
+   React 19 concurrent modda tearing üretebilir (yazılımcılar: "kesin
+   hata"). Store modül seviyesine (üreticiye WeakMap ile bağlı) taşındı;
+   üretim effect'te, `getSnapshot` yalnızca okur.
+
+**Ayrıca:** ConfidenceBadge ODIN'in kanonik 5 bandına geçti
+(80/60/40/20 → çok yüksek/yüksek/orta/düşük/çok düşük); uydurma 50
+eşiği silindi. `ConfidenceBreakdown` iç bileşeni eklendi — 8 kanonik
+bileşen, ağırlıklar ve negatif yön işaretiyle.
+
+**Etki:** `globals.css`, `workspace.tsx`, `lib/store/navigation.ts`,
+`mocks/use-mock.ts`, `confidence-badge.tsx`, `confidence-breakdown.tsx`,
+KPI/karar/öneri kartları.
+
+---
+
+## UI-ADR-100 — Karar modeli ODIN DecisionRecord'a hizalandı; üç verdict
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026 — S5.5
+**Değiştirir:** ♻️ UI-ADR-091 (alternatif kuralının YERİ)
+
+**Tip hizalaması (09b §1):** `Decision` artık ODIN kaydının görünümüdür:
+`question · date · tier(D1/D2/D3) · status(open/monitoring/closed) ·
+alternatives(option/assessment/risk, min 2) · recommendation ·
+humanDecision`. UYDURULMUŞ 13 alan silindi (priority, financialImpact,
+riskLevel, aiConfidence, expectedROI, directorOpinions, timeline, score…).
+`AIRecommendation` ODIN'in 10 zorunlu alanını taşır; KAYIP üç alan
+eklendi ve görünür: `flip_conditions` (kartta HER ZAMAN görünür blok),
+`assumptions`, `confidence_breakdown`.
+
+**♻️ UI-ADR-091 revizyonu:** "alternatives<2 ise öneri render edilmez"
+kuralı önerinin DEĞİL kararın alanına aitti (şema minItems 2). Kural
+şimdi doğru yerde: alternatifler DecisionCard'da çizilir;
+`canRenderRecommendation` ODIN'in 10 zorunlusunu arar — eksikse öneri
+yine sessiz `null`, bastırmayı çağıran yazar (o kısım değişmedi).
+
+**Üç verdict (meclis kararı, sahip onaylı):** Onayla · Reddet · Ertele —
+ODIN sözlüğü. Gerekçe kuralı ODIN ADR-0131'in A/B/C kuralıdır: B/C'de
+her verdict ≥8 karakter gerekçe ister (onay dahil); `deferred` gelecek
+tarih ister. UI kural İCAT ETMEZ, `ceo verdict`i yüzeye taşır; kalıcı
+kayıt S7'de `/api/command` üzerinden (ER-0025). Bayat-veri kilidi
+(UI-ADR-092) üç eyleme genişledi.
+
+**Consensus düzeltmesi:** ODIN'de `disagreement = 100 − consensus`
+(consensus.py, türetilmiş). 10b §11'in "ikisi ayrı ölçümdür" metni
+yanlıştı; CouncilView artık skorları öneriden okur ve türetimi açıkça
+yazar. Director pozisyon satırları kayıtta saklanmadığı için (not_exposed)
+çizilmez; azınlık görüşleri ODIN'in verdiği düz metin listesidir.
+
+**Drift muhafızı:** `contracts/odin/` altında şema snapshot'ı (ODIN commit
+0d76dae) + ODIN'in KENDİ doğrulayıcısından geçirilmiş kanonik örnek +
+`src/types/odin-contract.test.ts` (9 test). FR-0039 kanalı yayına girince
+snapshot pinlenmiş artefakta döner.
+
+**Kapsam dışı (bilinçli):** DirectorHeartbeat→AgentHealth hizalaması ve
+ExecutiveKPI/Alert/Opportunity/Mission tipleri — FR-0046 kararını bekler;
+S6 o karara kapılıdır.
+
+**Etki:** `types/odin.ts` (yeni), `types/executive.ts`,
+`decision-card.tsx` (verdict formu), `council-view.tsx`,
+`minority-opinion-banner.tsx`, `decision-queue.tsx` (tier sıralaması),
+`ai-recommendation-card.tsx`, mocks, fixtures, 8 story dosyası.

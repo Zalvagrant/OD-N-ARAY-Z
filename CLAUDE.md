@@ -178,11 +178,14 @@ S4 (Executive Components — 15 bileşen, `10b-executive-components.md`).**
 Üretildi, sahip onayı bekliyor: **S5 — Executive Briefing + Mission Control**
 (`10c-screens.md`). İlk gerçek ekranlar açıldı; veri **mock**, hepsi
 `meta.source === "mock"` ile işaretli (UI-ADR-094) ve S8'de değişecek.
-Sıradaki: **S5.5 — Sözleşme Hizalama** (UI-ADR-098). S6'ya GİRMEDEN önce:
-ODIN çekirdeği okundu ve `09-data-contracts.md`'nin gerçek backend ile
-uyuşmadığı doğrulandı. Kanonik kaynak ODIN'dir; fark tablosu
-`09b-verified-contracts.md`'de, sahibin vermesi gereken 5 karar
-`13-backend-recommendations.md` §15'te. S6 (Amazon Director) ondan sonra.
+Biten (sahip onayı bekliyor): **S5.5 — Sözleşme Hizalama** (UI-ADR-098..100).
+Karar modeli ODIN DecisionRecord'a hizalandı (tier/status/alternatifler/10
+zorunlu öneri alanı), kanonik güven bantları + 8 bileşenli döküm, üç verdict
+(Onayla/Reddet/Ertele + A/B/C gerekçe kuralı), kabuk scroll onarımı, durum
+hafızası, contract fixture testi (`contracts/odin/`).
+Sıradaki: **S6 — Amazon Director.** ⛔ KAPI: ODIN R-006 **FR-0046** kararı
+(ExecutiveKPI/Alert/Opportunity/Mission sözleşmeleri) çıkmadan S6'nın
+KPI/domain kısmı BAŞLAMAZ; kavramdan bağımsız kabuk serbest (16-audit §5).
 
 ### Her sprint sonunda
 

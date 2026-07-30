@@ -233,3 +233,25 @@ gösterme" kuralının backend'de zaten karşılığı var.
 3. **Ancak ondan sonra** S6 şablon modülü yazılır.
 
 Gerekçe UI-ADR-098'de.
+
+---
+
+## 10. Adapter eşleme tablosu (S5.5 — uygulanan durum)
+
+`UI alanı → ODIN kaynağı`. `not_exposed` = ODIN üretir ama karar kaydında
+saklamaz ya da hiç üretmez; UI o alanı ZORUNLU saymaz, yoksa satır çizmez.
+
+| UI | ODIN | Durum |
+|---|---|---|
+| `Decision.question/date/tier/status` | kök alanlar | ✅ birebir |
+| `Decision.alternatives[]` | `alternatives[]` (option/assessment/risk) | ✅ birebir, minItems 2 |
+| `Decision.humanDecision` | `human_decision` (+`revisit_at` lifecycle'dan) | ✅ |
+| `AIRecommendation.recommendation` | `recommendation.text` | ✅ |
+| `confidence` / `confidenceBreakdown` | `confidence` / `confidence_breakdown` | ✅ 8 bileşen görünür |
+| `evidence[]` | `evidence_snapshot[]` | ✅ (UI biçimi zengin; adapter S7'de daraltır) |
+| `potentialRisks` / `assumptions` / `flipConditions` | `risks` / `assumptions` / `flip_conditions` | ✅ — flip kartta her zaman görünür |
+| `consensusScore` / `disagreementScore` / `minorityOpinions` | consensus alanları | ✅ türetim notuyla |
+| `recClass` | `executive.classify()` A/B/C | ✅ gerekçe kuralının anahtarı |
+| `numbers · causeAnalysis · impactAnalysis · expectedFinancialResult · whyGenerated · responsibleDirector · relatedKnowledge · lastValidated` | — | `not_exposed`; opsiyonel, varsa çizilir |
+| `DirectorHeartbeat.*` | `AgentHealthMonitor.snapshot()` | ⏳ S5.5-b — FR-0046 ile birlikte |
+| `ExecutiveKPI · Alert · Opportunity · Mission` | — | ⛔ FR-0046 kararına kapılı |
