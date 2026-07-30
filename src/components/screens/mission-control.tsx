@@ -23,12 +23,13 @@ import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/reg
 import type { DataEnvelope } from "@/types/data-envelope";
 import type { DirectorHeartbeat } from "@/types/executive";
 import { directorsMock, risksMock } from "@/mocks/briefing";
-import { goalsMock } from "@/mocks/mission-control";
+import { useOdinGoals } from "@/lib/data/odin-state";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
+import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
 import { Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
@@ -50,23 +51,44 @@ function OperationalStatus({
   const open = activeTelemetryChannels().length;
   const total = TELEMETRY_CHANNELS.length;
 
-  const states = (directors?.data ?? []).map((d) =>
+  /*
+   * KAYNAK YOKSA SAYI YOK — S8 (UI-ADR-118).
+   *
+   * Burada `directors?.data ?? []` yazıyordu: zarf `null` olduğunda boş
+   * diziye düşüyor, üç sayaç da 0 çıkıyordu. Ekranda "0 canlı Director"
+   * bir ÖLÇÜMDÜR ve yanlıştır — doğrusu "ölçülmedi". Fark, S8'de gerçek
+   * moda geçilince ortaya çıktı: mock kancası fail-closed olunca ekran
+   * sıfırlarla dolu bir "sağlıklı sistem" tablosu gösterdi.
+   *
+   * `Stat`'ın kendi sözleşmesi bunu zaten söylüyordu: "değer yoksa çağıran
+   * <NoData/> geçirir — bu bileşen 0 üretmez." Çağıran tarafı hizalandı.
+   */
+  const measured = directors?.data ?? null;
+  const states = (measured ?? []).map((d) =>
     liveness(d.lastBeat, d.beatIntervalMs, now)
   );
-  const live = states.filter((s) => s === "live").length;
-  const offline = states.filter((s) => s === "offline").length;
-  const unknown = states.filter((s) => s === "unknown").length;
+  const count = (kind: string) =>
+    measured === null ? (
+      <NoData reason="Director sağlık kaydı yayınlanmıyor — kaynak bağlı değil" />
+    ) : (
+      states.filter((s) => s === kind).length
+    );
 
   return (
     <Card density="compact">
       <CardBody density="compact">
         <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>div]:min-w-0">
           <Stat label="Telemetri kanalı" value={`${open} / ${total}`} note="açık / tanımlı" />
-          <Stat label="Canlı Director" value={live} note="son atım eşiğin içinde" tone="success" />
-          <Stat label="Offline" value={offline} note="atım gecikti" tone="warning" />
+          <Stat
+            label="Canlı Director"
+            value={count("live")}
+            note="son atım eşiğin içinde"
+            tone="success"
+          />
+          <Stat label="Offline" value={count("offline")} note="atım gecikti" tone="warning" />
           <Stat
             label="Bilinmiyor"
-            value={unknown}
+            value={count("unknown")}
             note="hiç atım yok — ölmüş demek değildir"
             tone="tertiary"
           />
@@ -102,28 +124,43 @@ export function MissionControl({
   const router = useRouter();
   const [query, setQuery] = useState("");
 
-  const goals = useMockData(goalsMock);
+  /*
+   * S8 — HEDEFLER ARTIK CANLI. `/api/state.goals` ODIN'in yayınladığı tek
+   * BİREBİR eşleşen sözleşmedir (09b §10 · ADR-0132); sahibin
+   * `odin-data/goals.json`'ında yazdığı hedefler doğrudan buraya düşer.
+   *
+   * Kalan ikisi (`directors` · `alerts`) hâlâ mock: `/api/state`'te
+   * `agents` düz bir string listesidir ve `risks` `requiresAction`
+   * taşımaz — ikisi de kanonik sözleşmeyi karşılamıyor. Talepleri
+   * `backend-istekleri.md`'de; gerçek modda S7'nin fail-closed kancası
+   * onlara veri VERMEZ, ekran "veri yok" der.
+   */
+  const goals = useOdinGoals();
   const directors = useMockData(directorsMock);
   const alerts = useMockData(risksMock);
 
   const loading = demo === "loading" || goals.loading;
-  const error = demo === "error" ? DEMO_ERROR : null;
+  /* Gerçek hata artık demo hatasının yanında: ODIN kapalıysa veya sözleşme
+     ihlal edilirse kullanıcı beş adımlı açıklamayı görür (S7 dersi —
+     bağlanmayan hata bölümü sessizce boş bırakır). */
+  const error = demo === "error" ? DEMO_ERROR : (goals.error?.toErrorState() ?? null);
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    goals.reload();
+    goals.refetch();
     directors.reload();
     alerts.reload();
   };
 
-  const goalEnv = isEmpty && goals.data ? { data: [], meta: goals.data.meta } : goals.data;
+  const goalEnv =
+    isEmpty && goals.envelope ? { data: [], meta: goals.envelope.meta } : goals.envelope;
 
   return (
     <div className="flex max-w-screen-2xl flex-col gap-8">
       <WorkspaceHeader
         title="Mission Control"
         context="Şu anda ne oluyor?"
-        lastSync={goals.data?.meta.lastUpdated ?? null}
+        lastSync={goals.envelope?.meta.lastUpdated ?? null}
         actions={
           <>
             <MockBadge />

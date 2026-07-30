@@ -1784,3 +1784,95 @@ başarısız — <sebep>" yazar. Renk tek gösterge değildir, kelime de yazar.
 
 **Etki:** `lib/data/{use-odin-query.ts,client.ts,policy.ts}`,
 `components/executive/trust-signal.tsx` (+ story).
+
+---
+
+## UI-ADR-116 — Arayüz ODIN'in diskini okumaz; eksik veri TALEP olur (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+**Meclis:** gavadolar (terra · luna) — **2/2 oybirliği**
+
+**Ölçüm (iddia değil):** çalışan cockpit'ten `GET /api/state` → 200, 116 KB,
+30 üst düzey anahtar. Arayüzün beklediği sözleşmelerden **yalnız `Goal`**
+birebir karşılanıyor. `sku_stats` `null`; `agents` düz string listesi;
+`risks` `requiresAction` taşımıyor; `recommendations` `suggestedAction`
+taşımıyor; `decision_cards` karar şemasının sekiz zorunlu alanının hiçbirini
+taşımıyor; `health_score.score` `null` (coverage 0/6, altı finansal bileşen
+"kaynak bağlı değil").
+
+**Asıl bulgu — veri VAR, uç nokta SERVİS ETMİYOR.** `sales_snapshot`
+SP-API'den gelmiyor: `cockpit.py::_executive_extras` `staging/`'deki elle
+girilmiş `KO-jarvis-0002` kaydını okuyor, `as_of` **9 gün eski**. Oysa
+`odin-data/core/` içinde BUGÜNÜN tarihiyle promote edilmiş
+`KO-spapi-{orders,sku_sales,inventory}-2026-07-30` ve 94 satırlık
+`KO-ads-ads_report-2026-07-30` duruyor.
+
+**Reddedilen kolay yol:** arayüz `odin-data/core/*.json`'ı doğrudan okusun.
+Hızlı olurdu ve ekranı bugün doldururdu. Reddedildi çünkü arayüz ODIN'in
+`IRenderer` portunun adaptörüdür (ADR-0080) — ODIN'in diskini okumak,
+şema/promote/governance zincirini (ADR-0050 · R-006) atlayıp iki repo
+arasındaki sınırı silerdi. Bir kez yapılırsa geri alınamaz: ekranlar
+dosya biçimine bağlanır.
+
+**Karar:** eksikler kanıtlı bir talep listesine yazılır
+(`backend-istekleri.md`, dosya/satır göstererek) ve gelene kadar ekran
+"kaynak bağlı değil" der. Boş bir bölüm dürüsttür; doldurulmuş olanı değil.
+
+**Etki:** `lib/data/odin-state.ts`, `docs/ui_chatgpt/backend-istekleri.md`.
+
+---
+
+## UI-ADR-117 — CORS ODIN'den İSTENMEDİ; vekil arayüz tarafında (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+
+**Sorun:** cockpit yanıt başlıkları ölçüldü — yalnız `Content-Type`,
+`Content-Length`, `Cache-Control`. `Access-Control-Allow-Origin` **yok**.
+Tarayıcıdaki arayüz `http://127.0.0.1:8765`'e doğrudan gidemiyor.
+
+**Kolay yol reddedildi:** ODIN'e CORS başlığı eklettirmek. Sunucunun
+127.0.0.1'e bağlı olması ve dışarı açılmaması bilinçli bir güvenlik
+kararıdır (CLAUDE.md: "dışarı açma — ayrı güvenlik incelemesi gerektirir").
+Köken kısıtını arayüzün rahatlığı için gevşetmek, o kararı arayüz adına
+geçersiz kılmak olurdu.
+
+**Karar:** istek Next'in kendi sunucusundan geçer —
+`rewrites(): /odin/:path* → http://127.0.0.1:8765/:path*`. Tarayıcı için
+AYNI KÖKEN, ODIN için hâlâ yerel bir istemci. Hiçbir başlık gevşetilmedi,
+ODIN'e tek satır dokunulmadı.
+
+**Yan fayda:** hedef adres `NEXT_PUBLIC_*` DEĞİL (`ODIN_ORIGIN`, yalnız
+sunucu tarafı) — ODIN'in adresi tarayıcı paketine gömülmez. `ODIN_BASE_URL`
+mutlak adresten `"/odin"` yoluna indi.
+
+**Etki:** `next.config.ts`, `lib/data/mode.ts`.
+
+---
+
+## UI-ADR-118 — Kaynak yoksa sayı da yok: `0` bir ölçüm iddiasıdır (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+
+**Nasıl bulundu:** gerçek moda geçilince (`NEXT_PUBLIC_ODIN_DATA_MODE=odin`)
+mock kancası fail-closed olup `null` döndürdü ve Mission Control'ün
+Operational Status kartı **sıfırlarla dolu bir "sağlıklı sistem" tablosu**
+gösterdi: "Canlı Director 0 · Offline 0 · Bilinmiyor 0". Hiçbir test bunu
+yakalamadı; ekrana bakılarak görüldü.
+
+**Kök neden:** `(directors?.data ?? []).map(...)` — zarf `null` olduğunda
+boş diziye düşüyor, üç sayaç da `0` çıkıyordu. **"0 Director canlı" bir
+ÖLÇÜMDÜR ve yanlıştır**; doğrusu "ölçülmedi". Aradaki fark, sistemin
+sağlıklı mı yoksa hiç izlenmiyor mu olduğudur.
+
+`Stat` bileşeninin kendi sözleşmesi bunu zaten söylüyordu: *"Anti-fake:
+değer yoksa çağıran `<NoData/>` geçirir — bu bileşen '0' üretmez."* Kural
+doğruydu, çağıran onu çiğniyordu. Düzeltme çağıran tarafta yapıldı.
+
+**Genel kural:** boş koleksiyona düşen bir `?? []` varsayılanı, "veri yok"u
+sessizce "ölçüm sıfır"a çevirir. Sayaç üreten her yerde `null` ile boş
+liste AYRI ele alınır.
+
+**Etki:** `components/screens/mission-control.tsx`.
