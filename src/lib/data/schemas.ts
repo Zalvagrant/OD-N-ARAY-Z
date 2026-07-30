@@ -13,8 +13,7 @@
  */
 
 import { z } from "zod";
-import type { Alert, ExecutiveKPI, Opportunity } from "@/types/executive";
-import type { Goal } from "@/types/screens";
+import type { Alert, ExecutiveKPI } from "@/types/executive";
 
 /** ISO 8601 — biçim değil, ÇÖZÜLEBİLİRLİK aranır: `Date.parse` sonucu. */
 const isoDate = z
@@ -54,55 +53,35 @@ export function envelopeSchema<T extends z.ZodTypeAny>(data: T) {
 }
 
 /* --------------------------------------------------------------------------
-   ExecutiveKPI v1 — 09b §10 (FR-0046 · UI-ADR-106)
+   ExecutiveKPI — ODIN ADR-0143 §2 sınır zarfı (09b §10)
    -------------------------------------------------------------------------- */
-
-const metricValueSchema = z
-  .object({
-    status: z.enum(["available", "data_required", "unavailable"]),
-    value: z.number().nullable(),
-    reason: z.string().min(1).optional(),
-  })
-  .refine((v) => (v.status === "available" ? typeof v.value === "number" : v.value === null), {
-    message: "status=available ise value sayı, değilse null olmalı",
-    path: ["value"],
-  })
-  /* Ölçülemediğinin NEDENİ de bir bilgidir (ADR-0135). Sebepsiz bir
-     "veri yok" kullanıcıya hiçbir şey söylemez. */
-  .refine((v) => v.status === "available" || !!v.reason, {
-    message: "status!=available ise reason zorunlu",
-    path: ["reason"],
-  });
 
 export const executiveKpiSchema = z
   .object({
     id: z.string().min(1),
-    metricKey: z.string().min(1),
     label: z.string().min(1),
-    value: metricValueSchema,
+    status: z.enum(["available", "data_required", "unavailable"]),
+    /* Zarf DÜZ (ADR-0143 §2): status/value/reason, unit/currency/scale/as_of
+       ile aynı seviyede. Sayı alanı `number|null` — literal "Data Required"
+       buraya giremez, zaten `z.number()` onu reddeder (ADR-0135). */
+    value: z.number().nullable(),
     unit: z.enum(["currency", "percent", "count", "score"]),
-    currencyCode: z.string().length(3).optional(),
+    currency: z.string().length(3).optional(),
     scale: z.enum(["0-1", "0-100"]).optional(),
+    reason: z.string().nullable().optional(),
     asOf: isoDate,
-    source: z.string().min(1),
-    /* FR-0043 katmanları: kaynağı yok, mock dahi doldurmaz. Yasaklanmaz —
-       ODIN üretmeye başlarsa sözleşme değişmeden geçebilsin. */
-    trend: z
-      .object({
-        direction: z.enum(["up", "down", "flat"]),
-        changePercent: z.number(),
-        comparedTo: z.string(),
-      })
-      .optional(),
-    sparkline: z.array(z.number().nullable()).optional(),
-    aiInsight: z.string().optional(),
-    confidence: z.number().min(0).max(100).optional(),
-    risk: z.enum(["none", "low", "medium", "high", "critical"]).optional(),
-    owner: z.string().optional(),
   })
-  .refine((k) => k.unit !== "currency" || !!k.currencyCode, {
-    message: "unit=currency ise currencyCode zorunlu (ISO kodu)",
-    path: ["currencyCode"],
+  .refine((k) => k.status !== "available" || k.value !== null, {
+    message: "status=available ise value sayı olmalı",
+    path: ["value"],
+  })
+  .refine((k) => k.status === "available" || !!k.reason, {
+    message: "status!=available ise reason zorunlu — neden ölçülemediği de bilgidir",
+    path: ["reason"],
+  })
+  .refine((k) => k.unit !== "currency" || !!k.currency, {
+    message: "unit=currency ise currency zorunlu (ISO kodu)",
+    path: ["currency"],
   })
   /* UI-ADR-093: ölçeği bildirilmemiş yüzde, 0,18 mi %18 mi belli değildir.
      Tahmin edilirse 100 kat hata sessizce ekrana çıkar. */
@@ -112,47 +91,28 @@ export const executiveKpiSchema = z
   });
 
 /* --------------------------------------------------------------------------
-   Alert v1 · Opportunity v1 — 09b §10
+   Alert — ODIN ADR-0143 §1 kanonik zarfı (09b §10)
    -------------------------------------------------------------------------- */
 
 export const alertSchema = z.object({
   id: z.string().min(1),
-  source: z.string().min(1),
+  /* Sözlük ODIN'indir; UI eşleme icat etmez. */
+  severity: z.enum(["critical", "risk", "warning", "info"]),
   title: z.string().min(1),
-  /* Üretici aksiyon gerekip gerekmediğini belirleyemiyorsa kaydı kanonik
-     Alert olarak YAYINLAMAZ — bu yüzden alan zorunlu ve varsayılansızdır. */
+  module: z.string().min(1),
+  /* `requires_action: false` olan öğe listeye asla girmez — ADR-0143 §1 bunu
+     üretici tarafı sözleşmesi de yaptı. Alan zorunlu ve varsayılansızdır. */
   requiresAction: z.boolean(),
-  asOf: isoDate,
-  summary: z.string().optional(),
-  /* `.optional()` null'ı REDDEDER ve bu kasıtlıdır: dört üreticinin ortak
-     severity semantiği yok; alanı atlamak dürüst, null yazmak sahtedir. */
-  severity: z.enum(["critical", "high", "medium", "low"]).optional(),
+  evidence: z.array(z.string()),
+  createdAt: isoDate,
+  suggestedAction: z.string().optional(),
 });
 
-export const opportunitySchema = z.object({
-  id: z.string().min(1),
-  source: z.string().min(1),
-  title: z.string().min(1),
-  summary: z.string().min(1),
-  /* Uygulanabilir öneri veremeyen kayıt Opportunity DEĞİLDİR. */
-  suggestedAction: z.string().min(1),
-  asOf: isoDate,
-  evidence: z.array(z.string()).optional(),
-});
-
-/* --------------------------------------------------------------------------
-   Goal — 09b §10 (ADR-0132 · UI-ADR-107), cockpit.py yayınının birebiri
-   -------------------------------------------------------------------------- */
-
-export const goalSchema = z.object({
-  id: z.string().min(1),
-  level: z.string().min(1),
-  label: z.string().min(1),
-  target: z.string().nullable(),
-  /* TUZAK: goals.alignment() hedef tanımsızken nötr 50 döner — o "ölçülmedi"
-     demektir. Sınır adaptörü null'a çevirir; %50 ilerleme ÇİZİLMEZ. */
-  progressPct: z.number().min(0).max(100).nullable(),
-});
+/* Opportunity ve Goal/Mission için şema YOKTUR — ADR-0143 §3 ve §4 ikisini
+   de KAVRAM OLARAK REDDETTİ. Fırsat, öneri kaydının görünümüdür; Mission
+   Board, izlenen kararlar + vadesi gelen ertelemelerin görünümü. Reddedilmiş
+   bir kavrama şema yazmak, UI-ADR-113'ün tam olarak yasakladığı şeydir:
+   karşılığı olmayan tipe şema yazmak onu zamanla gerçek gösterir. */
 
 /* --------------------------------------------------------------------------
    Derleme zamanı kilidi: şema çıktısı ile TypeScript tipi ayrışırsa burada
@@ -166,8 +126,3 @@ type AssertAssignable<A extends B, B> = A;
 
 export type _KpiMatchesType = AssertAssignable<ExecutiveKpiParsed, Partial<ExecutiveKPI>>;
 export type _AlertMatchesType = AssertAssignable<z.infer<typeof alertSchema>, Partial<Alert>>;
-export type _OppMatchesType = AssertAssignable<
-  z.infer<typeof opportunitySchema>,
-  Partial<Opportunity>
->;
-export type _GoalMatchesType = AssertAssignable<z.infer<typeof goalSchema>, Partial<Goal>>;

@@ -1,58 +1,55 @@
 "use client";
 
 /**
- * CouncilView — 07-ai-directors.md §4–§6, kanonik sözleşme üzerine yeniden
- * yazıldı (UI-ADR-105).
+ * CouncilView + ConsensusIndicator — 07-ai-directors.md §4–§6, UI-ADR-100.
  *
  * "Çoğu AI sistemi sana cevabı gösterir. ODIN sana düşünce sürecini
- * gösterir — ama sadece istediğinde." Bu yüzden Council bir ekran değil,
- * karar kartından açılan bir bölümdür.
+ * gösterir — ama sadece istediğinde." Council bir ekran değil, karar
+ * kartından açılan bir bölümdür.
  *
- * ⚙️ NE DEĞİŞTİ: eski sürüm `directorOpinions` · `evidenceQuality` ·
- * `executionComplexity` okuyordu; **üçünün de ODIN'de karşılığı yok**
- * (09b §1). Yerine ODIN'in gerçekten ürettiği üç şey gösteriliyor:
- * güven kırılımı · uzlaşma · alternatifler.
- *
- * 🔴 GÜVEN KIRILIMI EN ÖNEMLİ EKLENTİ. `odin/trust.py` güveni sekiz
- * ağırlıklı bileşenden hesaplıyor ve arayüz yalnızca sonucu gösteriyordu.
- * Skorun NEDEN o değer olduğunu saklamak, "Explainable AI" kuralının
- * doğrudan ihlaliydi.
- *
- * ANTI-FAKE:
- *  - Ölçülmemiş yüzde meter olarak çizilmez (Meter → NoData).
- *  - Disagreement TÜRETİLMİŞTİR (`100 − consensus`) ve bu ekranda yazar;
- *    eski metin "ikisi ayrı ölçümdür" diyordu, yanlıştı (09b §3).
- *  - Alternatif listesi boşsa "tek seçenek vardı" denmez.
+ * SÖZLEŞME DÜZELTMESİ (UI-ADR-098 doğrulaması):
+ *  - Consensus/disagreement/minority KARARIN değil ÖNERİNİN alanlarıdır
+ *    (ODIN recommendation zorunluları). Bileşen artık onları oradan okur.
+ *  - ODIN'de `disagreement_score = 100 − consensus_score` (consensus.py) —
+ *    TÜRETİLMİŞ tek ölçümdür. Eski "ikisi ayrı ölçümdür" iddiası yanlıştı;
+ *    ikisi de kayıttan okunur ama ayrı metrik gibi SUNULMAZ.
+ *  - Director pozisyon satırları ODIN karar şemasında SAKLANMAZ
+ *    (not_exposed, 09b §9) — panel görüşleri `minority_opinions` düz metin
+ *    listesi dışında kayda geçmiyor. Görüş satırı uydurulmaz; bunun yerine
+ *    azınlık görüşleri listelenir ve saklanmama gerçeği açıkça yazılır.
+ *  - Evidence Quality / Financial Risk / Execution Complexity göstergeleri
+ *    kaldırıldı: karşılıkları yok, "ölçülmedi" bile fazlaydı — ölçülmesi
+ *    planlanmayan gösterge çizilmez (UI-ADR-071 ilkesi).
  */
 
-import type { Decision } from "@/types/executive";
-import { Badge } from "@/components/ui/badge";
+import type { AIRecommendation } from "@/types/executive";
 import { Text } from "@/components/ui/typography";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Meter } from "./meter";
-import { MinorityOpinionBanner } from "./minority-opinion-banner";
-
-const RISK_TONE = { low: "success", medium: "warning", high: "danger" } as const;
-const RISK_LABEL = { low: "Düşük", medium: "Orta", high: "Yüksek" } as const;
 
 export function ConsensusIndicator({
   consensus,
   disagreement,
 }: {
   consensus: number | null | undefined;
+  /** ODIN'de 100 − consensus. Ayrı ölçüm DEĞİLDİR; kayıttan okunur. */
   disagreement: number | null | undefined;
 }) {
   return (
-    <dl className="grid gap-3 text-sm sm:grid-cols-2">
+    <dl className="grid gap-3 text-sm sm:grid-cols-2 [&>div]:min-w-0">
       <div>
         <dt className="text-xs text-content-tertiary">Consensus</dt>
         <dd className="mt-1 flex items-center gap-2">
           <Meter value={consensus} label="Uzlaşma" tone="success" noDataReason="Uzlaşma ölçülmedi" />
-          {Number.isFinite(consensus) && <span className="odin-num">{Math.round(consensus!)}%</span>}
+          {Number.isFinite(consensus) && (
+            <span className="odin-num">{Math.round(consensus!)}%</span>
+          )}
         </dd>
       </div>
       <div>
-        <dt className="text-xs text-content-tertiary">Disagreement</dt>
+        <dt className="text-xs text-content-tertiary">
+          Disagreement
+          <span className="ml-1 normal-case">(= 100 − consensus)</span>
+        </dt>
         <dd className="mt-1 flex items-center gap-2">
           <Meter
             value={disagreement}
@@ -64,117 +61,53 @@ export function ConsensusIndicator({
             <span className="odin-num">{Math.round(disagreement!)}%</span>
           )}
         </dd>
-        {/* Türetilmiş olduğu SÖYLENİR: iki bağımsız ölçüm sanılmasın. */}
-        <p className="text-xs text-content-tertiary">uzlaşmadan türetilir (100 − consensus)</p>
       </div>
     </dl>
   );
 }
 
-/** Güvenin sekiz bileşeni — skorun NEDEN o değer olduğu. */
-function ConfidenceBreakdown({ decision }: { decision: Decision }) {
-  const parts = decision.recommendation?.confidenceBreakdown ?? [];
-
-  if (!parts.length) {
-    return (
-      <Text size="sm" tone="tertiary">
-        Güven kırılımı üretilmedi — skorun neden o değerde olduğu bilinmiyor.
-      </Text>
-    );
-  }
-
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-wide text-content-tertiary">
-        Güveni ne belirledi
-      </p>
-      <ul className="mt-2 flex flex-col gap-2">
-        {parts.map((c) => (
-          <li key={c.key} className="flex flex-wrap items-center gap-2">
-            {/* Renkten bağımsız yön göstergesi. */}
-            <span aria-hidden="true" className="text-content-tertiary">
-              {c.direction === "positive" ? "▲" : "▼"}
-            </span>
-            <span className="sr-only">
-              {c.direction === "positive" ? "olumlu" : "olumsuz"}:{" "}
-            </span>
-            <span className="min-w-0 flex-1 text-sm text-content-secondary">{c.label}</span>
-            <Meter
-              value={c.score}
-              label={`${c.label} skoru`}
-              tone={c.direction === "positive" ? "ai" : "warning"}
-              noDataReason="ölçülmedi"
-            />
-            <span className="odin-num shrink-0 text-xs text-content-tertiary">
-              ağırlık {c.weight}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 /**
- * Decision'ın kurul kısmı. Zarf doğrulaması çağıranda (DecisionCard) yapılır;
+ * Önerinin kurul kısmı. Zarf doğrulaması çağıranda (DecisionCard) yapılır;
  * bu bileşen kartın içinde yaşar, tek başına bir veri bileşeni değildir.
  */
-export function CouncilView({ decision }: { decision: Decision }) {
-  const rec = decision.recommendation;
-  /* Alternatifler KARARIN alanıdır, önerinin değil (09b §1). */
-  const alternatives = decision.alternatives ?? [];
+export function CouncilView({ recommendation }: { recommendation: AIRecommendation }) {
+  const minority = recommendation.minorityOpinions ?? [];
 
   return (
-    <section aria-label="Executive Council" className="flex flex-col gap-4">
+    <section aria-label="Executive Council" className="flex flex-col gap-3">
       <ConsensusIndicator
-        consensus={rec?.consensusScore}
-        disagreement={rec?.disagreementScore}
+        consensus={recommendation.consensusScore}
+        disagreement={recommendation.disagreementScore}
       />
 
-      <ConfidenceBreakdown decision={decision} />
-
-      <div>
-        <p className="text-xs uppercase tracking-wide text-content-tertiary">
-          Alternatifler
-        </p>
-        {alternatives.length ? (
-          <ul className="mt-2 flex flex-col gap-3">
-            {alternatives.map((a) => (
-              <li key={a.title} className="border-l-2 border-line pl-3">
-                <p className="flex flex-wrap items-center gap-2">
-                  <span className="text-content">{a.title}</span>
-                  <Badge variant={RISK_TONE[a.risk] ?? "secondary"} size="xs">
-                    {RISK_LABEL[a.risk] ?? a.risk}
-                  </Badge>
-                </p>
+      {minority.length > 0 ? (
+        <div>
+          <p className="text-xs uppercase tracking-wide text-content-tertiary">
+            Azınlık görüşleri
+          </p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {minority.map((m) => (
+              <li key={m} className="border-l-2 border-line pl-3">
                 <Text size="sm" tone="secondary">
-                  {a.description}
-                </Text>
-                <Text size="sm" tone="tertiary">
-                  Beklenen: {a.expectedOutcome}
+                  <span aria-hidden="true" className="mr-1 text-content-tertiary">
+                    ◂
+                  </span>
+                  {m}
                 </Text>
               </li>
             ))}
           </ul>
-        ) : (
-          <EmptyState
-            title="Alternatif kaydedilmemiş"
-            description="ODIN şeması en az iki alternatif zorunlu tutar; bu kayıtta yok."
-            suggestion="Alternatifsiz bir karar, karşılaştırılmamış bir karardır."
-          />
-        )}
-      </div>
-
-      {rec?.minorityOpinions?.length ? (
-        rec.minorityOpinions.map((o) => (
-          <MinorityOpinionBanner key={`${o.member}-${o.option}`} opinion={o} />
-        ))
+        </div>
       ) : (
         <Text size="sm" tone="tertiary">
-          Azınlık görüşü kaydedilmedi. Bu, herkesin hemfikir olduğu anlamına
-          gelmez — kurul toplanmamış da olabilir.
+          Azınlık görüşü kaydedilmemiş — uzlaşma tam.
         </Text>
       )}
+
+      <Text size="sm" tone="tertiary">
+        Tek tek Director pozisyonları karar kaydında saklanmaz (ODIN şeması);
+        kalıcı olan uzlaşma skoru ve azınlık görüşleridir.
+      </Text>
     </section>
   );
 }

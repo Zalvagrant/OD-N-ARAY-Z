@@ -20,20 +20,19 @@
 import type { TimelineItem } from "@/components/ui/timeline";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type {
-  ConfidenceComponent,
   AIRecommendation,
   Alert,
   Decision,
-  DirectorHeartbeat,
+  AgentHealth,
   EvidenceRef,
   ExecutiveBrief,
   ExecutiveKPI,
-  MetricValue,
-  Opportunity,
   PulseChannelStates,
 } from "@/types/executive";
 import type { ExecutiveHero } from "@/types/screens";
 import { ago, ahead, mockEnvelope } from "./envelope";
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 /* --------------------------------------------------------------------------
    Kanıt ve öneri — açıklanabilirlik sözleşmesinin 7 alanı eksiksiz
@@ -75,37 +74,83 @@ function ppcRecommendation(): AIRecommendation {
   return {
     id: "rec-ppc-budget",
     recommendation: "Amazon PPC bütçesini %7 artır, 7 gün sonra tekrar değerlendir.",
-    numbers: { ACOS: 18.1, TACOS: 9.4, "Harcama (USD)": 2420, "Satış (USD)": 18300 },
-    causeAnalysis: "Rakip teklifleri yükseldi, gösterim payı %31'den %24'e indi.",
-    impactAnalysis: "Mevcut tempoda aylık net kârda ~₺46.000 kayıp riski var.",
-    alternatives: [
-      {
-        title: "%7 artır",
-        description: "Kademeli artış, 7 gün sonra ölçüm.",
-        expectedOutcome: "Gösterim payı toparlanır, ACOS ~%17'ye iner.",
-        risk: "low",
-      },
-      {
-        title: "Bütçeyi sabit tut",
-        description: "Kur riski geçene kadar bekle.",
-        expectedOutcome: "Nakit korunur, satış kaybı sürer.",
-        risk: "medium",
-      },
-    ],
-    expectedFinancialResult: { amount: 82_000, currency: "TRY" },
-    confidence: 96,
+    confidence: 71.4,
+    /* 8 kanonik bileşen (trust.py ağırlıkları 20/20/15/10/15/10/5/5).
+       risk_level/missing_information/decision_complexity NEGATİF yönlüdür. */
+    confidenceBreakdown: {
+      knowledge_coverage: 80,
+      evidence_strength: 75,
+      expert_agreement: 90,
+      model_agreement: 70,
+      historical_success: 65,
+      risk_level: 40,
+      missing_information: 30,
+      decision_complexity: 35,
+    },
     evidence: evidence(),
-    whyGenerated: "ACOS 14 gündür yükseliyor ve gösterim payı eşiğin altına indi.",
-    responsibleDirector: "Amazon AI",
-    relatedKnowledge: ["PPC oynaklık politikası", "2026-05 bütçe kararı"],
-    lastValidated: ago(15 * 60_000),
     potentialRisks: [
       "Kur artarsa birim maliyet yükselir",
       "Nakit akışı bir hafta sıkışabilir",
     ],
+    assumptions: [
+      "Rakip teklif seviyesi mevcut bandında kalır",
+      "Dönüşüm oranı son 30 günün ortalamasından sapmaz",
+    ],
+    flipConditions: [
+      "ACOS 7 gün içinde %20'yi aşarsa artış geri alınır",
+      "USD/TRY %3'ten fazla yükselirse karar yeniden açılır",
+    ],
+    consensusScore: 66.7,
+    disagreementScore: 33.3,
+    minorityOpinions: ["trading: beklet — USD riski nedeniyle 48 saat beklenmeli"],
+    recClass: "B",
+    /* ODIN şemasında olmayan zenginleştirmeler (not_exposed, 09b §9) —
+       kaynakları oluşana dek mock'ta da opsiyonel kalır. */
+    numbers: { ACOS: 18.1, TACOS: 9.4, "Harcama (USD)": 2420, "Satış (USD)": 18300 },
+    causeAnalysis: "Rakip teklifleri yükseldi, gösterim payı %31'den %24'e indi.",
+    impactAnalysis: "Mevcut tempoda aylık net kârda ~₺46.000 kayıp riski var.",
+    expectedFinancialResult: { amount: 82_000, currency: "TRY" },
+    whyGenerated: "ACOS 14 gündür yükseliyor ve gösterim payı eşiğin altına indi.",
+    responsibleDirector: "Amazon AI",
+    lastValidated: ago(15 * 60_000),
   };
 }
 
+function stockRecommendation(): AIRecommendation {
+  return {
+    id: "rec-stock",
+    recommendation: "SKU-1042 için 600 adetlik acil sipariş aç.",
+    confidence: 62.9,
+    confidenceBreakdown: {
+      knowledge_coverage: 70,
+      evidence_strength: 68,
+      expert_agreement: 80,
+      model_agreement: 60,
+      historical_success: 55,
+      risk_level: 55,
+      missing_information: 40,
+      decision_complexity: 45,
+    },
+    evidence: evidence().slice(0, 2),
+    potentialRisks: ["Hava kargo birim maliyeti %14 daha yüksek"],
+    assumptions: ["Günlük satış hızı (63 adet) önümüzdeki 3 hafta korunur"],
+    flipConditions: [
+      "Satış hızı %25 düşerse sipariş 300 adete indirilir",
+      "Tedarikçi 10 günden kısa termin verirse hava kargo iptal edilir",
+    ],
+    consensusScore: 100,
+    disagreementScore: 0,
+    minorityOpinions: [],
+    recClass: "B",
+    numbers: { "Kalan gün": 9, "Tedarik süresi (gün)": 21, "Günlük satış": 63 },
+    causeAnalysis: "Satış hızı üç haftada %22 arttı, sipariş planı güncellenmedi.",
+    impactAnalysis: "Tükenme 12 gün stoksuz kalma demek; BuyBox ve sıralama kaybı.",
+    expectedFinancialResult: { amount: 128_000, currency: "TRY" },
+    whyGenerated: "Tahmini tükenme süresi tedarik süresinin altına indi.",
+    responsibleDirector: "Amazon AI",
+    lastValidated: ago(40 * 60_000),
+  };
+}
 
 /* --------------------------------------------------------------------------
    Hero — 05-dashboard.md §3.1
@@ -130,244 +175,148 @@ export function heroMock(): DataEnvelope<ExecutiveHero> {
    Kritik kararlar — 05-dashboard.md §3.2
    -------------------------------------------------------------------------- */
 
-/**
- * Kanonik `DecisionRecord` mock'u — UI-ADR-105.
- *
- * Alanlar `schemas/decision-record.schema.json` ile birebirdir; eski
- * "Decision DNA" alanlarının (strategicImpact · expectedROI · executionComplexity
- * · directorOpinions · timeline · score) ODIN'de karşılığı YOKTU ve
- * uydurulmuyorlar. `financialImpact` ile `riskLevel` opsiyonel bırakıldı:
- * doküman istiyor, ODIN üretmiyor — gelmezse ekranda satır hiç çizilmez.
- */
-
-/** Güven kırılımı — `odin/trust.py::CONFIDENCE_COMPONENTS` sekiz bileşeni. */
-function breakdown(over: Partial<Record<string, number>> = {}): ConfidenceComponent[] {
-  const base: [string, string, number, number, "positive" | "negative"][] = [
-    ["knowledge_coverage", "Bilgi kapsamı", 82, 20, "positive"],
-    ["evidence_strength", "Kanıt gücü", 88, 20, "positive"],
-    ["expert_agreement", "Uzman uzlaşması", 74, 15, "positive"],
-    ["model_agreement", "Model uzlaşması", 79, 10, "positive"],
-    ["historical_success", "Geçmiş başarı", 71, 15, "positive"],
-    ["risk_level", "Risk seviyesi", 45, 10, "negative"],
-    ["missing_information", "Eksik bilgi", 30, 5, "negative"],
-    ["decision_complexity", "Karar karmaşıklığı", 38, 5, "negative"],
-  ];
-  return base.map(([key, label, score, weight, direction]) => ({
-    key,
-    label,
-    score: over[key] ?? score,
-    weight,
-    direction,
-  }));
-}
-
 export function decisionsMock(): DataEnvelope<Decision[]> {
-  const ev = evidence();
-
   return mockEnvelope([
     {
       id: "dec-ppc",
-      date: ago(3 * 60 * 60_000),
-      question: "Amazon PPC bütçesini %7 artırmalı mıyız?",
-      /* D2: gerekçe zorunlu (§15.1-C). */
+      question: "Amazon PPC bütçesi %7 artırılsın mı?",
+      date: today(),
       tier: "D2",
-      domain: "amazon",
       status: "open",
-      humanDecision: null,
-      reason:
-        "Gösterim payı iki haftadır düşüyor; kademeli bütçe artışı kârı korurken satış kaybını durduruyor.",
-      expectedOutcome: "30 gün içinde ACOS %17 bandına iner, satış hacmi korunur.",
+      domain: "amazon",
+      /* Alternatifler KARARIN alanı — şema minItems 2 (UI-ADR-100). */
       alternatives: [
         {
-          title: "%7 artır",
-          description: "Kademeli artış, 7 gün sonra ölçüm.",
-          expectedOutcome: "Gösterim payı toparlanır, ACOS ~%17'ye iner.",
+          option: "%7 artır",
+          assessment: "Gösterim payı toparlanır, ACOS ~%17'ye iner.",
           risk: "low",
         },
         {
-          title: "Bütçeyi sabit tut",
-          description: "Kur riski geçene kadar bekle.",
-          expectedOutcome: "Nakit korunur, satış kaybı sürer.",
+          option: "Bütçeyi sabit tut",
+          assessment: "Nakit korunur, satış kaybı sürer.",
           risk: "medium",
         },
       ],
-      recommendation: {
-        text: "PPC bütçesini %7 artır, 7 gün sonra tekrar değerlendir.",
-        confidence: 96,
-        confidenceBreakdown: breakdown(),
-        evidenceSnapshot: ev,
-        risks: [
-          "Kur artarsa birim maliyet yükselir",
-          "Nakit akışı bir hafta sıkışabilir",
-        ],
-        assumptions: [
-          "Dönüşüm oranı son 14 günün ortalamasında kalır",
-          "Rakip teklifleri bu hafta daha fazla yükselmez",
-        ],
-        consensusScore: 91,
-        /* TÜRETİLMİŞ: 100 − 91. Ayrı bir ölçüm değildir. */
-        disagreementScore: 9,
-        minorityOpinions: [
-          {
-            member: "Trading AI",
-            option: "Bütçeyi sabit tut",
-            rationale: "USD yukarı gidiyor; 48 saat beklemek maliyeti düşürebilir.",
-          },
-        ],
-        flipConditions: [
-          "Gösterim payı 7 gün içinde %28'in üzerine kendiliğinden dönerse",
-          "USD/TRY %3'ten fazla yükselirse",
-          "Dönüşüm oranı %9'un altına inerse",
-        ],
-      },
-      monitoringCheckpoints: [
-        {
-          id: "cp-ppc-7d",
-          at: ahead(7 * 24 * 60 * 60_000),
-          metric: "ACOS",
-          expected: "%17 veya altı",
-        },
-      ],
-      financialImpact: { amount: 82_000, currency: "TRY", horizon: "30 gün" },
-      riskLevel: "medium",
-      relatedDecisions: ["dec-stock"],
+      recommendation: ppcRecommendation(),
+      expectedOutcome: "Gösterim payı 2 hafta içinde %28 üzerine döner",
+      monitoringCheckpoints: [ahead(7 * 24 * 60 * 60_000).slice(0, 10)],
     },
     {
       id: "dec-stock",
-      date: ago(5 * 60 * 60_000),
-      question: "SKU-1042 için acil tedarik siparişi açmalı mıyız?",
-      /* D1: en ağır kademe, gerekçe zorunlu. */
-      tier: "D1",
-      domain: "operations",
+      question: "SKU-1042 için acil tedarik siparişi açılsın mı?",
+      date: today(),
+      tier: "D2",
       status: "open",
-      humanDecision: null,
-      reason:
-        "Tahmini tükenme 9 gün, tedarik süresi 21 gün. Sipariş bugün açılmazsa stoksuz kalınıyor.",
-      expectedOutcome: "Stoksuz gün sayısı sıfır kalır, BuyBox korunur.",
+      domain: "operations",
       alternatives: [
         {
-          title: "600 adet acil sipariş",
-          description: "Hava kargo, 6 gün.",
-          expectedOutcome: "Stoksuz gün sayısı 0.",
+          option: "600 adet acil sipariş (hava kargo, 6 gün)",
+          assessment: "Stoksuz gün sayısı 0; birim maliyet %14 yüksek.",
           risk: "medium",
         },
         {
-          title: "300 adet + fiyat artışı",
-          description: "Talebi yavaşlatarak süreyi uzat.",
-          expectedOutcome: "Stoksuz kalınmaz, satış adedi düşer.",
+          option: "300 adet + fiyat artışı",
+          assessment: "Talep yavaşlar, stoksuz kalınmaz, satış adedi düşer.",
           risk: "low",
         },
       ],
-      recommendation: {
-        text: "SKU-1042 için 600 adetlik acil sipariş aç.",
-        confidence: 88,
-        confidenceBreakdown: breakdown({ historical_success: 64, missing_information: 45 }),
-        evidenceSnapshot: ev.slice(0, 2),
-        risks: ["Hava kargo birim maliyeti %14 daha yüksek"],
-        assumptions: [
-          "Günlük satış hızı 63 adet civarında kalır",
-          "Tedarikçi 6 günlük hava kargo taahhüdünü tutar",
-        ],
-        consensusScore: 86,
-        disagreementScore: 14,
-        minorityOpinions: [],
-        flipConditions: [
-          "Satış hızı günlük 45 adetin altına inerse",
-          "Tedarikçi teslim süresini 10 günün üzerine çıkarırsa",
-        ],
-      },
-      financialImpact: { amount: 128_000, currency: "TRY", horizon: "45 gün" },
-      riskLevel: "high",
-      relatedDecisions: ["dec-ppc"],
+      recommendation: stockRecommendation(),
     },
     {
       id: "dec-fx",
-      date: ago(9 * 60 * 60_000),
-      question: "USD pozisyonunun %30'unu kapatmalı mıyız?",
-      tier: "D1",
-      domain: "trading",
+      question: "USD pozisyonunun %30'u kapatılsın mı?",
+      date: today(),
+      tier: "D3",
       status: "open",
-      humanDecision: null,
-      reason:
-        "Kur oynaklığı arttı. Kısmi kapanış ithalat maliyetini sabitler, yukarı potansiyeli sınırlar.",
+      domain: "trading",
       alternatives: [
         {
-          title: "%30 kapat",
-          description: "Maliyeti sabitle.",
-          expectedOutcome: "İthalat maliyeti öngörülebilir olur.",
+          option: "%30 kapat",
+          assessment: "İthalat maliyeti öngörülebilir olur; yukarı potansiyel sınırlanır.",
           risk: "low",
         },
         {
-          title: "Pozisyonu koru",
-          description: "Kur beklentisi yukarı yönlü.",
-          expectedOutcome: "Yukarı potansiyel korunur, risk sürer.",
+          option: "Pozisyonu koru",
+          assessment: "Yukarı potansiyel korunur, kur riski sürer.",
           risk: "high",
         },
       ],
       recommendation: {
-        text: "USD pozisyonunun %30'unu kapat.",
-        confidence: 62,
-        confidenceBreakdown: breakdown({
-          evidence_strength: 58,
-          expert_agreement: 51,
-          missing_information: 62,
-          decision_complexity: 66,
-        }),
-        evidenceSnapshot: [ev[2]!],
-        risks: ["Kur geri çekilirse kazanç kaçar", "İşlem maliyeti geri alınamaz"],
-        assumptions: ["Oynaklık bandı iki standart sapmanın üzerinde kalır"],
+        id: "rec-fx",
+        recommendation: "USD pozisyonunun %30'unu kapat, kalanı 2 hafta izle.",
+        confidence: 38.2,
+        confidenceBreakdown: {
+          knowledge_coverage: 45,
+          evidence_strength: 40,
+          expert_agreement: 50,
+          model_agreement: 45,
+          historical_success: 35,
+          risk_level: 75,
+          missing_information: 60,
+          decision_complexity: 65,
+        },
+        evidence: [evidence()[2]!],
+        potentialRisks: ["Kur düşerse kapanan pozisyonun fırsat maliyeti doğar"],
+        assumptions: ["Oynaklık bandı en az 2 hafta açık kalır"],
+        flipConditions: ["USD/TRY 72 saat içinde banda geri dönerse karar iptal"],
         consensusScore: 62,
         disagreementScore: 38,
         minorityOpinions: [
-          {
-            member: "Finance AI",
-            option: "Pozisyonu koru",
-            rationale: "Nakit ihtiyacı yok; kapanış işlem maliyeti gereksiz.",
-          },
+          "finance: kapatma — nakit planı kur sabitlemesine ihtiyaç duymuyor",
         ],
-        flipConditions: ["Oynaklık bandı bir standart sapmanın altına inerse"],
+        recClass: "C",
+        responsibleDirector: "Trading AI",
+        lastValidated: ago(6 * 60 * 60_000),
       },
-      financialImpact: { amount: 54_000, currency: "TRY", horizon: "14 gün" },
-      riskLevel: "critical",
     },
     {
       id: "dec-listing",
-      date: ago(26 * 60 * 60_000),
-      question: "Üç SKU'nun başlık ve bullet metinleri güncellensin mi?",
-      /* D3: tek tık yeter, gerekçe istenmez (§15.1-C). */
-      tier: "D3",
+      question: "3 SKU'nun başlık ve bullet'ları güncellensin mi?",
+      date: today(),
+      tier: "D1",
+      status: "monitoring",
       domain: "amazon",
-      status: "open",
-      humanDecision: null,
-      reason: "Anahtar kelime kapsamı düşük; güncelleme organik trafiği artırabilir.",
       alternatives: [
         {
-          title: "Üç SKU'yu birlikte güncelle",
-          description: "Tek seferde yayına al.",
-          expectedOutcome: "Etki 3 hafta içinde ölçülür.",
+          option: "Üç SKU'yu birlikte güncelle",
+          assessment: "Tek seferde yayına alınır; etki 3 haftada ölçülür.",
           risk: "low",
         },
         {
-          title: "Önce tek SKU ile test et",
-          description: "A/B ölçümü yap.",
-          expectedOutcome: "Daha yavaş ama ölçülebilir.",
+          option: "Önce tek SKU ile A/B testi",
+          assessment: "Daha yavaş ama ölçülebilir.",
           risk: "low",
         },
       ],
       recommendation: {
-        text: "Üç SKU'nun başlık ve bulletlarını birlikte güncelle.",
-        confidence: 74,
-        confidenceBreakdown: breakdown({ knowledge_coverage: 66, historical_success: 58 }),
-        evidenceSnapshot: ev.slice(0, 1),
-        risks: ["Sıralama kısa süreli dalgalanabilir"],
-        assumptions: ["Mevcut görseller değişmeyecek"],
-        consensusScore: 78,
-        disagreementScore: 22,
+        id: "rec-listing",
+        recommendation: "Önce tek SKU ile A/B testi yap, sonucu 3 hafta ölç.",
+        confidence: 74.1,
+        confidenceBreakdown: {
+          knowledge_coverage: 75,
+          evidence_strength: 70,
+          expert_agreement: 85,
+          model_agreement: 75,
+          historical_success: 70,
+          risk_level: 20,
+          missing_information: 35,
+          decision_complexity: 25,
+        },
+        evidence: evidence().slice(0, 1),
+        potentialRisks: ["Test süresince organik trafik artışı gecikir"],
+        assumptions: ["Anahtar kelime hacmi test süresince stabil kalır"],
+        flipConditions: ["Test SKU'sunda CTR 2 haftada %10 artmazsa toplu güncelleme iptal"],
+        consensusScore: 88,
+        disagreementScore: 12,
         minorityOpinions: [],
-        flipConditions: ["Amazon listeleme politikası bu ay değişirse"],
+        recClass: "A",
+        responsibleDirector: "Amazon AI",
+        lastValidated: ago(2 * 60 * 60_000),
       },
-      financialImpact: { amount: 19_000, currency: "TRY", horizon: "60 gün" },
-      riskLevel: "low",
+      humanDecision: {
+        outcome: "approved",
+        humanReasoning: "Düşük risk; A/B ölçümü toplu değişiklikten öğretici.",
+      },
     },
   ] satisfies Decision[]);
 }
@@ -381,181 +330,124 @@ export function staleDecisionMock(): DataEnvelope<Decision> {
   });
 }
 
-/** Kapanmış karar — insan kararı ve gerekçesi kayıtta (§15.1-C, §15.2-B). */
-export function closedDecisionMock(): DataEnvelope<Decision> {
-  const base = decisionsMock().data[3]!;
-  return mockEnvelope({
-    ...base,
-    id: "dec-listing-closed",
-    status: "closed",
-    humanDecision: {
-      outcome: "rejected",
-      decidedBy: "human-owner",
-      reasoning: "Görsel yenileme ile birlikte yapılsın; iki kez yayına almayalım.",
-      decidedAt: ago(2 * 60 * 60_000),
-    },
-    actualOutcome: "Güncelleme Q3 görsel çalışmasına bağlandı.",
-  } satisfies Decision);
-}
-
 /* --------------------------------------------------------------------------
    Kritik riskler — 05-dashboard.md §3.3 (09-...md §6 Alert sözleşmesi)
    -------------------------------------------------------------------------- */
 
-/* FR-0046 v1 Alert (UI-ADR-106): `source` GERÇEK üretici kimliğidir
-   (improvement_detectors · finance_quality · amazon_director · innovation).
-   ODIN'de karşılığı olmayan bir üretici mock'ta da uydurulmaz — eski
-   "trading" kur uyarısı bu yüzden düştü: o üretici yok. */
+/* ADR-0143 §1 kanonik Alert zarfı — id/severity/title/module/
+   requires_action/evidence/created_at/suggested_action. Zarfta olmayan
+   alan mock'ta da yoktur. */
 export function risksMock(): DataEnvelope<Alert[]> {
   return mockEnvelope([
     {
-      id: "amazon_director.buybox_loss.3sku",
-      source: "amazon_director",
+      id: "AL-buybox-3sku",
       severity: "critical",
       title: "BuyBox kaybı — 3 SKU",
-      summary: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
+      module: "amazon",
       requiresAction: true,
-      asOf: ago(12 * 60_000),
+      evidence: ["KO-amazon-buybox-2026-07-30"],
+      createdAt: ago(12 * 60_000),
+      suggestedAction: "Repricer eşiklerini gözden geçir.",
     },
     {
-      id: "amazon_director.stockout_risk.sku-1042",
-      source: "amazon_director",
-      severity: "high",
+      id: "AL-stockout-sku-1042",
+      severity: "risk",
       title: "Stok tükenme riski — SKU-1042",
-      summary: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
+      module: "amazon",
       requiresAction: true,
-      asOf: ago(3 * 60 * 60_000),
+      evidence: ["KO-amazon-inventory-2026-07-30"],
+      createdAt: ago(3 * 60 * 60_000),
+      suggestedAction: "600 adetlik acil sipariş aç.",
     },
     {
-      id: "finance_quality.margin_squeeze.2026-07",
-      source: "finance_quality",
-      severity: "medium",
+      id: "AL-margin-2026-07",
+      severity: "warning",
       title: "Net kâr marjı %4 daraldı",
-      summary: "Reklam harcaması sabit kalırken satış hacmi düştü.",
+      module: "finance",
       requiresAction: true,
-      asOf: ago(90 * 60_000),
+      evidence: ["KO-finance-quality-2026-07"],
+      createdAt: ago(90 * 60_000),
     },
-    /* severity ATLANDI (null değil): bu üreticinin belgelenmiş önem eşlemesi
-       yok — rozetsiz listelenir, bilinenlerden sonra sıralanır. */
+    /* requiresAction:false → listeye GİRMEZ, elendiği altta yazılır.
+       ADR-0143 §1 bu kuralı üretici tarafına da yazdı. */
     {
-      id: "improvement_detectors.listing_error.sku-3310",
-      source: "improvement_detectors",
-      title: "Listeleme hatası — SKU-3310",
-      summary: "Görsel çözünürlüğü Amazon eşiğinin altında.",
-      requiresAction: true,
-      asOf: ago(26 * 60 * 60_000),
-    },
-    /* requiresAction:false → listeye GİRMEZ, elendiği altta yazılır. */
-    {
-      id: "amazon_director.spapi_sync.done",
-      source: "amazon_director",
-      severity: "low",
+      id: "AL-spapi-sync-done",
+      severity: "info",
       title: "Günlük senkronizasyon tamamlandı",
-      summary: "Bilgi amaçlı — aksiyon gerektirmez.",
+      module: "system",
       requiresAction: false,
-      asOf: ago(30 * 60_000),
+      evidence: [],
+      createdAt: ago(30 * 60_000),
     },
   ] satisfies Alert[]);
 }
 
-/* --------------------------------------------------------------------------
-   Fırsatlar — 05-dashboard.md §3.4 (risklerle EŞİT görsel ağırlık)
-   -------------------------------------------------------------------------- */
-
-/* FR-0046 v1 Opportunity (UI-ADR-106): suggestedAction ZORUNLU düz metin;
-   parasal etki (`estimatedImpact`) v1'de YOK — kaynağı kanıtlanmadan
-   "Gelir etkisi" yazılmaz. */
-export function opportunitiesMock(): DataEnvelope<Opportunity[]> {
-  return mockEnvelope([
-    {
-      id: "amazon_director.keyword.rising-term",
-      source: "amazon_director",
-      title: "Yükselen anahtar kelimeye bütçe kaydır",
-      summary: "Terim 14 günde gösterim payı kazandı; mevcut kampanyalar zayıf konumda.",
-      suggestedAction: "Terimi kazanan kampanyaya exact match olarak ekle, 7 gün CPC izle.",
-      evidence: ["keyword:katlanır kamp sandalyesi", "metric:impression_share"],
-      asOf: ago(55 * 60_000),
-    },
-    {
-      id: "innovation.bundle.sku-1188-2001",
-      source: "innovation",
-      title: "SKU-1188 + SKU-2001 paket satışı",
-      summary: "İki ürün aynı sepette sık görülüyor; paket, masa stok baskısını hafifletir.",
-      suggestedAction: "Paket listing oluştur ve 21 gün dönüşümünü ölç.",
-      evidence: ["sku:SKU-1188", "sku:SKU-2001"],
-      asOf: ago(5 * 60 * 60_000),
-    },
-  ] satisfies Opportunity[]);
+/*
+ * Fırsatlar AYRI KAYIT DEĞİLDİR (ADR-0143 §3): öneri kayıtlarının pozitif
+ * sınıfıdır. Bu yüzden mock da `AIRecommendation` döndürür — uydurma bir
+ * Opportunity tipi yok. Pozitif sınıfı hangi kayıtlı alanın işaretlediği
+ * ODIN'de henüz bildirilmedi (13-...md §17); mock bu yüzden filtre
+ * UYGULAMAZ, ekran neyi filtrelemediğini söyler.
+ */
+export function opportunitiesMock(): DataEnvelope<AIRecommendation[]> {
+  return mockEnvelope([ppcRecommendation()]);
 }
 
 /* --------------------------------------------------------------------------
    Executive KPI'lar — 05-dashboard.md §3.5 (dokümandaki 9 kalem, aynı sırada)
    -------------------------------------------------------------------------- */
 
-/* FR-0046 v1 (UI-ADR-106): değerler {status, value, reason} zarfındadır.
-   Trend · sparkline · AI yorumu · forecast · risk · öneri BİLEREK YOK —
-   kaynakları ODIN'de üretilmiyor (R-006 FR-0043) ve anti-fake mock'ta da
-   geçerlidir; kartlar bu katmanları NoData ile söyler. */
-const val = (n: number): MetricValue => ({ status: "available", value: n });
-
+/* ADR-0143 §2: sınır zarfı DÜZDÜR (status/value/unit/currency/scale/
+   reason/as_of). Sparkline · forecast · insight sözleşmenin PARÇASI DEĞİL,
+   bu yüzden mock'ta da yok — anti-fake mock'ta da geçerlidir. */
 function kpi(
-  over: Partial<ExecutiveKPI> &
-    Pick<ExecutiveKPI, "id" | "metricKey" | "label" | "value" | "unit">
+  over: Partial<ExecutiveKPI> & Pick<ExecutiveKPI, "id" | "label" | "unit">
 ): ExecutiveKPI {
-  return { asOf: ago(30 * 60_000), source: "briefing", ...over };
+  return { status: "available", value: null, asOf: ago(30 * 60_000), ...over };
 }
 
 export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
   return mockEnvelope([
     kpi({
       id: "company.revenue",
-      metricKey: "revenue",
       label: "Revenue",
-      value: val(4_182_000),
+      value: 4_182_000,
       unit: "currency",
-      currencyCode: "TRY",
+      currency: "TRY",
     }),
     kpi({
       id: "company.net_profit",
-      metricKey: "net_profit",
       label: "Net Profit",
-      value: val(1_284_000),
+      value: 1_284_000,
       unit: "currency",
-      currencyCode: "TRY",
+      currency: "TRY",
     }),
     kpi({
       id: "company.cash_flow",
-      metricKey: "cash_flow",
       label: "Cash Flow",
-      value: val(862_000),
+      value: 862_000,
       unit: "currency",
-      currencyCode: "TRY",
+      currency: "TRY",
     }),
     kpi({
       id: "amazon.health_score",
-      metricKey: "health_score",
       label: "Amazon",
-      value: val(78),
+      value: 78,
       unit: "score",
-      source: "amazon_director",
     }),
     kpi({
       id: "amazon.inventory_health",
-      metricKey: "inventory_health",
       label: "Inventory",
-      value: val(63.4),
+      value: 63.4,
       unit: "percent",
       /* UI-ADR-093 — ölçek BİLDİRİLİR. Bu alan olmasaydı kart boş görünürdü. */
       scale: "0-100",
-      source: "amazon_director",
     }),
     kpi({
       id: "council.ai_confidence",
-      metricKey: "ai_confidence",
       label: "AI Confidence",
-      value: val(88),
+      value: 88,
       unit: "score",
-      source: "trust",
     }),
     /* --- Ölçüm kaynağı olmayan iki KPI: değer UYDURULMAZ. ---
        telemetry registry'de `knowledge_sync` ve `memory_indexing` kanalları
@@ -563,35 +455,25 @@ export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
        sayı alanı null kalır (ADR-0135 sınırı). */
     kpi({
       id: "knowledge.health",
-      metricKey: "knowledge_health",
       label: "Knowledge Health",
-      value: {
-        status: "unavailable",
-        value: null,
-        reason: "knowledge_sync telemetri kanalı kapalı; skor üretilmiyor.",
-      },
+      status: "unavailable",
+      value: null,
+      reason: "knowledge_sync telemetri kanalı kapalı; skor üretilmiyor.",
       unit: "score",
-      source: "knowledge",
     }),
     kpi({
       id: "memory.health",
-      metricKey: "memory_health",
       label: "Memory Health",
-      value: {
-        status: "unavailable",
-        value: null,
-        reason: "memory_indexing telemetri kanalı kapalı; skor üretilmiyor.",
-      },
+      status: "unavailable",
+      value: null,
+      reason: "memory_indexing telemetri kanalı kapalı; skor üretilmiyor.",
       unit: "score",
-      source: "knowledge",
     }),
     kpi({
       id: "executive.decision_confidence",
-      metricKey: "decision_confidence",
       label: "Decision Confidence",
-      value: val(81),
+      value: 81,
       unit: "score",
-      source: "executive",
     }),
   ]);
 }
@@ -600,106 +482,96 @@ export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
    Director aktivitesi — UI-ADR-074 ile DONDURULMUŞ 6 Director
    -------------------------------------------------------------------------- */
 
-export function directorsMock(): DataEnvelope<DirectorHeartbeat[]> {
+export function directorsMock(): DataEnvelope<AgentHealth[]> {
+  /* Alanlar ODIN AgentHealthMonitor.snapshot() ile birebir (09b §5).
+     Ölçülmemiş metrik null gelir ve kartta NoData çıkar — mock'ta da
+     uydurma yok: availability hiçbir ajanda hesaplanmıyorsa null'dur. */
   const base = {
-    beatIntervalMs: 5_000,
-    memoryHealth: "healthy" as const,
-    predictionStatus: "idle" as const,
+    consecutiveFailures: 0,
+    lastFailure: null as string | null,
+    checkedAt: ago(30_000),
   };
 
   return mockEnvelope([
     {
       ...base,
-      directorId: "executive",
+      agentId: "executive",
       name: "Executive AI",
-      status: "reviewing",
-      currentGoal: "Günün brifingini kapatmak",
-      currentTask: "Üç kritik kararın sentezi hazırlanıyor",
-      confidence: 91,
-      taskCount: 8,
-      queueLength: 1,
-      evidenceCount: 64,
-      recommendationCount: 3,
-      predictionStatus: "running",
-      lastBeat: ago(2_000),
+      verdict: "healthy",
+      lastSuccess: ago(2 * 60_000),
+      metrics: {
+        latencyMsAvg: 1840, latencyMsP95: 4100, successRate: 0.98,
+        errorRate: 0.02, tokensUsed: 184_000, costUsd: 1.42,
+        queueLength: 1, availability: null, lastHeartbeat: ago(2_000),
+      },
     },
     {
       ...base,
-      directorId: "amazon",
+      agentId: "amazon",
       name: "Amazon AI",
-      status: "analyzing",
-      currentGoal: "ACOS'u %16 altına indirmek",
-      currentTask: "Kampanya B teklif eğrisi yeniden hesaplanıyor",
-      confidence: 94,
-      taskCount: 24,
-      queueLength: 3,
-      evidenceCount: 182,
-      recommendationCount: 4,
-      predictionStatus: "running",
-      lastBeat: ago(3_000),
+      verdict: "healthy",
+      lastSuccess: ago(4 * 60_000),
+      metrics: {
+        latencyMsAvg: 2210, latencyMsP95: 5600, successRate: 0.96,
+        errorRate: 0.04, tokensUsed: 512_000, costUsd: 3.87,
+        queueLength: 3, availability: null, lastHeartbeat: ago(3_000),
+      },
     },
     {
       ...base,
-      directorId: "finance",
+      agentId: "finance",
       name: "Finance AI",
-      status: "monitoring",
-      currentGoal: "Nakit akışını 30 gün ileriye kadar güvende tutmak",
-      currentTask: "Hafta sonu ödeme planı doğrulanıyor",
-      confidence: 79,
-      taskCount: 11,
-      queueLength: 0,
-      evidenceCount: 96,
-      recommendationCount: 1,
-      lastBeat: ago(4_000),
+      verdict: "healthy",
+      lastSuccess: ago(11 * 60_000),
+      metrics: {
+        latencyMsAvg: 1520, latencyMsP95: 3900, successRate: 0.99,
+        errorRate: 0.01, tokensUsed: 96_000, costUsd: 0.74,
+        queueLength: 0, availability: null, lastHeartbeat: ago(4_000),
+      },
     },
     {
       ...base,
-      directorId: "trading",
+      agentId: "trading",
       name: "Trading AI",
-      /* lastBeat 3 aralıktan eski → kart OFFLINE'a düşer, nabız durur.
-         Durum "analyzing" dese bile offline kazanır (10b §3). */
-      status: "analyzing",
-      currentGoal: "Kur riskini %2'nin altında tutmak",
-      currentTask: "USD/TRY oynaklık bandı izleniyor",
-      confidence: 62,
-      taskCount: 6,
-      queueLength: 2,
-      evidenceCount: 41,
-      recommendationCount: 1,
-      lastBeat: ago(90_000),
+      /* Ardışık hatalar verdict'i ODIN tarafında unhealthy'ye düşürdü —
+         UI eşik TÜRETMEDİ, kaydı gösteriyor (UI-ADR-111). */
+      verdict: "unhealthy",
+      consecutiveFailures: 3,
+      lastSuccess: ago(90 * 60_000),
+      lastFailure: ago(6 * 60_000),
+      metrics: {
+        latencyMsAvg: 8900, latencyMsP95: 21_000, successRate: 0.71,
+        errorRate: 0.29, tokensUsed: 44_000, costUsd: 0.51,
+        queueLength: 2, availability: null, lastHeartbeat: ago(90_000),
+      },
     },
     {
       ...base,
-      directorId: "knowledge",
+      agentId: "knowledge",
       name: "Knowledge AI",
-      /* Bilgi servisi bağlı değil → atım YOK. "offline" değil, BİLİNMİYOR. */
-      status: "idle",
-      currentGoal: null,
-      currentTask: null,
-      confidence: null,
-      taskCount: 0,
-      queueLength: 0,
-      evidenceCount: 0,
-      recommendationCount: 0,
-      memoryHealth: "degraded",
-      lastBeat: null,
+      /* Hiç gözlem yok → ODIN "unknown" der; bilmemek ölmüş olmak değildir. */
+      verdict: "unknown",
+      lastSuccess: null,
+      metrics: {
+        latencyMsAvg: null, latencyMsP95: null, successRate: null,
+        errorRate: null, tokensUsed: 0, costUsd: null,
+        queueLength: 0, availability: null, lastHeartbeat: null,
+      },
+      checkedAt: null,
     },
     {
       ...base,
-      directorId: "reasoning",
+      agentId: "reasoning",
       name: "Reasoning AI",
-      status: "processing",
-      currentGoal: "Kararlar arası çelişkileri tespit etmek",
-      currentTask: "PPC ve kur kararları çapraz kontrol ediliyor",
-      confidence: 86,
-      taskCount: 4,
-      queueLength: 1,
-      evidenceCount: 58,
-      recommendationCount: 2,
-      predictionStatus: "running",
-      lastBeat: ago(1_500),
+      verdict: "healthy",
+      lastSuccess: ago(60_000),
+      metrics: {
+        latencyMsAvg: 3100, latencyMsP95: 7400, successRate: 0.97,
+        errorRate: 0.03, tokensUsed: 238_000, costUsd: 2.05,
+        queueLength: 1, availability: null, lastHeartbeat: ago(1_500),
+      },
     },
-  ] satisfies DirectorHeartbeat[]);
+  ] satisfies AgentHealth[]);
 }
 
 /* --------------------------------------------------------------------------

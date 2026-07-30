@@ -1,0 +1,78 @@
+{
+ "id": "DEC-2026-0731-001",
+ "date": "2026-07-31",
+ "question": "Amazon PPC bütçesi %7 artırılsın mı?",
+ "tier": "D2",
+ "domain": "amazon",
+ "alternatives": [
+  {
+   "option": "%7 artır",
+   "assessment": "Gösterim payı toparlanır, ACOS ~%17'ye iner.",
+   "risk": "low"
+  },
+  {
+   "option": "Bütçeyi sabit tut",
+   "assessment": "Nakit korunur, satış kaybı sürer.",
+   "risk": "medium"
+  }
+ ],
+ "recommendation": {
+  "text": "Amazon PPC bütçesini %7 artır, 7 gün sonra tekrar değerlendir.",
+  "confidence": 71.35,
+  "confidence_breakdown": {
+   "knowledge_coverage": 80,
+   "evidence_strength": 75,
+   "expert_agreement": 90,
+   "model_agreement": 70,
+   "historical_success": 65,
+   "risk_level": 40,
+   "missing_information": 30,
+   "decision_complexity": 35
+  },
+  "evidence_snapshot": [
+   {
+    "knowledge_id": "KO-metric-acos-14d",
+    "knowledge_version": 3,
+    "trust_at_decision": 92,
+    "role": "supporting",
+    "summary": "ACOS 14 günde %14,2'den %18,1'e yükseldi"
+   },
+   {
+    "knowledge_id": "KO-external-usdtry-72h",
+    "knowledge_version": 1,
+    "trust_at_decision": 55,
+    "role": "contradicting",
+    "summary": "USD/TRY yukarı yönlü; ithalat maliyeti artabilir",
+    "caveat": "provisional trust (40-59): cite with caveat"
+   }
+  ],
+  "risks": [
+   "Kur artarsa birim maliyet yükselir",
+   "Nakit akışı bir hafta sıkışabilir"
+  ],
+  "assumptions": [
+   "Rakip teklif seviyesi mevcut bandında kalır",
+   "Dönüşüm oranı son 30 günün ortalamasından sapmaz"
+  ],
+  "consensus_score": 66.67,
+  "disagreement_score": 33.33,
+  "minority_opinions": [
+   "trading: beklet — USD riski nedeniyle 48 saat beklenmeli"
+  ],
+  "flip_conditions": [
+   "ACOS 7 gün içinde %20'yi aşarsa artış geri alınır",
+   "USD/TRY %3'ten fazla yükselirse karar yeniden açılır"
+  ]
+ },
+ "human_decision": {
+  "outcome": "approved",
+  "decided_by": "human-owner",
+  "human_reasoning": "Kanıt yeterli; kur riski flip koşuluyla sınırlandı."
+ },
+ "expected_outcome": "Gösterim payı 2 hafta içinde %28 üzerine döner",
+ "monitoring_checkpoints": [
+  "2026-08-07",
+  "2026-08-14"
+ ],
+ "status": "monitoring"
+}

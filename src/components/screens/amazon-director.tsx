@@ -17,7 +17,7 @@
  * VERİ: hepsi mock (`meta.source === "mock"`, UI-ADR-094). Gerçek veri S8.
  *
  * ANTI-FAKE — bu ekranda dört yer BİLEREK boştur:
- *   · Net Profit          COGS yok → hesaplanamaz (UI-ADR-099)
+ *   · Net Profit          COGS yok → hesaplanamaz (UI-ADR-116)
  *   · Profit After Ads    aynı sebep
  *   · Sales & Profit seri sözleşmesi yok (13-...md §16.4)
  *   · Orders akışı        sözleşme yok (aynı yer)
@@ -25,7 +25,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { z } from "zod";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AmazonSnapshot } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
@@ -33,9 +32,6 @@ import type { SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
-import { useOdinQuery } from "@/lib/data/use-odin-query";
-import { alertSchema, executiveKpiSchema, opportunitySchema } from "@/lib/data/schemas";
-import type { OdinError } from "@/lib/data/errors";
 import {
   amazonAlertsMock,
   amazonKpisMock,
@@ -59,13 +55,13 @@ import { Mono, Num, Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
+import { AIRecommendationView } from "@/components/executive/ai-recommendation-card";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { CampaignIntelligenceList } from "@/components/executive/campaign-intelligence";
 import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { Meter } from "@/components/executive/meter";
-import { OpportunityCard } from "@/components/executive/opportunity-card";
 import { PPCOverviewCard, PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 import { SimulationPanel } from "@/components/executive/simulation-panel";
 import { TrustSignal } from "@/components/executive/trust-signal";
@@ -118,7 +114,7 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
             }
           />
 
-          {/* NET KÂR: hesaplanamıyorsa GÖSTERİLMEZ — UI-ADR-099.
+          {/* NET KÂR: hesaplanamıyorsa GÖSTERİLMEZ — UI-ADR-116.
               Yerine gross profit + neyin hariç tutulduğu. */}
           {s.netProfit ? (
             <Stat
@@ -246,28 +242,17 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
             label="Top Opportunity"
             value={
               s.topOpportunity ? (
-                <span className="text-sm text-content">{s.topOpportunity.title}</span>
+                <span className="text-sm text-content">
+                  {s.topOpportunity.recommendation}
+                </span>
               ) : (
                 <NoData reason="Ölçülmüş fırsat yok" />
               )
             }
           />
-          {/* Mission → Goal (ODIN ADR-0132 · UI-ADR-107): kaynak goals.py
-              `progress_pct`. Nötr 50 buraya sızmaz — ölçülmüyorsa null. */}
-          <Stat
-            label="Goal Progress"
-            note="günün Amazon hedefi"
-            value={
-              <>
-                <Meter
-                  value={s.goalProgressPct}
-                  label="Hedef ilerlemesi"
-                  noDataReason="İlerleme ölçülmüyor"
-                />
-                <Num value={s.goalProgressPct} size="sm" noDataReason="Ölçülmedi" />
-              </>
-            }
-          />
+          {/* "Goal/Mission Progress" kartı KALDIRILDI — ADR-0143 §4: ilerleme
+              yüzdesi kavramının ölçülmüş kaynağı yok ve ADR onu yaratmıyor.
+              İzlenen kararlar Mission Control'ün tahtasındadır. */}
         </dl>
       </CardBody>
 
@@ -364,17 +349,6 @@ const DEMO_ERROR: SectionError = {
   fix: "ODIN sunucusunu başlat, sonra yeniden dene.",
 };
 
-/**
- * Demo hatası ile GERÇEK veri katmanı hatasını birleştirir — S7.
- *
- * Sözleşme ihlali bağlanmazsa bölüm sessizce BOŞ kalır: kullanıcı verinin
- * reddedildiğini hiç öğrenmez ve "bugün fırsat yok" sanır. Doğrulama
- * katmanının bütün değeri, reddin GÖRÜNMESİNDEDİR.
- */
-function sectionError(demo: SectionError | null, live: OdinError | null): SectionError | null {
-  return demo ?? (live ? live.toErrorState() : null);
-}
-
 /** Sözleşmesi olmayan bölümlerin ortak metni — UI-ADR-096. */
 function noContract(name: string, why: string) {
   return {
@@ -406,42 +380,14 @@ export function AmazonDirector({
     st.selectedEntity?.kind === AMAZON_SKU_KIND ? st.selectedEntity.id : null
   );
 
-  /*
-   * S7 VERİ KATMANI — üç bölüm artık doğrulayan borudan geçiyor.
-   *
-   * Neden ÜÇÜ: `useOdinQuery` zorunlu olarak bir şema ister ve şema yalnız
-   * KANONİK sözleşmeler için yazıldı (09b + FR-0046 v1). AmazonSnapshot ·
-   * PPCOverview · CampaignIntelligence · SimulationCase · SkuHealth'in
-   * ODIN'de doğrulanmış karşılığı henüz YOK; onlara şema yazmak, sözleşmesi
-   * olmayan bir şeyi sözleşmeliymiş gibi göstermek olurdu (meclis 5/5,
-   * UI-ADR-113). Sözleşmeleri kapanınca (13-...md §16.2/§16.4, FR-0044)
-   * aynı üç satırla buraya taşınırlar — kalan beşi o güne kadar mock
-   * kancasında ve `meta.source === "mock"` aramasında görünür kalır.
-   */
-  const kpis = useOdinQuery({
-    key: ["amazon", "kpis"],
-    module: "amazon",
-    schema: z.array(executiveKpiSchema),
-    load: async () => amazonKpisMock(),
-  });
-  const alerts = useOdinQuery({
-    key: ["amazon", "alerts"],
-    module: "amazon",
-    schema: z.array(alertSchema),
-    load: async () => amazonAlertsMock(),
-  });
-  const opportunities = useOdinQuery({
-    key: ["amazon", "opportunities"],
-    module: "amazon",
-    schema: z.array(opportunitySchema),
-    load: async () => amazonOpportunitiesMock(),
-  });
-
   const snapshot = useMockData(snapshotMock);
+  const kpis = useMockData(amazonKpisMock);
   const skus = useMockData(skusMock);
   const ppc = useMockData(ppcOverviewMock);
   const campaigns = useMockData(campaignsMock);
   const simulations = useMockData(simulationsMock);
+  const alerts = useMockData(amazonAlertsMock);
+  const opportunities = useMockData(amazonOpportunitiesMock);
 
   const loading = demo === "loading" || snapshot.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
@@ -449,13 +395,13 @@ export function AmazonDirector({
 
   const reloadAll = () => {
     snapshot.reload();
-    kpis.refetch();
+    kpis.reload();
     skus.reload();
     ppc.reload();
     campaigns.reload();
     simulations.reload();
-    alerts.refetch();
-    opportunities.refetch();
+    alerts.reload();
+    opportunities.reload();
   };
 
   const skuRows = isEmpty ? [] : (skus.data?.data ?? []);
@@ -464,7 +410,7 @@ export function AmazonDirector({
      §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
      domain alanı sorusu 13-...md §17'de (FR-0042 fingerprint'i zaten
      (domain, recommendation_type, …) kullanıyor — alan gelirse ayrım döner). */
-  const feedOpportunities = isEmpty ? [] : (opportunities.envelope?.data ?? []);
+  const feedOpportunities = isEmpty ? [] : (opportunities.data?.data ?? []);
 
   const atRisk = skuRows.filter(
     (s) => s.status === "critical" || s.status === "at_risk"
@@ -511,10 +457,10 @@ export function AmazonDirector({
       <Section
         title="Executive KPI Strip"
         description="Kapalıyken sade, açıkken mini rapor. Ölçüm kaynağı olmayan metrik değer göstermez."
-        loading={loading || kpis.loading}
+        loading={loading}
         loadingLayout="kpi"
         loadingCount={8}
-        error={sectionError(error, kpis.error)}
+        error={error}
         onRetry={reloadAll}
         empty={isEmpty}
         emptyTitle="KPI üretilmedi"
@@ -524,27 +470,15 @@ export function AmazonDirector({
             `text-3xl` para değeri sığmaz (768 ve 1280'de ölçüldü). Sekiz kart
             bu yüzden 4 kolona ancak 2xl'de dizilir. */}
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 [&>*]:min-w-0">
-          {kpis.envelope?.data.map((k) => (
-            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.envelope!.meta }} />
+          {kpis.data?.data.map((k) => (
+            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.data!.meta }} />
           ))}
         </div>
-        {/* S7 · UI-ADR-115: yenileme arızası şeridin tamamını ilgilendirir,
-            bu yüzden kart başına değil ŞERİT BAŞINA bir kez yazılır.
-            YALNIZ arıza varken: her kartın altında zaten kaynak+yaş satırı
-            var; onu dokuzuncu kez tekrarlamak bilgi değil gürültüdür
-            (görsel incelemede yakalandı). */}
-        {kpis.envelope && kpis.refreshError && (
-          <TrustSignal
-            meta={kpis.envelope.meta}
-            refreshFailed={kpis.refreshError.what}
-            className="mt-3"
-          />
-        )}
         <Text size="sm" tone="tertiary" className="mt-3">
           Şeritte <strong>Net Profit yoktur</strong>: COGS Amazon&apos;da
           bulunmadığı ve girilmediği için net kâr hesaplanamıyor. Yerine
           &quot;Gross Profit (ücretler hariç)&quot; gösteriliyor; neyin hariç
-          tutulduğu Executive Glance&apos;te listelenmiştir (UI-ADR-099).
+          tutulduğu Executive Glance&apos;te listelenmiştir (UI-ADR-116).
         </Text>
       </Section>
 
@@ -680,22 +614,27 @@ export function AmazonDirector({
         <Section
           title="Opportunity Feed"
           description="Ürün · fiyat · paket fırsatları. Risklerle eşit ağırlıkta."
-          loading={loading || opportunities.loading}
+          loading={loading}
           loadingLayout="card"
           loadingCount={2}
-          error={sectionError(error, opportunities.error)}
+          error={error}
           onRetry={reloadAll}
           empty={feedOpportunities.length === 0}
           emptyTitle="Fırsat üretilmedi"
           emptyDescription="Bu dönem için ölçülmüş bir ürün/fiyat fırsatı yok."
         >
+          {/* ADR-0143 §3: fırsat ayrı kayıt değil, öneri kaydının pozitif
+              sınıfıdır → mevcut öneri görünümü kullanılır. */}
           <div className="flex flex-col gap-4">
-            {feedOpportunities.map((o) => (
-              <OpportunityCard
-                key={o.id}
-                env={{ data: o, meta: opportunities.envelope!.meta }}
-              />
+            {feedOpportunities.map((r) => (
+              <div key={r.id} className="odin-ai-region p-3">
+                <AIRecommendationView rec={r} compact />
+              </div>
             ))}
+            <Text size="sm" tone="tertiary">
+              Pozitif sınıfı işaretleyen alan ODIN&apos;de bildirilmediği için
+              liste filtrelenmiyor (13-...md §17).
+            </Text>
           </div>
         </Section>
         </div>
@@ -756,14 +695,14 @@ export function AmazonDirector({
         <Section
           title="Alerts"
           description="Yalnızca aksiyon gerektirenler listelenir."
-          loading={loading || alerts.loading}
+          loading={loading}
           loadingLayout="list"
           loadingCount={4}
-          error={sectionError(error, alerts.error)}
+          error={error}
           onRetry={reloadAll}
         >
           <AlertStack
-            env={isEmpty ? empty(alerts.envelope) : alerts.envelope}
+            env={isEmpty ? empty(alerts.data) : alerts.data}
             title="Aksiyon gerektirenler"
           />
         </Section>

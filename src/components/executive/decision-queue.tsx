@@ -12,27 +12,27 @@
  * Decision Center'a yönlendirilir. Bastırmayı bilen katman bastırmayı yazar
  * (UI-ADR-091 ile aynı ilke).
  *
- * SIRALAMA: `tier` (D1 en ağır), eşitlikte finansal etki büyük olan önce.
- * `priority: 1..5` UYDURMAYDI — ODIN kararı D1/D2/D3 diye ayırır (09b §1).
+ * SIRALAMA: `priority` artan (1 = en yüksek), eşitlikte finansal etki büyük
  * olan önce. Türetilmiş bir "skor" ÜRETİLMEZ; ikisi de sözleşmede var.
  */
 
 import type { Decision } from "@/types/executive";
-import type { DecisionOutcome } from "./decision-card";
-
-/** D1 en ağır karardır; kuyruk ona göre sıralanır. */
-const TIER_ORDER: Record<Decision["tier"], number> = { D1: 0, D2: 1, D3: 2 };
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
-import { DecisionCard } from "./decision-card";
+import { DecisionCard, type VerdictInput } from "./decision-card";
+
+/** D3 stratejik > D2 > D1; eşitlikte düşük güven ÖNE gelir — CEO'nun
+    dikkatini en çok, en belirsiz stratejik karar hak eder. `priority` ve
+    `financialImpact` ODIN'de yoktu, UYDURMAYDI (UI-ADR-100). */
+const TIER_RANK = { D3: 0, D2: 1, D1: 2 } as const;
 
 export function sortDecisions(decisions: Decision[]): Decision[] {
   return [...decisions].sort(
     (a, b) =>
-      TIER_ORDER[a.tier] - TIER_ORDER[b.tier] ||
-      Math.abs(b.financialImpact?.amount ?? 0) - Math.abs(a.financialImpact?.amount ?? 0)
+      TIER_RANK[a.tier] - TIER_RANK[b.tier] ||
+      a.recommendation.confidence - b.recommendation.confidence
   );
 }
 
@@ -40,14 +40,12 @@ function QueueView({
   decisions,
   meta,
   limit,
-  onDecide,
-  onOpenAnalysis,
+  onVerdict,
 }: {
   decisions: Decision[];
   meta: DataMeta;
   limit: number;
-  onDecide?: (d: Decision, outcome: DecisionOutcome, reasoning: string) => void;
-  onOpenAnalysis?: (d: Decision) => void;
+  onVerdict?: (d: Decision, v: VerdictInput) => void;
 }) {
   if (decisions.length === 0) {
     return (
@@ -69,8 +67,7 @@ function QueueView({
         <DecisionCard
           key={d.id}
           env={{ data: d, meta }}
-          onDecide={onDecide}
-          onOpenAnalysis={onOpenAnalysis}
+          onVerdict={onVerdict}
         />
       ))}
 
@@ -88,14 +85,12 @@ function QueueView({
 export function DecisionQueue({
   env,
   limit = 3,
-  onDecide,
-  onOpenAnalysis,
+  onVerdict,
 }: {
   env: DataEnvelope<Decision[]> | null | undefined;
   /** 02-design-principles.md §4: bir ekranda en fazla 3 primary kart. */
   limit?: number;
-  onDecide?: (d: Decision, outcome: DecisionOutcome, reasoning: string) => void;
-  onOpenAnalysis?: (d: Decision) => void;
+  onVerdict?: (d: Decision, v: VerdictInput) => void;
 }) {
   return (
     <DataGuard env={env} reason="Karar kuyruğu verisi yok">
@@ -104,8 +99,7 @@ export function DecisionQueue({
           decisions={decisions}
           meta={meta}
           limit={limit}
-          onDecide={onDecide}
-          onOpenAnalysis={onOpenAnalysis}
+          onVerdict={onVerdict}
         />
       )}
     </DataGuard>

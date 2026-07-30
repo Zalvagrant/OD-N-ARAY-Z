@@ -15,20 +15,21 @@ import { httpLoad, parseEnvelope } from "./client";
 import { OdinError, classifyError, contractError, httpError, offlineError } from "./errors";
 import { makeQueryClient } from "./query";
 import { policyFor } from "./policy";
-import { alertSchema, executiveKpiSchema, goalSchema, opportunitySchema } from "./schemas";
+import { alertSchema, executiveKpiSchema } from "./schemas";
 import { pollingTransport } from "./transport";
 
 const NOW = () => new Date().toISOString();
 
+/* ADR-0143 §2: zarf DÜZ. */
 const kpi = () => ({
-  id: "amazon.net_profit",
-  metricKey: "net_profit",
+  id: "net_profit",
   label: "Net Profit",
+  status: "unavailable" as const,
+  value: null as number | null,
   unit: "currency" as const,
-  currencyCode: "USD",
+  currency: "USD",
+  reason: "COGS girilmedi.",
   asOf: NOW(),
-  source: "amazon_director",
-  value: { status: "unavailable" as const, value: null, reason: "COGS girilmedi." },
 });
 
 const wrap = <T,>(data: T, over: Record<string, unknown> = {}) => ({
@@ -98,50 +99,40 @@ describe("sözleşme ihlalleri arayüze ULAŞMAZ", () => {
     expect(() => parseEnvelope(wrap(data), schema, "x", "amazon")).toThrow(OdinError);
 
   it("para birimi metriği currencyCode'suz geçmez", () => {
-    bad({ ...kpi(), currencyCode: undefined }, executiveKpiSchema);
+    bad({ ...kpi(), currency: undefined }, executiveKpiSchema);
   });
 
   it("yüzde metriği scale'siz geçmez (0,18 mi %18 mi belirsiz)", () => {
-    bad({ ...kpi(), unit: "percent", currencyCode: undefined }, executiveKpiSchema);
+    bad({ ...kpi(), unit: "percent", currency: undefined }, executiveKpiSchema);
   });
 
   it("status=available iken value null olamaz", () => {
-    bad({ ...kpi(), value: { status: "available", value: null } }, executiveKpiSchema);
+    bad({ ...kpi(), status: "available", value: null }, executiveKpiSchema);
   });
 
   it("status!=available iken reason zorunludur", () => {
-    bad({ ...kpi(), value: { status: "data_required", value: null } }, executiveKpiSchema);
+    bad({ ...kpi(), status: "data_required", value: null, reason: undefined }, executiveKpiSchema);
   });
 
   it('sunum metni sayı alanına giremez ("Data Required")', () => {
-    bad({ ...kpi(), value: { status: "available", value: "Data Required" } }, executiveKpiSchema);
+    bad({ ...kpi(), status: "available", value: "Data Required" }, executiveKpiSchema);
   });
 
   it("requiresAction'ı olmayan kayıt Alert değildir", () => {
-    bad({ id: "a", source: "s", title: "t", asOf: NOW() }, alertSchema);
+    bad({ id: "AL-a", severity: "risk", title: "t", module: "amazon",
+          evidence: [], createdAt: NOW() }, alertSchema);
   });
 
-  it("severity null YAZILMAZ — atlanır", () => {
-    bad(
-      { id: "a", source: "s", title: "t", requiresAction: true, asOf: NOW(), severity: null },
-      alertSchema
-    );
+  it("severity ODIN sözlüğünden olmak zorunda (ADR-0143 §1)", () => {
+    /* "high" bizim uydurduğumuz eski kümeydi; kanonik sözlük
+       critical|risk|warning|info. */
+    bad({ id: "AL-a", severity: "high", title: "t", module: "amazon",
+          requiresAction: true, evidence: [], createdAt: NOW() }, alertSchema);
   });
 
-  it("suggestedAction'ı olmayan kayıt Opportunity değildir", () => {
-    bad({ id: "o", source: "s", title: "t", summary: "s", asOf: NOW() }, opportunitySchema);
-  });
-
-  it("Goal progressPct null olabilir (ölçülmedi), string olamaz", () => {
-    expect(() =>
-      parseEnvelope(
-        wrap({ id: "g", level: "urgent", label: "L", target: null, progressPct: null }),
-        goalSchema,
-        "goal",
-        "default"
-      )
-    ).not.toThrow();
-    bad({ id: "g", level: "urgent", label: "L", target: null, progressPct: "50" }, goalSchema);
+  it("module ve evidence olmadan Alert geçmez", () => {
+    bad({ id: "AL-a", severity: "risk", title: "t", requiresAction: true,
+          createdAt: NOW() }, alertSchema);
   });
 });
 

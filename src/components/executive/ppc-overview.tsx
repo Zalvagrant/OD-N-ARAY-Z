@@ -13,7 +13,7 @@
  *
  * ⭐ Profit After Ads reklam metriği değil KÂR metriğidir — ve tam bu yüzden
  * net kâr ile aynı kaderi paylaşır: COGS yoksa hesaplanamaz. `null` geldiğinde
- * sayı UYDURULMAZ, gerekçesi yazılır (UI-ADR-099). Kasten boş görünen bu
+ * sayı UYDURULMAZ, gerekçesi yazılır (UI-ADR-116). Kasten boş görünen bu
  * hücre, yanlış bir kâr rakamından iyidir.
  */
 

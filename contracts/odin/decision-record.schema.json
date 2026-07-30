@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://odin.standard/schemas/decision-record.schema.json",
+  "title": "Decision Record",
+  "description": "Permanent record of a decision; supports Decision Replay. No delete exists (ADR-0005). See docs/standards/decision-standard.md",
+  "type": "object",
+  "required": ["id", "date", "question", "tier", "alternatives", "recommendation", "human_decision", "status"],
+  "properties": {
+    "id": { "type": "string" },
+    "date": { "type": "string", "format": "date" },
+    "question": { "type": "string" },
+    "tier": { "type": "string", "enum": ["D1", "D2", "D3"] },
+    "domain": { "type": "string" },
+    "reason": { "type": "string" },
+    "alternatives": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["option", "assessment"],
+        "properties": {
+          "option": { "type": "string" },
+          "assessment": { "type": "string" },
+          "risk": { "type": "string" }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "required": ["text", "confidence", "confidence_breakdown", "evidence_snapshot", "risks", "assumptions", "consensus_score", "disagreement_score", "minority_opinions", "flip_conditions"],
+      "properties": {
+        "text": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 100 },
+        "confidence_breakdown": {
+          "type": "object",
+          "description": "Per-component values of the canonical Confidence formula (Trust Standard). No black-box numbers.",
+          "required": ["knowledge_coverage", "evidence_strength", "expert_agreement", "model_agreement", "historical_success", "risk_level", "missing_information", "decision_complexity"],
+          "properties": {
+            "knowledge_coverage": { "type": "number", "minimum": 0, "maximum": 100 },
+            "evidence_strength": { "type": "number", "minimum": 0, "maximum": 100 },
+            "expert_agreement": { "type": "number", "minimum": 0, "maximum": 100 },
+            "model_agreement": { "type": "number", "minimum": 0, "maximum": 100 },
+            "historical_success": { "type": "number", "minimum": 0, "maximum": 100 },
+            "risk_level": { "type": "number", "minimum": 0, "maximum": 100 },
+            "missing_information": { "type": "number", "minimum": 0, "maximum": 100 },
+            "decision_complexity": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "evidence_snapshot": {
+          "type": "array",
+          "description": "Embedded point-in-time copies, not live references (Replay requirement)",
+          "items": {
+            "type": "object",
+            "required": ["knowledge_id", "knowledge_version", "trust_at_decision"],
+            "properties": {
+              "knowledge_id": { "type": "string" },
+              "knowledge_version": { "type": "integer" },
+              "trust_at_decision": { "type": "number", "minimum": 0, "maximum": 100 },
+              "role": { "type": "string", "enum": ["supporting", "contradicting"] },
+              "summary": { "type": "string" }
+            }
+          }
+        },
+        "risks": { "type": "array", "items": { "type": "string" } },
+        "assumptions": { "type": "array", "items": { "type": "string" } },
+        "consensus_score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "disagreement_score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "minority_opinions": { "type": "array", "items": { "type": "string" } },
+        "flip_conditions": { "type": "array", "items": { "type": "string" }, "description": "What would change this recommendation" }
+      }
+    },
+    "human_decision": {
+      "type": "object",
+      "required": ["outcome", "decided_by"],
+      "properties": {
+        "outcome": { "type": "string", "enum": ["approved", "modified", "rejected"] },
+        "decided_by": { "type": "string", "const": "human-owner" },
+        "modification": { "type": "string" },
+        "human_reasoning": { "type": "string" }
+      }
+    },
+    "expected_outcome": { "type": "string" },
+    "monitoring_checkpoints": { "type": "array", "items": { "type": "string", "format": "date" } },
+    "actual_outcome": { "type": "string" },
+    "lessons_learned": { "type": "array", "items": { "type": "string" } },
+    "linked_experiments": { "type": "array", "items": { "type": "string" } },
+    "linked_standards": { "type": "array", "items": { "type": "string" } },
+    "related_decisions": { "type": "array", "items": { "type": "string" } },
+    "related_goals": { "type": "array", "items": { "type": "string" }, "description": "Goal ids from odin-data/goals.json — structural enabler for Strategic Drift Detection (ADR-0046; engine deferred per ACR-0018)" },
+    "checkpoint_evaluations": {
+      "type": "array",
+      "description": "Append-only owner evaluations of expected vs. actual outcome (S-008 Feedback Loop, ADR-0046). Each evaluation lands as a new record version; prior versions are immutable.",
+      "items": {
+        "type": "object",
+        "required": ["date", "actual", "result"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "actual": { "type": "string" },
+          "result": { "type": "string", "enum": ["met", "partial", "diverged"] },
+          "lesson": { "type": "string" }
+        }
+      }
+    },
+    "status": { "type": "string", "enum": ["open", "monitoring", "closed"] }
+  }
+}

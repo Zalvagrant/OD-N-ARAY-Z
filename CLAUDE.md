@@ -40,7 +40,7 @@ Bu klasör arayüzün tam spesifikasyonudur. **Bir şey yazmadan önce oku.**
 | `10-component-library.md` | Her bileşende |
 | `10a-core-components.md` | S3 primitive'lerinin API'si ve durum matrisi |
 | `10b-executive-components.md` | S4 executive bileşenlerinin API'si ve anti-fake kuralları |
-| `10c-screens.md` | S5 + S6 ekran katmanı — Section, WorkspaceHeader, ekran dizilimleri, Amazon Director (§7) |
+| `10c-screens.md` | S5 ekran katmanı — Section, WorkspaceHeader, ekran dizilimleri |
 | `11-design-tokens.md` | Renk/boşluk/gölge yazarken |
 | `12-motion-system.md` | Animasyon yazarken |
 | `15-execution-plan.md` | Sprint sırası — hangi işi ne zaman |
@@ -94,15 +94,15 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…107` serisindedir (105 S7 dalında).
+Bu repodaki kararlar `UI-ADR-001…117` serisindedir.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-108`'den**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-118`'den**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
-⚠️ **Numarayı almadan önce dosyanın sonuna bak.** S6'da iki oturum paralel
-çalıştı ve ikisi de 098'den başlayınca aynı numaraya farklı kararlar yazıldı.
-Karar günlüğü bu repoda geri alınması en zor dosyadır.
+⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
+ÜÇ kez numara çakıştı (098; 099/100 iki kez) çünkü paralel oturumlar aynı
+anda numara aldı. Karar günlüğü bu repoda geri alınması en zor dosyadır.
 
 ### 7. Karar ODIN çekirdeğini etkiliyorsa
 
@@ -178,29 +178,20 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 
 `15-execution-plan.md` — S0…S13.
 Biten: **S1 (Token), S2 (App Shell), S3 (Core Components),
-S4 (Executive Components — 15 bileşen, `10b-executive-components.md`),
-S5 (Executive Briefing + Mission Control, `10c-screens.md` §3–§4),
-S5.5 (Sözleşme Hizalama — UI-ADR-098).**
-
-**S5.5:** ODIN çekirdeği okundu ve `09-data-contracts.md`'nin gerçek
-backend ile uyuşmadığı doğrulandı. Kanonik kaynak ODIN'dir; fark tablosu
-`09b-verified-contracts.md`'de, sahibin vermesi gereken 5 karar
-`13-backend-recommendations.md` §15'te.
-
-Üretildi, sahip onayı bekliyor: **S6 — Amazon Director** (`10c-screens.md`
-§7) — diğer 7 workspace'in şablonu; 3 yeni Executive bileşeni
-(`10b` §17–§19) ve kararlar UI-ADR-099…104 + 106…107.
-
-**FR-0046 hizalaması yapıldı (30 Temmuz, UI-ADR-106/107):** dört ürün
-kavramı meclis sentezi + sahip onayıyla v1 sözleşmeye bağlandı
-(`09b` §10) — ExecutiveKPI/Alert/Opportunity KABUL (value zarfı
-`{status,value,reason}`, FR-0043 alanları mock'ta bile boş), Mission RET
-→ `Goal` (`GoalBoard`, kolonlar gerçek `level`). ODIN kayıt defterinin
-resmi kapanış paketi `13-...md §17`'de — ODIN tarafı bekliyor.
-Kalan hizalama işleri (Decision · Heartbeat · confidence breakdown) S6
-kapsamı dışıdır ve 09b §9'un 1. maddesindedir.
-Veri hâlâ **mock**, hepsi `meta.source === "mock"` ile işaretli
-(UI-ADR-094) ve S8'de değişecek.
+S4 (Executive Components — 15 bileşen, `10b-executive-components.md`).**
+Üretildi, sahip onayı bekliyor: **S5 — Executive Briefing + Mission Control**
+(`10c-screens.md`). İlk gerçek ekranlar açıldı; veri **mock**, hepsi
+`meta.source === "mock"` ile işaretli (UI-ADR-094) ve S8'de değişecek.
+Biten (sahip onayı bekliyor): **S5.5 — Sözleşme Hizalama** (UI-ADR-098..100).
+Karar modeli ODIN DecisionRecord'a hizalandı (tier/status/alternatifler/10
+zorunlu öneri alanı), kanonik güven bantları + 8 bileşenli döküm, üç verdict
+(Onayla/Reddet/Ertele + A/B/C gerekçe kuralı), kabuk scroll onarımı, durum
+hafızası, contract fixture testi (`contracts/odin/`).
+Sıradaki: **S6 — Amazon Director.** ✅ KAPI AÇIK: FR-0046 **ADR-0143 ile
+karara bağlandı** (30 Tem 2026) — Alert + KPI kanonik zarfları o ADR'de;
+Opportunity = öneri kayıtlarının görünümü, Mission Board = "izlenen
+kararlar + vadesi gelen ertelemeler" görünümü. S6 bu dört karara göre
+tipler/dönüştürür; UI kavram icat etmez.
 
 ### Her sprint sonunda
 

@@ -5,7 +5,7 @@
  *
  * ANTI-FAKE, MOCK'TA DA GEÇERLİ — bu dosyada üç somut örneği var:
  *  1. `netProfit: null` ve `profitAfterAds: null`. COGS Amazon'da yoktur ve
- *     girilmemiştir; net kâr UYDURULMAZ (UI-ADR-099). Yerine `grossProfit`
+ *     girilmemiştir; net kâr UYDURULMAZ (UI-ADR-116). Yerine `grossProfit`
  *     ve neyin hariç tutulduğu gelir.
  *  2. Ölçülmeyen alanlar (bazı SKU'larda `healthScore`, `buyBoxRate`,
  *     `conversionRate`, `inventoryAsOf`) `null` bırakıldı; "0" yazmak
@@ -28,8 +28,6 @@ import type {
   CampaignIntelligence,
   EvidenceRef,
   ExecutiveKPI,
-  MetricValue,
-  Opportunity,
   PPCOverview,
   SimulationCase,
 } from "@/types/executive";
@@ -105,70 +103,87 @@ function bidRecommendation(): AIRecommendation {
     id: "rec-bid-curve",
     recommendation:
       "Kampanya B'de teklifleri %12 düşür, bütçeyi Kampanya D'ye kaydır.",
+    confidence: 78.5,
+    confidenceBreakdown: {
+      knowledge_coverage: 85,
+      evidence_strength: 80,
+      expert_agreement: 88,
+      model_agreement: 75,
+      historical_success: 70,
+      risk_level: 35,
+      missing_information: 25,
+      decision_complexity: 30,
+    },
+    evidence: adsEvidence().slice(0, 3),
+    potentialRisks: [
+      "Teklif düşüşü gösterim payını daha da azaltabilir",
+      "Kayıt dışı sezonluk talep varsa ölçüm yanıltır",
+    ],
+    assumptions: [
+      "Rakip teklif bandı mevcut seviyesinde kalır",
+      "Kampanya D aynı dönüşüm oranını sürdürür",
+    ],
+    flipConditions: [
+      "Kampanya B'nin ACOS'u 7 günde %20 altına inerse teklif geri alınır",
+      "Kampanya D'nin ACOS'u %15'i aşarsa aktarım durdurulur",
+    ],
+    consensusScore: 75.0,
+    disagreementScore: 25.0,
+    minorityOpinions: ["trading: beklet — kur riski nedeniyle 48 saat beklenmeli"],
+    recClass: "B",
     numbers: { ACOS: 31.4, "Hedef ACOS": 18, "Harcama ($)": 640, ROAS: 3.2 },
     causeAnalysis:
       "Kampanya B'de rakip teklifleri yükseldi; CPC arttı ama dönüşüm artmadı.",
     impactAnalysis:
       "Mevcut tempoda ayda ~$740 reklam israfı; aynı bütçe D'de 1,8 kat dönüyor.",
-    alternatives: [
-      {
-        title: "Teklifi %12 düşür, bütçeyi D'ye kaydır",
-        description: "Kayıp kampanyayı kısıp kazananı besle.",
-        expectedOutcome: "ACOS ~%24'e iner, toplam satış korunur.",
-        risk: "low",
-      },
-      {
-        title: "Kampanya B'yi tamamen durdur",
-        description: "Bütçenin tamamı D ve A'ya gider.",
-        expectedOutcome: "ACOS hızla düşer, marka görünürlüğü azalır.",
-        risk: "medium",
-      },
-    ],
     expectedFinancialResult: { amount: 740, currency: USD },
-    confidence: 91,
-    evidence: adsEvidence().slice(0, 3),
     whyGenerated: "Kampanya B'nin ACOS'u 14 gündür hedefin iki katında.",
     responsibleDirector: "Amazon AI",
-    relatedKnowledge: ["PPC oynaklık politikası", "Kampanya bütçe hiyerarşisi"],
     lastValidated: ago(20 * 60_000),
-    potentialRisks: [
-      "Teklif düşüşü gösterim payını daha da azaltabilir",
-      "Kayıt dışı sezonluk talep varsa ölçüm yanıltır",
-    ],
   };
 }
 
 function scaleRecommendation(): AIRecommendation {
   return {
     id: "rec-scale-d",
-    recommendation: "Kampanya D bütçesini %20 artır, 7 gün sonra ölç.",
+    recommendation:
+      "Kampanya D bütçesini %20 artır, 7 gün sonra ölç.",
+    confidence: 82.0,
+    confidenceBreakdown: {
+      knowledge_coverage: 85,
+      evidence_strength: 80,
+      expert_agreement: 88,
+      model_agreement: 75,
+      historical_success: 70,
+      risk_level: 35,
+      missing_information: 25,
+      decision_complexity: 30,
+    },
+    evidence: adsEvidence().slice(0, 2),
+    potentialRisks: [
+      "Artan bütçe daha zayıf arama terimlerine kayabilir",
+    ],
+    assumptions: [
+      "Talep mevcut seviyesinde kalır",
+      "Stok kısıtı yok — SKU-1042 tükenirse varsayım düşer",
+    ],
+    flipConditions: [
+      "ACOS %15'i aşarsa artış geri alınır",
+      "Bütçe gün sonuna kadar tükenmemeye başlarsa artış durdurulur",
+    ],
+    consensusScore: 83.3,
+    disagreementScore: 16.7,
+    minorityOpinions: ["finance: beklet — nakit tamponu 30 güne çıkana kadar"],
+    recClass: "B",
     numbers: { ACOS: 11.2, ROAS: 8.9, "Bütçe tükenme saati": "14:20" },
     causeAnalysis:
       "Kampanya D bütçesini her gün öğleden sonra bitiriyor; talep karşılanmıyor.",
     impactAnalysis:
       "Kaçırılan gösterimler günde ~$98 satış demek; ACOS hedefin çok altında.",
-    alternatives: [
-      {
-        title: "Bütçeyi %20 artır",
-        description: "Kademeli artış, 7 gün ölçüm.",
-        expectedOutcome: "Gün boyu yayın; ACOS %13 civarına çıkar.",
-        risk: "low",
-      },
-      {
-        title: "Bütçeyi sabit tut, teklifi %8 artır",
-        description: "Aynı bütçeyle daha iyi konum al.",
-        expectedOutcome: "Satış artışı daha küçük, nakit etkisi yok.",
-        risk: "low",
-      },
-    ],
     expectedFinancialResult: { amount: 2_810, currency: USD },
-    confidence: 87,
-    evidence: adsEvidence().slice(0, 2),
     whyGenerated: "Bütçe 9 gündür gün bitmeden tükeniyor ve ACOS hedefin altında.",
     responsibleDirector: "Amazon AI",
-    relatedKnowledge: ["Bütçe tükenme raporu", "2026-Q3 reklam planı"],
     lastValidated: ago(25 * 60_000),
-    potentialRisks: ["Artan bütçe daha zayıf arama terimlerine kayabilir"],
   };
 }
 
@@ -177,109 +192,68 @@ function scaleRecommendation(): AIRecommendation {
    Uyarılar ve fırsatlar — 09-...md §6 · §7 (yalnızca Amazon modülü)
    -------------------------------------------------------------------------- */
 
-/* FR-0046 v1 Alert (UI-ADR-106): source üretici kimliğidir; severity yalnızca
-   belgelenmiş eşleme varken yazılır (mock'ta amazon_director eşlemesi VAR
-   sayılır, biri bilerek severity'siz bırakıldı — rozetsiz hâl de görülsün). */
+/* ADR-0143 §1 kanonik Alert zarfı — zarfta olmayan alan mock'ta da yok. */
 export function amazonAlertsMock(): DataEnvelope<Alert[]> {
   return mockEnvelope([
     {
-      id: "amazon_director.buybox_loss.3sku",
-      source: "amazon_director",
+      id: "AL-buybox-3sku",
       severity: "critical",
       title: "BuyBox kaybı — 3 SKU",
-      summary: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
+      module: "amazon",
       requiresAction: true,
-      asOf: ago(12 * 60_000),
+      evidence: ["KO-amazon-buybox-2026-07-30"],
+      createdAt: ago(12 * 60_000),
+      suggestedAction: "Repricer eşiklerini gözden geçir.",
     },
     {
-      id: "amazon_director.stockout_risk.sku-1042",
-      source: "amazon_director",
-      severity: "high",
+      id: "AL-stockout-sku-1042",
+      severity: "risk",
       title: "Stok tükenme riski — SKU-1042",
-      summary: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
+      module: "amazon",
       requiresAction: true,
-      asOf: ago(3 * 60 * 60_000),
+      evidence: ["KO-amazon-inventory-2026-07-30"],
+      createdAt: ago(3 * 60 * 60_000),
+      suggestedAction: "600 adetlik acil sipariş aç.",
     },
     {
-      id: "amazon_director.acos_rising.camp-b",
-      source: "amazon_director",
-      severity: "high",
+      id: "AL-acos-camp-b",
+      severity: "risk",
       title: "ACOS yükselişi — Kampanya B",
-      summary: "ACOS %31,4'e çıktı; hedef %18.",
+      module: "amazon",
       requiresAction: true,
-      asOf: ago(70 * 60_000),
+      evidence: ["KO-ads-ads_report-2026-07-30"],
+      createdAt: ago(70 * 60_000),
+      suggestedAction: "Teklifleri %12 düşür, bütçeyi D'ye kaydır.",
     },
-    /* Severity ATLANDI (null değil): listing kalitesi için belgelenmiş bir
-       önem eşlemesi yok — uydurulmaz, kayıt rozetsiz ve en sonda listelenir. */
     {
-      id: "improvement_detectors.listing_error.sku-3310",
-      source: "improvement_detectors",
+      id: "AL-listing-sku-3310",
+      severity: "warning",
       title: "Listeleme hatası — SKU-3310",
-      summary: "Görsel çözünürlüğü Amazon eşiğinin altında; arama görünürlüğü düşük.",
+      module: "amazon",
       requiresAction: true,
-      asOf: ago(26 * 60 * 60_000),
+      evidence: ["KO-amazon-asin-catalog-2026H1-0001"],
+      createdAt: ago(26 * 60 * 60_000),
     },
     /* requiresAction:false → listeye GİRMEZ, elendiği altta yazılır. */
     {
-      id: "amazon_director.spapi_sync.done",
-      source: "amazon_director",
-      severity: "low",
+      id: "AL-spapi-sync-done",
+      severity: "info",
       title: "SP-API senkronizasyonu tamamlandı",
-      summary: "Bilgi amaçlı — aksiyon gerektirmez.",
+      module: "amazon",
       requiresAction: false,
-      asOf: ago(18 * 60_000),
+      evidence: [],
+      createdAt: ago(18 * 60_000),
     },
   ] satisfies Alert[]);
 }
 
-/* FR-0046 v1 Opportunity (UI-ADR-106): suggestedAction ZORUNLU düz metin;
-   estimatedImpact/confidence/deadline/category sözleşmede YOK — kaynağı
-   kanıtlanmadan parasal etki yazılmaz (eski "Gelir etkisi" kartı söküldü). */
-export function amazonOpportunitiesMock(): DataEnvelope<Opportunity[]> {
-  return mockEnvelope([
-    {
-      id: "amazon_director.scale.camp-d",
-      source: "amazon_director",
-      title: "Kampanya D ölçeklenebilir — bütçe gün bitmeden tükeniyor",
-      summary:
-        "ACOS %11,2 ile hedefin altında ve günlük bütçe 9 gündür gün bitmeden tükeniyor; talep karşılanmıyor.",
-      suggestedAction: "Kampanya D bütçesini %20 artır, 7 gün sonra yeniden ölç.",
-      evidence: ["campaign:camp-d", "metric:acos", "metric:budget_exhaustion"],
-      asOf: ago(35 * 60_000),
-    },
-    {
-      id: "amazon_director.keyword.katlanir-kamp-sandalyesi",
-      source: "amazon_director",
-      title: "Yükselen arama terimi — 'katlanır kamp sandalyesi'",
-      summary:
-        "Terim 14 günde gösterim payı kazandı; mevcut kampanyalar bu terimde zayıf konumda.",
-      suggestedAction:
-        "Terimi Kampanya D'ye exact match olarak ekle ve ilk 7 gün CPC'yi izle.",
-      evidence: ["keyword:katlanır kamp sandalyesi", "metric:impression_share"],
-      asOf: ago(55 * 60_000),
-    },
-    {
-      id: "improvement_detectors.reprice.sku-2988",
-      source: "improvement_detectors",
-      title: "SKU-2988 fiyatı rakip bandının %8 altında",
-      summary:
-        "BuyBox payı %99,1 — fiyat rekabet baskısı yokken banda yaklaşmak marj bırakıyor.",
-      suggestedAction:
-        "Fiyatı kademeli olarak rakip bandına yaklaştır; BuyBox payı %95 altına inerse geri al.",
-      evidence: ["sku:SKU-2988", "metric:buybox_rate"],
-      asOf: ago(2 * 60 * 60_000),
-    },
-    {
-      id: "innovation.bundle.sku-1188-2001",
-      source: "innovation",
-      title: "SKU-1188 + SKU-2001 paket satışı",
-      summary:
-        "İki ürün aynı sepette sık görülüyor; paket, kamp masası stok baskısını da hafifletir.",
-      suggestedAction: "Paket listing oluştur ve 21 gün dönüşümünü ölç.",
-      evidence: ["sku:SKU-1188", "sku:SKU-2001"],
-      asOf: ago(5 * 60 * 60_000),
-    },
-  ] satisfies Opportunity[]);
+/*
+ * ADR-0143 §3: fırsat AYRI KAYIT DEĞİL — öneri kaydının pozitif sınıfı.
+ * Mock da bu yüzden `AIRecommendation` döndürür. Pozitif sınıfı işaretleyen
+ * alan ODIN'de bildirilmedi (13-...md §17) → filtre uygulanmaz.
+ */
+export function amazonOpportunitiesMock(): DataEnvelope<AIRecommendation[]> {
+  return mockEnvelope([scaleRecommendation(), bidRecommendation()]);
 }
 
 /* --------------------------------------------------------------------------
@@ -296,7 +270,7 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
       healthScore: 78,
       revenue: { amount: 99_600, currency: USD },
 
-      /* NET KÂR HESAPLANAMIYOR — UI-ADR-099. Uydurulmaz. */
+      /* NET KÂR HESAPLANAMIYOR — UI-ADR-116. Uydurulmaz. */
       netProfit: null,
       grossProfit: { amount: 62_860, currency: USD },
       profitBasis: {
@@ -318,9 +292,7 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
       inventoryValue: { amount: 45_950, currency: USD },
       topRisk: alerts.find((a) => a.severity === "critical") ?? null,
       topOpportunity: opportunities[0] ?? null,
-      /* Kaynak: goals.py `progress_pct` (g-ppc hedefi). ADR-0132: nötr 50
-         buraya asla yazılmaz — ölçülmüyorsa null gelir. */
-      goalProgressPct: 42,
+
 
       intelligence: {
         numbers: {
@@ -356,88 +328,78 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
    ile söyler. Boş yorum paneli dürüsttür; üretilmişi, kuralın önlediği
    hatanın ta kendisidir.
 
-   "Net Profit" kartı YOKTUR (UI-ADR-099): hesaplanamayan bir kâr rakamı
+   "Net Profit" kartı YOKTUR (UI-ADR-116): hesaplanamayan bir kâr rakamı
    yerine "Gross Profit (ücretler hariç)" gösterilir ve neyin hariç tutulduğu
    şeridin altında yazılır.
    -------------------------------------------------------------------------- */
 
-/** FR-0044 zarfı kısayolu — mock'ta hepsi ölçülmüş değerlerdir. */
-const val = (n: number): MetricValue => ({ status: "available", value: n });
-
+/* ADR-0143 §2: sınır zarfı DÜZ. Sparkline/forecast/insight sözleşme dışı,
+   bu yüzden mock'ta da yok. */
 function kpi(
-  over: Partial<ExecutiveKPI> &
-    Pick<ExecutiveKPI, "id" | "metricKey" | "label" | "value" | "unit">
+  over: Partial<ExecutiveKPI> & Pick<ExecutiveKPI, "id" | "label" | "unit">
 ): ExecutiveKPI {
-  return { asOf: ago(30 * 60_000), source: "amazon_director", ...over };
+  return { status: "available", value: null, asOf: ago(30 * 60_000), ...over };
 }
 
 export function amazonKpisMock(): DataEnvelope<ExecutiveKPI[]> {
   return mockEnvelope([
     kpi({
-      id: "amazon.net_sales",
-      metricKey: "net_sales",
+      id: "net_sales",
       label: "Net Sales",
-      value: val(99_600),
+      value: 99_600,
       unit: "currency",
-      currencyCode: USD,
+      currency: USD,
     }),
     kpi({
-      id: "amazon.gross_profit",
-      metricKey: "gross_profit",
+      id: "gross_profit",
       label: "Gross Profit (ücretler hariç)",
-      value: val(62_860),
+      value: 62_860,
       unit: "currency",
-      currencyCode: USD,
+      currency: USD,
     }),
     kpi({
-      id: "amazon.acos",
-      metricKey: "acos",
+      id: "acos",
       label: "ACOS",
-      value: val(18.1),
+      value: 18.1,
       unit: "percent",
       scale: "0-100",
     }),
     kpi({
-      id: "amazon.tacos",
-      metricKey: "tacos",
+      id: "tacos",
       /* 135.000 / 4.182.000 — PPC harcaması ile ciro arasındaki gerçek oran
          (UI-ADR-103). Eskiden 9,4 yazıyordu; o değer ekrandaki harcamayla
          160 kat uyumsuzdu. */
       label: "TACOS",
-      value: val(3.2),
+      value: 3.2,
       unit: "percent",
       scale: "0-100",
     }),
     kpi({
-      id: "amazon.roas",
-      metricKey: "roas",
+      id: "roas",
       /* PPC kartıyla AYNI değer: 745.900 / 135.000 = 5,5 (UI-ADR-103).
          Şerit ile kart farklı ROAS söylerse ikisi de inandırıcılığını
          kaybeder. `amazon.test.ts` bu eşitliği koruyor. */
       label: "ROAS",
-      value: val(5.5),
+      value: 5.5,
       unit: "score",
     }),
     kpi({
-      id: "amazon.active_skus",
-      metricKey: "active_skus",
+      id: "active_skus",
       label: "Active SKUs",
-      value: val(41),
+      value: 41,
       unit: "count",
     }),
     kpi({
-      id: "amazon.inventory_value",
-      metricKey: "inventory_value",
+      id: "inventory_value",
       label: "Inventory Value",
-      value: val(45_950),
+      value: 45_950,
       unit: "currency",
-      currencyCode: USD,
+      currency: USD,
     }),
     kpi({
-      id: "amazon.buybox_rate",
-      metricKey: "buybox_rate",
+      id: "buybox_rate",
       label: "BuyBox Rate",
-      value: val(91.6),
+      value: 91.6,
       unit: "percent",
       scale: "0-100",
     }),
@@ -464,7 +426,7 @@ export function ppcOverviewMock(): DataEnvelope<PPCOverview> {
       sales: { amount: 17_608, currency: USD },
       acos: 18.1,
       roas: 5.5,
-      /* Kâr metriği — COGS olmadan hesaplanamaz (UI-ADR-099). */
+      /* Kâr metriği — COGS olmadan hesaplanamaz (UI-ADR-116). */
       profitAfterAds: null,
     } satisfies PPCOverview,
     { confidence: 88 }
@@ -500,7 +462,6 @@ export function campaignsMock(): DataEnvelope<CampaignIntelligence[]> {
           {
             ...scaleRecommendation(),
             id: "rec-camp-c-partial",
-            alternatives: [scaleRecommendation().alternatives[0]!],
           },
         ],
       },

@@ -1,7 +1,7 @@
 /** S4 · 2 — DecisionCard */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { DecisionCard } from "./decision-card";
-import { decision, envelope } from "./stories.fixtures";
+import { decision, decisionKapanmis, envelope } from "./stories.fixtures";
 
 const meta: Meta = {
   title: "Executive/2 · DecisionCard",
@@ -9,45 +9,48 @@ const meta: Meta = {
 };
 export default meta;
 
-/** Onayla butonu KARTIN ÜZERİNDE — başka ekrana gidilmez. */
+/** Üç verdict kartın üzerinde: Onayla · Reddet · Ertele (ODIN sözlüğü).
+    Sınıf B öneri → gerekçe zorunlu (≥8 karakter); Ertele tarih ister. */
 export const KararVerilebilir: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
       <DecisionCard
         env={envelope(decision, { source: "ai" })}
-        onDecide={(d) => console.log("approved", d.id)}
-        onOpenAnalysis={(d) => console.log("open", d.id)}
+        onVerdict={(d, v) => console.log("verdict", d.id, v)}
       />
     </div>
   ),
 };
 
-/** Veri bayat → onay KİLİTLİ, sebebi yazılı. */
-export const BayatVeriOnayKilitli: StoryObj = {
+/** Bayat veri → ÜÇ eylem de kilitli, sebep yazılı (UI-ADR-092). */
+export const BayatVeriKilitli: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
       <DecisionCard
-        env={envelope(decision, { freshness: "stale", lastUpdated: new Date(Date.now() - 26 * 3600_000).toISOString() })}
-        onDecide={() => {}}
-        onOpenAnalysis={() => {}}
+        env={envelope(decision, {
+          source: "ai",
+          freshness: "stale",
+          lastUpdated: new Date(Date.now() - 6 * 60 * 60_000).toISOString(),
+        })}
+        onVerdict={() => {}}
       />
     </div>
   ),
 };
 
-/** Karar kapandıysa onay butonu hiç çizilmez. */
-export const Onaylanmis: StoryObj = {
+/** Verdict verilmiş: eylem yok, insan kararı gerekçesiyle görünür. */
+export const Kapanmis: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
-      <DecisionCard
-        env={envelope({ ...decision, status: "closed" as const })}
-        onDecide={() => {}}
-        onOpenAnalysis={() => {}}
-      />
+      <DecisionCard env={envelope(decisionKapanmis, { source: "ai" })} onVerdict={() => {}} />
     </div>
   ),
 };
 
 export const VeriYok: StoryObj = {
-  render: () => <DecisionCard env={null} />,
+  render: () => (
+    <div className="max-w-2xl">
+      <DecisionCard env={null} />
+    </div>
+  ),
 };
