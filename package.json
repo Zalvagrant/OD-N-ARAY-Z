@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "build:release": "node scripts/assert-release-mode.mjs && next build"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.8",
     "framer-motion": "^12.43.0",
@@ -18,6 +20,7 @@
     "next": "16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

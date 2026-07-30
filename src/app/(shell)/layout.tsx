@@ -5,11 +5,18 @@
  * (03-information-architecture.md §1 çıkış kriteri).
  */
 import { AppShell } from "@/components/layout/app-shell";
+import { OdinQueryProvider } from "@/lib/data/query";
 
 export default function ShellLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AppShell>{children}</AppShell>;
+  /* Veri katmanı kabuğun İÇİNDE: shell yeniden mount olmadığı için önbellek
+     de workspace geçişlerinde hayatta kalır (S7 D7.1). */
+  return (
+    <OdinQueryProvider>
+      <AppShell>{children}</AppShell>
+    </OdinQueryProvider>
+  );
 }

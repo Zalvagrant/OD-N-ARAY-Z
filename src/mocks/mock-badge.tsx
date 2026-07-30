@@ -9,9 +9,13 @@
  */
 
 import { Badge } from "@/components/ui/badge";
+import { IS_MOCK } from "@/lib/data/mode";
 
 export function MockBadge({ note }: { note?: string }) {
-  if (process.env.NODE_ENV === "production") return null;
+  /* S7 D7.10 — rozetin kaynağı artık TEK anahtar. Eskiden NODE_ENV'e
+     bakıyordu: gerçek veriye geçildiği gün geliştirme derlemesinde rozet
+     durmaya devam ederdi ve tersi de mümkündü. */
+  if (!IS_MOCK) return null;
 
   const reason =
     note ?? "Bu ekran mock veriyle besleniyor. Gerçek veri S8'de bağlanacak.";

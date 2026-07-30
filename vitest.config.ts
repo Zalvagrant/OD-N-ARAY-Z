@@ -12,6 +12,13 @@ const dirname =
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
+  /* `@/` yolu tsconfig'te tanımlı ve tüm kaynak ağacı onu kullanıyor; Next
+     ve Storybook kendi çözücülerinden biliyor ama saf `unit` projesi (node
+     ortamı) bilmiyordu. Alias burada olmadan `@/` import eden HİÇBİR unit
+     testi yazılamaz — S7 veri katmanı ilk denemede buna takıldı. */
+  resolve: {
+    alias: { '@': path.join(dirname, 'src') },
+  },
   test: {
     projects: [
       {
