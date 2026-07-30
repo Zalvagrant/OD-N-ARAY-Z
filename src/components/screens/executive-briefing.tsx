@@ -17,7 +17,6 @@
  */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Decision } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
@@ -48,6 +47,7 @@ import { AlertStack } from "@/components/executive/alert-stack";
 import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { DecisionQueue } from "@/components/executive/decision-queue";
+import type { VerdictInput } from "@/components/executive/decision-card";
 import { DirectorCard } from "@/components/executive/director-card";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { OpportunityCard } from "@/components/executive/opportunity-card";
@@ -162,8 +162,7 @@ export function ExecutiveBriefing({
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
   demo?: "loading" | "empty" | "error";
 }) {
-  const router = useRouter();
-  const [approved, setApproved] = useState<string[]>([]);
+  const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
 
   const hero = useMockData(heroMock);
   const decisions = useMockData(decisionsMock);
@@ -191,8 +190,10 @@ export function ExecutiveBriefing({
     pulse.reload();
   };
 
-  const onApprove = (d: Decision) => setApproved((a) => [...new Set([...a, d.id])]);
-  const onOpenAnalysis = () => router.push("/decisions");
+  /* Verdict S7'de POST /api/command'a bağlanacak (ER-0025). Şimdilik
+     oturum içi işaretlenir ve KAYDEDILMEDIGI açıkça yazılır. */
+  const onVerdict = (d: Decision, v: VerdictInput) =>
+    setVerdicts((m) => ({ ...m, [d.id]: v }));
 
   return (
     /* Okunabilir satır uzunluğu korunur: ultrawide'da içerik gerilmez
@@ -239,13 +240,13 @@ export function ExecutiveBriefing({
         <DecisionQueue
           env={isEmpty ? empty(decisions.data) : decisions.data}
           limit={3}
-          onApprove={onApprove}
-          onOpenAnalysis={onOpenAnalysis}
+          onVerdict={onVerdict}
         />
-        {approved.length > 0 && (
+        {Object.keys(verdicts).length > 0 && (
           <Text size="sm" tone="tertiary" className="mt-3">
-            {approved.length} karar bu oturumda işaretlendi. Onay kaydı backend
-            bağlanınca (S8) kalıcı olacak — şu an hiçbir yere yazılmadı.
+            {Object.keys(verdicts).length} verdict bu oturumda işaretlendi.
+            Kayıt S7&apos;de `ceo verdict` üzerinden kalıcı olacak (ER-0025) —
+            şu an HİÇBİR YERE yazılmadı.
           </Text>
         )}
       </Section>

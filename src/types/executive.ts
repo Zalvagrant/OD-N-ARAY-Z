@@ -19,6 +19,22 @@
  * `12 → "▲ %12"` örneğiyle açıkça 0–100 olarak dondurmuştur.
  */
 
+import type {
+  OdinAlternative,
+  OdinConfidenceBreakdown,
+  OdinDecisionStatus,
+  OdinDecisionTier,
+  OdinRecClass,
+  OdinVerdict,
+} from "./odin";
+
+export type {
+  OdinAlternative,
+  OdinConfidenceBreakdown,
+  OdinDecisionTier,
+  OdinVerdict,
+} from "./odin";
+
 export interface Money {
   amount: number;
   currency: string;
@@ -58,24 +74,49 @@ export interface DirectorOpinion {
 
 export interface AIRecommendation {
   id: string;
+  /** ODIN `recommendation.text` */
   recommendation: string;
-
-  numbers: Record<string, number | string>;
-  causeAnalysis: string;
-  impactAnalysis: string;
-  /** En az 2 — zorunlu (07-...md §7). Altındaysa öneri RENDER EDİLMEZ. */
-  alternatives: Alternative[];
-  expectedFinancialResult: { amount?: number; percent?: number; currency?: string };
+  /** 0–100 — bantları ODIN belirler (types/odin.ts), UI eşik icat etmez. */
   confidence: number;
+  /** ODIN `confidence_breakdown` — 8 kanonik bileşen. Kara kutu sayı yok. */
+  confidenceBreakdown: OdinConfidenceBreakdown;
+  /** ODIN `evidence_snapshot` karşılığı (UI zenginleştirilmiş biçimi). */
   evidence: EvidenceRef[];
-
-  /* Explainability zorunlulukları — biri eksikse öneri gösterilmez */
-  whyGenerated: string;
-  responsibleDirector: string;
-  relatedKnowledge: string[];
-  /** ISO 8601 */
-  lastValidated: string;
+  /** ODIN `risks` */
   potentialRisks: string[];
+  /** ODIN `assumptions` — öneri neye dayanıyor. */
+  assumptions: string[];
+  /** ODIN `flip_conditions` — "bu öneriyi ne değiştirir?" En kritik
+      açıklanabilirlik alanı; UI-ADR-098'e kadar HİÇ gösterilmiyordu. */
+  flipConditions: string[];
+  /** ODIN `consensus_score` (0–100). */
+  consensusScore: number;
+  /** ODIN `disagreement_score` = 100 − consensus (consensus.py TÜRETİR;
+      UI ayrı ölçüm sanmaz — UI-ADR-100). */
+  disagreementScore: number;
+  /** ODIN `minority_opinions` — "üye: seçenek — gerekçe" düz metinleri. */
+  minorityOpinions: string[];
+
+  /** Verdict gerekçe kuralının anahtarı (executive.classify, ADR-0131):
+      A bilgilendirme · B/C'de gerekçe ≥8 karakter zorunlu. */
+  recClass?: OdinRecClass;
+
+  /* ------------------------------------------------------------------
+     ODIN karar şemasında OLMAYAN alanlar — hepsi opsiyonel ve adapter
+     tablosunda `not_exposed` işaretli (09b §9). Kaynakları oluşursa
+     dolar; UI bunları ASLA zorunlu saymaz, yoksa satır çizilmez.
+     `alternatives` BURADAN KALDIRILDI: ODIN'de kararın alanıdır
+     (UI-ADR-091 ♻️ revizyonu → UI-ADR-100).
+     ------------------------------------------------------------------ */
+  numbers?: Record<string, number | string>;
+  causeAnalysis?: string;
+  impactAnalysis?: string;
+  expectedFinancialResult?: { amount?: number; percent?: number; currency?: string };
+  whyGenerated?: string;
+  responsibleDirector?: string;
+  relatedKnowledge?: string[];
+  /** ISO 8601 */
+  lastValidated?: string;
 }
 
 /* --------------------------------------------------------------------------
@@ -118,20 +159,7 @@ export interface ExecutiveKPI {
    §2 Decision
    -------------------------------------------------------------------------- */
 
-export type DecisionStatus =
-  | "proposed" | "collecting_evidence" | "under_review"
-  | "approved" | "rejected" | "deferred"
-  | "executing" | "monitoring" | "completed";
-
-export interface DecisionScore {
-  outcomeSuccess: number;
-  onTime: boolean;
-  expectedROI: number;
-  actualROI: number;
-  riskManagement: number;
-  evidenceQuality: number;
-  aiPredictionAccuracy: number;
-}
+export type DecisionStatus = OdinDecisionStatus;
 
 export interface DecisionEvent {
   id: string;
@@ -140,39 +168,39 @@ export interface DecisionEvent {
   description?: string;
 }
 
+/**
+ * ODIN `DecisionRecord`un UI görünümü (09b §1). Alan adları camelCase'e
+ * çevrilir, ANLAM değiştirilmez. Eski 19 alanlık UI tipi UYDURMAYDI
+ * (UI-ADR-098): priority/financialImpact/riskLevel/expectedROI/
+ * directorOpinions/timeline/score ODIN'de yok ve kaldırıldı.
+ */
 export interface Decision {
   id: string;
-  type: "finance" | "amazon" | "trading" | "strategy" | "operations";
-  title: string;
-  executiveSummary: string;
-  priority: 1 | 2 | 3 | 4 | 5;
-  status: DecisionStatus;
+  /** ODIN `question` — kart başlığı budur. */
+  question: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** D1 geri alınabilir · D2 geri alması maliyetli · D3 stratejik. */
+  tier: OdinDecisionTier;
+  status: OdinDecisionStatus;
+  domain?: string;
 
-  strategicImpact: "low" | "medium" | "high";
-  financialImpact: { amount: number; currency: string; horizon: string };
-  riskLevel: "low" | "medium" | "high" | "critical";
-  aiConfidence: number;
-  evidenceQuality: number;
-  reversibility: "reversible" | "partially" | "irreversible";
-  executionComplexity: "low" | "medium" | "high";
-  expectedROI: number;
-  actualROI?: number;
-  lessonsLearned?: string;
+  /** KARARIN alanı, en az 2 (şema minItems) — önerinin değil. */
+  alternatives: OdinAlternative[];
+  recommendation: AIRecommendation;
 
-  directorOpinions: DirectorOpinion[];
-  consensus: number;
-  disagreement: number;
-  minorityOpinion?: DirectorOpinion;
+  /** Verdict verildiyse. Yalnızca insan kapatır (decided_by const). */
+  humanDecision?: {
+    outcome: OdinVerdict;
+    humanReasoning?: string;
+    /** `deferred` için zorunlu gelecek tarih (ADR-0131). */
+    revisitAt?: string;
+  };
 
-  /** En az 2 — backend bu kuralı ihlal eden Decision üretemez. */
-  alternatives: Alternative[];
-  evidence: EvidenceRef[];
-  relatedDecisions: string[];
-  timeline: DecisionEvent[];
-  score?: DecisionScore;
-
-  /** Sözleşme dışı, opsiyonel — dosya başlığındaki "TEK SAPMA" notuna bak. */
-  recommendation?: AIRecommendation;
+  expectedOutcome?: string;
+  monitoringCheckpoints?: string[];
+  lessonsLearned?: string[];
+  relatedDecisions?: string[];
 }
 
 /* --------------------------------------------------------------------------

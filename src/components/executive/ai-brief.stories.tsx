@@ -1,7 +1,7 @@
 /** S4 · 4 — AIBrief */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { AIBrief } from "./ai-brief";
-import { brief, envelope, recommendationTekAlternatif } from "./stories.fixtures";
+import { brief, envelope, recommendationEksikAlan } from "./stories.fixtures";
 
 const meta: Meta = {
   title: "Executive/4 · AIBrief",
@@ -25,7 +25,7 @@ export const BesAdim: StoryObj = {
 export const OneriBastirildi: StoryObj = {
   render: () => (
     <div className="max-w-3xl">
-      <AIBrief env={envelope({ ...brief, recommendation: recommendationTekAlternatif })} />
+      <AIBrief env={envelope({ ...brief, recommendation: recommendationEksikAlan })} />
     </div>
   ),
 };

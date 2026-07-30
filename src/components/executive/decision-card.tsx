@@ -1,27 +1,44 @@
 "use client";
 
 /**
- * DecisionCard — 05-dashboard.md §3.2.
+ * DecisionCard — ODIN DecisionRecord'un kartı (09b §1, UI-ADR-100).
  *
- * EN ÖNEMLİ ETKİLEŞİM KURALI: `Onayla` butonu KARTIN ÜZERİNDEDİR. CEO karar
- * vermek için başka bir ekrana gitmek zorunda değildir. Detay isterse
- * `Analizi aç` ile Decision Center'a geçer.
+ * EN ÖNEMLİ ETKİLEŞİM KURALI: verdict KARTIN ÜZERİNDEDİR. CEO karar vermek
+ * için başka bir ekrana gitmez. ÜÇ eylem vardır (ODIN verdict sözlüğü,
+ * lifecycle.py): Onayla · Reddet · Ertele. Yalnızca "Onayla" sunmak, reddi
+ * "karar vermemek" kılığına sokar ve ODIN hiçbir şey öğrenmez
+ * (16-audit §5, meclis kararı).
  *
- * ONAY KİLİDİ (gavadolar · luna): veri `stale` ise onay butonu KİLİTLENİR.
- * Bayat veriyle verilen onay, sahte veriyle verilen onaydan farksızdır.
- * Kilit sebebi butonun üstünde yazılıdır — sessizce disabled edilmez.
+ * GEREKÇE KURALI ODIN'İNDİR (ADR-0131): sınıf B/C öneride HER verdict
+ * gerekçe ister (en az 8 karakter) — onay dahil. `deferred` ayrıca GELECEK
+ * bir tarih ister: "tarihsiz erteleme sessiz bir hayırdır, kimse geri
+ * dönmez." UI bu kuralları İCAT ETMEZ, `ceo verdict`in kurallarını yüzeye
+ * taşır; asıl reddi backend verir (S7'de bağlanınca, ER-0025).
  *
- * MinorityOpinionBanner kartın gövdesindedir, açılır bölümde DEĞİL:
- * "asla katlanıp gizlenmez" (07-...md §6).
+ * ONAY KİLİDİ (UI-ADR-092, üç eyleme genişledi): veri `stale` ise HİÇBİR
+ * verdict verilemez — bayat veriyle ret de onay kadar sakattır. Sebep
+ * butonların üstünde açık metinle yazılıdır.
+ *
+ * ALTERNATİFLER KARARIN ALANIDIR (şema minItems 2) ve bu kartta çizilir —
+ * önerinin içinde değil (UI-ADR-091 ♻️ → UI-ADR-100).
  */
 
 import { useId, useState } from "react";
+import { useDisclosureMemory } from "@/lib/store/navigation";
 import type { Decision } from "@/types/executive";
+import {
+  ODIN_MIN_REASON_CHARS,
+  ODIN_REASON_REQUIRED_CLASSES,
+  type OdinVerdict,
+} from "@/types/odin";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heading, Num, Text } from "@/components/ui/typography";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Heading, Text } from "@/components/ui/typography";
+import { useNow } from "@/lib/clock/tick";
 import { DataGuard } from "./data-guard";
 import { ConfidenceBadge } from "./confidence-badge";
 import { TrustSignal } from "./trust-signal";
@@ -30,43 +47,173 @@ import { CouncilView } from "./council-view";
 import { MinorityOpinionBanner } from "./minority-opinion-banner";
 import { AIRecommendationView, canRenderRecommendation } from "./ai-recommendation-card";
 
-const RISK_TONE = { low: "success", medium: "warning", high: "danger", critical: "danger" } as const;
-const RISK_LABEL = { low: "Düşük", medium: "Orta", high: "Yüksek", critical: "Kritik" } as const;
+/** D1 geri alınabilir · D2 geri alması maliyetli · D3 stratejik (glossary). */
+const TIER = {
+  D1: { variant: "info", label: "D1 · geri alınabilir" },
+  D2: { variant: "warning", label: "D2 · geri alması maliyetli" },
+  D3: { variant: "danger", label: "D3 · stratejik" },
+} as const;
 
-/** Onay bu durumlarda anlamsızdır — buton hiç çizilmez. */
-const CLOSED: Decision["status"][] = ["approved", "rejected", "completed"];
-
-const STATUS_LABEL: Record<Decision["status"], string> = {
-  proposed: "Önerildi",
-  collecting_evidence: "Kanıt toplanıyor",
-  under_review: "İncelemede",
-  approved: "Onaylandı",
-  rejected: "Reddedildi",
-  deferred: "Ertelendi",
-  executing: "Uygulanıyor",
+const STATUS_LABEL = {
+  open: "Açık",
   monitoring: "İzleniyor",
-  completed: "Tamamlandı",
-};
+  closed: "Kapandı",
+} as const;
+
+const OUTCOME = {
+  approved: { variant: "success", label: "Onaylandı" },
+  rejected: { variant: "danger", label: "Reddedildi" },
+  deferred: { variant: "secondary", label: "Ertelendi" },
+} as const;
+
+const ALT_RISK = {
+  low: { variant: "success", label: "düşük" },
+  medium: { variant: "warning", label: "orta" },
+  high: { variant: "danger", label: "yüksek" },
+} as const;
+
+export interface VerdictInput {
+  verdict: OdinVerdict;
+  reason?: string;
+  /** deferred için zorunlu, YYYY-MM-DD */
+  revisitAt?: string;
+}
+
+/* --------------------------------------------------------------------------
+   Verdict formu — ADR-0131 kurallarının yüzeyi. Modal değil: karar kartın
+   üzerinde verilir, bağlam kaybolmaz.
+   -------------------------------------------------------------------------- */
+
+function VerdictForm({
+  decision,
+  pending,
+  onSubmit,
+  onCancel,
+}: {
+  decision: Decision;
+  pending: OdinVerdict;
+  onSubmit: (v: VerdictInput) => void;
+  onCancel: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [revisitAt, setRevisitAt] = useState("");
+  const now = useNow(); // merkezi saat (UI-ADR-089) — render'da Date.now() yok
+
+  const recClass = decision.recommendation.recClass;
+  const reasonRequired =
+    recClass !== undefined && ODIN_REASON_REQUIRED_CLASSES.includes(recClass);
+  const reasonOk = !reasonRequired || reason.trim().length >= ODIN_MIN_REASON_CHARS;
+
+  /* "Tarihsiz erteleme sessiz bir hayırdır" — gelecek tarih şart.
+     Saat henüz gelmediyse (now === null) karar verilmez: tahmin yok. */
+  const dateOk =
+    pending !== "deferred" ||
+    (revisitAt !== "" && now !== null && new Date(revisitAt).getTime() > now);
+
+  const LABEL: Record<OdinVerdict, string> = {
+    approved: "Onayı kaydet",
+    rejected: "Reddi kaydet",
+    deferred: "Ertelemeyi kaydet",
+  };
+
+  return (
+    <div className="flex w-full flex-col gap-3 rounded-sm border border-line p-3">
+      <Field
+        label={
+          reasonRequired
+            ? `Gerekçe (sınıf ${recClass} — zorunlu, en az ${ODIN_MIN_REASON_CHARS} karakter)`
+            : "Gerekçe (isteğe bağlı)"
+        }
+        description={
+          reasonRequired
+            ? "ODIN'in geri besleme döngüsü (ADR-0046) bu gerekçeden öğrenir."
+            : undefined
+        }
+      >
+        {(props) => (
+          <Input
+            {...props}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Bu kararı neden böyle veriyorsun?"
+          />
+        )}
+      </Field>
+
+      {pending === "deferred" && (
+        <Field
+          label="Yeniden ele alma tarihi (zorunlu)"
+          description="Tarihsiz erteleme sessiz bir hayırdır — ODIN o gün geri getirir."
+        >
+          {(props) => (
+            <Input
+              {...props}
+              type="date"
+              value={revisitAt}
+              onChange={(e) => setRevisitAt(e.target.value)}
+            />
+          )}
+        </Field>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant={pending === "rejected" ? "danger" : "primary"}
+          size="sm"
+          disabled={!reasonOk || !dateOk}
+          onClick={() =>
+            onSubmit({
+              verdict: pending,
+              reason: reason.trim() || undefined,
+              revisitAt: pending === "deferred" ? revisitAt : undefined,
+            })
+          }
+        >
+          {LABEL[pending]}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>
+          Vazgeç
+        </Button>
+        {!reasonOk && (
+          <Text size="sm" tone="tertiary">
+            Sınıf {recClass} kararı gerekçesiz kapanamaz.
+          </Text>
+        )}
+        {pending === "deferred" && !dateOk && (
+          <Text size="sm" tone="tertiary">
+            Gelecek bir tarih seç.
+          </Text>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------------------
+   View
+   -------------------------------------------------------------------------- */
 
 function DecisionView({
   decision,
   meta,
-  onApprove,
-  onOpenAnalysis,
+  onVerdict,
 }: {
   decision: Decision;
   meta: DataMeta;
-  onApprove?: (d: Decision) => void;
-  onOpenAnalysis?: (d: Decision) => void;
+  onVerdict?: (d: Decision, v: VerdictInput) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const councilId = useId();
+  const [open, toggleOpen] = useDisclosureMemory(`decision:${decision.id}`);
+  const [pending, setPending] = useState<OdinVerdict | null>(null);
+  const bodyId = useId();
+
+  const tier = TIER[decision.tier];
+  const rec = decision.recommendation;
+  const recOk = canRenderRecommendation(rec);
+  const decided = decision.humanDecision;
 
   const stale = meta.freshness === "stale";
-  const closed = CLOSED.includes(decision.status);
-  const risk = RISK_TONE[decision.riskLevel] ?? "warning";
-  const fin = decision.financialImpact;
-  const rec = decision.recommendation;
+  /* Karar kapanmışsa verdict anlamsız; buton hiç çizilmez. */
+  const closed = decision.status === "closed" || decided !== undefined;
 
   return (
     <Card>
@@ -74,18 +221,21 @@ function DecisionView({
         title={
           <div className="flex flex-col gap-1">
             <span className="flex flex-wrap items-center gap-2">
-              <Badge variant="danger" size="xs">
-                P{decision.priority}
+              <Badge variant={tier.variant} size="xs">
+                {tier.label}
               </Badge>
-              <Badge variant="secondary" size="xs">
-                {STATUS_LABEL[decision.status] ?? decision.status}
+              <Badge
+                variant={decided ? OUTCOME[decided.outcome].variant : "secondary"}
+                size="xs"
+              >
+                {decided ? OUTCOME[decided.outcome].label : STATUS_LABEL[decision.status]}
               </Badge>
-              <Badge variant="ghost" size="xs">
-                {decision.type}
-              </Badge>
+              {decision.domain && (
+                <span className="text-xs text-content-tertiary">{decision.domain}</span>
+              )}
             </span>
             <Heading level={3} size={3}>
-              {decision.title}
+              {decision.question}
             </Heading>
           </div>
         }
@@ -93,122 +243,160 @@ function DecisionView({
 
       <CardBody>
         <div className="flex flex-col gap-4">
-          <Text tone="secondary">{decision.executiveSummary}</Text>
+          <Text tone="secondary">{rec.recommendation}</Text>
 
-          {/* Dört kolon ancak XL'de açılır. 640 px'te açılınca hücre ~110 px
-              kalıyordu ve "₺128.000,00" gibi bölünemeyen bir sayı komşu
-              hücrenin üstüne biniyordu (768 px'te görsel incelemede
-              yakalandı). min-w-0: hücre içeriğine göre şişmesin. */}
-          <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4 [&>div]:min-w-0">
-            <div>
-              <dt className="text-xs text-content-tertiary">Finansal etki</dt>
-              {/* items-start ŞART: `.odin-num` sayıları sağa hizalar (03-...md
-                  §11, tablo/KPI karşılaştırması için). Esnek bir sütunda Num
-                  hücre genişliğine yayılıyor ve sayı etiketinden kopup sağ
-                  kenara kaçıyordu — S4 story'lerinde kart dar olduğu için
-                  görünmüyordu, brifing ekranında tam genişlikte ortaya çıktı.
-                  Tanım listesinde sayı etiketinin ALTINDA durur. */}
-              <dd className="mt-1 flex flex-col items-start">
-                <Num
-                  value={Number.isFinite(fin?.amount) ? fin.amount : null}
-                  format="currency"
-                  currency={fin?.currency}
-                  size="lg"
-                  noDataReason="Finansal etki hesaplanmadı"
-                />
-                {fin?.horizon && (
-                  <span className="text-xs text-content-tertiary">{fin.horizon}</span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-content-tertiary">Risk</dt>
-              <dd className="mt-1">
-                <Badge variant={risk} size="sm">
-                  {RISK_LABEL[decision.riskLevel] ?? decision.riskLevel}
-                </Badge>
-              </dd>
-            </div>
+          <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3 [&>div]:min-w-0">
             <div>
               <dt className="text-xs text-content-tertiary">Confidence</dt>
               <dd className="mt-1">
-                {Number.isFinite(decision.aiConfidence) ? (
-                  <ConfidenceBadge value={decision.aiConfidence} />
-                ) : (
-                  <Text size="sm" tone="tertiary">
-                    üretilmedi
-                  </Text>
-                )}
+                <ConfidenceBadge value={rec.confidence} showBandLabel />
               </dd>
             </div>
             <div>
               <dt className="text-xs text-content-tertiary">Kanıt</dt>
-              <dd className="mt-1">
-                <Num
-                  value={Array.isArray(decision.evidence) ? decision.evidence.length : null}
-                  noDataReason="Kanıt sayısı bilinmiyor"
-                />{" "}
-                kaynak
+              <dd className="mt-1 text-content-secondary">{rec.evidence.length} kaynak</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-content-tertiary">Tarih</dt>
+              <dd className="mt-1 text-content-secondary">
+                <time dateTime={decision.date}>{decision.date}</time>
               </dd>
             </div>
           </dl>
 
-          {/* Recommendation — sözleşmede opsiyonel, uydurulmaz. */}
-          {canRenderRecommendation(rec) && (
-            <div className="odin-ai-region p-3">
-              <AIRecommendationView rec={rec!} compact />
+          {/* Alternatifler — KARARIN alanı, en az 2 (şema minItems). */}
+          <div>
+            <p className="text-xs uppercase tracking-wide text-content-tertiary">
+              Alternatifler
+            </p>
+            <ul className="mt-2 flex flex-col gap-2">
+              {decision.alternatives.map((a) => (
+                <li key={a.option} className="rounded-sm border border-line-subtle p-3">
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="text-content">{a.option}</span>
+                    {a.risk && (
+                      <Badge
+                        variant={
+                          ALT_RISK[a.risk as keyof typeof ALT_RISK]?.variant ?? "secondary"
+                        }
+                        size="xs"
+                      >
+                        risk {ALT_RISK[a.risk as keyof typeof ALT_RISK]?.label ?? a.risk}
+                      </Badge>
+                    )}
+                  </p>
+                  <Text size="sm" tone="secondary">
+                    {a.assessment}
+                  </Text>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Azınlık görüşü gövdededir, açılır bölümde değil (10b §2). */}
+          <MinorityOpinionBanner opinions={rec.minorityOpinions} />
+
+          {/* Verilmiş karar gerekçesiyle görünür — ret de bir kayıttır. */}
+          {decided && (
+            <div className="rounded-sm border border-line-subtle p-3">
+              <p className="text-xs uppercase tracking-wide text-content-tertiary">
+                İnsan kararı
+              </p>
+              <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                <Badge variant={OUTCOME[decided.outcome].variant} size="xs">
+                  {OUTCOME[decided.outcome].label}
+                </Badge>
+                {decided.outcome === "deferred" && decided.revisitAt && (
+                  <span className="text-content-tertiary">
+                    yeniden: <time dateTime={decided.revisitAt}>{decided.revisitAt}</time>
+                  </span>
+                )}
+              </p>
+              {decided.humanReasoning && (
+                <Text size="sm" tone="secondary" className="mt-1">
+                  {decided.humanReasoning}
+                </Text>
+              )}
             </div>
           )}
-
-          {/* Azınlık görüşü — her zaman görünür, katlanmaz. */}
-          <MinorityOpinionBanner opinion={decision.minorityOpinion} />
 
           <div>
             <Button
               variant="tertiary"
               size="sm"
-              onClick={() => setOpen((o) => !o)}
+              onClick={toggleOpen}
               aria-expanded={open}
-              aria-controls={councilId}
+              aria-controls={bodyId}
             >
-              {open ? "Kurulu kapat" : `Executive Council (${decision.directorOpinions?.length ?? 0} görüş)`}
+              {open ? "Analizi kapat" : "Analizi aç"}
             </Button>
-            <Disclosure open={open} id={councilId}>
-              <div className="mt-4 border-t border-line-subtle pt-4">
-                <CouncilView decision={decision} />
+            <Disclosure open={open} id={bodyId}>
+              <div className="mt-4 flex flex-col gap-4 border-t border-line-subtle pt-4">
+                <CouncilView recommendation={rec} />
+                {recOk ? (
+                  <AIRecommendationView rec={rec} compact />
+                ) : (
+                  <Text size="sm" tone="tertiary">
+                    Öneri açıklanabilirlik şartını sağlamıyor, gösterilmiyor.
+                  </Text>
+                )}
               </div>
             </Disclosure>
           </div>
         </div>
       </CardBody>
 
-      <CardFooter>
-        <div className="flex w-full flex-col gap-2">
-          {stale && !closed && (
-            <Text size="sm" tone="warning">
-              Veri bayat — onay kilitli. Önce senkronizasyonu bekleyin.
-            </Text>
-          )}
-          <div className="flex flex-wrap items-center gap-2">
-            {!closed && onApprove && (
-              <Button
-                variant="primary"
-                size="md"
-                disabled={stale}
-                onClick={() => onApprove(decision)}
-                title={stale ? "Bayat veriyle onay verilemez" : undefined}
-              >
-                Onayla
-              </Button>
+      <CardFooter className="flex-wrap !justify-between gap-3">
+        <TrustSignal meta={meta} />
+
+        {!closed && onVerdict && (
+          <div className="flex min-w-0 flex-col items-end gap-2">
+            {stale && (
+              <Text size="sm" tone="tertiary">
+                Veri bayat — karar verilemez. Bayat veriyle verilen ret de onay
+                kadar sakattır; önce senkronu tazele.
+              </Text>
             )}
-            {onOpenAnalysis && (
-              <Button variant="secondary" size="md" onClick={() => onOpenAnalysis(decision)}>
-                Analizi aç
-              </Button>
+            {!pending ? (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={stale}
+                  onClick={() => setPending("approved")}
+                >
+                  Onayla
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={stale}
+                  onClick={() => setPending("rejected")}
+                >
+                  Reddet
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={stale}
+                  onClick={() => setPending("deferred")}
+                >
+                  Ertele
+                </Button>
+              </div>
+            ) : (
+              <VerdictForm
+                decision={decision}
+                pending={pending}
+                onCancel={() => setPending(null)}
+                onSubmit={(v) => {
+                  setPending(null);
+                  onVerdict(decision, v);
+                }}
+              />
             )}
           </div>
-          <TrustSignal meta={meta} />
-        </div>
+        )}
       </CardFooter>
     </Card>
   );
@@ -216,22 +404,15 @@ function DecisionView({
 
 export function DecisionCard({
   env,
-  onApprove,
-  onOpenAnalysis,
+  onVerdict,
 }: {
   env: DataEnvelope<Decision> | null | undefined;
-  onApprove?: (d: Decision) => void;
-  onOpenAnalysis?: (d: Decision) => void;
+  onVerdict?: (d: Decision, v: VerdictInput) => void;
 }) {
   return (
     <DataGuard env={env} reason="Karar verisi yok">
       {(decision, meta) => (
-        <DecisionView
-          decision={decision}
-          meta={meta}
-          onApprove={onApprove}
-          onOpenAnalysis={onOpenAnalysis}
-        />
+        <DecisionView decision={decision} meta={meta} onVerdict={onVerdict} />
       )}
     </DataGuard>
   );

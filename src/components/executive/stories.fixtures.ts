@@ -69,38 +69,43 @@ export const evidence: EvidenceRef[] = [
 export const recommendation: AIRecommendation = {
   id: "rec-1",
   recommendation: "Amazon PPC bütçesini %7 artır, 7 gün sonra tekrar değerlendir.",
+  confidence: 71.4,
+  confidenceBreakdown: {
+    knowledge_coverage: 80,
+    evidence_strength: 75,
+    expert_agreement: 90,
+    model_agreement: 70,
+    historical_success: 65,
+    risk_level: 40,
+    missing_information: 30,
+    decision_complexity: 35,
+  },
+  evidence,
+  potentialRisks: ["Kur artarsa birim maliyet yükselir", "Nakit akışı bir hafta sıkışabilir"],
+  assumptions: ["Rakip teklif seviyesi mevcut bandında kalır"],
+  flipConditions: ["ACOS 7 gün içinde %20'yi aşarsa artış geri alınır"],
+  consensusScore: 66.7,
+  disagreementScore: 33.3,
+  minorityOpinions: ["trading: beklet — USD riski nedeniyle 48 saat beklenmeli"],
+  recClass: "B",
   numbers: { ACOS: 18.1, TACOS: 9.4, "Harcama (USD)": 2420, "Satış (USD)": 18300 },
   causeAnalysis: "Rakip teklifleri yükseldi, gösterim payı düştü.",
   impactAnalysis: "Mevcut tempoda aylık net kârda ~₺46.000 kayıp riski var.",
-  alternatives: [
-    {
-      title: "%7 artır",
-      description: "Kademeli artış, 7 gün sonra ölçüm.",
-      expectedOutcome: "Gösterim payı toparlanır, ACOS ~%17'ye iner.",
-      risk: "low",
-    },
-    {
-      title: "Bütçeyi sabit tut",
-      description: "Kur riski geçene kadar bekle.",
-      expectedOutcome: "Nakit korunur, satış kaybı sürer.",
-      risk: "medium",
-    },
-  ],
   expectedFinancialResult: { amount: 82000, currency: "TRY" },
-  confidence: 96,
-  evidence,
   whyGenerated: "ACOS 14 gündür yükseliyor ve gösterim payı eşiğin altına indi.",
   responsibleDirector: "Amazon AI",
   relatedKnowledge: ["PPC oynaklık politikası", "2026-05 bütçe kararı"],
   lastValidated: ago(15 * 60_000),
-  potentialRisks: ["Kur artarsa birim maliyet yükselir", "Nakit akışı bir hafta sıkışabilir"],
 };
 
-/** Kural ihlali örneği: tek alternatif → bileşen RENDER ETMEZ. */
-export const recommendationTekAlternatif: AIRecommendation = {
+/** Kural ihlali örneği: flip_conditions EKSİK → bileşen RENDER ETMEZ.
+    (Eski örnek "tek alternatif"ti; alternatifler artık kararın alanı —
+    UI-ADR-100. ODIN'in zorunlu kıldığı bir alanın eksikliği aynı davranışı
+    tetikler.) */
+export const recommendationEksikAlan: AIRecommendation = {
   ...recommendation,
   id: "rec-2",
-  alternatives: [recommendation.alternatives[0]!],
+  flipConditions: [],
 };
 
 export const kpi: ExecutiveKPI = {
@@ -132,64 +137,44 @@ export const kpiEksik: ExecutiveKPI = {
   confidence: Number.NaN,
   forecast: { value: Number.NaN, horizon: "", confidence: Number.NaN },
   sparkline: [70],
-  recommendedAction: recommendationTekAlternatif,
+  recommendedAction: recommendationEksikAlan,
   evidence: [],
   owner: "",
 };
 
 export const decision: Decision = {
   id: "dec-1",
-  type: "amazon",
-  title: "Amazon PPC bütçesini %7 artır",
-  executiveSummary:
-    "Gösterim payı iki haftadır düşüyor. Kademeli bütçe artışı kârı korurken satış kaybını durduruyor.",
-  priority: 1,
-  status: "under_review",
-  strategicImpact: "medium",
-  financialImpact: { amount: 82000, currency: "TRY", horizon: "30 gün" },
-  riskLevel: "medium",
-  aiConfidence: 96,
-  evidenceQuality: 97,
-  reversibility: "reversible",
-  executionComplexity: "low",
-  expectedROI: 2.4,
-  directorOpinions: [
+  question: "Amazon PPC bütçesi %7 artırılsın mı?",
+  date: "2026-07-30",
+  tier: "D2",
+  status: "open",
+  domain: "amazon",
+  /* KARARIN alanı — şema minItems 2 (UI-ADR-100). */
+  alternatives: [
     {
-      directorId: "Amazon AI",
-      position: "support",
-      argument: "PPC artırılmalı; gösterim payı kaybı satış kaybına dönüştü.",
-      confidence: 94,
-      evidence: [evidence[0]!],
+      option: "%7 artır",
+      assessment: "Gösterim payı toparlanır, ACOS ~%17'ye iner.",
+      risk: "low",
     },
     {
-      directorId: "Finance AI",
-      position: "neutral",
-      argument: "Nakit akışı uygun ama hafta sonu ödemeleri sıkışık.",
-      confidence: 71,
-      evidence: [],
-    },
-    {
-      directorId: "Trading AI",
-      position: "oppose",
-      argument: "USD yukarı gidiyor; 48 saat beklemek maliyeti düşürebilir.",
-      confidence: 68,
-      evidence: [evidence[2]!],
+      option: "Bütçeyi sabit tut",
+      assessment: "Nakit korunur, satış kaybı sürer.",
+      risk: "medium",
     },
   ],
-  consensus: 91,
-  disagreement: 9,
-  minorityOpinion: {
-    directorId: "Trading AI",
-    position: "oppose",
-    argument: "USD riski nedeniyle 48 saat beklenmesini öneriyorum.",
-    confidence: 68,
-    evidence: [evidence[2]!],
-  },
-  alternatives: recommendation.alternatives,
-  evidence,
-  relatedDecisions: [],
-  timeline: [],
   recommendation,
+  expectedOutcome: "Gösterim payı 2 hafta içinde %28 üzerine döner",
+};
+
+/** Verdict verilmiş karar — eylem butonları ÇİZİLMEZ, kayıt görünür. */
+export const decisionKapanmis: Decision = {
+  ...decision,
+  id: "dec-2",
+  status: "closed",
+  humanDecision: {
+    outcome: "approved",
+    humanReasoning: "Kanıt yeterli; kur riski flip koşuluyla sınırlandı.",
+  },
 };
 
 export const director: DirectorHeartbeat = {

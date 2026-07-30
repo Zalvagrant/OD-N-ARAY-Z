@@ -21,13 +21,18 @@ import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
-import { DecisionCard } from "./decision-card";
+import { DecisionCard, type VerdictInput } from "./decision-card";
+
+/** D3 stratejik > D2 > D1; eşitlikte düşük güven ÖNE gelir — CEO'nun
+    dikkatini en çok, en belirsiz stratejik karar hak eder. `priority` ve
+    `financialImpact` ODIN'de yoktu, UYDURMAYDI (UI-ADR-100). */
+const TIER_RANK = { D3: 0, D2: 1, D1: 2 } as const;
 
 export function sortDecisions(decisions: Decision[]): Decision[] {
   return [...decisions].sort(
     (a, b) =>
-      a.priority - b.priority ||
-      Math.abs(b.financialImpact?.amount ?? 0) - Math.abs(a.financialImpact?.amount ?? 0)
+      TIER_RANK[a.tier] - TIER_RANK[b.tier] ||
+      a.recommendation.confidence - b.recommendation.confidence
   );
 }
 
@@ -35,14 +40,12 @@ function QueueView({
   decisions,
   meta,
   limit,
-  onApprove,
-  onOpenAnalysis,
+  onVerdict,
 }: {
   decisions: Decision[];
   meta: DataMeta;
   limit: number;
-  onApprove?: (d: Decision) => void;
-  onOpenAnalysis?: (d: Decision) => void;
+  onVerdict?: (d: Decision, v: VerdictInput) => void;
 }) {
   if (decisions.length === 0) {
     return (
@@ -64,8 +67,7 @@ function QueueView({
         <DecisionCard
           key={d.id}
           env={{ data: d, meta }}
-          onApprove={onApprove}
-          onOpenAnalysis={onOpenAnalysis}
+          onVerdict={onVerdict}
         />
       ))}
 
@@ -83,14 +85,12 @@ function QueueView({
 export function DecisionQueue({
   env,
   limit = 3,
-  onApprove,
-  onOpenAnalysis,
+  onVerdict,
 }: {
   env: DataEnvelope<Decision[]> | null | undefined;
   /** 02-design-principles.md §4: bir ekranda en fazla 3 primary kart. */
   limit?: number;
-  onApprove?: (d: Decision) => void;
-  onOpenAnalysis?: (d: Decision) => void;
+  onVerdict?: (d: Decision, v: VerdictInput) => void;
 }) {
   return (
     <DataGuard env={env} reason="Karar kuyruğu verisi yok">
@@ -99,8 +99,7 @@ export function DecisionQueue({
           decisions={decisions}
           meta={meta}
           limit={limit}
-          onApprove={onApprove}
-          onOpenAnalysis={onOpenAnalysis}
+          onVerdict={onVerdict}
         />
       )}
     </DataGuard>

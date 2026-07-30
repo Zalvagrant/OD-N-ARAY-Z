@@ -11,13 +11,13 @@ export default meta;
 
 const many = [
   decision,
-  { ...decision, id: "d2", title: "SKU-1042 acil tedarik", priority: 1 as const },
-  { ...decision, id: "d3", title: "USD pozisyonunu kıs", priority: 2 as const },
-  { ...decision, id: "d4", title: "Listeleme güncellemesi", priority: 3 as const },
-  { ...decision, id: "d5", title: "İade politikası", priority: 4 as const },
+  { ...decision, id: "d2", question: "SKU-1042 acil tedarik açılsın mı?", tier: "D2" as const },
+  { ...decision, id: "d3", question: "USD pozisyonu kısılsın mı?", tier: "D3" as const },
+  { ...decision, id: "d4", question: "Listeleme güncellensin mi?", tier: "D1" as const },
+  { ...decision, id: "d5", question: "İade politikası değişsin mi?", tier: "D1" as const },
 ];
 
-/** Üç primary kart gösterilir; bastırılan sayı yazılır, saklanmaz. */
+/** Üç primary kart; sıralama tier (D3 stratejik önce), bastırılan sayı yazılır. */
 export const OncelikSirasiyla: StoryObj = {
   render: () => (
     <div className="max-w-2xl">

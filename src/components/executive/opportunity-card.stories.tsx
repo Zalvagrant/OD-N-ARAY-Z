@@ -1,7 +1,7 @@
 /** S4 · 10 — OpportunityCard */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { OpportunityCard } from "./opportunity-card";
-import { envelope, opportunity, recommendationTekAlternatif } from "./stories.fixtures";
+import { envelope, opportunity, recommendationEksikAlan } from "./stories.fixtures";
 
 const meta: Meta = {
   title: "Executive/10 · OpportunityCard",
@@ -23,7 +23,7 @@ export const OneriGosterilmez: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
       <OpportunityCard
-        env={envelope({ ...opportunity, recommendedAction: recommendationTekAlternatif })}
+        env={envelope({ ...opportunity, recommendedAction: recommendationEksikAlan })}
       />
     </div>
   ),
