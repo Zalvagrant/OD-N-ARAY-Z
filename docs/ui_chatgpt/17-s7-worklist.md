@@ -94,6 +94,7 @@ src/lib/data/transport.ts       UpdateTransport seam + pollingTransport
 src/lib/store/universe.ts       aktif evren (önbellek anahtarının parçası)
 scripts/assert-release-mode.mjs release derlemesi kapısı
 src/lib/data/data-layer.test.ts 38 test
+src/mocks/mock-gate.test.ts      4 test — fail-closed kapısı
 ```
 
 Değiştirilenler: `(shell)/layout.tsx` (provider) · `.storybook/preview.tsx`
@@ -105,7 +106,7 @@ Değiştirilenler: `(shell)/layout.tsx` (provider) · `.storybook/preview.tsx`
 
 | Kapı | Sonuç |
 |---|---|
-| Birim testleri | **91/91** (38'i S7) |
+| Birim testleri | **95/95** (42'si S7) |
 | Storybook tarayıcı testleri | **146/146**, 45 dosya |
 | `tsc --noEmit` · eslint | temiz |
 | Yatay taşma (1280 · 1440 · 768) | **0** |
@@ -135,6 +136,11 @@ modda veri VERMEZ (`data: null`, `loading: false`). Taşınmamış bölümler
 S8'de mock göstermeye devam edemez; "veri yok" gerekçesini basarlar.
 Mock'un dağıtıma çıkması ayrıca `build:release` kapısıyla engelli.
 
+İkinci kapanış turunda yazılımcılar tek blokaj bıraktı: **fail-closed dalı
+testsizdi.** terra'nın önerisiyle dal saf bir fonksiyona (`mockGate`)
+çıkarıldı ve node ortamında 4 testle doğrulandı — renderer gerekmedi.
+Kritik davranışın kancanın içinde saklı kalmaması ayrıca doğru tasarım.
+
 terra'nın S8 kabul kriterleri kayda geçti (aşağıda 3 ve 4).
 
 ## 3. S7 KAPSAMI DIŞI (bilerek)
@@ -161,6 +167,10 @@ terra'nın S8 kabul kriterleri kayda geçti (aşağıda 3 ve 4).
 4. **Yanıtın istenen evrene ait olduğu doğrulanamıyor** — `meta`'da
    `universeId` alanı yok. Anahtar izolasyonu istemci tarafını korur, yanlış
    evren döndüren bir sunucuyu yakalamaz. ODIN tarafına sorulacak.
-5. **Dal `main`'e rebase edilecek** — `2ddefb9` (UI-ADR-105) ile main'in
+5. **`OdinSectionBoundary` kalıbı** (meclis önerisi): bugün her `Section`'a
+   hatayı elle bağlamak gerekiyor; yeni bir bölüm eklerken unutulursa aynı
+   "sessiz boş bölüm" hatası geri döner. Sarmalayıcı kalıp bunu yapısal
+   olarak kapatır.
+6. **Dal `main`'e rebase edilecek** — `2ddefb9` (UI-ADR-105) ile main'in
    `35fefbc`'si aynı işi iki kez yapıyor; sıralamadan önce paralel oturum
    kendi WIP'ini commit etmeli.

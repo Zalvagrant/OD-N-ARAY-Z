@@ -31,30 +31,37 @@ const noopSubscribe = () => () => {};
  * @param build Modül seviyesinde tanımlı, argümansız üretici. Her çağrıda
  *              yeni nesne döndürebilir; sonuç önbelleğe alınır.
  */
+/**
+ * FAIL-CLOSED KARARI — S7 · UI-ADR-115 (meclis kapanış koşulu).
+ *
+ * Gerçek modda mock kancası VERİ VERMEZ. S8'de anahtar çevrildiğinde henüz
+ * yeni boruya taşınmamış bölümler, aksi hâlde mock göstermeye sessizce
+ * devam ederdi: aynı ekranda gerçek ve sahte sayılar yan yana durur ve
+ * hangisinin hangisi olduğu GÖRÜNMEZDİ. Sahte verinin en tehlikeli hâli
+ * budur — yanında gerçeği durduğu için inandırıcıdır.
+ *
+ * `loading` false döner: sonsuz iskelet bir cevap değildir. Bölümler
+ * `data === null` yolundan zaten "veri yok" gerekçesini basıyor.
+ *
+ * Kancadan AYRI bir saf fonksiyon çünkü kritik olan dal budur ve
+ * doğrulanması için tarayıcı ya da renderer gerekmemeli (meclis şartı).
+ */
+export function mockGate<T>(isMock: boolean, data: T | null): MockState<T> {
+  if (!isMock) return { data: null, loading: false, reload: () => {} };
+  return { data, loading: data === null, reload: () => {} };
+}
+
 export function useMockData<T>(build: () => T): MockState<T> {
   const cache = useRef<T | null>(null);
   const [, bump] = useState(0);
 
-  /*
-   * FAIL-CLOSED — S7 · UI-ADR-115 (meclis kapanış koşulu).
-   *
-   * Gerçek modda bu kanca VERİ VERMEZ. S8'de anahtar çevrildiğinde henüz
-   * yeni boruya taşınmamış bölümler, aksi hâlde mock göstermeye sessizce
-   * devam ederdi: aynı ekranda gerçek ve sahte sayılar yan yana durur ve
-   * hangisinin hangisi olduğu görünmezdi. Meclis kapanışı bu koşula bağladı.
-   *
-   * `loading` false döner — sonsuz iskelet bir cevap değildir; bölümler
-   * `data === null` yolundan zaten "veri yok" gerekçesini basıyor.
-   */
-  const unavailable = !IS_MOCK;
-
   /* Mock dışarıdan değişmez; abonelik gerekmez. Yeniden üretim `reload`
      ile olur, bu yüzden subscribe modül seviyesinde sabit bir no-op'tur. */
   const getSnapshot = useCallback(() => {
-    if (unavailable) return null;
+    if (!IS_MOCK) return null;
     if (cache.current === null) cache.current = build();
     return cache.current;
-  }, [build, unavailable]);
+  }, [build]);
 
   const data = useSyncExternalStore(noopSubscribe, getSnapshot, () => null);
 
@@ -63,5 +70,5 @@ export function useMockData<T>(build: () => T): MockState<T> {
     bump((n) => n + 1);
   }, []);
 
-  return { data, loading: !unavailable && data === null, reload };
+  return { ...mockGate(IS_MOCK, data), reload };
 }
