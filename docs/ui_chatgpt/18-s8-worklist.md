@@ -86,3 +86,81 @@ Dolayısıyla S8 şu üç işi yapar:
   Amazon'a doğrudan bağlanması mimariyi ters çevirirdi
 - Auth (D8.7) → meclis Q5=B
 - `universe_id` (D8.8) → `/api/state` evren yayınlamıyor; tek evren, switcher pasif
+
+---
+
+## 3. Teslim edilen (ölçüldü)
+
+| Kapı | Sonuç |
+|---|---|
+| `/api/state.goals` → Goal Board | **CANLI** — 8 gerçek hedef, `level`e göre gruplu (urgent 2 / weekly 1 / quarterly 5) |
+| Ölçülmemiş ilerleme | `—` gösteriliyor; `0` ile karıştırılmıyor |
+| TrustSignal | "● canlı · ODIN çekirdeği · az önce" — kaynak `internal`, tazelik istemcide |
+| `/odin/api/state` vekili | 200 |
+| Gerçek mod üretim derlemesi | başarılı (`build:release` kapısından geçti) |
+| Birim testleri | **101/101** (6'sı adaptör; fixture canlı yayından) |
+| Storybook | **146/146** |
+| `tsc` · eslint | temiz |
+| `backend-istekleri.md` | 11 madde, her biri dosya/satır kanıtlı |
+
+Görsel inceleme bir hata çıkardı, test yakalamadı: gerçek moda geçince
+Operational Status üç sayacı `0` gösterdi (UI-ADR-118).
+
+---
+
+## 4. AÇIK BLOKAJ — mock verisi üretim paketinde (S9'un ilk işi)
+
+**Şart (gavadolar Q2=C):** "sahte ekran verisi üretim paketinde HİÇ
+bulunmamalı."
+
+**Ölçüm** (gerçek mod, `.next` silinip yeniden derlendi):
+
+| Mock dizesi | istemci | sunucu |
+|---|---|---|
+| "PPC verimliliğini toparla" | 2 dosya | 4 dosya |
+| "SKU-1042" | 4 dosya | 8 dosya |
+| "Kampanya D ölçeklenebilir" | 1 dosya | 2 dosya |
+
+**Kök neden:** ekranlar mock'ları **doğrudan statik import** ediyor ve
+`useMockData(xMock)` çağrılarına veriyor; bu çağrılar `IS_MOCK` dalının
+İÇİNDE DEĞİL. Modüller gerçekten erişilebilir olduğu için paketleyicinin
+elememesi DOĞRU davranıştır. `IS_MOCK` ölü-kod-elemesine uygun hâle
+getirildi (UI-ADR-119) ama tek başına yetmedi — sorun ifade değil, import
+grafiği.
+
+**Meclis (yazılımcılar):** teşhis 3/3 onaylandı; `sideEffects:false` veya
+paketleyici hilesi işe yaramaz, tek yol import grafiğini kesmek.
+Zamanlamada bölündüler — terra "S8 blokajı, şimdi", DeepSeek + Gemini
+"koruma yapısal, S9'a borç yaz" (2/3). Borç yazıldı.
+
+**Neden ertelenebilir:** mock'un EKRANA çıkması zaten yapısal olarak
+imkânsız (S7 fail-closed, testli) ve mock modda release derlemesi
+reddediliyor. Pakette kalan ölü dize bir güvenlik açığı değil, hijyen
+borcudur. **Ama onaylanmış bir teslim şartıdır ve kapanana kadar S8
+"koşullu" sayılır.**
+
+### Kararlaştırılmış tasarım (S9 doğrudan uygular)
+
+1. `useMockData` **uygulama ekranlarından emekli edilir**; yalnız
+   test/Storybook yardımcı katmanında kalır. İki kanca = iki veri yaşam
+   döngüsü, iki hata modeli, yeniden sızıntı riski (meclis 3/3).
+2. Her bölüm tek boruya geçer:
+   `useOdinQuery({ key, module, schema, load: bySource(live, mockLoader) })`
+3. `bySource` değer değil **loader** alır; mock tarafı dinamik `import()`
+   ile yüklenir → mock modülleri gerçek-mod grafiğine hiç girmez.
+4. ODIN'in henüz yayınlamadığı bölümlerde `enabled: IS_MOCK` — gerçek modda
+   sorgu hiç çalışmaz; zarf `null`, hata `null`, yükleme `false` olur ve
+   bileşenler `NoData` basar. Bu doğru semantiktir: kaynağın olmaması bir
+   ARIZA değildir, beş adımlı hata kutusu göstermek yanıltıcı olurdu.
+5. Kalıcı kapı: gerçek-mod release çıktısında bilinen fixture dizelerini
+   tarayan bir test. Ölçülmeyen şart geri gelir.
+
+**Kapsam:** `mission-control.tsx` 2 bölüm (`directors`, `alerts`) +
+`amazon-director.tsx` 5 bölüm (`snapshot`, `skus`, `ppc`, `campaigns`,
+`simulations`).
+
+⚠️ 4. maddedeki şemalar için not: `AmazonSnapshot` · `PPCOverview` ·
+`SkuHealth` gibi tiplerin kanonik şeması YOK ve UI-ADR-113 gereği
+yazılmayacak. Bu bölümlerde doğrulama yerine açıkça "sözleşmesiz" işareti
+taşıyan geçirgen bir şema kullanılmalı; sessizce `z.any()` koymak, şemayı
+olduğundan güçlü göstermek olurdu.

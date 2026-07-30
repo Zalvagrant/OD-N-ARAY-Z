@@ -1876,3 +1876,25 @@ sessizce "ölçüm sıfır"a çevirir. Sayaç üreten her yerde `null` ile boş
 liste AYRI ele alınır.
 
 **Etki:** `components/screens/mission-control.tsx`.
+
+---
+
+## UI-ADR-119 — `IS_MOCK` ölü kod elemesine uygun yazılır (S8)
+
+**Durum:** ✅ Dondurulmuş (yetersiz — bkz. 18-s8-worklist §4)
+**Tarih:** 30 Temmuz 2026
+
+`IS_MOCK = DATA_MODE === "mock"` daha okunaklıydı ama paketleyici için ölü
+kod elemesini imkânsız kılıyordu: Next `NEXT_PUBLIC_*` değişkenlerini
+derlemede düz metne çevirir, fakat değer bir doğrulama adımından geçip
+başka bir sabite atanınca o bilgi kaybolur.
+
+**Karar:** `IS_MOCK = process.env.NEXT_PUBLIC_ODIN_DATA_MODE !== "odin"` —
+ifade derlemede `"odin" !== "odin"` → `false` olur. Doğrulama (`RAW`)
+yerinde kalır; geçersiz mod hâlâ patlar.
+
+**DÜRÜSTLÜK NOTU:** bu değişiklik tek başına YETMEDİ. Ölçüm yapıldı, mock
+verisi üretim paketinde kaldı; çünkü sorun ifadede değil İMPORT
+GRAFİĞİNDEDİR — ekranlar mock'ları doğrudan import ediyor. Kararın etkisiz
+kaldığını yazmak, etkili sanmaktan iyidir. Gerçek çözüm ve tasarımı
+18-s8-worklist §4'te, S9'un ilk işi.
