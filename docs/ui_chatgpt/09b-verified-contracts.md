@@ -253,5 +253,5 @@ saklamaz ya da hiç üretmez; UI o alanı ZORUNLU saymaz, yoksa satır çizmez.
 | `consensusScore` / `disagreementScore` / `minorityOpinions` | consensus alanları | ✅ türetim notuyla |
 | `recClass` | `executive.classify()` A/B/C | ✅ gerekçe kuralının anahtarı |
 | `numbers · causeAnalysis · impactAnalysis · expectedFinancialResult · whyGenerated · responsibleDirector · relatedKnowledge · lastValidated` | — | `not_exposed`; opsiyonel, varsa çizilir |
-| `DirectorHeartbeat.*` | `AgentHealthMonitor.snapshot()` | ⏳ S5.5-b — FR-0046 ile birlikte |
+| `AgentHealth.*` | `AgentHealthMonitor.snapshot()` | ✅ S5.5-b (UI-ADR-111) — birebir; canlılık eşiği UI'da türetilmez, verdict gösterilir |
 | `ExecutiveKPI · Alert · Opportunity · Mission` | — | ⛔ FR-0046 kararına kapılı |

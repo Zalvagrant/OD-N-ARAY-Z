@@ -342,7 +342,7 @@ export function ExecutiveBriefing({
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
           {directors.data?.data.map((d) => (
             <DirectorCard
-              key={d.directorId}
+              key={d.agentId}
               env={{ data: d, meta: directors.data!.meta }}
             />
           ))}

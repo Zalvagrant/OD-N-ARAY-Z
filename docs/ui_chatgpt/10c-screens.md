@@ -112,9 +112,10 @@ AI Readiness (`NoData`).
 **Attention Economy:** 1 hero + en fazla 3 karar kartı. Kuyrukta daha çok
 karar varsa **saklanmaz**, sayısı yazılır ve Decision Center'a yönlendirilir.
 
-**Onay:** `Onayla` kartın üzerindedir. Mock aşamasında onay yalnızca o
-oturumda işaretlenir ve altında bunun **hiçbir yere yazılmadığı** yazar
-(13-...md §14.5).
+**Verdict (♻️ S5.5):** Onayla · Reddet · Ertele kartın üzerindedir
+(UI-ADR-110; B/C'de gerekçe ≥8, deferred gelecek tarih). Mock aşamasında
+yalnızca oturum içi işaretlenir ve **hiçbir yere yazılmadığı** ekranda
+yazar; kalıcı kayıt S7'de `ceo verdict` üzerinden (ADR-0142).
 
 ---
 

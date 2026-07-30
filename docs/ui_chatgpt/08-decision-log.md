@@ -1277,3 +1277,42 @@ S6 o karara kapılıdır.
 `decision-card.tsx` (verdict formu), `council-view.tsx`,
 `minority-opinion-banner.tsx`, `decision-queue.tsx` (tier sıralaması),
 `ai-recommendation-card.tsx`, mocks, fixtures, 8 story dosyası.
+
+---
+
+## UI-ADR-111 — DirectorCard AgentHealth kaydına hizalandı; canlılık eşiği UI'da türetilmez
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026 — S5.5-b
+**Danışılan:** gavadolar (terra · luna) — "ŞİMDİ-BEN", iki görüş de aynı
+yönde; "eşik icat edilmemeli" ikisinin de açık şartı
+**Değiştirir:** ♻️ UI-ADR-089/090'ın Director bağlamındaki kullanımı
+
+**Sorun:** `DirectorHeartbeat` tipi 8 UYDURULMUŞ alan taşıyordu
+(status/currentGoal/currentTask/confidence/taskCount/evidenceCount/
+recommendationCount/memoryHealth/predictionStatus/beatIntervalMs) ve
+ODIN'in GERÇEK ürettiği metrikleri hiç göstermiyordu. 09b §5'e ilk yazımda
+"FR-0046 ile birlikte" notu düşülmüştü — YANLIŞTI: `AgentHealthMonitor`
+ODIN'de mevcuttur, FR-0046'ya bağlı değildir. Kendi notum düzeltildi.
+
+**Karar:**
+1. Tip `AgentHealth` oldu — `AgentHealthMonitor.snapshot()` ile birebir:
+   verdict (unknown/healthy/unhealthy — health.py yalnız bu üçünü yazar) ·
+   consecutive_failures · last_success/failure · metrics{latency avg/p95,
+   success_rate, error_rate, tokens_used, cost_usd, queue_length,
+   availability, last_heartbeat} · checked_at.
+2. **Canlılık kuralı UI'da TÜRETİLMEZ.** Eski "beatIntervalMs × 3
+   aşıldıysa offline" eşiği UI icadıydı; kaldırıldı. Durum ODIN'in
+   verdict'idir; `last_heartbeat` yaş olarak YAZILIR, yorumlanmaz.
+   `liveness()` fonksiyonu ve testleri silindi.
+3. `HeartbeatIndicator` bileşeni kaldırıldı: sözleşmesi (beatIntervalMs)
+   kaynaksız kaldı. "Atım başına tek nabız" ilkesi (UI-ADR-090) bir gün
+   gerçek bir atım akışı sözleşmesi doğarsa geri gelir — ilke geçerli,
+   uygulanacak verisi yok.
+4. Mission Control "Operational Status" sayacı verdict sayar
+   (healthy/unhealthy/unknown) — eşik değil kayıt.
+
+**Etki:** `types/executive.ts` (AgentHealth), `director-card.tsx` (yeniden;
+gecikme/başarı/hata/maliyet artık görünür), `heartbeat-indicator.*`
+(silindi), `lib/clock/tick.ts` (liveness silindi), `mission-control.tsx`,
+mock + fixtures + story'ler.

@@ -1,6 +1,8 @@
 # 10b — Executive Components (S4)
 
-**Durum:** ✅ Üretildi — S4 · Executive Components
+**Durum:** ✅ Üretildi — S4 · ♻️ **S5.5'te revize edildi** (UI-ADR-109/110/111:
+sözleşmeler ODIN'e hizalandı). ♻️ işaretli bölümler S4 metnini DEĞİŞTİRİR;
+gerekçeler `08-decision-log.md`'dedir.
 **Kaynak:** `10-component-library.md` §10 envanteri (Executive Components satırı)
 **Kod:** `src/components/executive/*`, `src/lib/clock/tick.ts`, `src/types/executive.ts`
 
@@ -24,7 +26,7 @@ Dört ayrı yokluk durumu, dört ayrı davranış (tek `NoData`'ya indirgenmez):
 | `canRender(env) === false` | `NoData` — bileşen gövdesi hiç çizilmez |
 | Alan üretilmemiş (confidence yok) | O alan çizilmez; kartın geri kalanı durur |
 | `freshness === "stale"` | Veri gösterilir, **bayat** işaretlenir, onay kilitlenir |
-| Kural ihlali (alternatif < 2) | Bileşen `null` döner; bastırma gerçeğini **çağıran** yazar |
+| Kural ihlali (♻️ S5.5: ODIN'in 10 zorunlu öneri alanından biri eksik — ör. `flip_conditions`) | Bileşen `null` döner; bastırma gerçeğini **çağıran** yazar |
 
 ### 0.2 Her bileşende sağlanan
 
@@ -44,6 +46,7 @@ Dört ayrı yokluk durumu, dört ayrı davranış (tek `NoData`'ya indirgenmez):
 | `Disclosure` | Katmanlı açılma | KPI / Decision / Recommendation aynı davranışı paylaşır |
 | `Meter` | 0–100 segmentli skor | Sürekli çubuk dinamik `style` isterdi → token kuralı ihlali |
 | `useNow()` | Paylaşılan saat | 20 kart = 20 timer olmasın (UI-ADR-089) |
+| `ConfidenceBreakdown` | 8 kanonik güven bileşeni (♻️ S5.5) | Kara kutu sayı yok — ağırlıklar ve negatif yön görünür (UI-ADR-109) |
 
 ### 0.4 Adlandırma notu
 
@@ -87,40 +90,40 @@ kartın kendi hata görünümü içerik türünü gizlerdi.
 
 ---
 
-## 2. DecisionCard
+## 2. DecisionCard ♻️ S5.5 (UI-ADR-110)
 
 **Dosya:** `decision-card.tsx` · **Bağımlılık:** `CouncilView`,
-`MinorityOpinionBanner`, `AIRecommendationView`
+`MinorityOpinionBanner`, `AIRecommendationView`, verdict formu
 
-Priority · Title · Executive Summary · Financial Impact · Risk · Confidence
-· Evidence Count · Recommendation · **[Onayla] [Analizi aç]**
+ODIN `DecisionRecord`un kartı: Tier (D1/D2/D3) · Status
+(open/monitoring/closed) · Question · Öneri özeti · Confidence (kanonik
+bant etiketiyle) · Kanıt sayısı · **Alternatifler (KARARIN alanı, min 2)**
+· Azınlık görüşleri · **[Onayla] [Reddet] [Ertele]**
 
-**Onayla butonu kartın üzerindedir** (05-...md §3.2). CEO karar vermek için
-başka ekrana gitmez.
+**ÜÇ verdict kartın üzerindedir** — ODIN sözlüğü (`approved/rejected/
+deferred`). Yalnız "Onayla" sunmak reddi görünmez kılar ve ODIN hiçbir şey
+öğrenmez. Gerekçe kuralı ODIN ADR-0131'indir: sınıf B/C'de her verdict
+**≥8 karakter gerekçe** ister (onay dahil); `deferred` **gelecek tarih**
+ister. UI kural icat etmez, `ceo verdict`i yüzeye taşır (taşıma: ADR-0142).
 
-**Onay kilidi:** `meta.freshness === "stale"` ise buton `disabled`, sebebi
-üstünde yazılı. Bayat veriyle verilen onay, sahte veriyle verilen onaydır.
-Kapanmış kararda (`approved` / `rejected` / `completed`) buton hiç çizilmez.
+**Verdict kilidi (UI-ADR-092 genişletildi):** `stale` veride ÜÇ eylem de
+kilitli, sebep yazılı. Verilmiş kararda butonlar hiç çizilmez; insan
+kararı gerekçesiyle görünür.
 
-**Azınlık görüşü kart gövdesindedir**, açılır bölümde değil.
+**Azınlık görüşleri kart gövdesindedir**, açılır bölümde değil.
 
----
+## 3. DirectorCard ♻️ S5.5-b (UI-ADR-111)
 
-## 3. DirectorCard
+**Dosya:** `director-card.tsx` · **Sözleşme:** ODIN
+`AgentHealthMonitor.snapshot()` (09b §5)
 
-**Dosya:** `director-card.tsx` · **Bağımlılık:** `HeartbeatIndicator`, `useNow`
+VERDICT (unknown/healthy/unhealthy) · son atım yaşı · Başarı/Hata oranı ·
+Gecikme avg/p95 · Kuyruk · Maliyet · ardışık hata sayısı
 
-STATUS · Current Goal · Confidence · Tasks · Queue · Evidence
-· Recommendations · Memory · Prediction · Heartbeat
-
-**Canlılık hiyerarşisi:** `lastBeat` yoksa **bilinmiyor** (offline değil);
-`beatIntervalMs * 3` aşıldıysa **offline** — durum verisi "analyzing" dese
-bile offline kazanır, çünkü o bilgi eskimiştir. Offline kartta AI glow
-kalkar ve "son bilinen durum" uyarısı çıkar.
-
-`idle` → boş kart değil, **"Idle — monitoring"** (07-...md §12).
-
----
+**Canlılık UI'da TÜRETİLMEZ.** Eski "beatIntervalMs × 3 → offline" kuralı
+UI icadıydı ve kaldırıldı; durum ODIN'in verdict'idir, `last_heartbeat`
+yaş olarak yazılır, yorumlanmaz. Ölçülmemiş metrik `NoData` gösterir —
+`availability` hiçbir ajanda hesaplanmıyorsa mock'ta bile `null`dur.
 
 ## 4. AIBrief
 
@@ -136,26 +139,26 @@ bırakılmaz, **eksik alanların adı** yazılır (UI-ADR-091).
 
 ---
 
-## 5. AIRecommendationCard
+## 5. AIRecommendationCard ♻️ S5.5 (UI-ADR-110)
 
 **Dosya:** `ai-recommendation-card.tsx`
-**Dışa açılan yardımcılar:** `canRenderRecommendation()`,
-`missingExplainabilityFields()`, `AIRecommendationView`
+**Dışa açılan:** `canRenderRecommendation()`, `missingExplainabilityFields()`,
+`AIRecommendationView`
 
-**İki sert kural:**
+**Zorunluluk listesi ODIN'in 10 alanıdır** (şema `recommendation.required`):
+text · confidence · confidence_breakdown · evidence · risks · assumptions ·
+flip_conditions · consensus_score · disagreement_score · minority_opinions.
+Biri eksikse bileşen `null` döner; bastırmayı çağıran yazar (UI-ADR-091'in
+render davranışı korunur, alan listesi değişti).
 
-1. `alternatives.length < 2` → bileşen **`null` döner** (UI-ADR-091).
-2. 7 explainability alanından biri eksikse → yine render etmez.
-   Eksik sayılan: öneri metni · neden üretildi · sorumlu Director ·
-   son doğrulama · güven skoru · kanıt (≥1) · ilgili bilgi (dizi) ·
-   potansiyel riskler (dizi) · alternatifler (≥2).
+**`alternatives` ARTIK BURADA ARANMAZ** — kararın alanıdır, DecisionCard
+çizer. **`flip_conditions` kartta HER ZAMAN görünür** ("Bu öneriyi ne
+değiştirir" bloğu) — açılır bölüme konursa kayıp alan geri gelir.
+Güven dökümü (8 bileşen) açılır bölümdedir.
 
-**Her zaman görünür:** öneri · confidence · neden üretildi · sorumlu ·
-son doğrulama · potansiyel riskler · beklenen finansal sonuç.
-**Bir tık ötede:** sayısal veriler · neden/etki analizi · alternatifler ·
-ilgili bilgi · kanıt zinciri.
-
----
+`whyGenerated/responsibleDirector/lastValidated/numbers/cause/impact/
+expectedFinancialResult` ODIN şemasında YOK (not_exposed, 09b §9) —
+opsiyoneldir, varsa çizilir.
 
 ## 6. EvidenceChain
 
@@ -170,18 +173,15 @@ meter yerine `NoData`.
 
 ---
 
-## 7. ConfidenceBadge
+## 7. ConfidenceBadge ♻️ S5.5 (UI-ADR-109)
 
 **Dosya:** `confidence-badge.tsx`
 
-Skor üretilmemişse **hiç görünmez** (`null`). "Confidence —" yazmak bile
-yanlıştır: kullanıcı orada bir skor bekler.
-
-İki kullanım: `meta` (→ `canShowConfidence`) veya `value` (alan seviyesi).
-Eşikler: ≥80 success · ≥50 warning · <50 danger (07-...md §11). Sayı her
-zaman yazılır; renk tek başına anlam taşımaz.
-
----
+Skor üretilmemişse **hiç görünmez** (`null`). Bantlar **ODIN'in kanonik
+bantlarıdır** (trust.py): ≥80 çok yüksek · ≥60 yüksek · ≥40 orta ·
+≥20 düşük · <20 çok düşük. Eski 80/50 eşiği UYDURMAYDI ve silindi.
+Beş bandın beşinin de metin etiketi vardır; sayı her zaman yazılır,
+renk tek başına anlam taşımaz.
 
 ## 8. TrustSignal
 
@@ -216,29 +216,26 @@ sistem korku üretir.
 
 ---
 
-## 11. CouncilView + ConsensusIndicator
+## 11. CouncilView + ConsensusIndicator ♻️ S5.5 (UI-ADR-110)
 
-**Dosya:** `council-view.tsx`
+**Dosya:** `council-view.tsx` · Skorlar **önerinin** alanlarıdır.
 
-Consensus · Disagreement · Evidence Quality · Financial Risk ·
-Execution Complexity. Görüş satırları pozisyona göre ayrışır (＋ － ＝).
+Consensus + Disagreement. ODIN'de `disagreement = 100 − consensus`
+(consensus.py, TÜRETİLMİŞ) — S4 metnindeki "ikisi ayrı ölçümdür" iddiası
+YANLIŞTI ve düzeltildi; gösterim türetimi açıkça yazar. Evidence Quality /
+Financial Risk / Execution Complexity göstergeleri kaldırıldı: karşılıkları
+yok; ölçülmesi planlanmayan gösterge çizilmez (UI-ADR-071 ilkesi).
+Director pozisyon satırları karar kaydında SAKLANMAZ — uydurulmaz;
+saklanmama gerçeği bileşende açıkça yazılıdır.
 
-**Consensus + Disagreement = 100 VARSAYILMAZ** — ikisi ayrı ölçümdür, biri
-diğerinden türetilmez. Ölçülmemiş gösterge meter yerine "ölçülmedi" yazar.
-Görüş yoksa "hemfikir" denmez; kurul toplanmamıştır.
-
----
-
-## 12. MinorityOpinionBanner
+## 12. MinorityOpinionBanner ♻️ S5.5 (UI-ADR-110)
 
 **Dosya:** `minority-opinion-banner.tsx`
 
-**Gizleme prop'u YOKTUR** — teknik olarak katlanabilir hâle getirilmemiştir.
-Görsel olarak bastırılmıştır: nötr ton, amber değil. Dokümandaki `⚠` yerine
-nötr `◂`. Azınlık görüşü bir uyarı değil, bir bakış açısıdır; amber ton onu
-her kararda alarma çevirir ve alarm körlüğü yaratır.
-
----
+**Gizleme prop'u YOKTUR** — teknik olarak katlanabilir değildir. Nötr ton
+(amber değil), nötr `◂`. ODIN `minority_opinions` bir **düz metin
+listesidir** ("üye: seçenek — gerekçe"); üye başına güven skoru kayıtta
+olmadığından rozet de yoktur. Görüş yoksa kutu da yok.
 
 ## 13. AIPulse
 
@@ -266,21 +263,12 @@ Açık kanalın değeri gelmemişse **"0" yazılmaz**, `NoData` çıkar —
 
 ---
 
-## 15. HeartbeatIndicator
+## 15. HeartbeatIndicator ♻️ S5.5-b: KALDIRILDI (UI-ADR-111)
 
-**Dosya:** `heartbeat-indicator.tsx` · **Karar:** UI-ADR-090
-
-Üç durum: canlı · offline · **bilinmiyor**. Bilmemek ile ölmüş olmak farklı
-şeylerdir.
-
-Nabız sonsuz döngü değildir: her gerçek atımda **bir kez** atar
-(`key={lastBeat}`). Yeni atım gelmezse hiçbir şey kıpırdamaz — canlılık
-animasyondan değil veriden gelir.
-
-Dokümandaki `█████████` çubuk göstergesi **çizilmedi**: 9 çubuk son 9 atımın
-geçmişini ima eder, sözleşme yalnızca `lastBeat` verir.
-
----
+Sözleşmesi (`beatIntervalMs`) kaynaksız kaldı; canlılık hükmü artık
+ODIN'in `verdict`idir ve DirectorCard'da rozet olarak görünür.
+"Atım başına tek nabız" ilkesi (UI-ADR-090) geçerliliğini korur — gerçek
+bir atım akışı sözleşmesi doğarsa bileşen o ilkeyle geri gelir.
 
 ## 16. Kalite kapıları — S4 durumu
 

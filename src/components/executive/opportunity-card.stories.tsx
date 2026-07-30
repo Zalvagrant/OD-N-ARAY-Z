@@ -13,7 +13,7 @@ export default meta;
 export const Firsat: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
-      <OpportunityCard env={envelope(opportunity, { source: "ai" })} onApprove={() => {}} />
+      <OpportunityCard env={envelope(opportunity, { source: "ai" })} />
     </div>
   ),
 };

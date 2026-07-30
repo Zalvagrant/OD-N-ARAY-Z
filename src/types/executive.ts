@@ -40,13 +40,6 @@ export interface Money {
   currency: string;
 }
 
-export interface Alternative {
-  title: string;
-  description: string;
-  expectedOutcome: string;
-  risk: "low" | "medium" | "high";
-}
-
 export interface EvidenceRef {
   id: string;
   type: "document" | "metric" | "decision" | "external" | "conversation";
@@ -58,14 +51,6 @@ export interface EvidenceRef {
   /** ISO 8601 */
   freshness: string;
   supportsOrContradicts: "supports" | "contradicts" | "neutral";
-}
-
-export interface DirectorOpinion {
-  directorId: string;
-  position: "support" | "oppose" | "neutral";
-  argument: string;
-  confidence: number;
-  evidence: EvidenceRef[];
 }
 
 /* --------------------------------------------------------------------------
@@ -207,30 +192,45 @@ export interface Decision {
    §4 DirectorHeartbeat
    -------------------------------------------------------------------------- */
 
-export type DirectorStatus =
-  | "idle" | "monitoring" | "analyzing" | "reviewing"
-  | "processing" | "discovering" | "error" | "offline";
+/** ODIN verdict sözlüğü — health.py yalnız bu üçünü yazar. */
+export type AgentVerdict = "unknown" | "healthy" | "unhealthy";
 
-export interface DirectorHeartbeat {
-  directorId: string;
+/**
+ * ODIN `AgentHealthMonitor.snapshot()` girdisinin UI görünümü (09b §5,
+ * UI-ADR-111). Eski `DirectorHeartbeat` 8 UYDURULMUŞ alan taşıyordu
+ * (status/currentGoal/currentTask/confidence/taskCount/evidenceCount/
+ * recommendationCount/memoryHealth/predictionStatus/beatIntervalMs) ve
+ * ODIN'in ürettiği GERÇEK metrikleri (gecikme, başarı oranı, maliyet)
+ * hiç göstermiyordu — kayıp alan, uydurmadan tehlikelidir.
+ *
+ * CANLILIK KURALI UI'DA TÜRETİLMEZ: eski "beatIntervalMs × 3" eşiği UI
+ * icadıydı ve kaldırıldı. UI yalnız ODIN'in verdiği `verdict`i gösterir;
+ * `last_heartbeat` bir zaman damgası olarak sunulur (yaşı yazılır,
+ * yorumlanmaz).
+ */
+export interface AgentHealth {
+  agentId: string;
+  /** Görünen ad — UI eşlemesi (agent registry'den). */
   name: string;
-  status: DirectorStatus;
-
-  currentGoal: string | null;
-  currentTask: string | null;
-  confidence: number | null;
-
-  taskCount: number;
-  queueLength: number;
-  evidenceCount: number;
-  recommendationCount: number;
-
-  memoryHealth: "healthy" | "degraded" | "critical";
-  predictionStatus: "running" | "idle" | "failed";
-
-  /** ISO 8601 — yoksa canlılık BİLİNMİYOR sayılır, "offline" değil. */
-  lastBeat: string | null;
-  beatIntervalMs: number;
+  verdict: AgentVerdict;
+  consecutiveFailures: number;
+  /** ISO 8601 | null */
+  lastSuccess: string | null;
+  lastFailure: string | null;
+  metrics: {
+    latencyMsAvg: number | null;
+    latencyMsP95: number | null;
+    /** 0–1 */
+    successRate: number | null;
+    errorRate: number | null;
+    tokensUsed: number;
+    costUsd: number | null;
+    queueLength: number;
+    availability: number | null;
+    /** ISO 8601 | null — yaş yazılır, canlılık YORUMLANMAZ. */
+    lastHeartbeat: string | null;
+  };
+  checkedAt: string | null;
 }
 
 /* --------------------------------------------------------------------------

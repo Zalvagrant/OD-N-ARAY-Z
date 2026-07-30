@@ -23,7 +23,7 @@ import type {
   AIRecommendation,
   Alert,
   Decision,
-  DirectorHeartbeat,
+  AgentHealth,
   EvidenceRef,
   ExecutiveBrief,
   ExecutiveKPI,
@@ -578,106 +578,96 @@ export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
    Director aktivitesi — UI-ADR-074 ile DONDURULMUŞ 6 Director
    -------------------------------------------------------------------------- */
 
-export function directorsMock(): DataEnvelope<DirectorHeartbeat[]> {
+export function directorsMock(): DataEnvelope<AgentHealth[]> {
+  /* Alanlar ODIN AgentHealthMonitor.snapshot() ile birebir (09b §5).
+     Ölçülmemiş metrik null gelir ve kartta NoData çıkar — mock'ta da
+     uydurma yok: availability hiçbir ajanda hesaplanmıyorsa null'dur. */
   const base = {
-    beatIntervalMs: 5_000,
-    memoryHealth: "healthy" as const,
-    predictionStatus: "idle" as const,
+    consecutiveFailures: 0,
+    lastFailure: null as string | null,
+    checkedAt: ago(30_000),
   };
 
   return mockEnvelope([
     {
       ...base,
-      directorId: "executive",
+      agentId: "executive",
       name: "Executive AI",
-      status: "reviewing",
-      currentGoal: "Günün brifingini kapatmak",
-      currentTask: "Üç kritik kararın sentezi hazırlanıyor",
-      confidence: 91,
-      taskCount: 8,
-      queueLength: 1,
-      evidenceCount: 64,
-      recommendationCount: 3,
-      predictionStatus: "running",
-      lastBeat: ago(2_000),
+      verdict: "healthy",
+      lastSuccess: ago(2 * 60_000),
+      metrics: {
+        latencyMsAvg: 1840, latencyMsP95: 4100, successRate: 0.98,
+        errorRate: 0.02, tokensUsed: 184_000, costUsd: 1.42,
+        queueLength: 1, availability: null, lastHeartbeat: ago(2_000),
+      },
     },
     {
       ...base,
-      directorId: "amazon",
+      agentId: "amazon",
       name: "Amazon AI",
-      status: "analyzing",
-      currentGoal: "ACOS'u %16 altına indirmek",
-      currentTask: "Kampanya B teklif eğrisi yeniden hesaplanıyor",
-      confidence: 94,
-      taskCount: 24,
-      queueLength: 3,
-      evidenceCount: 182,
-      recommendationCount: 4,
-      predictionStatus: "running",
-      lastBeat: ago(3_000),
+      verdict: "healthy",
+      lastSuccess: ago(4 * 60_000),
+      metrics: {
+        latencyMsAvg: 2210, latencyMsP95: 5600, successRate: 0.96,
+        errorRate: 0.04, tokensUsed: 512_000, costUsd: 3.87,
+        queueLength: 3, availability: null, lastHeartbeat: ago(3_000),
+      },
     },
     {
       ...base,
-      directorId: "finance",
+      agentId: "finance",
       name: "Finance AI",
-      status: "monitoring",
-      currentGoal: "Nakit akışını 30 gün ileriye kadar güvende tutmak",
-      currentTask: "Hafta sonu ödeme planı doğrulanıyor",
-      confidence: 79,
-      taskCount: 11,
-      queueLength: 0,
-      evidenceCount: 96,
-      recommendationCount: 1,
-      lastBeat: ago(4_000),
+      verdict: "healthy",
+      lastSuccess: ago(11 * 60_000),
+      metrics: {
+        latencyMsAvg: 1520, latencyMsP95: 3900, successRate: 0.99,
+        errorRate: 0.01, tokensUsed: 96_000, costUsd: 0.74,
+        queueLength: 0, availability: null, lastHeartbeat: ago(4_000),
+      },
     },
     {
       ...base,
-      directorId: "trading",
+      agentId: "trading",
       name: "Trading AI",
-      /* lastBeat 3 aralıktan eski → kart OFFLINE'a düşer, nabız durur.
-         Durum "analyzing" dese bile offline kazanır (10b §3). */
-      status: "analyzing",
-      currentGoal: "Kur riskini %2'nin altında tutmak",
-      currentTask: "USD/TRY oynaklık bandı izleniyor",
-      confidence: 62,
-      taskCount: 6,
-      queueLength: 2,
-      evidenceCount: 41,
-      recommendationCount: 1,
-      lastBeat: ago(90_000),
+      /* Ardışık hatalar verdict'i ODIN tarafında unhealthy'ye düşürdü —
+         UI eşik TÜRETMEDİ, kaydı gösteriyor (UI-ADR-111). */
+      verdict: "unhealthy",
+      consecutiveFailures: 3,
+      lastSuccess: ago(90 * 60_000),
+      lastFailure: ago(6 * 60_000),
+      metrics: {
+        latencyMsAvg: 8900, latencyMsP95: 21_000, successRate: 0.71,
+        errorRate: 0.29, tokensUsed: 44_000, costUsd: 0.51,
+        queueLength: 2, availability: null, lastHeartbeat: ago(90_000),
+      },
     },
     {
       ...base,
-      directorId: "knowledge",
+      agentId: "knowledge",
       name: "Knowledge AI",
-      /* Bilgi servisi bağlı değil → atım YOK. "offline" değil, BİLİNMİYOR. */
-      status: "idle",
-      currentGoal: null,
-      currentTask: null,
-      confidence: null,
-      taskCount: 0,
-      queueLength: 0,
-      evidenceCount: 0,
-      recommendationCount: 0,
-      memoryHealth: "degraded",
-      lastBeat: null,
+      /* Hiç gözlem yok → ODIN "unknown" der; bilmemek ölmüş olmak değildir. */
+      verdict: "unknown",
+      lastSuccess: null,
+      metrics: {
+        latencyMsAvg: null, latencyMsP95: null, successRate: null,
+        errorRate: null, tokensUsed: 0, costUsd: null,
+        queueLength: 0, availability: null, lastHeartbeat: null,
+      },
+      checkedAt: null,
     },
     {
       ...base,
-      directorId: "reasoning",
+      agentId: "reasoning",
       name: "Reasoning AI",
-      status: "processing",
-      currentGoal: "Kararlar arası çelişkileri tespit etmek",
-      currentTask: "PPC ve kur kararları çapraz kontrol ediliyor",
-      confidence: 86,
-      taskCount: 4,
-      queueLength: 1,
-      evidenceCount: 58,
-      recommendationCount: 2,
-      predictionStatus: "running",
-      lastBeat: ago(1_500),
+      verdict: "healthy",
+      lastSuccess: ago(60_000),
+      metrics: {
+        latencyMsAvg: 3100, latencyMsP95: 7400, successRate: 0.97,
+        errorRate: 0.03, tokensUsed: 238_000, costUsd: 2.05,
+        queueLength: 1, availability: null, lastHeartbeat: ago(1_500),
+      },
     },
-  ] satisfies DirectorHeartbeat[]);
+  ] satisfies AgentHealth[]);
 }
 
 /* --------------------------------------------------------------------------

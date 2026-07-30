@@ -10,7 +10,7 @@ import type {
   AIRecommendation,
   Alert,
   Decision,
-  DirectorHeartbeat,
+  AgentHealth,
   EvidenceRef,
   ExecutiveBrief,
   ExecutiveKPI,
@@ -177,41 +177,47 @@ export const decisionKapanmis: Decision = {
   },
 };
 
-export const director: DirectorHeartbeat = {
-  directorId: "amazon",
+export const director: AgentHealth = {
+  agentId: "amazon",
   name: "Amazon Director",
-  status: "analyzing",
-  currentGoal: "ACOS'u %16 altına indir",
-  currentTask: "Kampanya B teklif eğrisi yeniden hesaplanıyor",
-  confidence: 97,
-  taskCount: 24,
-  queueLength: 3,
-  evidenceCount: 182,
-  recommendationCount: 4,
-  memoryHealth: "healthy",
-  predictionStatus: "running",
-  lastBeat: ago(2_000),
-  beatIntervalMs: 5_000,
+  verdict: "healthy",
+  consecutiveFailures: 0,
+  lastSuccess: ago(4 * 60_000),
+  lastFailure: null,
+  metrics: {
+    latencyMsAvg: 2210, latencyMsP95: 5600, successRate: 0.96,
+    errorRate: 0.04, tokensUsed: 512_000, costUsd: 3.87,
+    queueLength: 3, availability: null, lastHeartbeat: ago(2_000),
+  },
+  checkedAt: ago(30_000),
 };
 
-/** lastBeat 3 aralıktan eski → kart offline'a düşer, nabız durur. */
-export const directorOffline: DirectorHeartbeat = {
+/** ODIN'in unhealthy dediği ajan — UI eşik türetmedi, kaydı gösteriyor. */
+export const directorUnhealthy: AgentHealth = {
   ...director,
-  directorId: "trading",
+  agentId: "trading",
   name: "Trading Director",
-  lastBeat: ago(60_000),
+  verdict: "unhealthy",
+  consecutiveFailures: 3,
+  lastFailure: ago(6 * 60_000),
+  metrics: { ...director.metrics, successRate: 0.71, errorRate: 0.29,
+             lastHeartbeat: ago(90_000) },
 };
 
-/** lastBeat hiç yok → "offline" DEĞİL, bilinmiyor. */
-export const directorAtimYok: DirectorHeartbeat = {
-  ...director,
-  directorId: "legal",
+/** Hiç gözlem yok → unknown. Bilmemek ölmüş olmak değildir. */
+export const directorUnknown: AgentHealth = {
+  agentId: "legal",
   name: "Legal Director",
-  status: "idle",
-  currentGoal: null,
-  currentTask: null,
-  confidence: null,
-  lastBeat: null,
+  verdict: "unknown",
+  consecutiveFailures: 0,
+  lastSuccess: null,
+  lastFailure: null,
+  metrics: {
+    latencyMsAvg: null, latencyMsP95: null, successRate: null,
+    errorRate: null, tokensUsed: 0, costUsd: null,
+    queueLength: 0, availability: null, lastHeartbeat: null,
+  },
+  checkedAt: null,
 };
 
 export const alerts: Alert[] = [

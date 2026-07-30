@@ -18,10 +18,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { liveness, useNow } from "@/lib/clock/tick";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
 import type { DataEnvelope } from "@/types/data-envelope";
-import type { DirectorHeartbeat } from "@/types/executive";
+import type { AgentHealth } from "@/types/executive";
 import { directorsMock, risksMock } from "@/mocks/briefing";
 import { missionsMock } from "@/mocks/mission-control";
 import { MockBadge } from "@/mocks/mock-badge";
@@ -65,33 +64,31 @@ function Stat({
 function OperationalStatus({
   directors,
 }: {
-  directors: DataEnvelope<DirectorHeartbeat[]> | null;
+  directors: DataEnvelope<AgentHealth[]> | null;
 }) {
-  const now = useNow();
   const open = activeTelemetryChannels().length;
   const total = TELEMETRY_CHANNELS.length;
 
-  const states = (directors?.data ?? []).map((d) =>
-    liveness(d.lastBeat, d.beatIntervalMs, now)
-  );
-  const live = states.filter((s) => s === "live").length;
-  const offline = states.filter((s) => s === "offline").length;
-  const unknown = states.filter((s) => s === "unknown").length;
+  /* Sayım ODIN'in verdict'ine dayanır — UI canlılık eşiği TÜRETMEZ
+     (UI-ADR-111; eski beatIntervalMs×3 kuralı UI icadıydı). */
+  const verdicts = (directors?.data ?? []).map((d) => d.verdict);
+  const healthy = verdicts.filter((v) => v === "healthy").length;
+  const unhealthy = verdicts.filter((v) => v === "unhealthy").length;
+  const unknown = verdicts.filter((v) => v === "unknown").length;
 
   return (
     <Card density="compact">
       <CardBody density="compact">
         <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>div]:min-w-0">
           {/* `odin-num` blok elemana verilmez: sınıf sayıları SAĞA hizalar
-              (03-...md §11) ve etiketinden koparır. Sayı satır içi bir
-              span'dedir; hizalama solda kalır, tabular-nums korunur. */}
+              (03-...md §11) ve etiketinden koparır. */}
           <Stat label="Telemetri kanalı" value={`${open} / ${total}`} note="açık / tanımlı" />
-          <Stat label="Canlı Director" value={live} note="son atım eşiğin içinde" tone="text-success" />
-          <Stat label="Offline" value={offline} note="atım gecikti" tone="text-warning" />
+          <Stat label="Sağlıklı Director" value={healthy} note="ODIN verdict: healthy" tone="text-success" />
+          <Stat label="Sağlıksız" value={unhealthy} note="ODIN verdict: unhealthy" tone="text-warning" />
           <Stat
             label="Bilinmiyor"
             value={unknown}
-            note="hiç atım yok — ölmüş demek değildir"
+            note="hiç gözlem yok — ölmüş demek değildir"
             tone="text-content-tertiary"
           />
         </dl>
@@ -260,7 +257,7 @@ export function MissionControl({
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
           {directors.data?.data.map((d) => (
-            <DirectorCard key={d.directorId} env={{ data: d, meta: directors.data!.meta }} />
+            <DirectorCard key={d.agentId} env={{ data: d, meta: directors.data!.meta }} />
           ))}
         </div>
       </Section>

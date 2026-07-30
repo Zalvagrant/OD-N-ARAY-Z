@@ -35,10 +35,8 @@ const CATEGORY: Record<Opportunity["category"], string> = {
 
 export function OpportunityCard({
   env,
-  onApprove,
 }: {
   env: DataEnvelope<Opportunity> | null | undefined;
-  onApprove?: (o: Opportunity) => void;
 }) {
   const now = useNow();
 
@@ -116,11 +114,7 @@ export function OpportunityCard({
                   <div className="odin-ai-region p-3">
                     <p className="text-xs uppercase tracking-wide text-ai-text">Önerilen aksiyon</p>
                     <div className="mt-2">
-                      <AIRecommendationView
-                        rec={o.recommendedAction}
-                        compact
-                        onApprove={onApprove ? () => onApprove(o) : undefined}
-                      />
+                      <AIRecommendationView rec={o.recommendedAction} compact />
                     </div>
                   </div>
                 ) : (

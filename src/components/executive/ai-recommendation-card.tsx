@@ -5,7 +5,7 @@
  * Kaynak: 09b-verified-contracts.md §1 (ODIN recommendation — 10 zorunlu
  * alan) + 07-ai-directors.md §8.
  *
- * ZORUNLULUK LİSTESİ ODIN'İN LİSTESİDİR (UI-ADR-100). Eski "7 alan"
+ * ZORUNLULUK LİSTESİ ODIN'İN LİSTESİDİR (UI-ADR-110). Eski "7 alan"
  * seti UI türetmesiydi; iki sapması vardı ve ikisi de düzeltildi:
  *  - `alternatives` burada aranıyordu — ODIN'de KARARIN alanıdır
  *    (schema minItems 2). UI-ADR-091'in o şartı buradan DecisionCard'a
@@ -66,15 +66,15 @@ export function canRenderRecommendation(rec: AIRecommendation | null | undefined
    OpportunityCard) kendi zarflarının içinde bunu gömer.
    -------------------------------------------------------------------------- */
 
+/* `onApprove` KALDIRILDI (UI-ADR-110): öneri seviyesinde tek tık onay,
+   verdict'in gerekçe/tarih kurallarını atlardı. Onay KARAR kartındadır. */
 export function AIRecommendationView({
   rec,
   meta,
-  onApprove,
   compact = false,
 }: {
   rec: AIRecommendation;
   meta?: DataMeta;
-  onApprove?: (rec: AIRecommendation) => void;
   /** true → başlık ve kabuk çağırana ait; sadece gövde çizilir. */
   compact?: boolean;
 }) {
@@ -158,7 +158,7 @@ export function AIRecommendationView({
 
       {/* flip_conditions HER ZAMAN GÖRÜNÜR — açılır bölümde değil.
           "Bu öneriyi ne değiştirir?" CEO'nun onaydan ÖNCE görmesi gereken
-          şeydir; katlanırsa kayıp alan geri gelir (UI-ADR-100). */}
+          şeydir; katlanırsa kayıp alan geri gelir (UI-ADR-110). */}
       <div className="rounded-sm border border-line-subtle p-3">
         <p className="text-xs uppercase tracking-wide text-content-tertiary">
           ⚡ Bu öneriyi ne değiştirir
@@ -220,9 +220,9 @@ export function AIRecommendationView({
               </div>
             )}
 
-            {/* Güven dökümü — 8 kanonik bileşen (UI-ADR-099).
+            {/* Güven dökümü — 8 kanonik bileşen (UI-ADR-109).
                 Alternatifler ARTIK BURADA DEĞİL: kararın alanıdır ve
-                DecisionCard çizer (UI-ADR-100). */}
+                DecisionCard çizer (UI-ADR-110). */}
             <ConfidenceBreakdown breakdown={rec.confidenceBreakdown} />
 
             {/* İlgili bilgi */}
@@ -255,13 +255,6 @@ export function AIRecommendationView({
           </div>
         </Disclosure>
       </div>
-      {compact && onApprove && (
-        <div>
-          <Button variant="primary" size="sm" onClick={() => onApprove(rec)}>
-            Onayla
-          </Button>
-        </div>
-      )}
     </div>
   );
 
@@ -275,13 +268,6 @@ export function AIRecommendationView({
             <span className="text-xs uppercase tracking-wide text-ai-text">AI önerisi</span>
             <ConfidenceBadge value={rec.confidence} />
           </span>
-        }
-        actions={
-          onApprove && (
-            <Button variant="primary" size="sm" onClick={() => onApprove(rec)}>
-              Onayla
-            </Button>
-          )
         }
       />
       <CardBody>{body}</CardBody>
@@ -300,14 +286,12 @@ export function AIRecommendationView({
 
 export function AIRecommendationCard({
   env,
-  onApprove,
 }: {
   env: DataEnvelope<AIRecommendation> | null | undefined;
-  onApprove?: (rec: AIRecommendation) => void;
 }) {
   return (
     <DataGuard env={env} reason="AI önerisi henüz üretilmedi">
-      {(rec, meta) => <AIRecommendationView rec={rec} meta={meta} onApprove={onApprove} />}
+      {(rec, meta) => <AIRecommendationView rec={rec} meta={meta} />}
     </DataGuard>
   );
 }

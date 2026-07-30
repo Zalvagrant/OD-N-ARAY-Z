@@ -613,3 +613,64 @@ refactor + mock güncelleme + contract fixture testleri).
 > gavadolar A dedi. C'yi terra açıkça riskli buldu: "yanlış varsayımlar
 > bileşen API'lerine gömülü, görsel kabuk paralel gidebilir ama veri
 > modeli ve bileşen şablonu contract düzeltmesi bitmeden genişletilmemeli."
+
+---
+
+## 16. FR-0046 KARAR PAKETİ — dört ürün kavramı (sahip kararına hazır)
+
+30 Temmuz 2026. gavadolar hükmü: "karar paketi hazırla, karar ODIN
+governance'ının". Her kavram için öneri + gerekçe + kaynak. **Karar verilen
+kavram ODIN'de ADR/R-006 ile sözleşmeleşir; UI onu bekler.**
+
+### 16.1 Alert — ✅ KABUL öner (sözleşme ADR-0141'den)
+
+ODIN'de üretici ZATEN çok: `improvement_detectors`, `finance/quality`,
+`legal_monitor`, `amazon_director` (hijacker). Ve **ADR-0141 commerce
+shared layer bir "alert evaluator" tanımlıyor** — kavram icat edilmiyor,
+adı konuyor. Önerilen zarf (evaluator çıktısından):
+
+```json
+{ "id": "AL-...", "severity": "critical|risk|warning|info",
+  "title": "...", "module": "amazon", "requires_action": true,
+  "evidence": ["KO-..."], "created_at": "ISO", "suggested_action": "..." }
+```
+
+UI etkisi: AlertStack olduğu gibi bağlanır (requires_action filtresi zaten var).
+
+### 16.2 ExecutiveKPI — 🟡 KISMİ KABUL öner (FR-0044 sınırının genellemesi)
+
+Tek "KPI motoru" İCAT EDİLMESİN. ODIN parçaları zaten üretiyor:
+`company_health_score` (CHS — verisi olmayan bileşen formüle girmez),
+`amazon_director` (net kâr; hesaplanamazsa "Data Required"),
+`ai_spend` (DashboardProjection). FR-0044'ün `{status, value, reason}`
+sınır adaptörü **KPI zarfı olarak genelleştirilsin**:
+
+```json
+{ "id": "net_profit", "label": "Net Profit", "status": "available|data_required|unavailable",
+  "value": 12345.67, "unit": "currency|percent|count|score",
+  "currency": "USD", "scale": "0-100", "reason": null, "as_of": "ISO" }
+```
+
+UI etkisi: KPI şeridi YALNIZ bu zarfı okur; "Data Required" sayı alanına
+sızamaz (ADR-0135 gerekçesi). Sparkline/forecast/aiInsight katmanları
+kaynakları doğana dek çizilmez.
+
+### 16.3 Opportunity — ❌ RET öner (v1'de ayrı kavram değil)
+
+ODIN'de fırsat ayrı bir varlık değil, **önerinin pozitif sınıfıdır**
+(improvement/innovation üreticileri recommendation üretir). Ayrı sözleşme
+açmak aynı kaydın ikinci adı olur. v1: UI "Opportunities" bölümü,
+beklenen etkisi pozitif önerilerin GÖRÜNÜMÜdür (kayıt alanlarıyla filtre —
+türetme değil). v2'de gerçek bir pipeline doğarsa yeniden açılır.
+
+### 16.4 Mission — ❌ RET öner (v1'de görünüme dönüştür)
+
+ODIN'de "mission" yok; en yakın gerçeklik: `status: "monitoring"` kararlar
++ `monitoring_checkpoints` + `related_goals` + `due_deferrals()`. Mission
+Board v1'de **"İzlenen kararlar + vadesi gelen ertelemeler"** görünümüne
+dönüştürülür — yeni kavram sıfır, kaynak mevcut. "Görev/ilerleme yüzdesi"
+kavramı istenirse o zaman gerçek bir sözleşme tartışılır.
+
+**Sahipten istenen:** 16.1–16.4 için evet/hayır (blok hâlinde "öneriler
+uygun" demek yeterli). Karar ODIN oturumunda ADR + R-006 satırıyla
+mühürlenir; S6 o mühürle açılır.
