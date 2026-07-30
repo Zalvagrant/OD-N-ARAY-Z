@@ -481,7 +481,35 @@ saklanıyor mu?
 
 ---
 
-## 15. SAHİBİN KARAR VERMESİ GEREKENLER
+## 15. SAHİBİN KARAR VERMESİ GEREKENLER — ✅ KARARA BAĞLANDI
+
+> **30 Temmuz 2026:** Sahip beş kararı gavadolar'a devretti ve sonucu peşinen
+> onayladı ("onların dediklerini yapabilirsin"). gavadolar (terra + luna,
+> oybirliği) + sistemciler denetimi ile kapandı:
+>
+> 1. **Onay gerekçesi → ODIN'in MEVCUT kuralı kullanılır.** gavadolar
+>    "tier'a göre" dedi; doğrulamada ODIN'in bunu ZATEN çözdüğü görüldü
+>    (ADR-0131): gerekçe D-tier'a değil **A/B/C öneri sınıfına** bağlı —
+>    A bilgilendirme (onay yok), B/C'de gerekçe **zorunlu, ≥8 karakter**.
+>    UI yeni kural icat etmez, `ceo verdict`in kuralını yüzeye taşır.
+> 2. **Ret + Ertele karar kartına eklenir.** ODIN verdict sözlüğü
+>    {approved, rejected, deferred}; `deferred` GELECEK tarih ister
+>    ("tarihsiz erteleme sessiz bir hayırdır"). UI üç eylemi de sunar.
+> 3. **Dört ürün kavramı → governance'a devredildi: FR-0046** (ODIN R-006).
+>    UI bu kavramları icat etmez; kabul edilen kavram sözleşmesiyle döner,
+>    reddedilen kavramın ekran bölümü kaldırılır. **S6 bu karara kapılı.**
+> 4. **Amazon verisi bağlanır: FR-0044 zaten açık** (ADR-0135 —
+>    GET /api/amazon + {status,value,reason} sınır adaptörü). ODIN tarafı işi.
+> 5. **S5.5 eklendi.** Kapsam SINIRLI: sözleşme/tip hizalama + adapter
+>    eşleme + contract fixture + kabuk scroll düzeltmeleri + hata/unavailable
+>    davranışı. Yeni ekran, yeni kavram, canlı veri YOK.
+>
+> Verdict taşıma yolu (sistemciler, oybirliği): **POST /api/command**
+> beyaz listesi — yeni endpoint açılmaz. Eksik `ceo` verb'ü için **ER-0025**
+> açıldı. Sözleşme drift koruması: FR-0039 fixture kanalı + sürümlü şema +
+> UI CI kapısı.
+
+### Orijinal karar metinleri (tarihsel)
 
 29 Temmuz 2026, S5 sonrası. `09b-verified-contracts.md` ile ODIN çekirdeği
 doğrulandıktan sonra geriye kalan **beş karar.** Bunların hiçbiri
