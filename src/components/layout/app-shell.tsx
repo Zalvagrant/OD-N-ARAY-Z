@@ -72,7 +72,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     /* reducedMotion="user": işletim sistemi ayarı açıksa Framer hareketi
        kaldırır — bilgi kalkmaz (12-motion-system.md §9). */
     <MotionConfig reducedMotion="user">
-      <div className="flex h-screen flex-col overflow-hidden bg-bg">
+      {/* `fixed inset-0`: kabuk belge akışından çıkar, html scrollHeight ===
+          viewport olur — belge scroll'u yapısal olarak imkânsızlaşır
+          (16-audit §2 P0, UI-ADR-108). Scroll yalnızca Workspace içindedir. */}
+      <div className="fixed inset-0 flex flex-col overflow-hidden bg-bg">
         <TopHeader crumbs={crumbs} />
 
         <div className="flex min-h-0 flex-1">

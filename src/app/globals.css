@@ -107,10 +107,12 @@
   animation: odin-shimmer 1.6s var(--odin-ease-standard) infinite;
 }
 
-html {
-  height: 100%;
-}
-
+/* 03-...md §1: scroll YALNIZCA workspace bölgesindedir. Belge seviyesinde
+   kaydırma bilinçli olarak kapalıdır — Space/Home/End header'ı ekrandan
+   çıkaramaz (16-audit §2 P0, UI-ADR-108). Kabuk `fixed inset-0` ile belge
+   yüksekliğine katkıyı sıfırlar. */
+html,
 body {
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
 }

@@ -1626,3 +1626,25 @@ kolonlar GERÇEK `level` alanıyla gruplanır; kaynaksız alanlar DÜŞER.
 **Etki:** `types/screens.ts`, `goal-board.tsx` (+stories, git mv ile),
 `mission-control.tsx`, `mocks/mission-control.ts`, `types/executive.ts`
 (AmazonSnapshot), `amazon-director.tsx`, `mocks/amazon.ts`.
+
+---
+
+## UI-ADR-108 — Belge scroll'u yapısal olarak kapatıldı (16-audit §2 P0)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+
+**Sorun:** 16-audit §2'nin P0 bulgusu — `html` scrollHeight viewport'u
+aşıyordu (1920'de 4342 px ölçüldü); `Space`/`Home`/`End` header'ı ekrandan
+çıkarabiliyordu. Spec (03-...md §1): scroll YALNIZCA workspace'tedir.
+Denetim düzeltmeyi "S5.5'te uygulanacak" diye reçetelemişti ama hiçbir
+dala commit edilmemiş — bu revizyonun ölçümünde yakalandı.
+
+**Karar (denetimin reçetesi birebir):** `html, body { height:100%;
+overflow:hidden }` + kabuk kökü `h-screen` yerine **`fixed inset-0`** —
+kabuk belge akışından çıkar, belge yüksekliğine katkı sıfırlanır ve belge
+scroll'u YAPISAL olarak imkânsızlaşır; CSS'i geri açan biri bile kabuğu
+kaydıramaz. Ölçüm: 3 ekran × 3 genişlik (1920/1440/768) html
+scrollHeight === 900 (viewport), yatay taşma 0.
+
+**Etki:** `globals.css`, `app-shell.tsx` (tek satır sınıf değişimi).
