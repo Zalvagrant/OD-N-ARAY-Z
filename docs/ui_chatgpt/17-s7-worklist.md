@@ -43,12 +43,12 @@ dosyalara S7 dokunmamalı.
 
 ### Doğrulama (sprint kapanış kapısı)
 
-- [ ] Her veri çağrısı `meta` (source + lastUpdated) taşıyor
-- [ ] `meta` olmayan veri reddediliyor
-- [ ] Runtime doğrulama sözleşme ihlalini yakalıyor
-- [ ] Hata durumunda 5 adımlı açıklama görünüyor
-- [ ] Stale veri görsel olarak işaretli
-- [ ] Tek anahtarla mock/gerçek geçişi
+- [x] Her veri çağrısı `meta` (source + lastUpdated) taşıyor
+- [x] `meta` olmayan veri reddediliyor
+- [x] Runtime doğrulama sözleşme ihlalini yakalıyor
+- [x] Hata durumunda 5 adımlı açıklama görünüyor — **canlı ekranda görüldü**
+- [x] Stale veri görsel olarak işaretli (+ yenileme arızası ayrıca yazılır)
+- [x] Tek anahtarla mock/gerçek geçişi; gerçek modda mock kancası FAIL-CLOSED
 
 ---
 
@@ -106,13 +106,13 @@ Değiştirilenler: `(shell)/layout.tsx` (provider) · `.storybook/preview.tsx`
 | Kapı | Sonuç |
 |---|---|
 | Birim testleri | **91/91** (38'i S7) |
-| Storybook tarayıcı testleri | **145/145**, 45 dosya |
+| Storybook tarayıcı testleri | **146/146**, 45 dosya |
 | `tsc --noEmit` · eslint | temiz |
 | Yatay taşma (1280 · 1440 · 768) | **0** |
 | Sözleşme ihlali → ekran | Mock bilerek bozuldu; KPI bölümü 5 adımlı hata + "Yeniden dene" gösterdi, **sahte sayı üretmedi**, ekranın kalanı ayakta kaldı. Mock geri alındı |
 | `build:release` mock modda | reddediyor (çıkış 1) |
 
-Görsel inceleme iki hata çıkardı, ikisini de test yakalamamıştı:
+Görsel inceleme iki hata çıkardı (üçüncüsü aşağıda), ikisini de test yakalamamıştı:
 şerit `TrustSignal`'ı her kartın satırını **dokuzuncu kez tekrarlıyordu**
 (artık yalnız arıza varken çıkıyor) · hata metni "amazon yanıtı" diyordu,
 hangi bölümün reddedildiği belli değildi (`where` artık anahtarın tamamı).
@@ -121,14 +121,6 @@ hangi bölümün reddedildiği belli değildi (`where` artık anahtarın tamamı
 iletilmiyordu — bölüm boş kalıyor, kullanıcı verinin REDDEDİLDİĞİNİ hiç
 öğrenmiyordu. Doğrulama katmanının bütün değeri reddin görünmesindedir;
 `sectionError()` ile bağlandı.
-
-## 3. S7 KAPSAMI DIŞI (bilerek)
-
-- Gerçek ODIN endpoint'ine bağlanmak → **S8** (D8.1). `httpLoad()` yazıldı
-  ve testlendi ama henüz hiçbir ekran çağırmıyor.
-- COGS ekranı, net kâr motoru → **S8**
-- Decision Center ekranı → **S11** (dal adı yanıltıcıdır)
-- `types/executive.ts` yeniden yazımı → paralel oturumun S5.5 işi
 
 ## 2d. Meclis kapanış turu — koşullu onay ve karşılığı
 
@@ -144,6 +136,14 @@ S8'de mock göstermeye devam edemez; "veri yok" gerekçesini basarlar.
 Mock'un dağıtıma çıkması ayrıca `build:release` kapısıyla engelli.
 
 terra'nın S8 kabul kriterleri kayda geçti (aşağıda 3 ve 4).
+
+## 3. S7 KAPSAMI DIŞI (bilerek)
+
+- Gerçek ODIN endpoint'ine bağlanmak → **S8** (D8.1). `httpLoad()` yazıldı
+  ve testlendi ama henüz hiçbir ekran çağırmıyor.
+- COGS ekranı, net kâr motoru → **S8**
+- Decision Center ekranı → **S11** (dal adı yanıltıcıdır)
+- `types/executive.ts` yeniden yazımı → paralel oturumun S5.5 işi
 
 ### S8'e devredilen açık borçlar
 
