@@ -30,10 +30,35 @@ export function Workspace({
     const el = scrollRef.current;
     if (!el) return;
 
-    const { memory, rememberScroll } = useNavigationStore.getState();
-    el.scrollTop = memory[workspaceKey]?.scrollTop ?? 0;
+    /* KAYIT scroll OLAYINDA yapılır, cleanup'ta DEĞİL. Eski kod cleanup'ta
+       `el.scrollTop` okuyordu; o an yeni içerik commit edilmiş ve tarayıcı
+       scrollTop'u kısa içeriğe clamp'lemiş oluyordu — her geçiş 0 kaydediyordu.
+       S1-S5 denetimi bunu yakaladı (1500 → 0); yazılmıştı ama çalışmıyordu. */
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() =>
+        useNavigationStore.getState().rememberScroll(workspaceKey, el.scrollTop)
+      );
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
 
-    return () => rememberScroll(workspaceKey, el.scrollTop);
+    /* GERİ YÜKLEME: hedef konuma, içerik o yüksekliğe ulaşınca oturt.
+       Mock veri ilk istemci tick'inde gelir; skeleton anında içerik kısadır
+       ve tek seferlik atama clamp'lenir. Birkaç frame denenir, sonra bırakılır
+       — sonsuz gözlemci kurmaya değmez (ponytail: 10 frame ~ 160 ms tavan). */
+    const target = useNavigationStore.getState().memory[workspaceKey]?.scrollTop ?? 0;
+    let tries = 10;
+    const restore = () => {
+      el.scrollTop = target;
+      if (el.scrollTop < target && --tries > 0) raf = requestAnimationFrame(restore);
+    };
+    if (target > 0) restore();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", onScroll);
+    };
   }, [workspaceKey]);
 
   return (

@@ -19,16 +19,25 @@
  * `12 → "▲ %12"` örneğiyle açıkça 0–100 olarak dondurmuştur.
  */
 
+import type {
+  OdinAlternative,
+  OdinConfidenceBreakdown,
+  OdinDecisionStatus,
+  OdinDecisionTier,
+  OdinRecClass,
+  OdinVerdict,
+} from "./odin";
+
+export type {
+  OdinAlternative,
+  OdinConfidenceBreakdown,
+  OdinDecisionTier,
+  OdinVerdict,
+} from "./odin";
+
 export interface Money {
   amount: number;
   currency: string;
-}
-
-export interface Alternative {
-  title: string;
-  description: string;
-  expectedOutcome: string;
-  risk: "low" | "medium" | "high";
 }
 
 export interface EvidenceRef {
@@ -44,38 +53,55 @@ export interface EvidenceRef {
   supportsOrContradicts: "supports" | "contradicts" | "neutral";
 }
 
-export interface DirectorOpinion {
-  directorId: string;
-  position: "support" | "oppose" | "neutral";
-  argument: string;
-  confidence: number;
-  evidence: EvidenceRef[];
-}
-
 /* --------------------------------------------------------------------------
    §3 AIRecommendation — 7 alanlı explainability sözleşmesi
    -------------------------------------------------------------------------- */
 
 export interface AIRecommendation {
   id: string;
+  /** ODIN `recommendation.text` */
   recommendation: string;
-
-  numbers: Record<string, number | string>;
-  causeAnalysis: string;
-  impactAnalysis: string;
-  /** En az 2 — zorunlu (07-...md §7). Altındaysa öneri RENDER EDİLMEZ. */
-  alternatives: Alternative[];
-  expectedFinancialResult: { amount?: number; percent?: number; currency?: string };
+  /** 0–100 — bantları ODIN belirler (types/odin.ts), UI eşik icat etmez. */
   confidence: number;
+  /** ODIN `confidence_breakdown` — 8 kanonik bileşen. Kara kutu sayı yok. */
+  confidenceBreakdown: OdinConfidenceBreakdown;
+  /** ODIN `evidence_snapshot` karşılığı (UI zenginleştirilmiş biçimi). */
   evidence: EvidenceRef[];
-
-  /* Explainability zorunlulukları — biri eksikse öneri gösterilmez */
-  whyGenerated: string;
-  responsibleDirector: string;
-  relatedKnowledge: string[];
-  /** ISO 8601 */
-  lastValidated: string;
+  /** ODIN `risks` */
   potentialRisks: string[];
+  /** ODIN `assumptions` — öneri neye dayanıyor. */
+  assumptions: string[];
+  /** ODIN `flip_conditions` — "bu öneriyi ne değiştirir?" En kritik
+      açıklanabilirlik alanı; UI-ADR-098'e kadar HİÇ gösterilmiyordu. */
+  flipConditions: string[];
+  /** ODIN `consensus_score` (0–100). */
+  consensusScore: number;
+  /** ODIN `disagreement_score` = 100 − consensus (consensus.py TÜRETİR;
+      UI ayrı ölçüm sanmaz — UI-ADR-100). */
+  disagreementScore: number;
+  /** ODIN `minority_opinions` — "üye: seçenek — gerekçe" düz metinleri. */
+  minorityOpinions: string[];
+
+  /** Verdict gerekçe kuralının anahtarı (executive.classify, ADR-0131):
+      A bilgilendirme · B/C'de gerekçe ≥8 karakter zorunlu. */
+  recClass?: OdinRecClass;
+
+  /* ------------------------------------------------------------------
+     ODIN karar şemasında OLMAYAN alanlar — hepsi opsiyonel ve adapter
+     tablosunda `not_exposed` işaretli (09b §9). Kaynakları oluşursa
+     dolar; UI bunları ASLA zorunlu saymaz, yoksa satır çizilmez.
+     `alternatives` BURADAN KALDIRILDI: ODIN'de kararın alanıdır
+     (UI-ADR-091 ♻️ revizyonu → UI-ADR-100).
+     ------------------------------------------------------------------ */
+  numbers?: Record<string, number | string>;
+  causeAnalysis?: string;
+  impactAnalysis?: string;
+  expectedFinancialResult?: { amount?: number; percent?: number; currency?: string };
+  whyGenerated?: string;
+  responsibleDirector?: string;
+  relatedKnowledge?: string[];
+  /** ISO 8601 */
+  lastValidated?: string;
 }
 
 /* --------------------------------------------------------------------------
@@ -87,81 +113,48 @@ export interface AIRecommendation {
 /** Yüzde değerinin hangi aralıkta geldiği. Tahmin edilmez, bildirilir. */
 export type PercentScale = "0-1" | "0-100";
 
-/** FR-0044 değer zarfı — sözleşmenin PARÇASIDIR, yalnız API sınırında değil. */
+/** ADR-0143 §2 sınır zarfının durumu (FR-0044'ten genelleşti). */
 export type MetricStatus = "available" | "data_required" | "unavailable";
 
-export interface MetricValue {
-  status: MetricStatus;
-  /**
-   * `status === "available"` ise sayı, değilse null. "Data Required" gibi
-   * sunum METNİ bu alana asla girmez (ADR-0135): string bir sayı alanında
-   * `typeof`/`toFixed` kırar ve truthy okunur.
-   */
-  value: number | null;
-  /** `status !== "available"` ise ZORUNLU — neden ölçülemediği de bilgidir. */
-  reason?: string;
-}
-
+/**
+ * ExecutiveKPI — ODIN **ADR-0143 §2** ile mühürlenen sınır zarfı, BİREBİR.
+ *
+ * Zarf DÜZDÜR: `status`/`value`/`reason`, `unit`/`currency`/`scale`/`asOf`
+ * ile aynı seviyededir — iç içe bir `value` nesnesi ADR'de YOKTUR.
+ *
+ * "KPI motoru yok" (ADR-0143 §2): kaynaklar var olanlardır
+ * (company_health_score · amazon_director · ai_spend). Literal
+ * `"Data Required"` sayısal alanı ASLA geçmez (ADR-0135) — o durum
+ * `status` + `reason` ile taşınır.
+ *
+ * **Sparkline · forecast · insight katmanları bu sözleşmenin PARÇASI
+ * DEĞİLDİR** (ADR-0143 §2, son cümle): gerçek kaynakları oluşana kadar
+ * beklerler. Bu yüzden tipte de yokturlar — opsiyonel bırakmak "bir gün
+ * dolar" izlenimi veren sahte bir kapasitedir (UI-ADR-104 dersi).
+ */
 export interface ExecutiveKPI {
-  /** Kararlı, namespaced kimlik — ör. `"amazon.gross_profit"`. */
+  /** ODIN metrik kimliği — ör. `"net_profit"`. */
   id: string;
-  /** Kanonik ODIN metrik anahtarı — ör. `"gross_profit"`. */
-  metricKey: string;
   label: string;
-  value: MetricValue;
+  status: MetricStatus;
+  /** `status === "available"` ise sayı; değilse `null`. */
+  value: number | null;
   unit: "currency" | "percent" | "count" | "score";
   /** `unit === "currency"` ise ZORUNLU — ISO kodu (Amazon: USD, UI-ADR-103). */
-  currencyCode?: string;
+  currency?: string;
   /** `unit === "percent"` ise ZORUNLU. Yoksa değer render edilmez (UI-ADR-093). */
   scale?: PercentScale;
-  /** ISO 8601 — metriğin veri anı. Zarfın `lastUpdated`'ından bağımsızdır. */
+  /** `status !== "available"` ise ZORUNLU — neden ölçülemediği de bilgidir. */
+  reason?: string | null;
+  /** ISO 8601 — metriğin veri anı. */
   asOf: string;
-  /** Üretici — ör. `"amazon_director"`. */
-  source: string;
-
-  /*
-   * FR-0043 — kaynağı OLMAYAN katmanlar. ODIN retained time series tutmuyor;
-   * bu alanlar üretilene kadar opsiyoneldir, MOCK DAHİ DOLDURMAZ ve ekran
-   * NoData basar. Boş bir yorum paneli dürüsttür; üretilmiş olanı, anti-fake
-   * kuralının önlediği hatanın ta kendisidir (R-006 FR-0043).
-   *
-   * Metrik KUTBU (higherIsBetter) BİLEREK yok — UI-ADR-102: kutup her
-   * metricKey için ODIN'de tanımlanmadan eklenirse kalıcı null üretir
-   * (UI-ADR-104 dersi). Kutup bilinmedikçe renk iddiası yapılmaz.
-   */
-  trend?: {
-    direction: "up" | "down" | "flat";
-    changePercent: number;
-    comparedTo: string;
-  };
-  sparkline?: (number | null)[];
-  aiInsight?: string;
-  confidence?: number;
-  forecast?: { value: number; horizon: string; confidence: number };
-  risk?: "none" | "low" | "medium" | "high" | "critical";
-  recommendedAction?: AIRecommendation;
-  evidence?: EvidenceRef[];
-  owner?: string;
 }
 
 /* --------------------------------------------------------------------------
    §2 Decision
    -------------------------------------------------------------------------- */
 
-export type DecisionStatus =
-  | "proposed" | "collecting_evidence" | "under_review"
-  | "approved" | "rejected" | "deferred"
-  | "executing" | "monitoring" | "completed";
-
-export interface DecisionScore {
-  outcomeSuccess: number;
-  onTime: boolean;
-  expectedROI: number;
-  actualROI: number;
-  riskManagement: number;
-  evidenceQuality: number;
-  aiPredictionAccuracy: number;
-}
+export type DecisionStatus = OdinDecisionStatus;
 
 export interface DecisionEvent {
   id: string;
@@ -170,69 +163,84 @@ export interface DecisionEvent {
   description?: string;
 }
 
+/**
+ * ODIN `DecisionRecord`un UI görünümü (09b §1). Alan adları camelCase'e
+ * çevrilir, ANLAM değiştirilmez. Eski 19 alanlık UI tipi UYDURMAYDI
+ * (UI-ADR-098): priority/financialImpact/riskLevel/expectedROI/
+ * directorOpinions/timeline/score ODIN'de yok ve kaldırıldı.
+ */
 export interface Decision {
   id: string;
-  type: "finance" | "amazon" | "trading" | "strategy" | "operations";
-  title: string;
-  executiveSummary: string;
-  priority: 1 | 2 | 3 | 4 | 5;
-  status: DecisionStatus;
+  /** ODIN `question` — kart başlığı budur. */
+  question: string;
+  /** YYYY-MM-DD */
+  date: string;
+  /** D1 geri alınabilir · D2 geri alması maliyetli · D3 stratejik. */
+  tier: OdinDecisionTier;
+  status: OdinDecisionStatus;
+  domain?: string;
 
-  strategicImpact: "low" | "medium" | "high";
-  financialImpact: { amount: number; currency: string; horizon: string };
-  riskLevel: "low" | "medium" | "high" | "critical";
-  aiConfidence: number;
-  evidenceQuality: number;
-  reversibility: "reversible" | "partially" | "irreversible";
-  executionComplexity: "low" | "medium" | "high";
-  expectedROI: number;
-  actualROI?: number;
-  lessonsLearned?: string;
+  /** KARARIN alanı, en az 2 (şema minItems) — önerinin değil. */
+  alternatives: OdinAlternative[];
+  recommendation: AIRecommendation;
 
-  directorOpinions: DirectorOpinion[];
-  consensus: number;
-  disagreement: number;
-  minorityOpinion?: DirectorOpinion;
+  /** Verdict verildiyse. Yalnızca insan kapatır (decided_by const). */
+  humanDecision?: {
+    outcome: OdinVerdict;
+    humanReasoning?: string;
+    /** `deferred` için zorunlu gelecek tarih (ADR-0131). */
+    revisitAt?: string;
+  };
 
-  /** En az 2 — backend bu kuralı ihlal eden Decision üretemez. */
-  alternatives: Alternative[];
-  evidence: EvidenceRef[];
-  relatedDecisions: string[];
-  timeline: DecisionEvent[];
-  score?: DecisionScore;
-
-  /** Sözleşme dışı, opsiyonel — dosya başlığındaki "TEK SAPMA" notuna bak. */
-  recommendation?: AIRecommendation;
+  expectedOutcome?: string;
+  monitoringCheckpoints?: string[];
+  lessonsLearned?: string[];
+  relatedDecisions?: string[];
 }
 
 /* --------------------------------------------------------------------------
    §4 DirectorHeartbeat
    -------------------------------------------------------------------------- */
 
-export type DirectorStatus =
-  | "idle" | "monitoring" | "analyzing" | "reviewing"
-  | "processing" | "discovering" | "error" | "offline";
+/** ODIN verdict sözlüğü — health.py yalnız bu üçünü yazar. */
+export type AgentVerdict = "unknown" | "healthy" | "unhealthy";
 
-export interface DirectorHeartbeat {
-  directorId: string;
+/**
+ * ODIN `AgentHealthMonitor.snapshot()` girdisinin UI görünümü (09b §5,
+ * UI-ADR-111). Eski `DirectorHeartbeat` 8 UYDURULMUŞ alan taşıyordu
+ * (status/currentGoal/currentTask/confidence/taskCount/evidenceCount/
+ * recommendationCount/memoryHealth/predictionStatus/beatIntervalMs) ve
+ * ODIN'in ürettiği GERÇEK metrikleri (gecikme, başarı oranı, maliyet)
+ * hiç göstermiyordu — kayıp alan, uydurmadan tehlikelidir.
+ *
+ * CANLILIK KURALI UI'DA TÜRETİLMEZ: eski "beatIntervalMs × 3" eşiği UI
+ * icadıydı ve kaldırıldı. UI yalnız ODIN'in verdiği `verdict`i gösterir;
+ * `last_heartbeat` bir zaman damgası olarak sunulur (yaşı yazılır,
+ * yorumlanmaz).
+ */
+export interface AgentHealth {
+  agentId: string;
+  /** Görünen ad — UI eşlemesi (agent registry'den). */
   name: string;
-  status: DirectorStatus;
-
-  currentGoal: string | null;
-  currentTask: string | null;
-  confidence: number | null;
-
-  taskCount: number;
-  queueLength: number;
-  evidenceCount: number;
-  recommendationCount: number;
-
-  memoryHealth: "healthy" | "degraded" | "critical";
-  predictionStatus: "running" | "idle" | "failed";
-
-  /** ISO 8601 — yoksa canlılık BİLİNMİYOR sayılır, "offline" değil. */
-  lastBeat: string | null;
-  beatIntervalMs: number;
+  verdict: AgentVerdict;
+  consecutiveFailures: number;
+  /** ISO 8601 | null */
+  lastSuccess: string | null;
+  lastFailure: string | null;
+  metrics: {
+    latencyMsAvg: number | null;
+    latencyMsP95: number | null;
+    /** 0–1 */
+    successRate: number | null;
+    errorRate: number | null;
+    tokensUsed: number;
+    costUsd: number | null;
+    queueLength: number;
+    availability: number | null;
+    /** ISO 8601 | null — yaş yazılır, canlılık YORUMLANMAZ. */
+    lastHeartbeat: string | null;
+  };
+  checkedAt: string | null;
 }
 
 /* --------------------------------------------------------------------------
@@ -241,56 +249,50 @@ export interface DirectorHeartbeat {
    amazon_director · innovation) için ortak AD; yeni motor değil.
    -------------------------------------------------------------------------- */
 
-export type AlertSeverity = "critical" | "high" | "medium" | "low";
+/** ADR-0143 §1 kanonik sözlük — UI eşleme icat etmez. */
+export type AlertSeverity = "critical" | "risk" | "warning" | "info";
 
+/**
+ * Alert — ODIN **ADR-0143 §1** ile mühürlenen kanonik zarf, BİREBİR.
+ * "Adlandırıldı, icat edilmedi": üreticiler zaten vardı
+ * (improvement_detectors · finance/quality · legal_monitor ·
+ * amazon_director), ADR-0141'in ortak katmanı da bir alert evaluator
+ * tanımlıyor. Bu tip o zarfın TypeScript karşılığıdır; zarfta olmayan alan
+ * (eski `description` · `responsibleDirector`) UI icadıydı ve DÜŞTÜ.
+ */
 export interface Alert {
-  /** Kararlı, üretici-namespaced kimlik. */
+  /** `"AL-..."` */
   id: string;
-  /** Üretici — ör. `"finance_quality"`. */
-  source: string;
+  severity: AlertSeverity;
   title: string;
+  /** Üreten modül — ör. `"amazon"`. */
+  module: string;
   /**
-   * false ise Alerts listesine GİRMEZ (06-...md §1.4). Üretici, aksiyon
-   * gerekip gerekmediğini semantik olarak belirleyemiyorsa kaydı kanonik
-   * Alert olarak YAYINLAMAZ — varsayılan true/false atanmaz.
+   * `false` olan öğe alert listesine ASLA girmez. ADR-0143 §1 bunu
+   * üretici tarafı sözleşmesi de yaptı: kural artık iki tarafta da var.
    */
   requiresAction: boolean;
+  /** Kanıt anahtarları — ör. `["KO-..."]`. */
+  evidence: string[];
   /** ISO 8601. */
-  asOf: string;
-  /** Açıklama / kanıt özeti. */
-  summary?: string;
-  /**
-   * Belgelenmiş deterministik eşlemesi olmayan üretici bu alanı ATLAR,
-   * null yazmaz — dört üreticinin bugün ortak severity semantiği yok
-   * (meclis sentezi: sahte ortak semantik üretilmez).
-   */
-  severity?: AlertSeverity;
+  createdAt: string;
+  suggestedAction?: string;
 }
 
-export interface Opportunity {
-  /** Kararlı, üretici-namespaced kimlik. */
-  id: string;
-  /** Üreten ODIN bileşeni. */
-  source: string;
-  title: string;
-  /** Fırsatın gerekçesi. */
-  summary: string;
-  /**
-   * Uygulanabilir öneri. Bunu sağlayamayan kayıt Opportunity DEĞİLDİR;
-   * üreticiye özel çıktısında kalır (meclis kararı — §1.6'nın "eyleme dönük
-   * feed" tanımının gereği).
-   *
-   * `estimatedImpact` v1'de BİLİNÇLİ OLARAK YOK: ortak ve güvenilir bir
-   * parasal etki kaynağı kanıtlanmadı; kalıcı null alan sahte yetenektir
-   * (UI-ADR-104). Kaynak+formül+belirsizlik tanımlanırsa FR-0044 zarfıyla
-   * ayrı ADR'de eklenir.
-   */
-  suggestedAction: string;
-  /** ISO 8601. */
-  asOf: string;
-  /** Kaynak anahtarları — ör. `"sku:SKU-1042"`, `"metric:acos"`. */
-  evidence?: string[];
-}
+/*
+ * Opportunity — **ADR-0143 §3: AYRI KAYIT OLARAK REDDEDİLDİ (v1).**
+ *
+ * Bir fırsat, önerinin POZİTİF SINIFIDIR; improvement/innovation boruları
+ * bu kaydı zaten üretiyor. "Aynı kayda ikinci bir ad" verilmez → arayüzdeki
+ * Opportunity bölümü, mevcut ÖNERİ KAYITLARI (`AIRecommendation`) üzerinde
+ * bir GÖRÜNÜMDÜR. Bu yüzden burada `Opportunity` diye bir tip YOKTUR;
+ * icat edilmiş tip ADR gereği silindi.
+ *
+ * Açık soru (13-...md §17): pozitif sınıfı hangi KAYITLI alan işaretler?
+ * Filtre alanı bildirilene kadar görünüm, öneri kayıtlarını olduğu gibi
+ * listeler ve neyi filtrelemediğini ekranda söyler — uydurma bir sınıf
+ * çıkarımı yapılmaz.
+ */
 
 /* --------------------------------------------------------------------------
    §10 AIPulse · §12 Telemetry
@@ -332,7 +334,7 @@ export interface ExecutiveBrief {
    -------------------------------------------------------------------------- */
 
 /**
- * SAPMA — UI-ADR-099 (gavadolar danışıldı, terra · luna aynı yönde).
+ * SAPMA — UI-ADR-116 (gavadolar danışıldı, terra · luna aynı yönde).
  *
  * Sözleşme `netProfit: Money` diyor, yani ZORUNLU. Gerçekte:
  *   Net kâr = satış − Amazon ücretleri − reklam − iade − COGS − nakliye
@@ -371,14 +373,16 @@ export interface AmazonSnapshot {
   activeSKUs: number;
   inventoryValue: Money;
   topRisk: Alert | null;
-  topOpportunity: Opportunity | null;
   /**
-   * Günün Amazon hedefinin ilerlemesi — kaynağı ODIN `goals.py` yayını
-   * (`progress_pct`). Mission kavramı Goal'e emekli edildi (ODIN ADR-0132,
-   * UI-ADR-107). Ölçülmüyorsa null; goals.alignment()'ın nötr 50'si
-   * "ölçülmedi"dir, sınır adaptörü onu null'a çevirir — asla %50 sanılmaz.
+   * Fırsat AYRI KAYIT DEĞİL (ADR-0143 §3): öneri kaydının kendisidir.
+   * Bu yüzden tip `AIRecommendation`tır, uydurma bir `Opportunity` değil.
    */
-  goalProgressPct: number | null;
+  topOpportunity: AIRecommendation | null;
+  /*
+   * `missionProgress`/`goalProgressPct` KALDIRILDI — ADR-0143 §4: ilerleme
+   * yüzdesi kavramının ölçülmüş bir kaynağı yok ve bu ADR onu YARATMIYOR.
+   * Ölçüsü olmayan bir yüzdeyi çizmek, anti-fake kuralının tam ihlalidir.
+   */
 
   /* Layer 2 — Executive Intelligence (5 adımlı format, ExecutiveBrief ile aynı) */
   intelligence: ExecutiveBrief;
@@ -398,7 +402,7 @@ export interface PPCOverview {
   roas: number;
   /**
    * ⭐ Ayırt edici metrik — reklam değil KÂR metriği.
-   * SAPMA (UI-ADR-099): sözleşmede `Money` zorunlu. Kâr olduğu için net kâr
+   * SAPMA (UI-ADR-116): sözleşmede `Money` zorunlu. Kâr olduğu için net kâr
    * ile aynı kaderi paylaşır: COGS yoksa hesaplanamaz → `null` gelir ve
    * ekranda gerekçesiyle boş görünür.
    */
@@ -436,7 +440,7 @@ export interface SimulationResult {
 /**
  * İki sözleşme tipinin eşlemesi — yeni ALAN yoktur.
  * Simülatör hazır vakaları listeler; istemci hiçbir sayı HESAPLAMAZ
- * (UI-ADR-100).
+ * (UI-ADR-117).
  */
 export interface SimulationCase {
   request: SimulationRequest;

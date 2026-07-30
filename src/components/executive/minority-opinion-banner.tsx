@@ -1,5 +1,5 @@
 /**
- * MinorityOpinionBanner — azınlık görüşü. 07-ai-directors.md §6.
+ * MinorityOpinionBanner — azınlık görüşleri. 07-ai-directors.md §6, UI-ADR-100.
  *
  * İKİ KURAL, BİRBİRİYLE ÇEKİŞİR VE İKİSİ DE ZORUNLUDUR:
  *
@@ -10,22 +10,24 @@
  *    DEĞİL: azınlık görüşü bir uyarı değildir, bir bakış açısıdır. Amber
  *    ton onu her kararda alarm gibi gösterir ve alarm körlüğü yaratır.
  *
- * Bu yüzden dokümandaki `⚠` glyph'i yerine nötr `◂` kullanılır.
+ * SÖZLEŞME (09b §1): ODIN `minority_opinions` bir DÜZ METİN LİSTESİDİR —
+ * "üye: seçenek — gerekçe". Eski tekil `DirectorOpinion` nesnesi UI
+ * uydurmasıydı; üye başına güven skoru kayıtta yok, o yüzden rozet de yok.
  */
 
-import type { DirectorOpinion } from "@/types/executive";
 import { Text } from "@/components/ui/typography";
-import { ConfidenceBadge } from "./confidence-badge";
 
 export function MinorityOpinionBanner({
-  opinion,
+  opinions,
   className = "",
 }: {
-  opinion: DirectorOpinion | null | undefined;
+  /** ODIN `minority_opinions` — "üye: seçenek — gerekçe" metinleri. */
+  opinions: string[] | null | undefined;
   className?: string;
 }) {
   /* Azınlık görüşü yoksa kutu da yok — boş "görüş yok" kutusu gürültüdür. */
-  if (!opinion || !opinion.argument) return null;
+  const list = (opinions ?? []).filter((o) => o.trim().length > 0);
+  if (list.length === 0) return null;
 
   return (
     <aside
@@ -34,13 +36,19 @@ export function MinorityOpinionBanner({
     >
       <p className="flex flex-wrap items-center gap-2 text-xs text-content-tertiary">
         <span aria-hidden="true">◂</span>
-        <span className="uppercase tracking-wide">Azınlık görüşü</span>
-        <span className="text-content-secondary">{opinion.directorId}</span>
-        <ConfidenceBadge value={opinion.confidence} size="xs" />
+        <span className="uppercase tracking-wide">
+          Azınlık görüşü{list.length > 1 ? ` (${list.length})` : ""}
+        </span>
       </p>
-      <Text size="sm" tone="secondary" className="mt-1">
-        {opinion.argument}
-      </Text>
+      <ul className="mt-1 flex flex-col gap-1">
+        {list.map((o) => (
+          <li key={o}>
+            <Text size="sm" tone="secondary">
+              {o}
+            </Text>
+          </li>
+        ))}
+      </ul>
     </aside>
   );
 }

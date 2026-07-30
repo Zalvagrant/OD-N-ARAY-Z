@@ -1,7 +1,7 @@
 /** S4 · 5 — AIRecommendationCard */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { AIRecommendationCard } from "./ai-recommendation-card";
-import { envelope, recommendation, recommendationTekAlternatif } from "./stories.fixtures";
+import { envelope, recommendation, recommendationEksikAlan } from "./stories.fixtures";
 
 const meta: Meta = {
   title: "Executive/5 · AIRecommendationCard",
@@ -9,43 +9,32 @@ const meta: Meta = {
 };
 export default meta;
 
-/** 7 alanlı explainability + en az 2 alternatif → gösterilir. */
+/** ODIN'in 10 zorunlu alanı tam: öneri, flip koşulları ve güven dökümüyle. */
 export const Aciklanabilir: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
-      <AIRecommendationCard env={envelope(recommendation)} onApprove={() => {}} />
+      <AIRecommendationCard env={envelope(recommendation, { source: "ai" })} />
     </div>
   ),
 };
 
-/**
- * KURAL: alternatives.length < 2 → bileşen HİÇ RENDER ETMEZ.
- * Aşağıda bilerek boş kalan alan doğru davranıştır.
- * "Tek seçenek sunan AI önerisi karar desteği değil, dayatmadır."
- */
-export const TekAlternatifRenderEtmez: StoryObj = {
+/** ODIN'in zorunlu kıldığı bir alan (flip_conditions) eksik → HİÇ render
+    edilmez. Bastırma gerçeğini çağıran yazar (UI-ADR-091/100). */
+export const EksikAlanRenderEtmez: StoryObj = {
   render: () => (
-    <div className="max-w-2xl border border-dashed border-line p-4">
-      <p className="mb-2 text-xs text-content-tertiary">
-        Aşağısı bilerek boş — tek alternatifli öneri çizilmez:
+    <div className="max-w-2xl">
+      <p className="mb-2 text-sm text-content-tertiary">
+        Aşağıda bir kart OLMALIYDI ama flip_conditions eksik — null döner:
       </p>
-      <AIRecommendationCard env={envelope(recommendationTekAlternatif)} />
-    </div>
-  ),
-};
-
-/** Explainability alanı eksik (whyGenerated boş) → yine render etmez. */
-export const EksikAciklamaRenderEtmez: StoryObj = {
-  render: () => (
-    <div className="max-w-2xl border border-dashed border-line p-4">
-      <p className="mb-2 text-xs text-content-tertiary">
-        Aşağısı bilerek boş — &quot;neden üretildi&quot; alanı yok:
-      </p>
-      <AIRecommendationCard env={envelope({ ...recommendation, whyGenerated: "" })} />
+      <AIRecommendationCard env={envelope(recommendationEksikAlan, { source: "ai" })} />
     </div>
   ),
 };
 
 export const VeriYok: StoryObj = {
-  render: () => <AIRecommendationCard env={null} />,
+  render: () => (
+    <div className="max-w-2xl">
+      <AIRecommendationCard env={null} />
+    </div>
+  ),
 };

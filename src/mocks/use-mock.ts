@@ -6,15 +6,22 @@
  * NEDEN SUNUCUDA `null`: mock kayıtların `lastUpdated` alanı `Date.now()`
  * ile üretilir. Sunucuda üretilirse istemcideki ilk render başka bir değer
  * hesaplar → hydration mismatch. `getServerSnapshot` daima `null` döner;
- * sunucu HTML'i bu yüzden GERÇEKTEN yükleme durumunu basar. Skeleton sahte
- * bir gecikmeyle gösterilmez — gösterildiği an veri henüz yoktur.
+ * sunucu HTML'i bu yüzden GERÇEKTEN yükleme durumunu basar.
+ *
+ * ÜRETİM YERİ (S1-S5 denetimi, yazılımcılar — UI-ADR-099): eski sürüm
+ * `getSnapshot` İÇİNDE cache dolduruyordu. `getSnapshot` saf olmak
+ * zorundadır; render sırasında yazmak React 19 concurrent modda tearing
+ * üretebilir. Store artık MODÜL SEVİYESİNDE yaşar (üretici fonksiyona
+ * WeakMap ile bağlı); okuma/yazma/abonelik modül fonksiyonlarındadır,
+ * bileşen render'ı hiçbir store nesnesini ne okurken mutasyona uğratır ne
+ * de hook'lara geçirir. Yan fayda: aynı üreticiyi kullanan bileşenler tek
+ * snapshot'ı paylaşır.
  *
  * Yapay gecikme (setTimeout) EKLENMEDİ: sahte veri kadar sahte davranış da
- * yasaktır. Mock yereldir, anında gelir; yükleme durumu Storybook'ta ayrı
- * story olarak doğrulanır.
+ * yasaktır. Mock yereldir, ilk effect tick'inde gelir.
  */
 
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 export interface MockState<T> {
   /** Sunucuda ve ilk hydration render'ında null — yükleme durumu budur. */
@@ -24,29 +31,63 @@ export interface MockState<T> {
   reload: () => void;
 }
 
-const noopSubscribe = () => () => {};
+interface Store {
+  snapshot: unknown;
+  listeners: Set<() => void>;
+}
+
+/* ---- React dışı durum: üretici fonksiyon → store ---- */
+
+const STORES = new WeakMap<() => unknown, Store>();
+
+function storeFor(build: () => unknown): Store {
+  let s = STORES.get(build);
+  if (!s) {
+    s = { snapshot: null, listeners: new Set() };
+    STORES.set(build, s);
+  }
+  return s;
+}
+
+function subscribeTo(build: () => unknown, listener: () => void): () => void {
+  const s = storeFor(build);
+  s.listeners.add(listener);
+  return () => s.listeners.delete(listener);
+}
+
+function readSnapshot(build: () => unknown): unknown {
+  return storeFor(build).snapshot; // saf okuma — yan etki YOK
+}
+
+function fillStore(build: () => unknown, force: boolean): void {
+  const s = storeFor(build);
+  if (!force && s.snapshot !== null) return;
+  s.snapshot = build();
+  s.listeners.forEach((l) => l());
+}
 
 /**
- * @param build Modül seviyesinde tanımlı, argümansız üretici. Her çağrıda
- *              yeni nesne döndürebilir; sonuç önbelleğe alınır.
+ * @param build Modül seviyesinde tanımlı, argümansız üretici. Sonuç effect
+ *              içinde üretilir ve `reload`a kadar aynı referans döner.
  */
 export function useMockData<T>(build: () => T): MockState<T> {
-  const cache = useRef<T | null>(null);
-  const [, bump] = useState(0);
+  const subscribe = useCallback(
+    (l: () => void) => subscribeTo(build, l),
+    [build]
+  );
 
-  /* Mock dışarıdan değişmez; abonelik gerekmez. Yeniden üretim `reload`
-     ile olur, bu yüzden subscribe modül seviyesinde sabit bir no-op'tur. */
-  const getSnapshot = useCallback(() => {
-    if (cache.current === null) cache.current = build();
-    return cache.current;
+  const data = useSyncExternalStore(
+    subscribe,
+    () => readSnapshot(build) as T | null,
+    () => null
+  );
+
+  /* Üretim render'da değil effect'te: ilk mount'ta bir kez doldurulur. */
+  useEffect(() => {
+    fillStore(build, false);
   }, [build]);
 
-  const data = useSyncExternalStore(noopSubscribe, getSnapshot, () => null);
-
-  const reload = useCallback(() => {
-    cache.current = null;
-    bump((n) => n + 1);
-  }, []);
+  const reload = useCallback(() => fillStore(build, true), [build]);
 
   return { data, loading: data === null, reload };
 }

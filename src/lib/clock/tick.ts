@@ -55,25 +55,9 @@ export function useNow(): number | null {
    SAF MANTIK — bileşenden bağımsız, test edilebilir
    -------------------------------------------------------------------------- */
 
-/** `unknown` = veri ya da saat yok. Sahte "canlı"/"offline" üretilmez. */
-export type Liveness = "unknown" | "live" | "offline";
-
-/**
- * 09-data-contracts.md §4 anti-fake kuralı:
- * lastBeat, beatIntervalMs * 3'ten eskiyse kart offline'a düşer.
- */
-export function liveness(
-  lastBeat: string | null | undefined,
-  beatIntervalMs: number,
-  nowMs: number | null
-): Liveness {
-  if (nowMs === null) return "unknown";
-  if (!lastBeat) return "unknown";
-  if (!Number.isFinite(beatIntervalMs) || beatIntervalMs <= 0) return "unknown";
-  const beat = new Date(lastBeat).getTime();
-  if (!Number.isFinite(beat)) return "unknown";
-  return nowMs - beat > beatIntervalMs * 3 ? "offline" : "live";
-}
+/* `liveness()` KALDIRILDI (UI-ADR-111): "beatIntervalMs × 3 aşıldıysa
+   offline" kuralı UI'nın icat ettiği bir eşikti. Canlılık hükmü ODIN'in
+   AgentHealthMonitor verdict'idir; UI eşik türetmez, kaydı gösterir. */
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;

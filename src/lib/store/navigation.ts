@@ -9,11 +9,18 @@
  * (§5). Geri dönüşte önceki bağlam aynı scroll ve seçim durumunda açılır.
  */
 
+"use client";
+
 import { create } from "zustand";
+import { usePathname } from "next/navigation";
 
 interface WorkspaceMemory {
   scrollTop: number;
   selectionId?: string;
+  /** Geri dönüşte açık kalması gereken kart/bölüm kimlikleri (§5).
+      Bellek-içidir, diske YAZILMAZ: dünkü açık kart bugünün verisinde
+      anlamsızdır — navigasyon-oturumu durumudur, tercih değil. */
+  expandedIds?: string[];
 }
 
 interface NavigationState {
@@ -26,6 +33,7 @@ interface NavigationState {
   toggleExpanded: (id: string) => void;
   rememberScroll: (id: string, scrollTop: number) => void;
   rememberSelection: (id: string, selectionId: string | undefined) => void;
+  toggleExpandedItem: (workspaceId: string, itemId: string) => void;
 }
 
 export const useNavigationStore = create<NavigationState>((set) => ({
@@ -56,4 +64,34 @@ export const useNavigationStore = create<NavigationState>((set) => ({
         [id]: { scrollTop: s.memory[id]?.scrollTop ?? 0, selectionId },
       },
     })),
+
+  toggleExpandedItem: (workspaceId, itemId) =>
+    set((s) => {
+      const entry = s.memory[workspaceId] ?? { scrollTop: 0 };
+      const ids = new Set(entry.expandedIds ?? []);
+      if (ids.has(itemId)) ids.delete(itemId);
+      else ids.add(itemId);
+      return {
+        memory: {
+          ...s.memory,
+          [workspaceId]: { ...entry, expandedIds: [...ids] },
+        },
+      };
+    }),
 }));
+
+/**
+ * Kart/bölüm açılma durumu — bileşen-yerel `useState` DEĞİL.
+ * Geri dönüşte açık kart açık kalır (04-...md §12 S2 çıkış kriteri;
+ * S1-S5 denetiminde `useState`'in `key={pathname}` unmount'unda kaybolduğu
+ * ölçüldü). Kimlik = workspace yolu + kart id'si.
+ */
+export function useDisclosureMemory(itemId: string): [boolean, () => void] {
+  const pathname = usePathname();
+  const open = useNavigationStore(
+    (s) => s.memory[pathname]?.expandedIds?.includes(itemId) ?? false
+  );
+  const toggle = () =>
+    useNavigationStore.getState().toggleExpandedItem(pathname, itemId);
+  return [open, toggle];
+}

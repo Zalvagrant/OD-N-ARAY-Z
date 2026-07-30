@@ -115,9 +115,10 @@ AI Readiness (`NoData`).
 **Attention Economy:** 1 hero + en fazla 3 karar kartı. Kuyrukta daha çok
 karar varsa **saklanmaz**, sayısı yazılır ve Decision Center'a yönlendirilir.
 
-**Onay:** `Onayla` kartın üzerindedir. Mock aşamasında onay yalnızca o
-oturumda işaretlenir ve altında bunun **hiçbir yere yazılmadığı** yazar
-(13-...md §14.5).
+**Verdict (♻️ S5.5):** Onayla · Reddet · Ertele kartın üzerindedir
+(UI-ADR-110; B/C'de gerekçe ≥8, deferred gelecek tarih). Mock aşamasında
+yalnızca oturum içi işaretlenir ve **hiçbir yere yazılmadığı** ekranda
+yazar; kalıcı kayıt S7'de `ceo verdict` üzerinden (ADR-0142).
 
 ---
 
@@ -220,7 +221,7 @@ Documents) **çizilmedi**: sözleşmeleri yok, soru 13-...md §16.4'te.
 
 | Yer | Neden |
 |---|---|
-| Net Profit KPI'ı **yok** | COGS yok → hesaplanamaz. Yerine Gross Profit + hariç tutulanlar (UI-ADR-099). 09b §8 doğruladı: `amazon_director.py` hesaplayamayınca `"Data Required"` yazıyor |
+| Net Profit KPI'ı **yok** | COGS yok → hesaplanamaz. Yerine Gross Profit + hariç tutulanlar (UI-ADR-116). 09b §8 doğruladı: `amazon_director.py` hesaplayamayınca `"Data Required"` yazıyor |
 | Profit After Ads | aynı sebep; kâr metriğidir |
 | Sales & Profit Analytics | 09-...md'de **etiketli zaman serisi yok**; `sparkline` yön gösterir, tarihli seri değildir |
 | Orders akışı | `AmazonSnapshot.orders` bir SAYIDIR; akış ve anomali ondan türetilemez |
@@ -261,10 +262,10 @@ dev DOM'unda ayrıca doğrulandı.
 | Ekran iskeleti | `WorkspaceHeader` → PRIMARY (Glance + şerit) → bağımsız kolonlar → tam genişlik derinlik bölümü | Bölüm adları değişir, iskelet değişmez |
 | `Stat` | `ui/stat.tsx` | Etiket · değer · not üçlüsü olan her yerde |
 | `percentFactor` / `toPercentUnit` | `lib/format/percent.ts` | Yüzde taşıyan HER modül; ölçek bildirilmemişse `NoData` |
-| Kâr kuralı | `PROFIT_NEEDS_COGS` + UI-ADR-099 | Finance/Trading'de de kâr metriği aynı kapıdan geçer |
+| Kâr kuralı | `PROFIT_NEEDS_COGS` + UI-ADR-116 | Finance/Trading'de de kâr metriği aynı kapıdan geçer |
 | Sözleşmesi olmayan bölüm deseni | `noContract()` (ekran içi yardımcı) | Başlık + neden + sorunun düşüldüğü yer |
 | Bağlam paneli sağlayıcısı | `SelectedEntity {workspaceId, kind, id}` + app-shell'de `kind` eşleşmesi | Yeni workspace kendi `kind`'ını tanımlar; panel KABUĞU değişmez. **Kopya değil kimlik** saklanır |
-| Simülatör kuralı | UI-ADR-100 | Motoru olmayan her "ne olur?" özelliği |
+| Simülatör kuralı | UI-ADR-117 | Motoru olmayan her "ne olur?" özelliği |
 | Görsel doğrulama betiği | taşma + kırpılma + üst üste binme taraması | Her ekran için yeniden çalıştırılır |
 
 ### 7.7 S5.5 ile hizalama — S6 sonrası düzeltmeler
@@ -276,7 +277,7 @@ S6'nın etkilenen yerleri kapanışta hizalandı:
 
 | 09b bulgusu | S6'da ne yapıldı |
 |---|---|
-| §8 `amazon_director.py` net kârı hesaplayamayınca `"Data Required"` yazıyor | UI-ADR-099 **doğrulandı** — kural bir arayüz tercihi değil, backend'in zaten uyguladığı davranış. ADR'ye kaynak eklendi |
+| §8 `amazon_director.py` net kârı hesaplayamayınca `"Data Required"` yazıyor | UI-ADR-116 **doğrulandı** — kural bir arayüz tercihi değil, backend'in zaten uyguladığı davranış. ADR'ye kaynak eklendi |
 | §2 confidence bantları kanonik: ≥80 · ≥60 · ≥40 · ≥20 (`odin/trust.py`) | `confidence-badge.tsx` 80/50'den kanonik beş banda geçti; bant adı `sr-only`da yazılıyor. S6'nın her güven rozeti bundan besleniyor |
 | S5.5'in `SelectedEntity {workspaceId, kind, id}` deseni | S6'nın `store/amazon.ts`'i **elendi**. Panel artık SKU'nun kopyasını değil kimliğini tutuyor; liste yenilenince bayat kayıt kalmıyor, kimlik bulunamazsa detay uydurulmuyor |
 | S5.5'in `ui/stat.tsx` primitive'i | S6'nın `executive/metric.tsx`'i **elendi**. İki oturum aynı bileşeni iki adla üretmişti; envanterde tek kayıt kaldı |

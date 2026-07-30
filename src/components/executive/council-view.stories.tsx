@@ -1,7 +1,7 @@
 /** S4 · 11 — CouncilView + ConsensusIndicator */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { ConsensusIndicator, CouncilView } from "./council-view";
-import { decision } from "./stories.fixtures";
+import { recommendation } from "./stories.fixtures";
 
 const meta: Meta = {
   title: "Executive/11 · CouncilView",
@@ -9,50 +9,38 @@ const meta: Meta = {
 };
 export default meta;
 
-/** Consensus · Disagreement · Evidence Quality · Financial Risk · Complexity */
+/** Skorlar ÖNERİNİN alanlarıdır (ODIN); disagreement = 100 − consensus. */
 export const Kurul: StoryObj = {
   render: () => (
-    <div className="max-w-3xl">
-      <CouncilView decision={decision} />
+    <div className="max-w-xl">
+      <CouncilView recommendation={recommendation} />
     </div>
   ),
 };
 
 export const SadeceGosterge: StoryObj = {
   render: () => (
-    <div className="max-w-3xl">
-      <ConsensusIndicator
-        consensus={91}
-        disagreement={9}
-        evidenceQuality={97}
-        financialRisk="low"
-        executionComplexity="medium"
-      />
+    <div className="max-w-xl">
+      <ConsensusIndicator consensus={66.7} disagreement={33.3} />
     </div>
   ),
 };
 
-/** Ölçülmemiş gösterge çizilmez — 0 gibi görünmez. */
+/** Ölçülmemiş gösterge meter yerine "ölçülmedi" yazar. */
 export const OlculmemisGostergeler: StoryObj = {
   render: () => (
-    <div className="max-w-3xl">
-      <ConsensusIndicator
-        consensus={null}
-        disagreement={null}
-        evidenceQuality={null}
-        financialRisk={null}
-        executionComplexity={null}
-      />
+    <div className="max-w-xl">
+      <ConsensusIndicator consensus={null} disagreement={null} />
     </div>
   ),
 };
 
-/** Görüş yoksa "hemfikir" denmez — kurul toplanmamıştır. */
-export const KurulToplanmadi: StoryObj = {
+/** Azınlık görüşü yok → "uzlaşma tam" yazılır, boş liste uydurulmaz. */
+export const AzinlikYok: StoryObj = {
   render: () => (
-    <div className="max-w-3xl">
+    <div className="max-w-xl">
       <CouncilView
-        decision={{ ...decision, directorOpinions: [], minorityOpinion: undefined }}
+        recommendation={{ ...recommendation, minorityOpinions: [], consensusScore: 100, disagreementScore: 0 }}
       />
     </div>
   ),

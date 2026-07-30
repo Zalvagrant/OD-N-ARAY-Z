@@ -1,7 +1,7 @@
-/** S4 · 3 — DirectorCard */
+/** S4 · 3 — DirectorCard (S5.5-b: AgentHealth hizalaması, UI-ADR-111) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { DirectorCard } from "./director-card";
-import { director, directorAtimYok, directorOffline, envelope } from "./stories.fixtures";
+import { director, directorUnhealthy, directorUnknown, envelope } from "./stories.fixtures";
 
 const meta: Meta = {
   title: "Executive/3 · DirectorCard",
@@ -9,35 +9,37 @@ const meta: Meta = {
 };
 export default meta;
 
-export const Canli: StoryObj = {
+/** Gerçek metrikler: gecikme, başarı/hata oranı, kuyruk, maliyet. */
+export const Saglikli: StoryObj = {
   render: () => (
-    <div className="max-w-xl">
+    <div className="max-w-md">
       <DirectorCard env={envelope(director, { source: "internal" })} />
     </div>
   ),
 };
 
-/**
- * ANTI-FAKE: lastBeat, beatIntervalMs*3'ten eski.
- * Durum verisi "analyzing" olsa bile kart OFFLINE'a düşer ve nabız durur.
- */
-export const Offline: StoryObj = {
+/** verdict ODIN'den gelir — UI eşik TÜRETMEZ (UI-ADR-111). */
+export const Sagliksiz: StoryObj = {
   render: () => (
-    <div className="max-w-xl">
-      <DirectorCard env={envelope(directorOffline, { source: "internal" })} />
+    <div className="max-w-md">
+      <DirectorCard env={envelope(directorUnhealthy, { source: "internal" })} />
     </div>
   ),
 };
 
-/** Atım verisi hiç yok → "offline" denmez, canlılık BİLİNMİYOR. */
-export const AtimVerisiYok: StoryObj = {
+/** Hiç gözlem yok → unknown; ölçülmemiş her metrik NoData. */
+export const Bilinmiyor: StoryObj = {
   render: () => (
-    <div className="max-w-xl">
-      <DirectorCard env={envelope(directorAtimYok, { source: "internal" })} />
+    <div className="max-w-md">
+      <DirectorCard env={envelope(directorUnknown, { source: "internal" })} />
     </div>
   ),
 };
 
 export const VeriYok: StoryObj = {
-  render: () => <DirectorCard env={null} />,
+  render: () => (
+    <div className="max-w-md">
+      <DirectorCard env={null} />
+    </div>
+  ),
 };

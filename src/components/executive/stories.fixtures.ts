@@ -10,11 +10,10 @@ import type {
   AIRecommendation,
   Alert,
   Decision,
-  DirectorHeartbeat,
+  AgentHealth,
   EvidenceRef,
   ExecutiveBrief,
   ExecutiveKPI,
-  Opportunity,
   PulseChannelStates,
   TelemetryValues,
 } from "@/types/executive";
@@ -69,261 +68,188 @@ export const evidence: EvidenceRef[] = [
 export const recommendation: AIRecommendation = {
   id: "rec-1",
   recommendation: "Amazon PPC bütçesini %7 artır, 7 gün sonra tekrar değerlendir.",
+  confidence: 71.4,
+  confidenceBreakdown: {
+    knowledge_coverage: 80,
+    evidence_strength: 75,
+    expert_agreement: 90,
+    model_agreement: 70,
+    historical_success: 65,
+    risk_level: 40,
+    missing_information: 30,
+    decision_complexity: 35,
+  },
+  evidence,
+  potentialRisks: ["Kur artarsa birim maliyet yükselir", "Nakit akışı bir hafta sıkışabilir"],
+  assumptions: ["Rakip teklif seviyesi mevcut bandında kalır"],
+  flipConditions: ["ACOS 7 gün içinde %20'yi aşarsa artış geri alınır"],
+  consensusScore: 66.7,
+  disagreementScore: 33.3,
+  minorityOpinions: ["trading: beklet — USD riski nedeniyle 48 saat beklenmeli"],
+  recClass: "B",
   numbers: { ACOS: 18.1, TACOS: 9.4, "Harcama (USD)": 2420, "Satış (USD)": 18300 },
   causeAnalysis: "Rakip teklifleri yükseldi, gösterim payı düştü.",
   impactAnalysis: "Mevcut tempoda aylık net kârda ~₺46.000 kayıp riski var.",
-  alternatives: [
-    {
-      title: "%7 artır",
-      description: "Kademeli artış, 7 gün sonra ölçüm.",
-      expectedOutcome: "Gösterim payı toparlanır, ACOS ~%17'ye iner.",
-      risk: "low",
-    },
-    {
-      title: "Bütçeyi sabit tut",
-      description: "Kur riski geçene kadar bekle.",
-      expectedOutcome: "Nakit korunur, satış kaybı sürer.",
-      risk: "medium",
-    },
-  ],
   expectedFinancialResult: { amount: 82000, currency: "TRY" },
-  confidence: 96,
-  evidence,
   whyGenerated: "ACOS 14 gündür yükseliyor ve gösterim payı eşiğin altına indi.",
   responsibleDirector: "Amazon AI",
   relatedKnowledge: ["PPC oynaklık politikası", "2026-05 bütçe kararı"],
   lastValidated: ago(15 * 60_000),
-  potentialRisks: ["Kur artarsa birim maliyet yükselir", "Nakit akışı bir hafta sıkışabilir"],
 };
 
-/** Kural ihlali örneği: tek alternatif → bileşen RENDER ETMEZ. */
-export const recommendationTekAlternatif: AIRecommendation = {
+/** Kural ihlali örneği: flip_conditions EKSİK → bileşen RENDER ETMEZ.
+    (Eski örnek "tek alternatif"ti; alternatifler artık kararın alanı —
+    UI-ADR-100. ODIN'in zorunlu kıldığı bir alanın eksikliği aynı davranışı
+    tetikler.) */
+export const recommendationEksikAlan: AIRecommendation = {
   ...recommendation,
   id: "rec-2",
-  alternatives: [recommendation.alternatives[0]!],
+  flipConditions: [],
 };
 
-/**
- * FR-0046 v1 minimal KPI — gerçekçi varsayılan hâl: FR-0043 katmanları
- * (trend · sparkline · yorum · forecast · risk) ODIN'de üretilmediği için
- * YOK; kart bunları NoData ile söyler.
- */
+/** ADR-0143 §2 sınır zarfı — düz, tek katman. */
 export const kpi: ExecutiveKPI = {
-  id: "company.net_profit",
-  metricKey: "net_profit",
+  id: "net_profit",
   label: "Net Profit",
-  value: { status: "available", value: 1_284_000 },
+  status: "available",
+  value: 1_284_000,
   unit: "currency",
-  currencyCode: "TRY",
+  currency: "TRY",
   asOf: ago(30 * 60_000),
-  source: "briefing",
 };
 
-/**
- * FR-0043 katmanları DOLU varyant — bileşenin opsiyonel render yollarını
- * (trend satırı · sparkline · Level 2/3) çalıştırmak İÇİNDİR. Bu bir story
- * aracıdır; ürün mock'larına giremez (kaynak yok, anti-fake).
- */
-export const kpiFr0043: ExecutiveKPI = {
-  ...kpi,
-  id: "amazon.acos",
-  metricKey: "acos",
+/** Yüzde metrik — `scale` bildirilmiş hâli. */
+export const kpiYuzde: ExecutiveKPI = {
+  id: "acos",
   label: "ACOS",
-  value: { status: "available", value: 18.1 },
+  status: "available",
+  value: 18.1,
   unit: "percent",
   scale: "0-100",
-  currencyCode: undefined,
-  source: "amazon_director",
-  trend: { direction: "up", changePercent: 12, comparedTo: "geçen hafta" },
-  sparkline: [14.2, 14.8, 15.6, 16.4, 17.2, 17.8, 18.1],
-  aiInsight: "Artışın tamamı Kampanya B'den; diğer kampanyalar hedef bandında.",
-  confidence: 94,
-  forecast: { value: 15.2, horizon: "14 gün", confidence: 71 },
-  risk: "high",
-  recommendedAction: recommendation,
-  evidence,
-  owner: "Amazon AI",
-};
-
-/** Zarf `status !== "available"` — sayı yerine GEREKÇELİ NoData (ADR-0135). */
-export const kpiVeriGerekli: ExecutiveKPI = {
-  id: "amazon.net_profit",
-  metricKey: "net_profit",
-  label: "Net Profit",
-  value: {
-    status: "unavailable",
-    value: null,
-    reason: "COGS girilmeden net kâr hesaplanamaz.",
-  },
-  unit: "currency",
-  currencyCode: "USD",
   asOf: ago(30 * 60_000),
-  source: "amazon_director",
 };
 
-/** Tek alternatifli öneri taşıyan varyant — öneri bölümü RENDER EDİLMEZ. */
-export const kpiEksik: ExecutiveKPI = {
-  ...kpiFr0043,
-  id: "knowledge.health",
-  metricKey: "knowledge_health",
-  label: "Knowledge Health",
-  unit: "score",
-  value: { status: "available", value: 72 },
-  scale: undefined,
-  aiInsight: undefined,
-  confidence: undefined,
-  forecast: undefined,
-  risk: undefined,
-  sparkline: [70],
-  recommendedAction: recommendationTekAlternatif,
-  evidence: [],
-  owner: undefined,
+/** `status !== "available"` — sayı yerine GEREKÇE (ADR-0135). */
+export const kpiVeriGerekli: ExecutiveKPI = {
+  id: "net_profit_amazon",
+  label: "Net Profit",
+  status: "unavailable",
+  value: null,
+  unit: "currency",
+  currency: "USD",
+  reason: "COGS girilmeden net kâr hesaplanamaz.",
+  asOf: ago(30 * 60_000),
 };
 
 export const decision: Decision = {
   id: "dec-1",
-  type: "amazon",
-  title: "Amazon PPC bütçesini %7 artır",
-  executiveSummary:
-    "Gösterim payı iki haftadır düşüyor. Kademeli bütçe artışı kârı korurken satış kaybını durduruyor.",
-  priority: 1,
-  status: "under_review",
-  strategicImpact: "medium",
-  financialImpact: { amount: 82000, currency: "TRY", horizon: "30 gün" },
-  riskLevel: "medium",
-  aiConfidence: 96,
-  evidenceQuality: 97,
-  reversibility: "reversible",
-  executionComplexity: "low",
-  expectedROI: 2.4,
-  directorOpinions: [
+  question: "Amazon PPC bütçesi %7 artırılsın mı?",
+  date: "2026-07-30",
+  tier: "D2",
+  status: "open",
+  domain: "amazon",
+  /* KARARIN alanı — şema minItems 2 (UI-ADR-100). */
+  alternatives: [
     {
-      directorId: "Amazon AI",
-      position: "support",
-      argument: "PPC artırılmalı; gösterim payı kaybı satış kaybına dönüştü.",
-      confidence: 94,
-      evidence: [evidence[0]!],
+      option: "%7 artır",
+      assessment: "Gösterim payı toparlanır, ACOS ~%17'ye iner.",
+      risk: "low",
     },
     {
-      directorId: "Finance AI",
-      position: "neutral",
-      argument: "Nakit akışı uygun ama hafta sonu ödemeleri sıkışık.",
-      confidence: 71,
-      evidence: [],
-    },
-    {
-      directorId: "Trading AI",
-      position: "oppose",
-      argument: "USD yukarı gidiyor; 48 saat beklemek maliyeti düşürebilir.",
-      confidence: 68,
-      evidence: [evidence[2]!],
+      option: "Bütçeyi sabit tut",
+      assessment: "Nakit korunur, satış kaybı sürer.",
+      risk: "medium",
     },
   ],
-  consensus: 91,
-  disagreement: 9,
-  minorityOpinion: {
-    directorId: "Trading AI",
-    position: "oppose",
-    argument: "USD riski nedeniyle 48 saat beklenmesini öneriyorum.",
-    confidence: 68,
-    evidence: [evidence[2]!],
-  },
-  alternatives: recommendation.alternatives,
-  evidence,
-  relatedDecisions: [],
-  timeline: [],
   recommendation,
+  expectedOutcome: "Gösterim payı 2 hafta içinde %28 üzerine döner",
 };
 
-export const director: DirectorHeartbeat = {
-  directorId: "amazon",
+/** Verdict verilmiş karar — eylem butonları ÇİZİLMEZ, kayıt görünür. */
+export const decisionKapanmis: Decision = {
+  ...decision,
+  id: "dec-2",
+  status: "closed",
+  humanDecision: {
+    outcome: "approved",
+    humanReasoning: "Kanıt yeterli; kur riski flip koşuluyla sınırlandı.",
+  },
+};
+
+export const director: AgentHealth = {
+  agentId: "amazon",
   name: "Amazon Director",
-  status: "analyzing",
-  currentGoal: "ACOS'u %16 altına indir",
-  currentTask: "Kampanya B teklif eğrisi yeniden hesaplanıyor",
-  confidence: 97,
-  taskCount: 24,
-  queueLength: 3,
-  evidenceCount: 182,
-  recommendationCount: 4,
-  memoryHealth: "healthy",
-  predictionStatus: "running",
-  lastBeat: ago(2_000),
-  beatIntervalMs: 5_000,
+  verdict: "healthy",
+  consecutiveFailures: 0,
+  lastSuccess: ago(4 * 60_000),
+  lastFailure: null,
+  metrics: {
+    latencyMsAvg: 2210, latencyMsP95: 5600, successRate: 0.96,
+    errorRate: 0.04, tokensUsed: 512_000, costUsd: 3.87,
+    queueLength: 3, availability: null, lastHeartbeat: ago(2_000),
+  },
+  checkedAt: ago(30_000),
 };
 
-/** lastBeat 3 aralıktan eski → kart offline'a düşer, nabız durur. */
-export const directorOffline: DirectorHeartbeat = {
+/** ODIN'in unhealthy dediği ajan — UI eşik türetmedi, kaydı gösteriyor. */
+export const directorUnhealthy: AgentHealth = {
   ...director,
-  directorId: "trading",
+  agentId: "trading",
   name: "Trading Director",
-  lastBeat: ago(60_000),
+  verdict: "unhealthy",
+  consecutiveFailures: 3,
+  lastFailure: ago(6 * 60_000),
+  metrics: { ...director.metrics, successRate: 0.71, errorRate: 0.29,
+             lastHeartbeat: ago(90_000) },
 };
 
-/** lastBeat hiç yok → "offline" DEĞİL, bilinmiyor. */
-export const directorAtimYok: DirectorHeartbeat = {
-  ...director,
-  directorId: "legal",
+/** Hiç gözlem yok → unknown. Bilmemek ölmüş olmak değildir. */
+export const directorUnknown: AgentHealth = {
+  agentId: "legal",
   name: "Legal Director",
-  status: "idle",
-  currentGoal: null,
-  currentTask: null,
-  confidence: null,
-  lastBeat: null,
+  verdict: "unknown",
+  consecutiveFailures: 0,
+  lastSuccess: null,
+  lastFailure: null,
+  metrics: {
+    latencyMsAvg: null, latencyMsP95: null, successRate: null,
+    errorRate: null, tokensUsed: 0, costUsd: null,
+    queueLength: 0, availability: null, lastHeartbeat: null,
+  },
+  checkedAt: null,
 };
 
-/* FR-0046 v1 Alert: source üretici kimliğidir; severity'siz kayıt rozetsiz
-   ve bilinenlerden sonra listelenir; requiresAction:false listeye girmez. */
+/* ADR-0143 §1 kanonik zarf. requiresAction:false listeye girmez. */
 export const alerts: Alert[] = [
   {
-    id: "amazon_director.buybox_loss.3sku",
-    source: "amazon_director",
+    id: "AL-buybox-3sku",
     severity: "critical",
     title: "BuyBox kaybı — 3 SKU",
-    summary: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
+    module: "amazon",
     requiresAction: true,
-    asOf: ago(12 * 60_000),
+    evidence: ["KO-amazon-buybox-2026-07-30"],
+    createdAt: ago(12 * 60_000),
+    suggestedAction: "Repricer eşiklerini gözden geçir.",
   },
   {
-    id: "amazon_director.stockout_risk.sku-1042",
-    source: "amazon_director",
-    severity: "high",
+    id: "AL-stockout-sku-1042",
+    severity: "risk",
     title: "Stok tükenme riski — SKU-1042",
-    summary: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
+    module: "amazon",
     requiresAction: true,
-    asOf: ago(3 * 60 * 60_000),
-  },
-  /* severity ATLANDI — belgelenmiş eşleme yok; uydurulmaz. */
-  {
-    id: "improvement_detectors.listing_error.sku-3310",
-    source: "improvement_detectors",
-    title: "Listeleme hatası — SKU-3310",
-    summary: "Görsel çözünürlüğü Amazon eşiğinin altında.",
-    requiresAction: true,
-    asOf: ago(26 * 60 * 60_000),
+    evidence: ["KO-amazon-inventory-2026-07-30"],
+    createdAt: ago(3 * 60 * 60_000),
   },
   {
-    id: "amazon_director.spapi_sync.done",
-    source: "amazon_director",
-    severity: "low",
+    id: "AL-sync-done",
+    severity: "info",
     title: "Günlük senkronizasyon tamamlandı",
-    summary: "Bilgi amaçlı — aksiyon gerektirmez, listeye girmemeli.",
+    module: "system",
     requiresAction: false,
-    asOf: ago(30 * 60_000),
+    evidence: [],
+    createdAt: ago(30 * 60_000),
   },
 ];
-
-/* FR-0046 v1 Opportunity: suggestedAction zorunlu düz metin; parasal etki
-   alanı v1'de YOK (kaynağı kanıtlanmadı). */
-export const opportunity: Opportunity = {
-  id: "amazon_director.keyword.rising-term",
-  source: "amazon_director",
-  title: "Yükselen anahtar kelimeye bütçe kaydır",
-  summary: "Terim 14 günde gösterim payı kazandı; mevcut kampanyalar zayıf konumda.",
-  suggestedAction: "Terimi kazanan kampanyaya exact match olarak ekle, 7 gün CPC izle.",
-  evidence: ["keyword:katlanır kamp sandalyesi", "metric:impression_share"],
-  asOf: ago(55 * 60_000),
-};
 
 export const brief: ExecutiveBrief = {
   numbers: { "Health Score": 94, Revenue: 1284000, ACOS: 18.1, Orders: 412 },

@@ -17,7 +17,6 @@
  */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Decision } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
@@ -44,13 +43,14 @@ import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
 import { AIPulse } from "@/components/executive/ai-pulse";
+import { AIRecommendationView } from "@/components/executive/ai-recommendation-card";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { DecisionQueue } from "@/components/executive/decision-queue";
+import type { VerdictInput } from "@/components/executive/decision-card";
 import { DirectorCard } from "@/components/executive/director-card";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
-import { OpportunityCard } from "@/components/executive/opportunity-card";
 import { SystemReadiness } from "@/components/executive/system-readiness";
 import { TrustSignal } from "@/components/executive/trust-signal";
 
@@ -162,8 +162,7 @@ export function ExecutiveBriefing({
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
   demo?: "loading" | "empty" | "error";
 }) {
-  const router = useRouter();
-  const [approved, setApproved] = useState<string[]>([]);
+  const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
 
   const hero = useMockData(heroMock);
   const decisions = useMockData(decisionsMock);
@@ -191,8 +190,10 @@ export function ExecutiveBriefing({
     pulse.reload();
   };
 
-  const onApprove = (d: Decision) => setApproved((a) => [...new Set([...a, d.id])]);
-  const onOpenAnalysis = () => router.push("/decisions");
+  /* Verdict S7'de POST /api/command'a bağlanacak (ER-0025). Şimdilik
+     oturum içi işaretlenir ve KAYDEDILMEDIGI açıkça yazılır. */
+  const onVerdict = (d: Decision, v: VerdictInput) =>
+    setVerdicts((m) => ({ ...m, [d.id]: v }));
 
   return (
     /* Okunabilir satır uzunluğu korunur: ultrawide'da içerik gerilmez
@@ -239,13 +240,13 @@ export function ExecutiveBriefing({
         <DecisionQueue
           env={isEmpty ? empty(decisions.data) : decisions.data}
           limit={3}
-          onApprove={onApprove}
-          onOpenAnalysis={onOpenAnalysis}
+          onVerdict={onVerdict}
         />
-        {approved.length > 0 && (
+        {Object.keys(verdicts).length > 0 && (
           <Text size="sm" tone="tertiary" className="mt-3">
-            {approved.length} karar bu oturumda işaretlendi. Onay kaydı backend
-            bağlanınca (S8) kalıcı olacak — şu an hiçbir yere yazılmadı.
+            {Object.keys(verdicts).length} verdict bu oturumda işaretlendi.
+            Kayıt S7&apos;de `ceo verdict` üzerinden kalıcı olacak (ER-0025) —
+            şu an HİÇBİR YERE yazılmadı.
           </Text>
         )}
       </Section>
@@ -281,13 +282,22 @@ export function ExecutiveBriefing({
           emptyTitle="Fırsat üretilmedi"
           emptyDescription="Bu dönem için ölçülmüş bir büyüme fırsatı yok."
         >
+          {/* ADR-0143 §3: fırsat AYRI KAYIT DEĞİL — öneri kayıtlarının
+              görünümüdür. Bu yüzden mevcut `AIRecommendationView` kullanılır;
+              icat edilmiş OpportunityCard silindi. Pozitif sınıfı hangi
+              kayıtlı alanın işaretlediği ODIN'de bildirilmedi, bu yüzden
+              FİLTRE UYGULANMIYOR ve bu durum ekranda yazılı. */}
           <div className="flex flex-col gap-4">
-            {opportunities.data?.data.map((o) => (
-              <OpportunityCard
-                key={o.id}
-                env={{ data: o, meta: opportunities.data!.meta }}
-              />
+            {opportunities.data?.data.map((r) => (
+              <div key={r.id} className="odin-ai-region p-3">
+                <AIRecommendationView rec={r} compact />
+              </div>
             ))}
+            <Text size="sm" tone="tertiary">
+              Fırsatlar öneri kayıtlarının görünümüdür (ADR-0143 §3). Pozitif
+              sınıfı işaretleyen alan ODIN&apos;de henüz bildirilmediği için
+              liste filtrelenmiyor — soru 13-...md §17&apos;de.
+            </Text>
           </div>
         </Section>
       </div>
@@ -345,7 +355,7 @@ export function ExecutiveBriefing({
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
           {directors.data?.data.map((d) => (
             <DirectorCard
-              key={d.directorId}
+              key={d.agentId}
               env={{ data: d, meta: directors.data!.meta }}
             />
           ))}

@@ -2,28 +2,26 @@
 
 /**
  * AIRecommendationCard — açıklanabilirlik sözleşmesinin arayüz karşılığı.
- * Kaynak: 07-ai-directors.md §7 (standart çıktı formatı) + §8 (explainability),
- * 09-data-contracts.md §3.
+ * Kaynak: 09b-verified-contracts.md §1 (ODIN recommendation — 10 zorunlu
+ * alan) + 07-ai-directors.md §8.
  *
- * İKİ SERT KURAL:
+ * ZORUNLULUK LİSTESİ ODIN'İN LİSTESİDİR (UI-ADR-110). Eski "7 alan"
+ * seti UI türetmesiydi; iki sapması vardı ve ikisi de düzeltildi:
+ *  - `alternatives` burada aranıyordu — ODIN'de KARARIN alanıdır
+ *    (schema minItems 2). UI-ADR-091'in o şartı buradan DecisionCard'a
+ *    taşındı (karar seviyesine).
+ *  - `flip_conditions` · `assumptions` · `confidence_breakdown` hiç
+ *    aranmıyor ve GÖSTERİLMİYORDU — ODIN'de zorunlu üç alan (kayıp alan,
+ *    uydurmadan tehlikelidir: sessizdir).
  *
- * 1. `alternatives.length < 2` ise bileşen HİÇ RENDER ETMEZ (`null`).
- *    "Tek seçenek sunan bir AI önerisi karar desteği değil, dayatmadır."
- *    Kartın yerine "gösterilemiyor" kutusu da BASILMAZ — o kutu, boş bir AI
- *    kartı üretip kuralı deler. Bastırma gerçeğini çağıran katman bilir
- *    (`canRenderRecommendation`) ve kendi bağlamında yazar. Bu, gavadolar
- *    tartışmasının sonucudur (terra: sessiz null · luna: görünürlük) —
- *    ikisi de karşılanır, uydurma yapılmaz.
- *
- * 2. 7 explainability alanından biri bile eksikse öneri gösterilmez.
- *    "Yarım açıklanmış bir AI önerisi, açıklanmamış bir öneriden daha
- *    tehlikelidir." (09-...md §3)
- *
- * Görsel: tüm AI bölgeleri `odin-ai-region` (Card tone="ai") — kullanıcı
- * bir bakışta bunun AI üretimi olduğunu anlar (UI-ADR-069).
+ * Render kuralı aynı kaldı: eksik alanlı öneri HİÇ RENDER EDİLMEZ (null);
+ * bastırma gerçeğini çağıran yazar (`canRenderRecommendation`).
+ * ODIN zaten eksik alanlı öneri ÜRETMEZ (IncompleteRecommendation) —
+ * buradaki kontrol, taşıma katmanında bozulan kaydı yakalar.
  */
 
-import { useId, useState } from "react";
+import { useId } from "react";
+import { useDisclosureMemory } from "@/lib/store/navigation";
 import type { AIRecommendation } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
@@ -32,32 +30,29 @@ import { Badge } from "@/components/ui/badge";
 import { Heading, Num, Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
 import { ConfidenceBadge } from "./confidence-badge";
+import { ConfidenceBreakdown } from "./confidence-breakdown";
 import { TrustSignal } from "./trust-signal";
 import { EvidenceChain } from "./evidence-chain";
 import { Disclosure } from "./disclosure";
 import { relativeTime, useNow } from "@/lib/clock/tick";
 
-const MIN_ALTERNATIVES = 2;
-
-const RISK_TONE = { low: "success", medium: "warning", high: "danger" } as const;
-
-/** Eksik olan açıklanabilirlik alanlarının adları. Boşsa öneri gösterilebilir. */
+/** Eksik ZORUNLU alanların adları (ODIN'in 10 alanı). Boşsa gösterilebilir. */
 export function missingExplainabilityFields(rec: AIRecommendation | null | undefined): string[] {
   if (!rec) return ["öneri"];
   const missing: string[] = [];
   const text = (v: unknown) => typeof v === "string" && v.trim().length > 0;
+  const list = (v: unknown) => Array.isArray(v) && v.length > 0;
 
-  if (!text(rec.recommendation)) missing.push("öneri metni");
-  if (!text(rec.whyGenerated)) missing.push("neden üretildi");
-  if (!text(rec.responsibleDirector)) missing.push("sorumlu Director");
-  if (!text(rec.lastValidated)) missing.push("son doğrulama");
+  if (!text(rec.recommendation)) missing.push("öneri metni (text)");
   if (!Number.isFinite(rec.confidence)) missing.push("güven skoru");
-  if (!Array.isArray(rec.evidence) || rec.evidence.length === 0) missing.push("kanıt");
-  if (!Array.isArray(rec.relatedKnowledge)) missing.push("ilgili bilgi");
-  if (!Array.isArray(rec.potentialRisks)) missing.push("potansiyel riskler");
-  if (!Array.isArray(rec.alternatives) || rec.alternatives.length < MIN_ALTERNATIVES) {
-    missing.push(`en az ${MIN_ALTERNATIVES} alternatif`);
-  }
+  if (!rec.confidenceBreakdown) missing.push("güven dökümü (confidence_breakdown)");
+  if (!list(rec.evidence)) missing.push("kanıt (evidence_snapshot)");
+  if (!list(rec.potentialRisks)) missing.push("riskler");
+  if (!list(rec.assumptions)) missing.push("varsayımlar (assumptions)");
+  if (!list(rec.flipConditions)) missing.push("değiştirme koşulları (flip_conditions)");
+  if (!Number.isFinite(rec.consensusScore)) missing.push("consensus skoru");
+  if (!Number.isFinite(rec.disagreementScore)) missing.push("disagreement skoru");
+  if (!Array.isArray(rec.minorityOpinions)) missing.push("azınlık görüşleri");
   return missing;
 }
 
@@ -71,25 +66,25 @@ export function canRenderRecommendation(rec: AIRecommendation | null | undefined
    OpportunityCard) kendi zarflarının içinde bunu gömer.
    -------------------------------------------------------------------------- */
 
+/* `onApprove` KALDIRILDI (UI-ADR-110): öneri seviyesinde tek tık onay,
+   verdict'in gerekçe/tarih kurallarını atlardı. Onay KARAR kartındadır. */
 export function AIRecommendationView({
   rec,
   meta,
-  onApprove,
   compact = false,
 }: {
   rec: AIRecommendation;
   meta?: DataMeta;
-  onApprove?: (rec: AIRecommendation) => void;
   /** true → başlık ve kabuk çağırana ait; sadece gövde çizilir. */
   compact?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useDisclosureMemory(`rec:${rec.id}`);
   const bodyId = useId();
   const now = useNow();
 
   if (!canRenderRecommendation(rec)) return null;
 
-  const validated = relativeTime(rec.lastValidated, now);
+  const validated = relativeTime(rec.lastValidated ?? null, now);
   const fin = rec.expectedFinancialResult ?? {};
 
   const body = (
@@ -115,47 +110,75 @@ export function AIRecommendationView({
         </p>
       )}
 
-      {/* Explainability — her zaman görünür kısım */}
-      <dl className="grid gap-2 text-sm sm:grid-cols-2">
+      {/* Zorunlu görünür kısım: varsayımlar + riskler (ODIN alanları).
+          whyGenerated/responsibleDirector/lastValidated ODIN şemasında YOK
+          (not_exposed, 09b §9) — varsa çizilir, yoksa satır uydurulmaz. */}
+      <dl className="grid gap-2 text-sm sm:grid-cols-2 [&>div]:min-w-0">
         <div>
-          <dt className="text-xs text-content-tertiary">Neden üretildi</dt>
-          <dd className="text-content-secondary">{rec.whyGenerated}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-content-tertiary">Sorumlu Director</dt>
-          <dd className="text-content-secondary">{rec.responsibleDirector}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-content-tertiary">Son doğrulama</dt>
+          <dt className="text-xs text-content-tertiary">Varsayımlar</dt>
           <dd className="text-content-secondary">
-            {validated ?? <time dateTime={rec.lastValidated}>{rec.lastValidated}</time>}
+            <ul className="list-disc pl-4">
+              {rec.assumptions.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
           </dd>
         </div>
         <div>
           <dt className="text-xs text-content-tertiary">Potansiyel riskler</dt>
           <dd className="text-content-secondary">
-            {rec.potentialRisks.length ? (
-              <ul className="list-disc pl-4">
-                {rec.potentialRisks.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            ) : (
-              "Risk kaydedilmedi"
-            )}
+            <ul className="list-disc pl-4">
+              {rec.potentialRisks.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+            </ul>
           </dd>
         </div>
+        {rec.whyGenerated && (
+          <div>
+            <dt className="text-xs text-content-tertiary">Neden üretildi</dt>
+            <dd className="text-content-secondary">{rec.whyGenerated}</dd>
+          </div>
+        )}
+        {rec.responsibleDirector && (
+          <div>
+            <dt className="text-xs text-content-tertiary">Sorumlu Director</dt>
+            <dd className="text-content-secondary">{rec.responsibleDirector}</dd>
+          </div>
+        )}
+        {rec.lastValidated && (
+          <div>
+            <dt className="text-xs text-content-tertiary">Son doğrulama</dt>
+            <dd className="text-content-secondary">
+              {validated ?? <time dateTime={rec.lastValidated}>{rec.lastValidated}</time>}
+            </dd>
+          </div>
+        )}
       </dl>
+
+      {/* flip_conditions HER ZAMAN GÖRÜNÜR — açılır bölümde değil.
+          "Bu öneriyi ne değiştirir?" CEO'nun onaydan ÖNCE görmesi gereken
+          şeydir; katlanırsa kayıp alan geri gelir (UI-ADR-110). */}
+      <div className="rounded-sm border border-line-subtle p-3">
+        <p className="text-xs uppercase tracking-wide text-content-tertiary">
+          ⚡ Bu öneriyi ne değiştirir
+        </p>
+        <ul className="mt-1 list-disc pl-4 text-sm text-content-secondary">
+          {rec.flipConditions.map((f) => (
+            <li key={f}>{f}</li>
+          ))}
+        </ul>
+      </div>
 
       <div>
         <Button
           variant="tertiary"
           size="sm"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => toggleOpen()}
           aria-expanded={open}
           aria-controls={bodyId}
         >
-          {open ? "Gerekçeyi kapat" : `Gerekçe ve kanıt (${rec.alternatives.length} alternatif)`}
+          {open ? "Gerekçeyi kapat" : "Gerekçe, döküm ve kanıt"}
         </Button>
 
         <Disclosure open={open} id={bodyId}>
@@ -167,7 +190,7 @@ export function AIRecommendationView({
                   📊 Sayısal veriler
                 </Heading>
                 <dl className="mt-2 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
-                  {Object.entries(rec.numbers).map(([k, v]) => (
+                  {Object.entries(rec.numbers ?? {}).map(([k, v]) => (
                     <div key={k} className="flex justify-between gap-4 border-b border-line-subtle py-1">
                       <dt className="text-content-tertiary">{k}</dt>
                       <dd className="text-content">
@@ -197,39 +220,19 @@ export function AIRecommendationView({
               </div>
             )}
 
-            {/* 🔄 Alternatifler — en az 2 garanti */}
-            <div>
-              <Heading level={4} size={4}>
-                🔄 Alternatifler
-              </Heading>
-              <ul className="mt-2 flex flex-col gap-2">
-                {rec.alternatives.map((a) => (
-                  <li key={a.title} className="rounded-sm border border-line-subtle p-3">
-                    <p className="flex items-center gap-2">
-                      <span className="text-content">{a.title}</span>
-                      <Badge variant={RISK_TONE[a.risk] ?? "secondary"} size="xs">
-                        risk {a.risk}
-                      </Badge>
-                    </p>
-                    <Text size="sm" tone="secondary">
-                      {a.description}
-                    </Text>
-                    <Text size="sm" tone="tertiary">
-                      Beklenen: {a.expectedOutcome}
-                    </Text>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {/* Güven dökümü — 8 kanonik bileşen (UI-ADR-109).
+                Alternatifler ARTIK BURADA DEĞİL: kararın alanıdır ve
+                DecisionCard çizer (UI-ADR-110). */}
+            <ConfidenceBreakdown breakdown={rec.confidenceBreakdown} />
 
             {/* İlgili bilgi */}
-            {rec.relatedKnowledge.length > 0 && (
+            {(rec.relatedKnowledge?.length ?? 0) > 0 && (
               <div>
                 <Heading level={4} size={4}>
                   İlgili bilgi
                 </Heading>
                 <ul className="mt-1 flex flex-wrap gap-2">
-                  {rec.relatedKnowledge.map((k) => (
+                  {rec.relatedKnowledge!.map((k) => (
                     <li key={k}>
                       <Badge variant="secondary" size="xs">
                         {k}
@@ -252,13 +255,6 @@ export function AIRecommendationView({
           </div>
         </Disclosure>
       </div>
-      {compact && onApprove && (
-        <div>
-          <Button variant="primary" size="sm" onClick={() => onApprove(rec)}>
-            Onayla
-          </Button>
-        </div>
-      )}
     </div>
   );
 
@@ -272,13 +268,6 @@ export function AIRecommendationView({
             <span className="text-xs uppercase tracking-wide text-ai-text">AI önerisi</span>
             <ConfidenceBadge value={rec.confidence} />
           </span>
-        }
-        actions={
-          onApprove && (
-            <Button variant="primary" size="sm" onClick={() => onApprove(rec)}>
-              Onayla
-            </Button>
-          )
         }
       />
       <CardBody>{body}</CardBody>
@@ -297,14 +286,12 @@ export function AIRecommendationView({
 
 export function AIRecommendationCard({
   env,
-  onApprove,
 }: {
   env: DataEnvelope<AIRecommendation> | null | undefined;
-  onApprove?: (rec: AIRecommendation) => void;
 }) {
   return (
     <DataGuard env={env} reason="AI önerisi henüz üretilmedi">
-      {(rec, meta) => <AIRecommendationView rec={rec} meta={meta} onApprove={onApprove} />}
+      {(rec, meta) => <AIRecommendationView rec={rec} meta={meta} />}
     </DataGuard>
   );
 }

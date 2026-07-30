@@ -17,7 +17,7 @@
  * VERİ: hepsi mock (`meta.source === "mock"`, UI-ADR-094). Gerçek veri S8.
  *
  * ANTI-FAKE — bu ekranda dört yer BİLEREK boştur:
- *   · Net Profit          COGS yok → hesaplanamaz (UI-ADR-099)
+ *   · Net Profit          COGS yok → hesaplanamaz (UI-ADR-116)
  *   · Profit After Ads    aynı sebep
  *   · Sales & Profit seri sözleşmesi yok (13-...md §16.4)
  *   · Orders akışı        sözleşme yok (aynı yer)
@@ -55,13 +55,13 @@ import { Mono, Num, Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
+import { AIRecommendationView } from "@/components/executive/ai-recommendation-card";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { CampaignIntelligenceList } from "@/components/executive/campaign-intelligence";
 import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { Meter } from "@/components/executive/meter";
-import { OpportunityCard } from "@/components/executive/opportunity-card";
 import { PPCOverviewCard, PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 import { SimulationPanel } from "@/components/executive/simulation-panel";
 import { TrustSignal } from "@/components/executive/trust-signal";
@@ -114,7 +114,7 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
             }
           />
 
-          {/* NET KÂR: hesaplanamıyorsa GÖSTERİLMEZ — UI-ADR-099.
+          {/* NET KÂR: hesaplanamıyorsa GÖSTERİLMEZ — UI-ADR-116.
               Yerine gross profit + neyin hariç tutulduğu. */}
           {s.netProfit ? (
             <Stat
@@ -242,28 +242,17 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
             label="Top Opportunity"
             value={
               s.topOpportunity ? (
-                <span className="text-sm text-content">{s.topOpportunity.title}</span>
+                <span className="text-sm text-content">
+                  {s.topOpportunity.recommendation}
+                </span>
               ) : (
                 <NoData reason="Ölçülmüş fırsat yok" />
               )
             }
           />
-          {/* Mission → Goal (ODIN ADR-0132 · UI-ADR-107): kaynak goals.py
-              `progress_pct`. Nötr 50 buraya sızmaz — ölçülmüyorsa null. */}
-          <Stat
-            label="Goal Progress"
-            note="günün Amazon hedefi"
-            value={
-              <>
-                <Meter
-                  value={s.goalProgressPct}
-                  label="Hedef ilerlemesi"
-                  noDataReason="İlerleme ölçülmüyor"
-                />
-                <Num value={s.goalProgressPct} size="sm" noDataReason="Ölçülmedi" />
-              </>
-            }
-          />
+          {/* "Goal/Mission Progress" kartı KALDIRILDI — ADR-0143 §4: ilerleme
+              yüzdesi kavramının ölçülmüş kaynağı yok ve ADR onu yaratmıyor.
+              İzlenen kararlar Mission Control'ün tahtasındadır. */}
         </dl>
       </CardBody>
 
@@ -489,7 +478,7 @@ export function AmazonDirector({
           Şeritte <strong>Net Profit yoktur</strong>: COGS Amazon&apos;da
           bulunmadığı ve girilmediği için net kâr hesaplanamıyor. Yerine
           &quot;Gross Profit (ücretler hariç)&quot; gösteriliyor; neyin hariç
-          tutulduğu Executive Glance&apos;te listelenmiştir (UI-ADR-099).
+          tutulduğu Executive Glance&apos;te listelenmiştir (UI-ADR-116).
         </Text>
       </Section>
 
@@ -634,13 +623,18 @@ export function AmazonDirector({
           emptyTitle="Fırsat üretilmedi"
           emptyDescription="Bu dönem için ölçülmüş bir ürün/fiyat fırsatı yok."
         >
+          {/* ADR-0143 §3: fırsat ayrı kayıt değil, öneri kaydının pozitif
+              sınıfıdır → mevcut öneri görünümü kullanılır. */}
           <div className="flex flex-col gap-4">
-            {feedOpportunities.map((o) => (
-              <OpportunityCard
-                key={o.id}
-                env={{ data: o, meta: opportunities.data!.meta }}
-              />
+            {feedOpportunities.map((r) => (
+              <div key={r.id} className="odin-ai-region p-3">
+                <AIRecommendationView rec={r} compact />
+              </div>
             ))}
+            <Text size="sm" tone="tertiary">
+              Pozitif sınıfı işaretleyen alan ODIN&apos;de bildirilmediği için
+              liste filtrelenmiyor (13-...md §17).
+            </Text>
           </div>
         </Section>
         </div>

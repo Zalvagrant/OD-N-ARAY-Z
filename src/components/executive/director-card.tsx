@@ -1,169 +1,157 @@
 "use client";
 
 /**
- * DirectorCard — 07-ai-directors.md §12, 09-data-contracts.md §4.
+ * DirectorCard — ODIN AgentHealthMonitor kaydının kartı (09b §5, UI-ADR-111).
  *
- * "Karta bakınca ajanın canlı olduğu hissedilmelidir."
- * Ama bu his VERİDEN gelir, animasyondan değil.
+ * SÖZLEŞME DÜZELTMESİ: eski kart 8 uydurulmuş alan çiziyordu ve ODIN'in
+ * GERÇEK ürettiği metrikleri (gecikme, başarı oranı, hata oranı, maliyet)
+ * hiç göstermiyordu. Şimdi yalnız kayıtta olan çizilir.
  *
- * ANTI-FAKE ZİNCİRİ:
- *  1. Zarf boşsa kart hiç çizilmez (DataGuard).
- *  2. `lastBeat` yoksa canlılık BİLİNMİYOR — "offline" da denmez.
- *  3. `lastBeat`, `beatIntervalMs * 3`'ten eskiyse kart offline'a düşer:
- *     durum rozeti "offline" olur, nabız durur, kart soluklaşır.
- *     Veri "analyzing" dese bile offline kazanır — çünkü o bilgi eskimiştir.
- *  4. `confidence` üretilmemişse rozet YOK.
- *
- * "Director'lar hiçbir zaman inactive görünmez": `idle` durumu boş kart
- * değil, "Idle — monitoring" olarak yazılır.
+ * CANLILIK TÜRETİLMEZ: "beatIntervalMs × 3 aşıldıysa offline" kuralı UI
+ * icadıydı (meclis: "eşik icat edilmemeli") ve kaldırıldı. Durum ODIN'in
+ * `verdict`idir — unknown / healthy / unhealthy; `last_heartbeat` yaş
+ * olarak yazılır, yorumlanmaz. Bilmemek ile ölmüş olmak farklı şeylerdir
+ * ve bu ayrımı artık ODIN yapar, UI değil.
  */
 
-import type { DirectorHeartbeat, DirectorStatus } from "@/types/executive";
+import type { AgentHealth } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
+import { relativeTime, useNow } from "@/lib/clock/tick";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heading, Num, Text } from "@/components/ui/typography";
+import { Heading, Num } from "@/components/ui/typography";
 import { NoData } from "@/components/ui/no-data";
 import { DataGuard } from "./data-guard";
-import { ConfidenceBadge } from "./confidence-badge";
 import { TrustSignal } from "./trust-signal";
-import { HeartbeatIndicator } from "./heartbeat-indicator";
-import { liveness, useNow } from "@/lib/clock/tick";
 
-const STATUS: Record<DirectorStatus, { label: string; variant: "primary" | "secondary" | "success" | "warning" | "danger" | "info" }> = {
-  idle: { label: "Idle — monitoring", variant: "secondary" },
-  monitoring: { label: "Monitoring", variant: "info" },
-  analyzing: { label: "Analyzing", variant: "primary" },
-  reviewing: { label: "Reviewing", variant: "primary" },
-  processing: { label: "Processing", variant: "primary" },
-  discovering: { label: "Discovering", variant: "primary" },
-  error: { label: "Error", variant: "danger" },
-  offline: { label: "Offline", variant: "secondary" },
-};
-
-const MEMORY = {
-  healthy: { label: "Healthy", variant: "success" },
-  degraded: { label: "Degraded", variant: "warning" },
-  critical: { label: "Critical", variant: "danger" },
+/** ODIN verdict sözlüğü — health.py yalnız bu üçünü yazar. */
+const VERDICT = {
+  healthy: { variant: "success", label: "Sağlıklı", glyph: "●" },
+  unhealthy: { variant: "danger", label: "Sağlıksız", glyph: "▲" },
+  unknown: { variant: "secondary", label: "Bilinmiyor", glyph: "○" },
 } as const;
 
-const PREDICTION = {
-  running: { label: "Running", variant: "success" },
-  idle: { label: "Idle", variant: "secondary" },
-  failed: { label: "Failed", variant: "danger" },
-} as const;
-
-function Stat({ label, value }: { label: string; value: number | null | undefined }) {
+function Metric({
+  label,
+  value,
+  format,
+  reason,
+}: {
+  label: string;
+  value: number | null;
+  format?: "percent" | "currency" | "plain" | "compact";
+  reason: string;
+}) {
   return (
-    <div>
-      <dt className="text-xs text-content-tertiary">{label}</dt>
+    <div className="min-w-0">
+      <dt className="truncate text-xs text-content-tertiary">{label}</dt>
       <dd className="mt-1">
         <Num
-          value={Number.isFinite(value as number) ? (value as number) : null}
-          noDataReason={`${label} bilinmiyor`}
+          value={value}
+          format={format ?? "plain"}
+          currency={format === "currency" ? "USD" : undefined}
+          fractionDigits={format === "percent" ? 1 : undefined}
+          noDataReason={reason}
         />
       </dd>
     </div>
   );
 }
 
-function DirectorView({ d, meta }: { d: DirectorHeartbeat; meta: DataMeta }) {
+function DirectorView({ agent, meta }: { agent: AgentHealth; meta: DataMeta }) {
   const now = useNow();
-  const live = liveness(d.lastBeat, d.beatIntervalMs, now);
-
-  /* Eski veri "analyzing" dese de offline kazanır. */
-  const effective: DirectorStatus = live === "offline" ? "offline" : d.status;
-  const status = STATUS[effective] ?? STATUS.idle;
-  const memory = MEMORY[d.memoryHealth];
-  const prediction = PREDICTION[d.predictionStatus];
+  const v = VERDICT[agent.verdict] ?? VERDICT.unknown;
+  const beatAge = relativeTime(agent.metrics.lastHeartbeat, now);
+  const m = agent.metrics;
 
   return (
-    <Card tone={live === "offline" ? "default" : "ai"}>
+    <Card tone={agent.verdict === "healthy" ? "ai" : "default"}>
       <CardHeader
         title={
-          <div className="flex flex-wrap items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2">
             <Heading level={3} size={4}>
-              {d.name}
+              {agent.name}
             </Heading>
-            <Badge variant={status.variant} size="sm">
-              {status.label}
+            <Badge variant={v.variant} size="xs">
+              {v.label}
             </Badge>
-          </div>
+          </span>
         }
-        actions={<HeartbeatIndicator lastBeat={d.lastBeat} beatIntervalMs={d.beatIntervalMs} />}
+        actions={
+          <span className="text-xs text-content-tertiary">
+            {/* Yaş yazılır, canlılık YORUMLANMAZ (UI-ADR-111). */}
+            {agent.metrics.lastHeartbeat && beatAge ? (
+              <>
+                <span aria-hidden="true" className="mr-1">
+                  {v.glyph}
+                </span>
+                son atım {beatAge}
+              </>
+            ) : (
+              <NoData reason="Heartbeat kaydı yok" />
+            )}
+          </span>
+        }
       />
 
       <CardBody>
-        <div className="flex flex-col gap-4">
-          <div>
-            <p className="text-xs text-content-tertiary">Current Goal</p>
-            {d.currentGoal ? (
-              <Text tone="secondary">{d.currentGoal}</Text>
-            ) : (
-              <NoData reason="Hedef atanmadı" />
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+          <Metric
+            label="Başarı oranı"
+            value={m.successRate}
+            format="percent"
+            reason="Başarı oranı ölçülmedi"
+          />
+          <Metric
+            label="Hata oranı"
+            value={m.errorRate}
+            format="percent"
+            reason="Hata oranı ölçülmedi"
+          />
+          <Metric
+            label="Kuyruk"
+            value={m.queueLength}
+            reason="Kuyruk bilinmiyor"
+          />
+          <Metric
+            label="Gecikme (ort)"
+            value={m.latencyMsAvg}
+            reason="Gecikme ölçülmedi"
+          />
+          <Metric
+            label="Gecikme (p95)"
+            value={m.latencyMsP95}
+            reason="p95 ölçülmedi"
+          />
+          <Metric
+            label="Maliyet"
+            value={m.costUsd}
+            format="currency"
+            reason="Maliyet bilinmiyor"
+          />
+        </dl>
+
+        {agent.consecutiveFailures > 0 && (
+          <p className="mt-3 text-sm text-warning">
+            <span aria-hidden="true">▲</span> {agent.consecutiveFailures} ardışık
+            hata
+            {agent.lastFailure && (
+              <span className="text-content-tertiary">
+                {" "}
+                · son: {relativeTime(agent.lastFailure, now) ?? agent.lastFailure}
+              </span>
             )}
-          </div>
-
-          {d.currentTask && (
-            <div>
-              <p className="text-xs text-content-tertiary">Current Task</p>
-              <Text size="sm" tone="secondary">
-                {d.currentTask}
-              </Text>
-            </div>
-          )}
-
-          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <div>
-              <dt className="text-xs text-content-tertiary">Confidence</dt>
-              <dd className="mt-1">
-                {Number.isFinite(d.confidence as number) ? (
-                  <ConfidenceBadge value={d.confidence} />
-                ) : (
-                  <NoData reason="Güven skoru üretilmedi" />
-                )}
-              </dd>
-            </div>
-            <Stat label="Tasks" value={d.taskCount} />
-            <Stat label="Queue" value={d.queueLength} />
-            <Stat label="Evidence" value={d.evidenceCount} />
-            <Stat label="Recommendations" value={d.recommendationCount} />
-            <div>
-              <dt className="text-xs text-content-tertiary">Memory</dt>
-              <dd className="mt-1">
-                {memory ? (
-                  <Badge variant={memory.variant} size="sm">
-                    {memory.label}
-                  </Badge>
-                ) : (
-                  <NoData reason="Hafıza durumu bilinmiyor" />
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-content-tertiary">Prediction</dt>
-              <dd className="mt-1">
-                {prediction ? (
-                  <Badge variant={prediction.variant} size="sm">
-                    {prediction.label}
-                  </Badge>
-                ) : (
-                  <NoData reason="Tahmin durumu bilinmiyor" />
-                )}
-              </dd>
-            </div>
-          </dl>
-
-          {live === "offline" && (
-            <Text size="sm" tone="warning">
-              Atım alınmıyor — yukarıdaki değerler son bilinen durumdur, canlı değildir.
-            </Text>
-          )}
-        </div>
+          </p>
+        )}
       </CardBody>
 
       <CardFooter>
         <TrustSignal meta={meta} />
+        <span className="ml-auto text-xs text-content-tertiary">
+          {agent.checkedAt && (
+            <>kontrol: {relativeTime(agent.checkedAt, now) ?? agent.checkedAt}</>
+          )}
+        </span>
       </CardFooter>
     </Card>
   );
@@ -172,11 +160,11 @@ function DirectorView({ d, meta }: { d: DirectorHeartbeat; meta: DataMeta }) {
 export function DirectorCard({
   env,
 }: {
-  env: DataEnvelope<DirectorHeartbeat> | null | undefined;
+  env: DataEnvelope<AgentHealth> | null | undefined;
 }) {
   return (
-    <DataGuard env={env} reason="Director verisi yok">
-      {(d, meta) => <DirectorView d={d} meta={meta} />}
+    <DataGuard env={env} reason="Director sağlık verisi yok">
+      {(agent, meta) => <DirectorView agent={agent} meta={meta} />}
     </DataGuard>
   );
 }

@@ -37,36 +37,18 @@ export interface ExecutiveHero {
   aiReadiness: number | null;
 }
 
-/* --------------------------------------------------------------------------
-   05-dashboard.md §5 — Goal Board (Primary Focus Area)
-
-   ⚠️ `Mission` tipi EMEKLİ EDİLDİ (ODIN ADR-0132 · UI-ADR-107). 60 referanslı
-   Mission'ın ODIN'de karşılığı yoktu; 9 alanından yalnızca 3'ü gerçek
-   `goals.py` yayınına eşleniyordu. Kanonik kaynak cockpit.py'nin yayınıdır:
-   `{id, level, label, target, progress_pct}` — BİREBİR bu. Kaynaksız alanlar
-   (status · ownerDirector · deadline · relatedDecisionId · blockedReason)
-   DÜŞÜRÜLDÜ, varsayılanla doldurulmadı.
-   -------------------------------------------------------------------------- */
-
-export interface Goal {
-  id: string;
-  /**
-   * ODIN seviye etiketi (ör. "urgent") — tahta kolonları BUNUNLA gruplanır;
-   * icat edilmiş `status` kanban'ı değil (ADR-0132: "columns group by real
-   * level"). Değer kümesi ODIN'de dondurulmadığı için union yazılmadı.
-   */
-  level: string;
-  label: string;
-  /** Hedef ifadesi — ODIN serbest biçimde yayınlar. Yoksa null. */
-  target: string | null;
-  /**
-   * 0–100; ölçülmüyorsa null. TUZAK (ADR-0132): goals.alignment() hedef
-   * tanımsızken nötr 50 döner — o "ölçülmedi"dir, sınır adaptörü null'a
-   * çevirir. "%50 ilerleme" diye çizilirse ODIN'in düzelttiği hata UI'da
-   * yeniden doğar.
-   */
-  progressPct: number | null;
-}
+/*
+ * Mission — **ADR-0143 §4: KAVRAM OLARAK REDDEDİLDİ (v1).**
+ *
+ * ODIN'de mission diye bir varlık yok. Ona en yakın GERÇEKLİK zaten kayıtlı:
+ * `status: "monitoring"` kararlar, onların `monitoring_checkpoints`'i ve
+ * `lifecycle.due_deferrals()`. Mission Board bu kayıtlar üzerinde bir
+ * **"izlenen kararlar + vadesi gelen ertelemeler" GÖRÜNÜMÜDÜR**.
+ *
+ * `Mission` de `Goal` de burada TİP OLARAK YOKTUR — ikisi de icattı.
+ * İlerleme yüzdesi (`progressPercent`) ADR §4 gereği ÜRETİLMEDİ: kendi
+ * ölçülmüş kaynağı olmadan bir yüzde çizmek uydurmadır.
+ */
 
 /* --------------------------------------------------------------------------
    05-dashboard.md §6 — Executive Intelligence Feed (sağ panel)

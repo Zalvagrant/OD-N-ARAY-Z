@@ -614,6 +614,70 @@ refactor + mock güncelleme + contract fixture testleri).
 > bileşen API'lerine gömülü, görsel kabuk paralel gidebilir ama veri
 > modeli ve bileşen şablonu contract düzeltmesi bitmeden genişletilmemeli."
 
+---
+
+## 16. FR-0046 KARAR PAKETİ — ✅ DÖRDÜ DE ONAYLANDI (ADR-0143, 30 Tem 2026)
+
+> Sahip dört öneriyi de onayladı; karar ODIN **ADR-0143** ile mühürlendi.
+> Kanonik Alert/KPI zarfları artık o ADR'dedir; S6 kapısı AÇIK.
+
+30 Temmuz 2026. gavadolar hükmü: "karar paketi hazırla, karar ODIN
+governance'ının". Her kavram için öneri + gerekçe + kaynak. **Karar verilen
+kavram ODIN'de ADR/R-006 ile sözleşmeleşir; UI onu bekler.**
+
+### 16.1 Alert — ✅ KABUL öner (sözleşme ADR-0141'den)
+
+ODIN'de üretici ZATEN çok: `improvement_detectors`, `finance/quality`,
+`legal_monitor`, `amazon_director` (hijacker). Ve **ADR-0141 commerce
+shared layer bir "alert evaluator" tanımlıyor** — kavram icat edilmiyor,
+adı konuyor. Önerilen zarf (evaluator çıktısından):
+
+```json
+{ "id": "AL-...", "severity": "critical|risk|warning|info",
+  "title": "...", "module": "amazon", "requires_action": true,
+  "evidence": ["KO-..."], "created_at": "ISO", "suggested_action": "..." }
+```
+
+UI etkisi: AlertStack olduğu gibi bağlanır (requires_action filtresi zaten var).
+
+### 16.2 ExecutiveKPI — 🟡 KISMİ KABUL öner (FR-0044 sınırının genellemesi)
+
+Tek "KPI motoru" İCAT EDİLMESİN. ODIN parçaları zaten üretiyor:
+`company_health_score` (CHS — verisi olmayan bileşen formüle girmez),
+`amazon_director` (net kâr; hesaplanamazsa "Data Required"),
+`ai_spend` (DashboardProjection). FR-0044'ün `{status, value, reason}`
+sınır adaptörü **KPI zarfı olarak genelleştirilsin**:
+
+```json
+{ "id": "net_profit", "label": "Net Profit", "status": "available|data_required|unavailable",
+  "value": 12345.67, "unit": "currency|percent|count|score",
+  "currency": "USD", "scale": "0-100", "reason": null, "as_of": "ISO" }
+```
+
+UI etkisi: KPI şeridi YALNIZ bu zarfı okur; "Data Required" sayı alanına
+sızamaz (ADR-0135 gerekçesi). Sparkline/forecast/aiInsight katmanları
+kaynakları doğana dek çizilmez.
+
+### 16.3 Opportunity — ❌ RET öner (v1'de ayrı kavram değil)
+
+ODIN'de fırsat ayrı bir varlık değil, **önerinin pozitif sınıfıdır**
+(improvement/innovation üreticileri recommendation üretir). Ayrı sözleşme
+açmak aynı kaydın ikinci adı olur. v1: UI "Opportunities" bölümü,
+beklenen etkisi pozitif önerilerin GÖRÜNÜMÜdür (kayıt alanlarıyla filtre —
+türetme değil). v2'de gerçek bir pipeline doğarsa yeniden açılır.
+
+### 16.4 Mission — ❌ RET öner (v1'de görünüme dönüştür)
+
+ODIN'de "mission" yok; en yakın gerçeklik: `status: "monitoring"` kararlar
++ `monitoring_checkpoints` + `related_goals` + `due_deferrals()`. Mission
+Board v1'de **"İzlenen kararlar + vadesi gelen ertelemeler"** görünümüne
+dönüştürülür — yeni kavram sıfır, kaynak mevcut. "Görev/ilerleme yüzdesi"
+kavramı istenirse o zaman gerçek bir sözleşme tartışılır.
+
+**Sonuç:** Sahip 30 Temmuz 2026'da dördünü de onayladı → ADR-0143 + R-006
+FR-0046 `decided`. S6 açık; ekran dönüşümleri (Opportunity→görünüm,
+Mission Board→"izlenen kararlar + vadesi gelen ertelemeler") S6 kapsamıdır.
+
 **Ne oldu:** S6 sahibin talimatıyla **C** yolundan gitti — görsel şablon
 üretildi, sözleşme hizalaması S5.5'te ayrı yürüdü. terra'nın uyarısı kısmen
 gerçekleşti: S6 `09-data-contracts.md` üzerine kuruldu ve §16'daki sapmaların
@@ -627,7 +691,7 @@ Referans modül kurulurken sözleşmede karşılığı bulunamayan noktalar.
 CLAUDE.md §7 gereği veri modeli tek başımıza değiştirilmedi — **sorular
 burada.** §14'teki beş soru hâlâ açıktır ve tekrarlanmadı; §15'teki beş
 karar da sahibi bekliyor.
-İlgili kararlar: UI-ADR-099 · 100 · 101.
+İlgili kararlar: UI-ADR-116 · 117 · 101.
 
 ### 16.1 Kâr alanları hesaplanamayan durumu ifade edemiyor ⚠️ EN ÖNCELİKLİ
 
@@ -662,7 +726,7 @@ yerine "Gross Profit (ücretler hariç)" ve hariç tutulan kalemler listeleniyor
 
 `09-...md` SKU için hiçbir şey tanımlamıyor; oysa Amazon Director'ın
 merkezinde SKU Health tablosu (§1.4) ve SKU bağlam paneli (§1.7) var.
-S5'te `Mission` için izlenen yol izlendi (UI-ADR-100): tip
+S5'te `Mission` için izlenen yol izlendi (UI-ADR-101): tip
 `types/screens.ts`'te **teklif** olarak yazıldı, mock ile beslendi, kaynağı
 olmayan alanlar `null` bırakıldı.
 
@@ -754,7 +818,7 @@ ama o zaman `ExecutiveKPI.scale` da kalkmalı — ikisi bir arada tutarsız.
 
 ### 16.5 Simülasyon motoru — §6'nın somut karşılığı
 
-Panel yazıldı ama **hesap yapmıyor** (UI-ADR-099): senaryolar zarftan gelir,
+Panel yazıldı ama **hesap yapmıyor** (UI-ADR-117): senaryolar zarftan gelir,
 `assumptions[]` boşsa senaryo hiç gösterilmez, mock kaynakta
 "SİMÜLASYON — MOCK" rozeti çıkar.
 
@@ -814,7 +878,7 @@ S8'de yeniden ele alınmalıdır.
 
 `ACOS = spend / adSales`, `ROAS = adSales / spend`, `TACOS = spend / revenue`.
 Backend bu üçünü **kendi bileşenlerinden** üretmeli ve aynı yanıtta tutarlı
-göndermelidir. Arayüz hiçbirini hesaplamaz (UI-ADR-093 · UI-ADR-099) ve
+göndermelidir. Arayüz hiçbirini hesaplamaz (UI-ADR-093 · UI-ADR-116) ve
 tutarsızlığı **düzeltemez** — yalnızca gösterir. Tutarsız bir üçlü ekrana
 düştüğü an kullanıcı tüm göstergelere olan güvenini kaybeder.
 

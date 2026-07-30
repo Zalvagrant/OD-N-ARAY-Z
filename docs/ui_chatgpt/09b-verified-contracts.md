@@ -236,116 +236,84 @@ Gerekçe UI-ADR-098'de.
 
 ---
 
-## 10. FR-0046 v1 sözleşmeleri — dört ürün kavramı (UI-ADR-106 · UI-ADR-107)
+## 10. Adapter eşleme tablosu (S5.5 — uygulanan durum)
 
-**Statü: 🟡 SAHİP ONAYLI MECLİS SENTEZİ — ODIN kayıt defteri kapanışı
-bekleniyor.** Kanonik kaynak ODIN'dir (FR-0039 fixture kanalı); bu bölüm
-salt yansımadır. ODIN tarafı kapanış paketi: 13-...md §17.
+`UI alanı → ODIN kaynağı`. `not_exposed` = ODIN üretir ama karar kaydında
+saklamaz ya da hiç üretmez; UI o alanı ZORUNLU saymaz, yoksa satır çizmez.
 
-Meclis: gavadolar (terra · luna) + sistemciler — kabul 4/4; severity ve
-suggestedAction sentezleri UI-ADR-106'da. Mission: RET → Goal (ADR-0132).
-
-### ExecutiveKPI v1
-
-| Alan | Zorunlu | Kural |
+| UI | ODIN | Durum |
 |---|---|---|
-| `id` | ✅ | Kararlı, namespaced — `"amazon.gross_profit"` |
-| `metricKey` | ✅ | Kanonik ODIN metrik anahtarı |
-| `label` | ✅ | Gösterim etiketi |
-| `value` | ✅ | `{status, value, reason}` — aşağıda |
-| `unit` | ✅ | `currency \| percent \| count \| score` |
-| `currencyCode` | koşullu | `unit=currency` ise zorunlu, ISO kodu |
-| `scale` | koşullu | `unit=percent` ise zorunlu (UI-ADR-093) |
-| `asOf` | ✅ | ISO 8601 — metriğin veri anı |
-| `source` | ✅ | Üretici — `"amazon_director"` |
+| `Decision.question/date/tier/status` | kök alanlar | ✅ birebir |
+| `Decision.alternatives[]` | `alternatives[]` (option/assessment/risk) | ✅ birebir, minItems 2 |
+| `Decision.humanDecision` | `human_decision` (+`revisit_at` lifecycle'dan) | ✅ |
+| `AIRecommendation.recommendation` | `recommendation.text` | ✅ |
+| `confidence` / `confidenceBreakdown` | `confidence` / `confidence_breakdown` | ✅ 8 bileşen görünür |
+| `evidence[]` | `evidence_snapshot[]` | ✅ (UI biçimi zengin; adapter S7'de daraltır) |
+| `potentialRisks` / `assumptions` / `flipConditions` | `risks` / `assumptions` / `flip_conditions` | ✅ — flip kartta her zaman görünür |
+| `consensusScore` / `disagreementScore` / `minorityOpinions` | consensus alanları | ✅ türetim notuyla |
+| `recClass` | `executive.classify()` A/B/C | ✅ gerekçe kuralının anahtarı |
+| `numbers · causeAnalysis · impactAnalysis · expectedFinancialResult · whyGenerated · responsibleDirector · relatedKnowledge · lastValidated` | — | `not_exposed`; opsiyonel, varsa çizilir |
+| `AgentHealth.*` | `AgentHealthMonitor.snapshot()` | ✅ S5.5-b (UI-ADR-111) — birebir; canlılık eşiği UI'da türetilmez, verdict gösterilir |
+| `Alert` | ADR-0143 kanonik zarf (ADR-0141 evaluator) | ✅ karar mühürlü — S6'da tiplenir |
+| `ExecutiveKPI` | ADR-0143 `{status,value,unit,scale,reason,as_of}` zarfı | ✅ karar mühürlü — S6'da tiplenir; sparkline/forecast sözleşme DIŞI |
+| `Opportunity` | — | ♻️ ayrı kayıt DEĞİL: öneri kayıtlarının görünümü (ADR-0143) |
+| `Mission` | — | ♻️ kavram DEĞİL: monitoring kararlar + due_deferrals görünümü (ADR-0143) |
 
-`value` zarfı: `status=available` → `value` sayı, `reason` opsiyonel;
-aksi hâlde `value=null` ve `reason` ZORUNLU. "Data Required" metni sayı
-alanına giremez (ADR-0135). Kutup (`higherIsBetter`) v1'de YOK (UI-ADR-102);
-`trend/sparkline/aiInsight/forecast/risk/recommendedAction/evidence/owner`
-FR-0043'e kadar opsiyonel ve mock'ta doldurulmaz.
+## 10. Dört ürün kavramı — ODIN **ADR-0143** ile MÜHÜRLENDİ
+
+**Statü: 🟢 KANONİK.** Kaynak `docs/adr/adr-0143-ui-product-concepts.md`
+(ODIN deposu, `status: accepted`). Bu bölüm o ADR'nin **yansımasıdır**;
+çeliştiğinde ADR kazanır. UI uygulaması: UI-ADR-106 ♻️ · UI-ADR-107 ♻️.
+
+### 1. Alert — KABUL, kanonik zarf (§1)
 
 ```json
-{
-  "id": "amazon.net_profit",
-  "metricKey": "net_profit",
-  "label": "Net Profit",
-  "unit": "currency",
-  "currencyCode": "USD",
-  "asOf": "2026-07-30T12:00:00Z",
-  "source": "amazon_director",
-  "value": {
-    "status": "unavailable",
-    "value": null,
-    "reason": "COGS girilmeden ücret-eksiksiz net kâr hesaplanamaz."
-  }
-}
+{ "id": "AL-...", "severity": "critical|risk|warning|info",
+  "title": "...", "module": "amazon", "requires_action": true,
+  "evidence": ["KO-..."], "created_at": "ISO",
+  "suggested_action": "..." }
 ```
 
-### Alert v1
+`requires_action: false` olan öğe alert listesine ASLA girmez — UI'nın
+mevcut filtre kuralı artık üretici tarafı sözleşmesi de. Zarfta olmayan
+alan (eski `description`, `responsibleDirector`) UI icadıydı, silindi.
 
-| Alan | Zorunlu | Kural |
-|---|---|---|
-| `id` | ✅ | Üretici-namespaced |
-| `source` | ✅ | `improvement_detectors \| finance_quality \| amazon_director \| innovation` |
-| `title` | ✅ | |
-| `requiresAction` | ✅ | `false` ise Alerts listesine GİRMEZ (06 §1.4); belirleyemeyen üretici kaydı YAYINLAMAZ |
-| `asOf` | ✅ | ISO 8601 |
-| `summary` | — | Açıklama/kanıt özeti |
-| `severity` | — | `critical \| high \| medium \| low`; belgelenmiş eşlemesi olmayan üretici ATLAR, null yazmaz |
+### 2. ExecutiveKPI — KISMEN KABUL: KPI motoru yok, FR-0044 zarfı genelleşti (§2)
 
 ```json
-{
-  "id": "finance_quality.missing_cost_data.2026-07",
-  "source": "finance_quality",
-  "title": "Cost data is required before profitability can be assessed",
-  "requiresAction": true,
-  "severity": "high",
-  "summary": "FBA fee data is missing for 12 active SKUs.",
-  "asOf": "2026-07-30T12:00:00Z"
-}
+{ "id": "net_profit", "label": "Net Profit",
+  "status": "available|data_required|unavailable",
+  "value": 12345.67, "unit": "currency|percent|count|score",
+  "currency": "USD", "scale": "0-100", "reason": null, "as_of": "ISO" }
 ```
 
-### Opportunity v1
+Zarf **DÜZDÜR** — iç içe bir `value` nesnesi yoktur. Literal
+`"Data Required"` sayısal alanı asla geçmez (ADR-0135). Kaynaklar var
+olanlardır: `company_health_score` · `amazon_director` · `ai_spend`.
+**Sparkline / forecast / insight katmanları bu sözleşmenin PARÇASI
+DEĞİLDİR** — gerçek kaynakları bekliyorlar, bu yüzden UI tipinde de yoklar.
 
-| Alan | Zorunlu | Kural |
-|---|---|---|
-| `id` | ✅ | Üretici-namespaced |
-| `source` | ✅ | Üreten ODIN bileşeni |
-| `title` | ✅ | |
-| `summary` | ✅ | Fırsatın gerekçesi |
-| `suggestedAction` | ✅ | Düz metin; sağlayamayan kayıt Opportunity DEĞİLDİR |
-| `asOf` | ✅ | ISO 8601 |
-| `evidence` | — | Kaynak anahtarları — `"sku:B0ABC"`, `"metric:acos"` |
+### 3. Opportunity — AYRI KAYIT OLARAK REDDEDİLDİ (§3)
 
-`estimatedImpact` v1'de BİLİNÇLİ YOK — kaynak+formül+belirsizlik
-tanımlanınca FR-0044 zarfıyla ayrı kararla eklenir.
+Fırsat, önerinin **pozitif sınıfıdır**; improvement/innovation boruları o
+kaydı zaten üretiyor. "Opportunities" bölümü mevcut **öneri kayıtları
+üzerinde bir GÖRÜNÜMDÜR**; aynı kayda ikinci ad verilmez. v2'de ancak
+kendi borusu doğarsa yeniden bakılır.
 
-```json
-{
-  "id": "improvement_detectors.reprice_sku_B0ABC",
-  "source": "improvement_detectors",
-  "title": "Review price for SKU B0ABC",
-  "summary": "Current price is below the configured gross-margin threshold.",
-  "suggestedAction": "Review the listing price and target gross margin before the next replenishment cycle.",
-  "evidence": ["sku:B0ABC", "metric:gross_margin_per_unit"],
-  "asOf": "2026-07-30T12:00:00Z"
-}
-```
+⚠️ Açık: pozitif sınıfı hangi KAYITLI alan işaretler? Bildirilene kadar
+görünüm filtre uygulamaz ve bunu ekranda söyler (13-...md §17).
 
-### Goal (Mission'ın yerine — ADR-0132 · UI-ADR-107)
+### 4. Mission — KAVRAM OLARAK REDDEDİLDİ (§4)
 
-cockpit.py yayını birebir: `{id, level, label, target, progress_pct}`.
-UI tipi: `Goal { id, level, label, target: string|null,
-progressPct: number|null }`. TUZAK: `goals.alignment()` nötr 50 =
-"ölçülmedi" → adaptör null'a çevirir, asla %50 çizilmez.
+ODIN'de mission varlığı yok. En yakın gerçeklik zaten kayıtlı:
+`status: "monitoring"` kararlar, `monitoring_checkpoints`, `related_goals`
+ve `lifecycle.due_deferrals()`. Mission Board bunların **görünümüdür**.
+İlerleme yüzdesi kavramı kendi ölçülmüş kaynağını ister ve **bu ADR onu
+yaratmaz** — dolayısıyla UI de çizmez.
 
-### Fixture yayın kapıları (FR-0039)
+### Sonuç
 
-1. KPI `value` zarfı durum/değer/neden değişmezlerini geçer.
-2. Yüzdede `scale`, parada `currencyCode` vardır.
-3. `requiresAction` üretilemeyen kayıt kanonik Alert fixture'ına girmez.
-4. `severity` · `estimatedImpact` · kutup · trend: kaynak yoksa ATLANIR,
-   null ile yayınlanmaz.
-5. Her fixture kaydı somut bir mevcut üreticiye bağlanır; UI için sentetik
-   alan üretilmez.
+Kabul edilen kavramlar yukarıdaki JSON'dan tiplenir; reddedilenler görünüm
+olarak çizilir ve **icat edilmiş tipleri UI'dan silinir** (ADR "Consequences"
+maddesi). Zarflar FR-0039 fixture kanalından yayınlanacak (S7 indi) — UI CI
+o zaman sabitleyecek bir şeye sahip olur.

@@ -1190,7 +1190,137 @@ kavramlarının istenip istenmediği. `13-backend-recommendations.md` §15.
 
 ---
 
-## UI-ADR-099 — Hesaplanamayan kâr gösterilmez; yerine Gross Profit + hariç tutulanlar
+## UI-ADR-099 — Kabuk onarımı, durum hafızası ve saf getSnapshot (S5.5)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026 — S5.5 Sözleşme Hizalama
+**Kaynak:** 16-audit-s1-s5.md (üç gerçek eksik + bir kesin kod hatası)
+
+**Dört düzeltme:**
+
+1. **Belge scroll invariant'ı (P0).** `html, body { height:100%;
+   overflow:hidden }`. Kabuktaki `h-screen overflow-hidden` yetmiyordu;
+   Space/Home/End belgeyi kaydırıp header'ı ekrandan çıkarabiliyordu.
+   Ölçüm: onarım sonrası tekerlek/End/Space üçü de `scrollY 0`.
+   Not: programatik `scrollTo` overflow:hidden'da bile çalışır — bu
+   tehdit değildir ve test KULLANICI eylemini ölçer.
+2. **Scroll restore.** Yazılmıştı ama ÇALIŞMIYORDU: kayıt
+   `useLayoutEffect` cleanup'ındaydı; o an yeni içerik commit edilmiş ve
+   tarayıcı scrollTop'u kısa içeriğe clamp'lemiş oluyordu — her geçiş 0
+   kaydediyordu. Kayıt artık scroll OLAYINDA (rAF-throttle); geri
+   yükleme, mock içerik effect tick'inde geldiği için hedefe ulaşana dek
+   en fazla 10 frame dener.
+3. **Kart açıklığı hafızası.** Bileşen-yerel `useState`,
+   `key={pathname}` unmount'unda kayboluyordu. `useDisclosureMemory`
+   (navigation store, workspace-kimlikli `expandedIds`) — BELLEK-İÇİ,
+   diske yazılmaz: dünkü açık kart bugünün verisinde anlamsızdır.
+4. **`useMockData` saf değildi.** `getSnapshot` içinde cache doldurmak
+   React 19 concurrent modda tearing üretebilir (yazılımcılar: "kesin
+   hata"). Store modül seviyesine (üreticiye WeakMap ile bağlı) taşındı;
+   üretim effect'te, `getSnapshot` yalnızca okur.
+
+**Ayrıca:** ConfidenceBadge ODIN'in kanonik 5 bandına geçti
+(80/60/40/20 → çok yüksek/yüksek/orta/düşük/çok düşük); uydurma 50
+eşiği silindi. `ConfidenceBreakdown` iç bileşeni eklendi — 8 kanonik
+bileşen, ağırlıklar ve negatif yön işaretiyle.
+
+**Etki:** `globals.css`, `workspace.tsx`, `lib/store/navigation.ts`,
+`mocks/use-mock.ts`, `confidence-badge.tsx`, `confidence-breakdown.tsx`,
+KPI/karar/öneri kartları.
+
+---
+
+## UI-ADR-100 — Karar modeli ODIN DecisionRecord'a hizalandı; üç verdict
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026 — S5.5
+**Değiştirir:** ♻️ UI-ADR-091 (alternatif kuralının YERİ)
+
+**Tip hizalaması (09b §1):** `Decision` artık ODIN kaydının görünümüdür:
+`question · date · tier(D1/D2/D3) · status(open/monitoring/closed) ·
+alternatives(option/assessment/risk, min 2) · recommendation ·
+humanDecision`. UYDURULMUŞ 13 alan silindi (priority, financialImpact,
+riskLevel, aiConfidence, expectedROI, directorOpinions, timeline, score…).
+`AIRecommendation` ODIN'in 10 zorunlu alanını taşır; KAYIP üç alan
+eklendi ve görünür: `flip_conditions` (kartta HER ZAMAN görünür blok),
+`assumptions`, `confidence_breakdown`.
+
+**♻️ UI-ADR-091 revizyonu:** "alternatives<2 ise öneri render edilmez"
+kuralı önerinin DEĞİL kararın alanına aitti (şema minItems 2). Kural
+şimdi doğru yerde: alternatifler DecisionCard'da çizilir;
+`canRenderRecommendation` ODIN'in 10 zorunlusunu arar — eksikse öneri
+yine sessiz `null`, bastırmayı çağıran yazar (o kısım değişmedi).
+
+**Üç verdict (meclis kararı, sahip onaylı):** Onayla · Reddet · Ertele —
+ODIN sözlüğü. Gerekçe kuralı ODIN ADR-0131'in A/B/C kuralıdır: B/C'de
+her verdict ≥8 karakter gerekçe ister (onay dahil); `deferred` gelecek
+tarih ister. UI kural İCAT ETMEZ, `ceo verdict`i yüzeye taşır; kalıcı
+kayıt S7'de `/api/command` üzerinden (ER-0025). Bayat-veri kilidi
+(UI-ADR-092) üç eyleme genişledi.
+
+**Consensus düzeltmesi:** ODIN'de `disagreement = 100 − consensus`
+(consensus.py, türetilmiş). 10b §11'in "ikisi ayrı ölçümdür" metni
+yanlıştı; CouncilView artık skorları öneriden okur ve türetimi açıkça
+yazar. Director pozisyon satırları kayıtta saklanmadığı için (not_exposed)
+çizilmez; azınlık görüşleri ODIN'in verdiği düz metin listesidir.
+
+**Drift muhafızı:** `contracts/odin/` altında şema snapshot'ı (ODIN commit
+0d76dae) + ODIN'in KENDİ doğrulayıcısından geçirilmiş kanonik örnek +
+`src/types/odin-contract.test.ts` (9 test). FR-0039 kanalı yayına girince
+snapshot pinlenmiş artefakta döner.
+
+**Kapsam dışı (bilinçli):** DirectorHeartbeat→AgentHealth hizalaması ve
+ExecutiveKPI/Alert/Opportunity/Mission tipleri — FR-0046 kararını bekler;
+S6 o karara kapılıdır.
+
+**Etki:** `types/odin.ts` (yeni), `types/executive.ts`,
+`decision-card.tsx` (verdict formu), `council-view.tsx`,
+`minority-opinion-banner.tsx`, `decision-queue.tsx` (tier sıralaması),
+`ai-recommendation-card.tsx`, mocks, fixtures, 8 story dosyası.
+
+---
+
+## UI-ADR-111 — DirectorCard AgentHealth kaydına hizalandı; canlılık eşiği UI'da türetilmez
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026 — S5.5-b
+**Danışılan:** gavadolar (terra · luna) — "ŞİMDİ-BEN", iki görüş de aynı
+yönde; "eşik icat edilmemeli" ikisinin de açık şartı
+**Değiştirir:** ♻️ UI-ADR-089/090'ın Director bağlamındaki kullanımı
+
+**Sorun:** `DirectorHeartbeat` tipi 8 UYDURULMUŞ alan taşıyordu
+(status/currentGoal/currentTask/confidence/taskCount/evidenceCount/
+recommendationCount/memoryHealth/predictionStatus/beatIntervalMs) ve
+ODIN'in GERÇEK ürettiği metrikleri hiç göstermiyordu. 09b §5'e ilk yazımda
+"FR-0046 ile birlikte" notu düşülmüştü — YANLIŞTI: `AgentHealthMonitor`
+ODIN'de mevcuttur, FR-0046'ya bağlı değildir. Kendi notum düzeltildi.
+
+**Karar:**
+1. Tip `AgentHealth` oldu — `AgentHealthMonitor.snapshot()` ile birebir:
+   verdict (unknown/healthy/unhealthy — health.py yalnız bu üçünü yazar) ·
+   consecutive_failures · last_success/failure · metrics{latency avg/p95,
+   success_rate, error_rate, tokens_used, cost_usd, queue_length,
+   availability, last_heartbeat} · checked_at.
+2. **Canlılık kuralı UI'da TÜRETİLMEZ.** Eski "beatIntervalMs × 3
+   aşıldıysa offline" eşiği UI icadıydı; kaldırıldı. Durum ODIN'in
+   verdict'idir; `last_heartbeat` yaş olarak YAZILIR, yorumlanmaz.
+   `liveness()` fonksiyonu ve testleri silindi.
+3. `HeartbeatIndicator` bileşeni kaldırıldı: sözleşmesi (beatIntervalMs)
+   kaynaksız kaldı. "Atım başına tek nabız" ilkesi (UI-ADR-090) bir gün
+   gerçek bir atım akışı sözleşmesi doğarsa geri gelir — ilke geçerli,
+   uygulanacak verisi yok.
+4. Mission Control "Operational Status" sayacı verdict sayar
+   (healthy/unhealthy/unknown) — eşik değil kayıt.
+
+**Etki:** `types/executive.ts` (AgentHealth), `director-card.tsx` (yeniden;
+gecikme/başarı/hata/maliyet artık görünür), `heartbeat-indicator.*`
+(silindi), `lib/clock/tick.ts` (liveness silindi), `mission-control.tsx`,
+mock + fixtures + story'ler.
+
+## UI-ADR-116 — Hesaplanamayan kâr gösterilmez; yerine Gross Profit + hariç tutulanlar
+
+> ♻️ *Eski numara UI-ADR-099.* S5.5 paralel oturumu aynı numarayı `main`'e
+> yayınladı; çakışma 116/117'ye taşınarak çözüldü (aşağıdaki not).
 
 **Durum:** ✅ Dondurulmuş
 **Tarih:** 29 Temmuz 2026 — S6 Amazon Director
@@ -1246,7 +1376,9 @@ yapmak. Kalıcı boş kart, gürültü üretir ve CEO her gün aynı boşluğa b
 
 ---
 
-## UI-ADR-100 — Simülatör hesap yapmaz; senaryolar veriden gelir
+## UI-ADR-117 — Simülatör hesap yapmaz; senaryolar veriden gelir
+
+> ♻️ *Eski numara UI-ADR-100.*
 
 **Durum:** ✅ Dondurulmuş
 **Tarih:** 29 Temmuz 2026 — S6
@@ -1531,120 +1663,103 @@ CEO'nun birim kârı neden göremediğini bilmesi gerekir.
 
 ---
 
-## UI-ADR-106 — FR-0046 v1: dört ürün kavramının kanonik sözleşmesi
+## Numara çakışması — S6 ↔ S5.5 (31 Temmuz 2026)
 
-**Durum:** ✅ Dondurulmuş (UI tarafı) · ODIN kayıt defteri kapanışı bekleniyor
-**Tarih:** 30 Temmuz 2026 — meclis denetimi (16-audit) sonrası
-**Danışılan:** gavadolar (terra · luna) + sistemciler (3 mimar) — kavram
-kabulünde 4/4 aynı yönde; iki noktada ayrıştılar, sentez aşağıda.
-**Sahip onayı:** 30 Temmuz 2026 — "gavadolarla sorup en doğru şekilde
-düzeltmene izin veriyorum, onaylıyorum" (kayıt: oturum). ODIN R-006
-FR-0046 satırının resmi kapanışı ODIN reposunda yapılacak; paket §17'de.
+S6 (29 Tem) ve S5.5 (30 Tem) iki paralel oturumda yazıldı; ikisi de
+**UI-ADR-099 · 100**'ü aldı. ODIN ADR-0124 protokolü "ilk tahsis korur"
+diyor ve ölçüme göre S6 önceydi — **ama uygulanmadı ve gerekçesi şudur:**
+S5.5'in numaraları `main`'e **yayınlandı**, üstüne UI-ADR-111 kondu ve S7
+(112-115) o diziyi varsayarak yazıldı. Yayınlanmış bir trunk'ı ve iki bağımlı
+dalı geri almak, tek birleştirilmemiş dalı taşımaktan kat kat pahalıdır.
+Protokolün AMACI en az kargaşadır; burada amaç, harfine uymayı yendi.
+**S6'nınkiler 116 · 117'ye taşındı**, eski numaralar başlıklarda aranabilir.
 
-**Sorun:** 16-audit UI-ADR-098 doğrulamasına dayanarak dört ürün kavramının
-(ExecutiveKPI · Alert · Opportunity · Mission) ODIN'de tanımı olmadığını
-tespit etti; sistemciler oybirliğiyle "S6 varsayılan tiplerle başlamaz"
-dedi ve FR-0046 açıldı. Mevcut S6 ise kapı konmadan ÖNCE, 🟡 TEKLİF
-tiplerle bitirilmişti.
+Bu, aynı dosyadaki **üçüncü** çakışmadır (098, 099/100 iki kez). Kural
+CLAUDE.md §6'da: numara almadan önce dosyanın SONUNA VE `main`'e bak.
 
-**Karar — kavram başına:**
+---
 
-| Kavram | Karar | v1 sözleşme |
+## UI-ADR-106 ♻️ — FR-0046 ODIN ADR-0143 ile mühürlendi; UI ona uyduruldu
+
+**Durum:** ✅ Dondurulmuş — *bu karar 30 Temmuz'daki ilk hâlini DEĞİŞTİRİR.*
+**Tarih:** 31 Temmuz 2026
+**Kaynak:** ODIN `docs/adr/adr-0143-ui-product-concepts.md`
+
+**Ne oldu:** 30 Temmuz'da FR-0046 için bir meclis sentezi yazıp (gavadolar +
+sistemciler) UI tiplerini ona göre kurmuştuk. Sahip aynı gün dördünü de
+onayladı ve karar ODIN tarafında **ADR-0143** ile mühürlendi — **ve mühürlenen
+metin bizim sentezimizle aynı değildi.** Kanonik olan ODIN'dir (UI-ADR-098);
+dolayısıyla sentez değil, ADR-0143 uygulandı. Dört farkın tamamı:
+
+| Konu | Bizim sentezimiz (yanlış) | ADR-0143 (kanonik, uygulandı) |
 |---|---|---|
-| ExecutiveKPI | **KABUL** | `id · metricKey · label · value{status,value,reason} · unit · currencyCode? · scale? · asOf · source` |
-| Alert | **KABUL** | `id · source · title · requiresAction · asOf · summary? · severity?` |
-| Opportunity | **KABUL** | `id · source · title · summary · suggestedAction · asOf · evidence?[]` |
-| Mission | **RET** | ADR-0132 zaten karara bağlamıştı: Goal'e emekli (UI-ADR-107) |
+| KPI zarfı | İç içe `value: {status,value,reason}` | **DÜZ**: `status`/`value`/`reason`, `unit`/`currency`/`scale`/`as_of` ile aynı seviyede (§2) |
+| KPI ek alanlar | `metricKey` · `source` icat edilmişti | Zarfta YOK → silindi |
+| KPI katmanları | sparkline/forecast/insight *opsiyonel* tutulmuştu | Sözleşmenin **PARÇASI DEĞİL** → tipten de karttan da silindi (§2) |
+| Alert severity | `critical\|high\|medium\|low` uydurulmuştu, opsiyoneldi | **`critical\|risk\|warning\|info`**, ZORUNLU (§1) |
+| Alert alanları | `source`/`summary`/`asOf` | **`module`/`evidence[]`/`created_at`/`suggested_action`** (§1) |
+| Opportunity | Ayrı tip yazılmıştı | **AYRI KAYIT DEĞİL** — öneri kayıtlarının görünümü; tip SİLİNDİ (§3) |
+| Mission | `Goal`'e emekli edilmişti (goals.py) | **Goal de değil**: "izlenen kararlar + vadesi gelen ertelemeler" görünümü (§4) |
 
-**Sentezlenen çelişkiler:**
-- `Alert.severity` — terra "opsiyonel, kaynaksızsa atlanır"; luna "zorunlu,
-  dolduramayan yayınlamaz". **Sentez: opsiyonel + asla null yazılmaz.**
-  Dört üreticinin bugün ortak severity semantiği yok; zorunlu kılmak
-  üreticiyi eşleme UYDURMAYA zorlar — luna'nın kendi "sahte ortak semantik
-  üretme" ilkesi de bunu destekler. Severity'siz kayıt rozetsiz gösterilir
-  ve bilinenlerden sonra sıralanır.
-- `Opportunity.suggestedAction` — terra zorunlu, luna listelememişti.
-  **Sentez: zorunlu.** §1.6'nın tanımı "eyleme dönük feed"; önerisi olmayan
-  kayıt fırsat değildir, üreticiye özel çıktısında kalır.
+**Ders (bu satır kalıcıdır):** meclis sentezi bir ÖNERİDİR, karar değildir.
+Sahibin onayı ODIN governance'ında bir ADR'ye dönüşene kadar UI o sentezi
+kanonik sayamaz. 30 Temmuz'da tipleri "sahip onayladı" diye dondurmak
+erkendi; doğru sıra **ADR mühürlenir → UI tipler**. UI-ADR-098'in kendisi
+zaten bunu söylüyordu.
 
-**Oybirliği maddeleri:**
-- `value` zarfı `{status: available|data_required|unavailable, value, reason}`
-  API sınırında KALMAZ, sözleşmenin parçasıdır — "Data Required" metni
-  sayı alanına giremez (ADR-0135).
-- Metrik kutbu (`higherIsBetter`) v1'e GİRMEZ — UI-ADR-102 nötr renk kuralı
-  kalır; kutup her metricKey için ODIN'de tanımlanmadan eklenirse kalıcı
-  null üretir (UI-ADR-104 dersi).
-- `estimatedImpact` v1'e GİRMEZ — ortak ve güvenilir parasal etki kaynağı
-  kanıtlanmadı. Eski fırsat kartındaki "Gelir etkisi" SÖKÜLDÜ. Kaynak +
-  formül + belirsizlik tanımlanırsa FR-0044 zarfıyla ayrı kararla döner.
-- FR-0043 alanları (trend · sparkline · aiInsight · forecast · risk ·
-  recommendedAction · evidence · owner) opsiyonel kalır ve MOCK DAHİ
-  DOLDURMAZ — `amazon.test.ts` bunu kapı olarak korur.
-- Kanonik kaynak ODIN'dir (FR-0039 fixture kanalı); `09b` salt yansımadır.
+**Uygulama:** `types/executive.ts` (ExecutiveKPI düz zarf · Alert kanonik
+zarf · Opportunity tipi silindi), `executive-kpi-card.tsx` (tek katman),
+`alert-stack.tsx`, `opportunity-card.tsx` **silindi**, mock'lar ve
+`amazon.test.ts` kapıları, 09b §10, 10b §1/§9/§10.
 
-**Bilinçli kayıplar (alan sorusu §17'ye düşüldü):**
-- Alert'te varlık referansı yok → SKU panelinin "ilgili uyarılar" eşleşmesi
-  yapılamıyor; bölüm gerekçeli boş.
-- Opportunity'de kategori/domain yok → PPC K3 / Feed ayrımı yapılamıyor;
-  tüm fırsatlar Feed'de, K3 gerekçeli boş.
-
-**Etki:** `types/executive.ts`, `executive-kpi-card.tsx` (+stories),
-`alert-stack.tsx`, `opportunity-card.tsx` (+stories), `amazon-director.tsx`,
-`amazon-sku-panel.tsx`, `mocks/amazon.ts`, `mocks/briefing.ts`,
-`mocks/amazon.test.ts` (53 birim testi), `stories.fixtures.ts`, 09b §10,
-13-...md §17.
+**Açık kalan (13-...md §17):** öneri kaydının POZİTİF SINIFINI hangi kayıtlı
+alan işaretler? Bildirilene kadar fırsat görünümü filtre UYGULAMAZ ve
+neyi filtrelemediğini ekranda yazar — uydurma bir sınıf çıkarımı yapılmaz.
 
 ---
 
-## UI-ADR-107 — Mission, Goal'e emekli edildi (ODIN ADR-0132'nin UI uygulaması)
+## UI-ADR-107 ♻️ — Mission: Goal değil, "izlenen kararlar + vadesi gelen ertelemeler" görünümü
 
-**Durum:** ✅ Dondurulmuş
-**Tarih:** 30 Temmuz 2026
+**Durum:** ✅ Dondurulmuş — *ilk hâlini (Goal'e emekli) DEĞİŞTİRİR.*
+**Tarih:** 31 Temmuz 2026
+**Kaynak:** ODIN ADR-0143 §4
 
-**Sorun:** UI'daki 60 referanslı `Mission` tipinin ODIN'de karşılığı yoktu;
-9 alanından yalnızca 3'ü gerçek `goals.py` yayınına eşleniyordu. Kanban'ı
-süren `status` (planned/active/blocked/done) tamamen icattı. ODIN ADR-0132
-kararı: Mission, Goal'e emekli olur; MissionBoard hedef verisiyle beslenir;
-kolonlar GERÇEK `level` alanıyla gruplanır; kaynaksız alanlar DÜŞER.
+30 Temmuz'da `Mission`ı ODIN ADR-0132'ye dayanarak `Goal`'e (goals.py
+`progress_pct`) emekli etmiştik. **ADR-0143 §4 daha ileri gitti:** Mission bir
+kavram olarak reddedildi ve yerine geçen şey Goal DEĞİL, zaten kayıtlı olan
+gerçekliktir:
 
-**Uygulama:**
-- `Mission`/`MissionStatus` silindi → `Goal { id, level, label, target,
-  progressPct }` (cockpit.py yayını birebir; `goals.py` doğrulandı:
-  `{id, level, label, target, progress_pct}`).
-- `MissionBoard` → `GoalBoard`: kolonlar verideki seviyelerden türer,
-  görüldükleri sırayla — ODIN seviye kümesini dondurmadığı için öncelik
-  sıralaması uydurulmadı. Termin/sorumlu/engel satırları kalktı.
-- TUZAK (ADR-0132): `goals.alignment()` hedef tanımsızken nötr 50 döner —
-  o "ölçülmedi"dir; adaptör null'a çevirir, tahta %50 çizmez. Tip yorumu ve
-  mock bu kuralı taşıyor.
-- Mission Control "Upcoming Deadlines" bölümü GEREKÇELİ BOŞ duruma döndü:
-  Goal yayınında termin alanı yok, tarih uydurulmaz (soru §14.2).
-- `AmazonSnapshot.missionProgress` → `goalProgressPct: number | null`;
-  Glance kartı "Goal Progress" oldu ve değeri goalsMock'un g-ppc hedefiyle
-  tutarlı (eski 62 hiçbir kaynağa bağlı değildi).
+- `status: "monitoring"` kararlar + `monitoring_checkpoints`'leri
+- `lifecycle.due_deferrals()` — **vadesi gelmiş** ertelemeler
 
-**Etki:** `types/screens.ts`, `goal-board.tsx` (+stories, git mv ile),
-`mission-control.tsx`, `mocks/mission-control.ts`, `types/executive.ts`
-(AmazonSnapshot), `amazon-director.tsx`, `mocks/amazon.ts`.
+**Uygulama:** `Goal` tipi de silindi (bir gün yaşadı), `GoalBoard` →
+**`MonitoredDecisionsBoard`**; Mission Control'ün Primary Focus alanı artık
+`decisionsMock` üzerinden gerçek karar kayıtlarını gösteriyor. İki saf
+fonksiyon dışa açıldı ve test edilebilir: `monitoredDecisions()` ·
+`dueDeferrals()` (vade = `revisitAt <= now`, tahmin değil tarih
+karşılaştırması).
+
+**`progressPercent` ÜRETİLMEDİ.** ADR §4 son cümlesi: ilerleme yüzdesi kendi
+ölçülmüş kaynağını ister ve bu ADR onu yaratmaz. Amazon Glance'taki "Goal
+Progress" kartı da bu yüzden kaldırıldı — ölçüsü olmayan yüzde uydurmadır.
+
+**"Upcoming Deadlines"** bölümü gerekçeli boş duruma döndü: Mission ile
+birlikte `deadline` kavramı da düştü; ertelemelerin vadesi ana tahtadadır.
 
 ---
 
-## UI-ADR-108 — Belge scroll'u yapısal olarak kapatıldı (16-audit §2 P0)
+## UI-ADR-108 ♻️ GERİ ÇEKİLDİ — belge scroll'u zaten S5.5'te kapatılmıştı
 
-**Durum:** ✅ Dondurulmuş
-**Tarih:** 30 Temmuz 2026
+**Durum:** ⛔ Geri çekildi (uygulanmadı)
+**Tarih:** 31 Temmuz 2026
 
-**Sorun:** 16-audit §2'nin P0 bulgusu — `html` scrollHeight viewport'u
-aşıyordu (1920'de 4342 px ölçüldü); `Space`/`Home`/`End` header'ı ekrandan
-çıkarabiliyordu. Spec (03-...md §1): scroll YALNIZCA workspace'tedir.
-Denetim düzeltmeyi "S5.5'te uygulanacak" diye reçetelemişti ama hiçbir
-dala commit edilmemiş — bu revizyonun ölçümünde yakalandı.
+30 Temmuz'da S6 dalında belge scroll'u için `fixed inset-0` +
+`html/body overflow:hidden` yazıp UI-ADR-108 numarasını almıştım. Merge
+sırasında görüldü ki **aynı P0, `main`'de S5.5'in UI-ADR-099'u ile zaten
+kapatılmış** — üstelik daha kapsamlı: o karar scroll geri yüklemeyi (P1) ve
+`getSnapshot` saflığını da düzeltiyor. İki uygulamadan biri fazlalıktır;
+`main`'inki korundu, benimki geri çekildi.
 
-**Karar (denetimin reçetesi birebir):** `html, body { height:100%;
-overflow:hidden }` + kabuk kökü `h-screen` yerine **`fixed inset-0`** —
-kabuk belge akışından çıkar, belge yüksekliğine katkı sıfırlanır ve belge
-scroll'u YAPISAL olarak imkânsızlaşır; CSS'i geri açan biri bile kabuğu
-kaydıramaz. Ölçüm: 3 ekran × 3 genişlik (1920/1440/768) html
-scrollHeight === 900 (viewport), yatay taşma 0.
-
-**Etki:** `globals.css`, `app-shell.tsx` (tek satır sınıf değişimi).
+Numara **yeniden kullanılmaz** (silme yasağı, CLAUDE.md §6): 108 bu kaydın
+kendisidir. Ölçüm merge sonrası tekrarlandı — 3 ekran × 3 genişlikte
+`html` scrollHeight === viewport.

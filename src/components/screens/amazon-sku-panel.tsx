@@ -16,7 +16,7 @@
  * veriye giden en sessiz yoldur. Kimlik bulunamazsa detay UYDURULMAZ.
  *
  * ANTI-FAKE — bu panelde üç yer bilerek boştur:
- *  · Birim kâr: COGS yok, hesaplanamaz (UI-ADR-099).
+ *  · Birim kâr: COGS yok, hesaplanamaz (UI-ADR-116).
  *  · History: SKU olay geçmişi sözleşmesi yok (13-...md §16.2).
  *  · Actions: yazma uçları bağlı değil. Hiçbir şey yapmayan bir düğme,
  *    sahte bir yetenektir; çizilmez.

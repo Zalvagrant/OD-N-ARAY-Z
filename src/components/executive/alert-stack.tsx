@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * AlertStack — FR-0046 v1 Alert sözleşmesi (UI-ADR-106), 06-workspaces.md §1.4.
+ * AlertStack — ODIN **ADR-0143 §1** kanonik Alert zarfı, 06-workspaces.md §1.4.
  *
  * TEK SERT KURAL: `requiresAction: false` olan öğe LİSTEYE GİRMEZ.
  * Alerts bölümü bir olay akışı değildir; yalnızca **aksiyon gerektiren**
@@ -25,26 +25,23 @@ import { DataGuard } from "./data-guard";
 import { TrustSignal } from "./trust-signal";
 import { relativeTime, useNow } from "@/lib/clock/tick";
 
-/* FR-0046 (UI-ADR-106) severity kümesi. `severity` OPSİYONELDİR: belgelenmiş
-   deterministik eşlemesi olmayan üretici alanı atlar, null yazmaz. Severity'si
-   olmayan kayıt rozetsiz gösterilir ve bilinenlerden SONRA sıralanır —
-   önem derecesi uydurulmaz. */
+/* ADR-0143 §1 kanonik sözlüğü — UI eşleme İCAT ETMEZ. Sıra ODIN'in kendi
+   sözlük sırasıdır: critical → risk → warning → info. */
 const SEVERITY = {
   critical: { rank: 0, label: "Kritik", variant: "danger" },
-  high: { rank: 1, label: "Yüksek", variant: "danger" },
-  medium: { rank: 2, label: "Orta", variant: "warning" },
-  low: { rank: 3, label: "Düşük", variant: "info" },
+  risk: { rank: 1, label: "Risk", variant: "warning" },
+  warning: { rank: 2, label: "Uyarı", variant: "warning" },
+  info: { rank: 3, label: "Bilgi", variant: "info" },
 } as const;
 
-const UNRANKED = 9;
-
-function rank(a: Alert): number {
-  return a.severity ? SEVERITY[a.severity].rank : UNRANKED;
-}
-
-/** Listeye girme kuralı — tek yerde, test edilebilir. */
+/** Listeye girme kuralı — tek yerde, test edilebilir.
+    ADR-0143 §1 bunu üretici tarafı sözleşmesi de yaptı; UI tarafı kalıyor
+    çünkü iki tarafta da uygulanan bir kural, tek tarafta uygulanandan
+    güvenlidir. */
 export function actionableAlerts(alerts: Alert[]): Alert[] {
-  return alerts.filter((a) => a.requiresAction === true).sort((a, b) => rank(a) - rank(b));
+  return alerts
+    .filter((a) => a.requiresAction === true)
+    .sort((a, b) => (SEVERITY[a.severity]?.rank ?? 9) - (SEVERITY[b.severity]?.rank ?? 9));
 }
 
 export function AlertStack({
@@ -71,25 +68,28 @@ export function AlertStack({
               {shown.length ? (
                 <ul className="flex flex-col gap-3">
                   {shown.map((a) => {
-                    const sev = a.severity ? SEVERITY[a.severity] : null;
-                    const age = relativeTime(a.asOf, now);
+                    const sev = SEVERITY[a.severity] ?? SEVERITY.info;
+                    const age = relativeTime(a.createdAt, now);
                     const row = (
                       <>
                         <p className="flex flex-wrap items-center gap-2">
-                          {sev && (
-                            <Badge variant={sev.variant} size="sm">
-                              {sev.label}
-                            </Badge>
-                          )}
+                          <Badge variant={sev.variant} size="sm">
+                            {sev.label}
+                          </Badge>
                           <span className="text-content">{a.title}</span>
+                          <span className="text-xs text-content-tertiary">{a.module}</span>
                           {age && <span className="text-xs text-content-tertiary">· {age}</span>}
                         </p>
-                        {a.summary && (
+                        {a.suggestedAction && (
                           <Text size="sm" tone="secondary">
-                            {a.summary}
+                            Önerilen: {a.suggestedAction}
                           </Text>
                         )}
-                        <p className="text-xs text-content-tertiary">Kaynak: {a.source}</p>
+                        {a.evidence.length > 0 && (
+                          <p className="text-xs text-content-tertiary">
+                            Kanıt: {a.evidence.join(", ")}
+                          </p>
+                        )}
                       </>
                     );
 

@@ -1,7 +1,7 @@
-/** S4 · 1 — ExecutiveKPICard */
+/** S4 · 1 — ExecutiveKPICard (♻️ ADR-0143 §2 sınır zarfı) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { ExecutiveKPICard } from "./executive-kpi-card";
-import { envelope, kpi, kpiEksik, kpiFr0043, kpiVeriGerekli } from "./stories.fixtures";
+import { envelope, kpi, kpiVeriGerekli, kpiYuzde } from "./stories.fixtures";
 
 const meta: Meta = {
   title: "Executive/1 · ExecutiveKPICard",
@@ -10,11 +10,11 @@ const meta: Meta = {
 export default meta;
 
 /**
- * FR-0046 v1 varsayılan hâl: yalnızca sözleşme alanları. Trend, sparkline,
- * AI yorumu, forecast ve risk ÜRETİLMEMİŞ (FR-0043) — kart bunları NoData
- * ile söyler; boş panel dürüsttür.
+ * ADR-0143 §2: kart TEK KATMANDIR. Sparkline · forecast · AI yorumu · risk
+ * sözleşmenin parçası değildir; kaynakları ODIN'de oluşana kadar kartta da
+ * yokturlar (boş bir açılır bölüm, olmayan yeteneği varmış gibi gösterirdi).
  */
-export const Minimal: StoryObj = {
+export const Para: StoryObj = {
   render: () => (
     <div className="max-w-md">
       <ExecutiveKPICard env={envelope(kpi, { source: "computed" })} />
@@ -22,22 +22,18 @@ export const Minimal: StoryObj = {
   ),
 };
 
-/**
- * FR-0043 katmanları dolu varyant — opsiyonel render yolları (trend satırı,
- * sparkline, Level 2/3). Bu veri story aracıdır; ürün mock'u FR-0043
- * kapanana kadar bu alanları DOLDURMAZ.
- */
-export const Katmanli: StoryObj = {
+/** Yüzde metrik — `scale` bildirilmiş (UI-ADR-093). */
+export const Yuzde: StoryObj = {
   render: () => (
     <div className="max-w-md">
-      <ExecutiveKPICard env={envelope(kpiFr0043, { source: "computed" })} />
+      <ExecutiveKPICard env={envelope(kpiYuzde, { source: "ads-api" })} />
     </div>
   ),
 };
 
 /**
- * FR-0044 zarfı `status: "unavailable"` — sayı yerine GEREKÇELİ NoData.
- * "Data Required" metni sayı alanına asla girmez (ADR-0135).
+ * `status !== "available"` → sayı yerine zarfın kendi GEREKÇESİ.
+ * Literal "Data Required" sayısal alana asla girmez (ADR-0135).
  */
 export const VeriGerekli: StoryObj = {
   render: () => (
@@ -50,21 +46,9 @@ export const VeriGerekli: StoryObj = {
 export const Izgara: StoryObj = {
   render: () => (
     <div className="grid gap-4 lg:grid-cols-3">
-      <ExecutiveKPICard env={envelope(kpiFr0043, { source: "computed" })} />
       <ExecutiveKPICard env={envelope(kpi, { source: "computed" })} />
-      <ExecutiveKPICard env={envelope(kpiEksik, { source: "internal" })} />
-    </div>
-  ),
-};
-
-/**
- * ANTI-FAKE: confidence, forecast ve AI yorumu üretilmemiş.
- * Rozet çıkmaz, "0" yazılmaz. Öneri tek alternatifli olduğu için gösterilmez.
- */
-export const OlculmeyenAlanlar: StoryObj = {
-  render: () => (
-    <div className="max-w-md">
-      <ExecutiveKPICard env={envelope(kpiEksik, { source: "internal", confidence: undefined })} />
+      <ExecutiveKPICard env={envelope(kpiYuzde, { source: "ads-api" })} />
+      <ExecutiveKPICard env={envelope(kpiVeriGerekli, { source: "computed" })} />
     </div>
   ),
 };
@@ -78,10 +62,7 @@ export const YuzdeOlcegiYok: StoryObj = {
   render: () => (
     <div className="max-w-md">
       <ExecutiveKPICard
-        env={envelope(
-          { ...kpiFr0043, id: "k3", metricKey: "acos", label: "ACOS", scale: undefined },
-          { source: "ads-api" }
-        )}
+        env={envelope({ ...kpiYuzde, scale: undefined }, { source: "ads-api" })}
       />
     </div>
   ),

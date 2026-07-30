@@ -515,16 +515,17 @@ Done:     Hangi şartlarda tamamlandı sayılacak?
 
 ```
 FAZ A  İSKELET
-  ⬜ S0   Repo Audit
-  ⬜ S1   Token & Theme
-  ⬜ S2   App Shell              → uygulama açılıyor
+  ✅ S0   Repo Audit
+  ✅ S1   Token & Theme
+  ✅ S2   App Shell              → uygulama açılıyor
 
 FAZ B  BİLEŞENLER
-  ⬜ S3   Core Components
+  ✅ S3   Core Components
   ✅ S4   Executive Components
 
 FAZ C  İLK EKRANLAR
   ✅ S5   Briefing + Mission Control
+  ✅ S5.5 Sözleşme Hizalama (plan dışı eklendi — UI-ADR-098..111, ADR-0142/0143)
   ⬜ S6   Amazon Director
 
 FAZ D  CANLI VERİ

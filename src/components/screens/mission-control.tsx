@@ -6,8 +6,9 @@
  * Executive Briefing gündür; Mission Control andır. Aynı iskelet, aynı
  * bileşenler, farklı soru.
  *
- * PRIMARY FOCUS: Goal Board (03-...md §5; Mission → Goal, ODIN ADR-0132 ·
- * UI-ADR-107). Ekranda ondan daha ağır ikinci bir alan YOKTUR.
+ * PRIMARY FOCUS: **İzlenen kararlar + vadesi gelen ertelemeler** (03-...md §5).
+ * "Mission" kavramı ODIN ADR-0143 §4 ile REDDEDİLDİ; tahta artık gerçek
+ * karar kayıtlarının görünümüdür. Ekranda ondan ağır ikinci bir alan yoktur.
  *
  * ⚠️ DOKUZ BÖLÜMÜN ÜÇÜNÜN SÖZLEŞMESİ YOK (UI-ADR-096):
  * Active Projects · Resource Allocation · Automation Queue.
@@ -18,57 +19,77 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { liveness, useNow } from "@/lib/clock/tick";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
 import type { DataEnvelope } from "@/types/data-envelope";
-import type { DirectorHeartbeat } from "@/types/executive";
-import { directorsMock, risksMock } from "@/mocks/briefing";
-import { goalsMock } from "@/mocks/mission-control";
+import type { AgentHealth } from "@/types/executive";
+import { decisionsMock, directorsMock, risksMock } from "@/mocks/briefing";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
-import { Stat } from "@/components/ui/stat";
 import { Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { DirectorCard } from "@/components/executive/director-card";
-import { GoalBoard } from "@/components/executive/goal-board";
+import { MonitoredDecisionsBoard } from "@/components/executive/monitored-decisions-board";
 
 /* --------------------------------------------------------------------------
    Operational Status — ölçüme dayalı, uydurmasız
    -------------------------------------------------------------------------- */
 
+function Stat({
+  label,
+  value,
+  note,
+  tone = "text-content",
+}: {
+  label: string;
+  value: number | string;
+  note: string;
+  tone?: string;
+}) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-wide text-content-tertiary">{label}</dt>
+      <dd className="mt-1">
+        <span className={`odin-num text-lg ${tone}`}>{value}</span>
+      </dd>
+      <p className="text-xs text-content-tertiary">{note}</p>
+    </div>
+  );
+}
+
 function OperationalStatus({
   directors,
 }: {
-  directors: DataEnvelope<DirectorHeartbeat[]> | null;
+  directors: DataEnvelope<AgentHealth[]> | null;
 }) {
-  const now = useNow();
   const open = activeTelemetryChannels().length;
   const total = TELEMETRY_CHANNELS.length;
 
-  const states = (directors?.data ?? []).map((d) =>
-    liveness(d.lastBeat, d.beatIntervalMs, now)
-  );
-  const live = states.filter((s) => s === "live").length;
-  const offline = states.filter((s) => s === "offline").length;
-  const unknown = states.filter((s) => s === "unknown").length;
+  /* Sayım ODIN'in verdict'ine dayanır — UI canlılık eşiği TÜRETMEZ
+     (UI-ADR-111; eski beatIntervalMs×3 kuralı UI icadıydı). */
+  const verdicts = (directors?.data ?? []).map((d) => d.verdict);
+  const healthy = verdicts.filter((v) => v === "healthy").length;
+  const unhealthy = verdicts.filter((v) => v === "unhealthy").length;
+  const unknown = verdicts.filter((v) => v === "unknown").length;
 
   return (
     <Card density="compact">
       <CardBody density="compact">
         <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>div]:min-w-0">
+          {/* `odin-num` blok elemana verilmez: sınıf sayıları SAĞA hizalar
+              (03-...md §11) ve etiketinden koparır. */}
           <Stat label="Telemetri kanalı" value={`${open} / ${total}`} note="açık / tanımlı" />
-          <Stat label="Canlı Director" value={live} note="son atım eşiğin içinde" tone="success" />
-          <Stat label="Offline" value={offline} note="atım gecikti" tone="warning" />
+          <Stat label="Sağlıklı Director" value={healthy} note="ODIN verdict: healthy" tone="text-success" />
+          <Stat label="Sağlıksız" value={unhealthy} note="ODIN verdict: unhealthy" tone="text-warning" />
           <Stat
             label="Bilinmiyor"
             value={unknown}
-            note="hiç atım yok — ölmüş demek değildir"
-            tone="tertiary"
+            note="hiç gözlem yok — ölmüş demek değildir"
+            tone="text-content-tertiary"
           />
         </dl>
       </CardBody>
@@ -102,28 +123,29 @@ export function MissionControl({
   const router = useRouter();
   const [query, setQuery] = useState("");
 
-  const goals = useMockData(goalsMock);
+  const decisions = useMockData(decisionsMock);
   const directors = useMockData(directorsMock);
   const alerts = useMockData(risksMock);
 
-  const loading = demo === "loading" || goals.loading;
+  const loading = demo === "loading" || decisions.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    goals.reload();
+    decisions.reload();
     directors.reload();
     alerts.reload();
   };
 
-  const goalEnv = isEmpty && goals.data ? { data: [], meta: goals.data.meta } : goals.data;
+  const decisionEnv =
+    isEmpty && decisions.data ? { data: [], meta: decisions.data.meta } : decisions.data;
 
   return (
     <div className="flex max-w-screen-2xl flex-col gap-8">
       <WorkspaceHeader
         title="Mission Control"
         context="Şu anda ne oluyor?"
-        lastSync={goals.data?.meta.lastUpdated ?? null}
+        lastSync={decisions.data?.meta.lastUpdated ?? null}
         actions={
           <>
             <MockBadge />
@@ -134,12 +156,10 @@ export function MissionControl({
         }
         search={
           <Search
-            label="Hedef ara"
-            placeholder="Hedef, seviye veya başlık"
+            label="Karar ara"
+            placeholder="Karar sorusu"
             onSearch={setQuery}
-            resultCount={
-              query ? (goalEnv?.data.length ?? null) : null
-            }
+            resultCount={query ? (decisionEnv?.data.length ?? null) : null}
           />
         }
       />
@@ -159,27 +179,28 @@ export function MissionControl({
 
       {/* PRIMARY FOCUS AREA */}
       <Section
-        title="Goal Board"
-        description="Ekranın tek ana odak alanı. Hedefler ODIN'in gerçek seviye alanına göre gruplanır (ADR-0132)."
+        title="İzlenen kararlar + vadesi gelen ertelemeler"
+        description="Ekranın tek ana odak alanı. Kaynak: status=monitoring kararlar ve vadesi gelmiş ertelemeler (ODIN ADR-0143 §4) — icat edilmiş görev kavramı yok."
         loading={loading}
         loadingLayout="kpi"
         loadingCount={4}
         error={error}
         onRetry={reloadAll}
       >
-        <GoalBoard env={goalEnv} filter={query} />
+        <MonitoredDecisionsBoard env={decisionEnv} filter={query} />
       </Section>
 
       <div className="grid gap-8 lg:grid-cols-2 [&>section]:min-w-0">
-        {/* Mission emekli edilince (ADR-0132) `deadline` alanı da düştü —
-            ODIN'in Goal yayınında termin YOK. Termin uydurulmaz; kaynak
-            sorusu 13-...md §14.2'de. */}
+        {/* ADR-0143 §4: "Upcoming Deadlines" kaynaksız kaldı. Mission
+            kavramıyla birlikte `deadline` alanı da düştü; ertelemelerin
+            vadesi zaten ana tahtada. Uydurulmuş bir termin listesi yerine
+            gerekçeli boş durum. */}
         <Section
           title="Upcoming Deadlines"
           empty
           emptyTitle="Termin verisinin kaynağı yok"
-          emptyDescription="Mission tipi Goal'e emekli edildi (ODIN ADR-0132) ve ODIN'in Goal yayınında termin alanı bulunmuyor. Uydurulmuş tarih göstermek yerine bölüm boş bırakıldı."
-          emptySuggestion="Soru 13-backend-recommendations.md §14.2'ye düşüldü; ODIN termin yayınlarsa bölüm aynı yere oturur."
+          emptyDescription="ODIN ADR-0143 §4 ile Mission kavramı reddedildi; karar kayıtlarında genel bir termin alanı yok. Vadesi gelen ertelemeler ana tahtada listelenir."
+          emptySuggestion="Soru 13-backend-recommendations.md §17'ye düşüldü; ODIN termin yayınlarsa bölüm aynı yere oturur."
         />
 
         <Section
@@ -211,7 +232,7 @@ export function MissionControl({
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
           {directors.data?.data.map((d) => (
-            <DirectorCard key={d.directorId} env={{ data: d, meta: directors.data!.meta }} />
+            <DirectorCard key={d.agentId} env={{ data: d, meta: directors.data!.meta }} />
           ))}
         </div>
       </Section>
