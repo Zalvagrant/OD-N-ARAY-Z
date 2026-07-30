@@ -20,6 +20,28 @@ export const UcTazelik: StoryObj = {
   ),
 };
 
+/**
+ * S7 · UI-ADR-115 — bayat veri ile YENİLENEMEYEN veri aynı şey değildir.
+ *
+ * Üstteki satır "üç gün önce güncellendi" der ve bu normal olabilir.
+ * Alttaki satır aynı yaşa ek olarak "son deneme başarısız" der: sistem
+ * çalışmıyor. CEO'nun o sayıya dayanarak karar verip vermeyeceği bu farka
+ * bağlıdır; ikisi tek bir "bayat" damgasında birleştirilemez.
+ */
+export const YenilemeBasarisiz: StoryObj = {
+  render: () => (
+    <div className="flex flex-col gap-3">
+      <TrustSignal
+        meta={fixtureMeta({ source: "sp-api", freshness: "stale", lastUpdated: ago(3 * 3600_000) })}
+      />
+      <TrustSignal
+        meta={fixtureMeta({ source: "sp-api", freshness: "stale", lastUpdated: ago(3 * 3600_000) })}
+        refreshFailed="ODIN isteği reddetti (500)"
+      />
+    </div>
+  ),
+};
+
 /** Tazelik yalnızca renkle değil glyph (● ◐ ○) ve kelimeyle de verilir. */
 export const TumKaynaklar: StoryObj = {
   render: () => (

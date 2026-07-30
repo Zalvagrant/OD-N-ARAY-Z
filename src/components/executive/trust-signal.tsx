@@ -32,7 +32,22 @@ const FRESHNESS: Record<Freshness, { glyph: string; label: string; cls: string }
   stale: { glyph: "○", label: "bayat", cls: "text-warning" },
 };
 
-export function TrustSignal({ meta, className = "" }: { meta: DataMeta; className?: string }) {
+export function TrustSignal({
+  meta,
+  refreshFailed,
+  className = "",
+}: {
+  meta: DataMeta;
+  /**
+   * Son yenileme denemesi başarısızsa NEDENİ — UI-ADR-115 (S7).
+   *
+   * Bayatlık tek başına yetmez: "bayat" hafta sonu güncellenmemiş de
+   * olabilir, ODIN üç saattir 500 dönüyor da olabilir. İkisi arasındaki
+   * fark, o eski sayıya dayanarak karar verilip verilmeyeceğidir.
+   */
+  refreshFailed?: string;
+  className?: string;
+}) {
   const now = useNow();
   const age = relativeTime(meta.lastUpdated, now);
   const fresh = FRESHNESS[meta.freshness] ?? FRESHNESS.stale;
@@ -49,6 +64,15 @@ export function TrustSignal({ meta, className = "" }: { meta: DataMeta; classNam
         <>
           <span aria-hidden="true">·</span>
           <time dateTime={meta.lastUpdated}>{age}</time>
+        </>
+      )}
+      {refreshFailed && (
+        <>
+          <span aria-hidden="true">·</span>
+          {/* Renk tek gösterge değil: "başarısız" kelimesi de yazıyor. */}
+          <span className="text-warning">
+            <span aria-hidden="true">⚠</span> Son yenileme başarısız — {refreshFailed}
+          </span>
         </>
       )}
     </p>
