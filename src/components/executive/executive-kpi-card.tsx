@@ -22,7 +22,8 @@
  *  - Önerilen aksiyon 2'den az alternatif taşıyorsa gösterilmez.
  */
 
-import { useId, useState } from "react";
+import { useId } from "react";
+import { useDisclosureMemory } from "@/lib/store/navigation";
 import type { ExecutiveKPI } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
@@ -97,7 +98,8 @@ function scaled(value: number | undefined, factor: number | null): number | null
 const SCALE_MISSING = "Yüzde ölçeği (scale) bildirilmedi — değer gösterilmiyor";
 
 function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
-  const [open, setOpen] = useState(false);
+  /* Yerel useState DEĞİL: geri dönüşte açık kart açık kalmalı (denetim §2). */
+  const [open, toggleOpen] = useDisclosureMemory(`kpi:${kpi.id}`);
   const bodyId = useId();
 
   const { format, currency, factor, fractionDigits } = numProps(kpi);
@@ -118,7 +120,7 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setOpen((o) => !o)}
+            onClick={toggleOpen}
             aria-expanded={open}
             aria-controls={bodyId}
           >

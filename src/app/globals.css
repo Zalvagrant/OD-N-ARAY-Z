@@ -107,10 +107,13 @@
   animation: odin-shimmer 1.6s var(--odin-ease-standard) infinite;
 }
 
-html {
-  height: 100%;
-}
-
+/* 03-information-architecture.md §1: scroll YALNIZCA Workspace içindedir.
+   Kabuktaki `h-screen overflow-hidden` yetmiyordu — belge yine de 6316 px'e
+   taşıyordu ve Space/Home/End header'ı ekrandan çıkarabiliyordu (S1-S5
+   denetimi, 16-audit §2). Kaydırılamaz belge, taşma hangi yoldan gelirse
+   gelsin bu invariant'ı KÖKTEN sağlar; iç scroll zaten workspace'te. */
+html,
 body {
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
 }
