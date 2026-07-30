@@ -1,0 +1,335 @@
+/**
+ * S7 veri katmanı kapıları.
+ *
+ * Meclis (yazılımcılar) kuralı: React Query'nin KENDİ önbellek/observer
+ * uygulamasını yeniden test etmeyiz — kendi politikamızı, şemamızı, hata
+ * eşlememizi ve veri izolasyonumuzu test ederiz. Gerçek bekleme yok.
+ */
+
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+
+import { FRESHNESS_THRESHOLDS_MS } from "@/types/data-envelope";
+import { httpLoad, parseEnvelope } from "./client";
+import { OdinError, classifyError, contractError, httpError, offlineError } from "./errors";
+import { makeQueryClient } from "./query";
+import { policyFor } from "./policy";
+import { alertSchema, executiveKpiSchema, goalSchema, opportunitySchema } from "./schemas";
+import { pollingTransport } from "./transport";
+
+const NOW = () => new Date().toISOString();
+
+const kpi = () => ({
+  id: "amazon.net_profit",
+  metricKey: "net_profit",
+  label: "Net Profit",
+  unit: "currency" as const,
+  currencyCode: "USD",
+  asOf: NOW(),
+  source: "amazon_director",
+  value: { status: "unavailable" as const, value: null, reason: "COGS girilmedi." },
+});
+
+const wrap = <T,>(data: T, over: Record<string, unknown> = {}) => ({
+  data,
+  meta: { source: "mock", lastUpdated: NOW(), freshness: "live", ...over },
+});
+
+/* ------------------------------------------------------------------ 1 */
+
+describe("zarf kapısı — meta olmayan veri REDDEDİLİR", () => {
+  it("meta hiç yoksa sözleşme hatası atar", () => {
+    expect(() => parseEnvelope({ data: kpi() }, executiveKpiSchema, "kpi", "amazon")).toThrow(
+      OdinError
+    );
+  });
+
+  it("meta eksik alanlıysa (lastUpdated yok) reddeder", () => {
+    const raw = { data: kpi(), meta: { source: "mock", freshness: "live" } };
+    try {
+      parseEnvelope(raw, executiveKpiSchema, "kpi", "amazon");
+      expect.unreachable("reddedilmeliydi");
+    } catch (e) {
+      expect((e as OdinError).kind).toBe("contract");
+      /* Ham Zod mesajı kullanıcıya değil, teknik detaya gider. */
+      expect((e as OdinError).technical).toContain("meta.lastUpdated");
+      expect((e as OdinError).what).not.toMatch(/expected|received/i);
+    }
+  });
+
+  it("AI kaynaklı veri confidence olmadan geçmez", () => {
+    const raw = wrap(kpi(), { source: "ai" });
+    expect(() => parseEnvelope(raw, executiveKpiSchema, "kpi", "amazon")).toThrow(OdinError);
+  });
+
+  it("GELECEKTEN gelen damga reddedilir — yoksa kayıt sonsuza kadar 'canlı' kalır", () => {
+    const future = new Date(Date.now() + 30 * 60_000).toISOString();
+    expect(() =>
+      parseEnvelope(wrap(kpi(), { lastUpdated: future }), executiveKpiSchema, "kpi", "amazon")
+    ).toThrow(OdinError);
+  });
+
+  it("beş dakikalık saat kayması tolere edilir", () => {
+    const near = new Date(Date.now() + 60_000).toISOString();
+    expect(() =>
+      parseEnvelope(wrap(kpi(), { lastUpdated: near }), executiveKpiSchema, "kpi", "amazon")
+    ).not.toThrow();
+  });
+
+  it("geçerli zarf geçer ve tazelik İSTEMCİDE yeniden hesaplanır", () => {
+    /* Sunucu "live" damgaladı ama kayıt 3 gün eski: amazon eşiğine göre
+       bayattır. Damgaya güvenilseydi ekran "canlı" yazardı. */
+    const old = new Date(Date.now() - 3 * 24 * 3600_000).toISOString();
+    const env = parseEnvelope(
+      wrap(kpi(), { lastUpdated: old, freshness: "live" }),
+      executiveKpiSchema,
+      "kpi",
+      "amazon"
+    );
+    expect(env.meta.freshness).toBe("stale");
+  });
+});
+
+/* ------------------------------------------------------------------ 2 */
+
+describe("sözleşme ihlalleri arayüze ULAŞMAZ", () => {
+  const bad = (data: unknown, schema: z.ZodType) =>
+    expect(() => parseEnvelope(wrap(data), schema, "x", "amazon")).toThrow(OdinError);
+
+  it("para birimi metriği currencyCode'suz geçmez", () => {
+    bad({ ...kpi(), currencyCode: undefined }, executiveKpiSchema);
+  });
+
+  it("yüzde metriği scale'siz geçmez (0,18 mi %18 mi belirsiz)", () => {
+    bad({ ...kpi(), unit: "percent", currencyCode: undefined }, executiveKpiSchema);
+  });
+
+  it("status=available iken value null olamaz", () => {
+    bad({ ...kpi(), value: { status: "available", value: null } }, executiveKpiSchema);
+  });
+
+  it("status!=available iken reason zorunludur", () => {
+    bad({ ...kpi(), value: { status: "data_required", value: null } }, executiveKpiSchema);
+  });
+
+  it('sunum metni sayı alanına giremez ("Data Required")', () => {
+    bad({ ...kpi(), value: { status: "available", value: "Data Required" } }, executiveKpiSchema);
+  });
+
+  it("requiresAction'ı olmayan kayıt Alert değildir", () => {
+    bad({ id: "a", source: "s", title: "t", asOf: NOW() }, alertSchema);
+  });
+
+  it("severity null YAZILMAZ — atlanır", () => {
+    bad(
+      { id: "a", source: "s", title: "t", requiresAction: true, asOf: NOW(), severity: null },
+      alertSchema
+    );
+  });
+
+  it("suggestedAction'ı olmayan kayıt Opportunity değildir", () => {
+    bad({ id: "o", source: "s", title: "t", summary: "s", asOf: NOW() }, opportunitySchema);
+  });
+
+  it("Goal progressPct null olabilir (ölçülmedi), string olamaz", () => {
+    expect(() =>
+      parseEnvelope(
+        wrap({ id: "g", level: "urgent", label: "L", target: null, progressPct: null }),
+        goalSchema,
+        "goal",
+        "default"
+      )
+    ).not.toThrow();
+    bad({ id: "g", level: "urgent", label: "L", target: null, progressPct: "50" }, goalSchema);
+  });
+});
+
+/* ------------------------------------------------------------------ 3 */
+
+describe("retry yalnız GEÇİCİ hatada", () => {
+  const retry = makeQueryClient().getDefaultOptions().queries?.retry as (
+    n: number,
+    e: unknown
+  ) => boolean;
+
+  it.each([
+    ["ağ", classifyError(new TypeError("fetch failed"), "x"), true],
+    ["timeout 408", httpError(408, "x"), true],
+    ["kota 429", httpError(429, "x"), true],
+    ["sunucu 500", httpError(500, "x"), true],
+    ["yetki 401", httpError(401, "x"), false],
+    ["yok 404", httpError(404, "x"), false],
+    ["sözleşme", contractError("x", "d"), false],
+    ["çevrimdışı", offlineError(), false],
+  ])("%s → %s", (_label, err, expected) => {
+    expect((err as OdinError).retryable).toBe(expected);
+    expect(retry(0, err)).toBe(expected);
+  });
+
+  it("geçici hatada bile 3 denemeden fazlası yok", () => {
+    expect(retry(3, httpError(500, "x"))).toBe(false);
+  });
+
+  it("OdinError olmayan bir şey hiç denenmez (sınıflandırılmamış = güvenilmez)", () => {
+    expect(retry(0, new Error("çıplak"))).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ 4 */
+
+describe("önbellek: dedupe ve izolasyon", () => {
+  const client = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+  it("aynı anahtara eşzamanlı iki istek → TEK çağrı", async () => {
+    const qc = client();
+    const fetcher = vi.fn(async () => 42);
+    const [a, b] = await Promise.all([
+      qc.fetchQuery({ queryKey: ["mock", "lillu", "kpi"], queryFn: fetcher }),
+      qc.fetchQuery({ queryKey: ["mock", "lillu", "kpi"], queryFn: fetcher }),
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect([a, b]).toEqual([42, 42]);
+  });
+
+  it("mod ve evren anahtarın parçası — mock önbelleği gerçek modda okunmaz", async () => {
+    const qc = client();
+    const fetcher = vi.fn(async () => 1);
+    await qc.fetchQuery({ queryKey: ["mock", "lillu", "kpi"], queryFn: fetcher });
+    await qc.fetchQuery({ queryKey: ["odin", "lillu", "kpi"], queryFn: fetcher });
+    await qc.fetchQuery({ queryKey: ["odin", "baska", "kpi"], queryFn: fetcher });
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+});
+
+/* ------------------------------------------------------------------ 5 */
+
+describe("politika ve taşıma", () => {
+  it("modüle göre eşik — trading amazon'dan sıkı, finance gevşek", () => {
+    expect(policyFor("trading").staleTime).toBeLessThan(policyFor("amazon").staleTime);
+    expect(policyFor("finance").staleTime).toBeGreaterThan(policyFor("amazon").staleTime);
+  });
+
+  /* Meclis düzeltmesi: invariant "bayatlamadan önce" DEĞİL, "bayat sayılacağı
+     ana kadar"dır. Yenileme aralığı tazelik eşiğini AŞARSA, ekranda bayat
+     yazan bir kayıt için hiçbir zaman yenileme tetiklenmez. */
+  it("yenileme aralığı tazelik (recent) eşiğini AŞMAZ", () => {
+    for (const m of ["trading", "amazon", "finance", "default"] as const) {
+      const p = policyFor(m);
+      expect(p.refetchInterval).toBeLessThanOrEqual(FRESHNESS_THRESHOLDS_MS[m].recent);
+      expect(p.refetchInterval).toBeGreaterThan(p.staleTime);
+    }
+  });
+
+  it("polling taşıması abonelik açar ve kapatır", () => {
+    vi.useFakeTimers();
+    const onInvalidate = vi.fn();
+    const stop = pollingTransport(1000).subscribe("kpi", onInvalidate);
+    vi.advanceTimersByTime(3000);
+    expect(onInvalidate).toHaveBeenCalledTimes(3);
+    stop();
+    vi.advanceTimersByTime(5000);
+    expect(onInvalidate).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
+  });
+
+  it("polling çevrimdışıyken tetiklemez", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("navigator", { onLine: false });
+    const onInvalidate = vi.fn();
+    const stop = pollingTransport(1000).subscribe("kpi", onInvalidate);
+    vi.advanceTimersByTime(5000);
+    expect(onInvalidate).not.toHaveBeenCalled();
+    stop();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("polling sekme arka plandayken tetiklemez", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("document", { hidden: true });
+    const onInvalidate = vi.fn();
+    const stop = pollingTransport(1000).subscribe("kpi", onInvalidate);
+    vi.advanceTimersByTime(5000);
+    expect(onInvalidate).not.toHaveBeenCalled();
+    stop();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+});
+
+/* ------------------------------------------------------------------ 5b */
+
+describe("iptal: zaman aşımı ile çağıranın iptali ayrılır", () => {
+  /** Yalnız abort sinyaliyle reddeden sahte fetch. */
+  const hangingFetch = () =>
+    vi.stubGlobal("fetch", (_url: string, init: { signal: AbortSignal }) =>
+      new Promise((_res, rej) => {
+        init.signal.addEventListener("abort", () =>
+          rej(new DOMException("Aborted", "AbortError"))
+        );
+      })
+    );
+
+  it("zaman aşımı → beş adımlı OdinError(timeout)", async () => {
+    hangingFetch();
+    await expect(httpLoad("/api/state", { timeoutMs: 5 })).rejects.toBeInstanceOf(OdinError);
+    vi.unstubAllGlobals();
+  });
+
+  it("çağıran iptal ederse HATA ÜRETİLMEZ — terk edilen ekranın hata kutusu açılmaz", async () => {
+    hangingFetch();
+    const ac = new AbortController();
+    const p = httpLoad("/api/state", { signal: ac.signal, timeoutMs: 30_000 });
+    ac.abort();
+    await expect(p).rejects.toSatisfy((e: unknown) => !(e instanceof OdinError));
+    vi.unstubAllGlobals();
+  });
+});
+
+/* ------------------------------------------------------------------ 6 */
+
+describe("hata metinleri beş adımı doldurur", () => {
+  it("her hata sınıfı what/why/impact/fix üretir — kullanıcı asla yalnız 'Error' görmez", () => {
+    const errors = [
+      offlineError(),
+      contractError("kpi", "detay"),
+      httpError(500, "kpi"),
+      classifyError(new TypeError("fetch failed"), "kpi"),
+      classifyError({ tuhaf: true }, "kpi"),
+    ];
+    for (const e of errors) {
+      const s = e.toErrorState();
+      expect(s.what.length).toBeGreaterThan(3);
+      expect(s.why.length).toBeGreaterThan(3);
+      expect(s.impact.length).toBeGreaterThan(3);
+      expect(s.fix.length).toBeGreaterThan(3);
+    }
+  });
+
+  it("sınıflandırılamayan hata SEBEP UYDURMAZ", () => {
+    expect(classifyError({ x: 1 }, "kpi").why).toContain("UYDURULMADI");
+  });
+});
+
+/* ------------------------------------------------------------------ 7 */
+
+describe("gerçek modda mock sızamaz", () => {
+  it('DATA_MODE=odin iken meta.source="mock" reddedilir', async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_ODIN_DATA_MODE", "odin");
+    const { parseEnvelope: parse } = await import("./client");
+    const { executiveKpiSchema: kpiSchema } = await import("./schemas");
+    expect(() => parse(wrap(kpi()), kpiSchema, "kpi", "amazon")).toThrow(/sözleşme|Veri/i);
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("geçersiz mod değeri derlemede patlar", async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_ODIN_DATA_MODE", "yarim-mock");
+    await expect(import("./mode")).rejects.toThrow(/geçersiz/);
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+});
