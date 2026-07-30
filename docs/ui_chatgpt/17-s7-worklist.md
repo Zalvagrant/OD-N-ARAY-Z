@@ -130,13 +130,29 @@ iletilmiyordu — bölüm boş kalıyor, kullanıcı verinin REDDEDİLDİĞİNİ
 - Decision Center ekranı → **S11** (dal adı yanıltıcıdır)
 - `types/executive.ts` yeniden yazımı → paralel oturumun S5.5 işi
 
+## 2d. Meclis kapanış turu — koşullu onay ve karşılığı
+
+gavadolar (terra + luna) S7'yi **kapanabilir** buldu, tek ortak koşulla:
+"taşınmamış beş bölüm mock veri göstermeye devam ederse kapanışı
+onaylamıyorum" (luna). Endişe S7'de değil S8'de gerçekti — anahtar
+çevrildiğinde üç bölüm gerçek, beş bölüm mock gösterir ve aynı ekranda
+hangisinin hangisi olduğu görünmezdi.
+
+**Yapısal olarak kapatıldı:** `useMockData` artık FAIL-CLOSED — gerçek
+modda veri VERMEZ (`data: null`, `loading: false`). Taşınmamış bölümler
+S8'de mock göstermeye devam edemez; "veri yok" gerekçesini basarlar.
+Mock'un dağıtıma çıkması ayrıca `build:release` kapısıyla engelli.
+
+terra'nın S8 kabul kriterleri kayda geçti (aşağıda 3 ve 4).
+
 ### S8'e devredilen açık borçlar
 
 1. **Beş bölüm hâlâ eski mock kancasında** — `AmazonSnapshot` ·
    `PPCOverview` · `CampaignIntelligence` · `SimulationCase` · `SkuHealth`.
    Sebep UI-ADR-113: doğrulanmış sözleşmeleri yok. Sözleşmeleri kapanınca
    (13-...md §16.2/§16.4, FR-0044) üçer satırla yeni boruya taşınırlar.
-   O güne kadar `meta.source === "mock"` aramasında görünürler.
+   Artık sessiz bir borç DEĞİL: gerçek moda geçildiği an bu bölümler
+   kendiliğinden "veri yok" durumuna düşer ve eksiklik görünür olur.
 2. **Briefing ve Mission Control taşınmadı** — o dosyalarda paralel oturumun
    commit'lenmemiş S5.5 işi var; aynı anda iki taraftan yazmak
    [[odin-worktree-per-branch]] dersini tekrarlardı.
