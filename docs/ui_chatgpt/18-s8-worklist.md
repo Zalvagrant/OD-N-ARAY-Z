@@ -74,7 +74,7 @@ Dolayısıyla S8 şu üç işi yapar:
 | # | İş | Neden |
 |---|---|---|
 | **D8.A** | `/api/state` adaptörü — ham yanıtı `DataEnvelope` zarfına sarar, `meta.source="internal"`, `lastUpdated=generated_at`, tazelik istemcide | S7'nin `httpLoad()`'u yazılmıştı ama hiçbir ekran çağırmıyordu; bu onu bağlar |
-| **D8.B** | **`Goal` CANLIYA BAĞLANIR** — Mission Control'ün Goal Board'u gerçek ODIN hedeflerini gösterir | Tek birebir eşleşen sözleşme. TUZAK: `progress_pct` nötr 50 = "ölçülmedi" → `null`'a çevrilir, %50 ÇİZİLMEZ (ADR-0132) |
+| **D8.B** | **`Goal` CANLIYA BAĞLANIR** — Mission Control'ün Goal Board'u gerçek ODIN hedeflerini gösterir | Tek birebir eşleşen sözleşme. ⚠️ 09b §10'un "nötr 50 tuzağı" uyarısı KAYNAK OKUNARAK ÇÜRÜTÜLDÜ: o 50 `goals.py::alignment()`'in metin-hedef hizası puanıdır ve cockpit onu yayınlamaz. `progress_pct` doğrudan sahibin `goals.json`'ından gelir, tanımsızsa `None`. Çevrilecek 50 yok |
 | **D8.C** | `backend-istekleri.md` — kanıtlı, dosya/satır gösteren talep listesi | Prompt §3'ün zorunlu çıktısı; ODIN tarafı R-006'ya bunu alacak |
 | **D8.D** | Mock'un üretim paketinden çıkarılması | Meclis Q2=C |
 
