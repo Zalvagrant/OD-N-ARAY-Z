@@ -183,9 +183,11 @@ Karar modeli ODIN DecisionRecord'a hizalandı (tier/status/alternatifler/10
 zorunlu öneri alanı), kanonik güven bantları + 8 bileşenli döküm, üç verdict
 (Onayla/Reddet/Ertele + A/B/C gerekçe kuralı), kabuk scroll onarımı, durum
 hafızası, contract fixture testi (`contracts/odin/`).
-Sıradaki: **S6 — Amazon Director.** ⛔ KAPI: ODIN R-006 **FR-0046** kararı
-(ExecutiveKPI/Alert/Opportunity/Mission sözleşmeleri) çıkmadan S6'nın
-KPI/domain kısmı BAŞLAMAZ; kavramdan bağımsız kabuk serbest (16-audit §5).
+Sıradaki: **S6 — Amazon Director.** ✅ KAPI AÇIK: FR-0046 **ADR-0143 ile
+karara bağlandı** (30 Tem 2026) — Alert + KPI kanonik zarfları o ADR'de;
+Opportunity = öneri kayıtlarının görünümü, Mission Board = "izlenen
+kararlar + vadesi gelen ertelemeler" görünümü. S6 bu dört karara göre
+tipler/dönüştürür; UI kavram icat etmez.
 
 ### Her sprint sonunda
 

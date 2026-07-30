@@ -254,4 +254,7 @@ saklamaz ya da hiç üretmez; UI o alanı ZORUNLU saymaz, yoksa satır çizmez.
 | `recClass` | `executive.classify()` A/B/C | ✅ gerekçe kuralının anahtarı |
 | `numbers · causeAnalysis · impactAnalysis · expectedFinancialResult · whyGenerated · responsibleDirector · relatedKnowledge · lastValidated` | — | `not_exposed`; opsiyonel, varsa çizilir |
 | `AgentHealth.*` | `AgentHealthMonitor.snapshot()` | ✅ S5.5-b (UI-ADR-111) — birebir; canlılık eşiği UI'da türetilmez, verdict gösterilir |
-| `ExecutiveKPI · Alert · Opportunity · Mission` | — | ⛔ FR-0046 kararına kapılı |
+| `Alert` | ADR-0143 kanonik zarf (ADR-0141 evaluator) | ✅ karar mühürlü — S6'da tiplenir |
+| `ExecutiveKPI` | ADR-0143 `{status,value,unit,scale,reason,as_of}` zarfı | ✅ karar mühürlü — S6'da tiplenir; sparkline/forecast sözleşme DIŞI |
+| `Opportunity` | — | ♻️ ayrı kayıt DEĞİL: öneri kayıtlarının görünümü (ADR-0143) |
+| `Mission` | — | ♻️ kavram DEĞİL: monitoring kararlar + due_deferrals görünümü (ADR-0143) |

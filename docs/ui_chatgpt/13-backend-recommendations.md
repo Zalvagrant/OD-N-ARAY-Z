@@ -616,7 +616,10 @@ refactor + mock güncelleme + contract fixture testleri).
 
 ---
 
-## 16. FR-0046 KARAR PAKETİ — dört ürün kavramı (sahip kararına hazır)
+## 16. FR-0046 KARAR PAKETİ — ✅ DÖRDÜ DE ONAYLANDI (ADR-0143, 30 Tem 2026)
+
+> Sahip dört öneriyi de onayladı; karar ODIN **ADR-0143** ile mühürlendi.
+> Kanonik Alert/KPI zarfları artık o ADR'dedir; S6 kapısı AÇIK.
 
 30 Temmuz 2026. gavadolar hükmü: "karar paketi hazırla, karar ODIN
 governance'ının". Her kavram için öneri + gerekçe + kaynak. **Karar verilen
@@ -671,6 +674,6 @@ Board v1'de **"İzlenen kararlar + vadesi gelen ertelemeler"** görünümüne
 dönüştürülür — yeni kavram sıfır, kaynak mevcut. "Görev/ilerleme yüzdesi"
 kavramı istenirse o zaman gerçek bir sözleşme tartışılır.
 
-**Sahipten istenen:** 16.1–16.4 için evet/hayır (blok hâlinde "öneriler
-uygun" demek yeterli). Karar ODIN oturumunda ADR + R-006 satırıyla
-mühürlenir; S6 o mühürle açılır.
+**Sonuç:** Sahip 30 Temmuz 2026'da dördünü de onayladı → ADR-0143 + R-006
+FR-0046 `decided`. S6 açık; ekran dönüşümleri (Opportunity→görünüm,
+Mission Board→"izlenen kararlar + vadesi gelen ertelemeler") S6 kapsamıdır.
