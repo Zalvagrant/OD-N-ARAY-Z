@@ -1648,3 +1648,139 @@ kaydıramaz. Ölçüm: 3 ekran × 3 genişlik (1920/1440/768) html
 scrollHeight === 900 (viewport), yatay taşma 0.
 
 **Etki:** `globals.css`, `app-shell.tsx` (tek satır sınıf değişimi).
+
+---
+
+## UI-ADR-112 — Veri katmanı: React Query + derleme zamanı mod anahtarı (S7)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+**Meclis:** gavadolar (terra · luna) + yazılımcılar (terra · DeepSeek · Gemini)
+
+**Soru 1 — hazır kütüphane mi, kendi kancamız mı?** `10-...md` §12 React
+Query'yi hedef yazıyor; buna karşılık UI-ADR-087 grafik kütüphanesini
+REDDETMİŞ ve kendi SVG primitive'ini yazdırmıştı. Emsal hangisi?
+
+**Karar: `@tanstack/react-query` (meclis 3/5 gerekçeli çoğunluk).**
+UI-ADR-087 emsal DEĞİLDİR: orada dar, deterministik bir çizim işi vardı.
+Burada istenen davranışlar — istek dedupe · stale-while-revalidate · iptal ·
+GC · observer yaşam döngüsü · SSR uyumu — 120 satırlık bir kancada doğru
+yazılmaz ve **yanlış yazıldığında sessiz bozulur**. Karşı oy (2/5) paket
+boyutunu gerekçe gösterdi; ölçüm o gerekçeyi desteklemedi.
+Runtime doğrulama için `zod` eklendi — meclis 5/5, itirazsız.
+
+**Soru 2 — mock/gerçek anahtarı nerede?** **Karar: derleme zamanı env**
+(`NEXT_PUBLIC_ODIN_DATA_MODE`, meclis 5/5). Çalışma zamanı bir düğme
+olsaydı mock kodu her derlemede paketin içinde kalırdı; bu projenin en
+pahalı hatası "gerçek sanılan mock"tur.
+
+Meclis ayrıca "production derlemesinde mock ise throw" önerdi. **Kısmen
+uygulandı:** uygulama S8'e kadar zaten %100 mock; herkesin `npm run build`
+komutunu bütün sprint boyunca kırmanın karşılığı yok. Korunması gereken şey
+derleme değil DAĞITILAN ÇIKTIDIR → ayrı `npm run build:release` kapısı
+(`scripts/assert-release-mode.mjs`) mock modda çıkışı reddeder. Meclis bu
+gerekçeyi kabul etti.
+
+**Etki:** `package.json`, `lib/data/{mode,policy,query}.ts(x)`,
+`scripts/assert-release-mode.mjs`, `app/(shell)/layout.tsx`,
+`.storybook/preview.tsx`, `mocks/mock-badge.tsx` (rozet artık NODE_ENV'e
+değil tek anahtara bakıyor).
+
+---
+
+## UI-ADR-113 — Şema yalnız KANONİK sözleşmeler için yazılır (S7)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+**Meclis:** gavadolar + yazılımcılar — 5/5, itirazsız
+
+**Sorun:** S7 promptu "`09-data-contracts.md`'deki TÜM tipleri TypeScript'e
+çevir" diyor ve 18 tip sayıyor. Ama o dosya UI-ADR-098 ile **kanonik
+olmaktan çıkarıldı**: ODIN çekirdeği okununca uydurulmuş, kayıp ve yer
+değiştirmiş alanlar çıktı. Kanonik olan `09b-verified-contracts.md`.
+
+**Karar:** şema yalnız 09b + FR-0046 v1 için yazılır — zarf/meta ·
+`ExecutiveKPI` · `Alert` · `Opportunity` · `Goal`. ODIN'de karşılığı
+OLMAYAN tipler (`AIPulse` · `TelemetryStream` …) için şema **yazılmadı.**
+"mock-only" etiketli bir şema bile sahte yeteneği meşrulaştırır ve zamanla
+gerçek sanılır — UI-ADR-104'ün `grossMarginPerUnit` dersi birebir aynıdır.
+
+Şema ile TypeScript tipinin ayrışması derleme zamanında yakalanır
+(`AssertAssignable`); ikisi elle senkronlanmaz.
+
+**Somut kapılar:** `unit=currency` → `currencyCode` zorunlu ·
+`unit=percent` → `scale` zorunlu (UI-ADR-093) · `MetricValue.status`
+`available` değilse `value===null` ve `reason` ZORUNLU · "Data Required"
+gibi sunum metni sayı alanına giremez (ADR-0135) · `Alert.requiresAction`
+varsayılansız zorunlu · `Alert.severity` `.optional()` — **null REDDEDİLİR**
+(dört üreticinin ortak severity semantiği yok; atlamak dürüst, null yazmak
+sahte) · `Opportunity.suggestedAction` zorunlu · `meta.source==="ai"` ise
+`confidence` zorunlu.
+
+**Etki:** `lib/data/schemas.ts`. `types/executive.ts` ve `types/screens.ts`
+DEĞİŞTİRİLMEDİ (paralel oturum orada çalışıyor).
+
+---
+
+## UI-ADR-114 — Real-time: taşıma soyutlaması yazıldı, SSE/WS istemcisi YAZILMADI (S7)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+**Meclis:** gavadolar + yazılımcılar — 5/5, itirazsız
+
+**Sorun:** S7 promptu "WebSocket veya SSE — şimdilik altyapı, bağlantı
+S8'de" diyor. **Gerçek:** ODIN'in sunucusu (`odin/cockpit.py`, 430 satır
+stdlib `ThreadingHTTPServer`) yalnız `GET /api/state`, `/api/events`,
+`/api/tasks` ve `POST /api/command` veriyor. **Akış uç noktası YOK.**
+
+**Karar:** olmayan uç noktaya istemci yazılmaz — derlenir, testi bile
+geçer, ama hiçbir şeye bağlı değildir; bu sahte entegrasyondur ve sahte
+veri kadar yasaktır. Yerine SEAM tanımlandı: `UpdateTransport.subscribe`.
+Bugünkü uygulaması `pollingTransport`; ODIN akış verirse S8'de
+`sseTransport` yazılır, ekranların hiçbiri değişmez.
+
+Polling sekme arka plandayken ve çevrimdışıyken tetiklemez (meclis
+bulgusu): görünmeyen ekranı yenilemek pil ve kota harcar, çevrimdışı
+yenileme ise her aralıkta bir hata üretip elde kalan veriyi şüpheli
+gösterir.
+
+**Etki:** `lib/data/transport.ts`.
+
+---
+
+## UI-ADR-115 — Bayat veri ile YENİLENEMEYEN veri ayrı gösterilir (S7)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+**Meclis:** yazılımcılar — ilk tasarımı **2/2 REDDETTİ**
+
+**Reddedilen ilk tasarım:** `useOdinQuery`, elde geçerli veri varken hatayı
+yutuyordu ("son bilinen doğru değer hiçbir şeyden iyidir"). Meclis bunu
+kullanıcıyı sessizce yanıltan bir mimari hata saydı ve haklıydı:
+
+> ODIN üç saattir 500 dönüyor. Kullanıcı üç saatlik veriyi "bayat"
+> damgasıyla görüyor ama SİSTEMİN ÇÖKTÜĞÜNÜ bilmiyor.
+
+Bayatlık "hafta sonu güncellenmedi" de demek olabilir. İkisi tek bir damgada
+birleştirilemez, çünkü aralarındaki fark **o sayıya dayanarak karar verilip
+verilmeyeceğidir.**
+
+**Karar:** `refreshError` ayrı bir alan olarak dışarı verilir; `error`
+yalnız elde HİÇ veri yokken dolar. `TrustSignal` isteğe bağlı
+`refreshFailed` alır ve kaynak/yaş satırının yanına "⚠ Son yenileme
+başarısız — <sebep>" yazar. Renk tek gösterge değildir, kelime de yazar.
+
+**Aynı turda kapanan üç sessiz-bozulma:**
+1. **Gelecekten gelen damga** — saati ileri kaymış üretici `lastUpdated`'ı
+   geleceğe yazarsa kayıt SONSUZA KADAR "canlı" görünür, bayatlık hiç
+   tetiklenmez. 5 dk kayma tolere edilir, ötesi sözleşme ihlalidir.
+2. **İptal ≠ zaman aşımı** — `AbortSignal.any` ikisini tek sinyalde
+   birleştiriyordu; çağıran iptal ettiğinde (route değişti) kullanıcıya
+   terk ettiği ekranın hata kutusu açılıyordu. Artık ayrılıyor.
+3. **Politika açıklaması ölçtüğü şeyi söylemiyordu** — yoruma
+   "bayatlamadan ÖNCE tazelenir" yazılmıştı, invariant ise
+   `refetchInterval <= recent eşiği` idi. Yorum düzeltildi, test invariantı
+   ölçüyor.
+
+**Etki:** `lib/data/{use-odin-query.ts,client.ts,policy.ts}`,
+`components/executive/trust-signal.tsx` (+ story).
