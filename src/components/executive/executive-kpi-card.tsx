@@ -9,13 +9,20 @@
  * birlikte açılır. İki ayrı düğme, sadeliği bozar ve CEO'ya ikinci bir
  * gezinme kararı yükler.
  *
- * Level 1  metrik adı · değer · trend · sparkline   (her zaman)
+ * Level 1  metrik adı · değer (FR-0044 zarfı) · trend · sparkline
  * Level 2  AI yorumu · confidence · forecast · risk
- * Level 3  önerilen aksiyon · kanıt sayısı · sorumlu · son güncelleme
+ * Level 3  önerilen aksiyon · kanıt · sorumlu · kaynak · veri anı
+ *
+ * FR-0046 (UI-ADR-106): `value` artık {status, value, reason} zarfıdır —
+ * "Data Required" METNİ sayı alanına giremez; status !== available ise NoData
+ * gerekçeyle basılır. Trend/sparkline/AI yorumu/forecast/risk FR-0043'e kadar
+ * KAYNAKSIZDIR: mock dahi doldurmaz, kart yokluklarını NoData ile söyler —
+ * boş panel dürüsttür, üretilmiş panel anti-fake ihlalidir.
  *
  * ANTI-FAKE:
  *  - Zarf boşsa kart hiç çizilmez (DataGuard).
  *  - Confidence üretilmemişse rozet YOK (ConfidenceBadge null döner).
+ *  - Trend GELMEDİYSE glyph uydurulmaz ("yatay" bir iddiadır, boşluk değil).
  *  - Trend yönü RENKLENDİRİLMEZ: "yukarı" her metrik için iyi değildir
  *    (ACOS yükselmesi kötüdür). Yön glyph + kelime ile verilir; renk
  *    yalnızca sparkline'ın kendi ölçeğinden gelir.
@@ -61,12 +68,12 @@ const RISK = {
  * 18.1'i 0.181 sanmak %1810 yazmaktır; sessiz 100 kat hata, sahte veriden
  * daha tehlikelidir çünkü makul görünür.
  */
-function numProps(kpi: Pick<ExecutiveKPI, "unit" | "currency" | "scale">) {
+function numProps(kpi: Pick<ExecutiveKPI, "unit" | "currencyCode" | "scale">) {
   switch (kpi.unit) {
     case "currency":
       return {
         format: "currency" as const,
-        currency: kpi.currency,
+        currency: kpi.currencyCode,
         factor: 1 as number | null,
         fractionDigits: undefined as number | undefined,
       };
@@ -102,10 +109,22 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
   const bodyId = useId();
 
   const { format, currency, factor, fractionDigits } = numProps(kpi);
-  const trend = TREND[kpi.trend?.direction] ?? TREND.flat;
-  const risk = RISK[kpi.risk] ?? RISK.none;
+  /* Trend GELMEDİYSE uydurulmaz — "flat" bir ölçümdür, varsayılan değil. */
+  const trend = kpi.trend ? TREND[kpi.trend.direction] : null;
+  /* Risk değerlendirilmediyse "Risk yok" YAZILMAZ: "yok" bir iddiadır. */
+  const risk = kpi.risk ? (RISK[kpi.risk] ?? RISK.none) : null;
   const action = kpi.recommendedAction;
   const showAction = canRenderRecommendation(action);
+
+  /* FR-0044 zarfı: sayı yalnızca status === "available" iken vardır. */
+  const shownValue =
+    kpi.value.status === "available" ? scaled(kpi.value.value ?? undefined, factor) : null;
+  const valueReason =
+    kpi.value.status !== "available"
+      ? (kpi.value.reason ?? "Değer üretilmedi")
+      : factor === null
+        ? SCALE_MISSING
+        : `${kpi.label} hesaplanamadı`;
 
   return (
     <Card>
@@ -137,25 +156,31 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
               bilemez — kolon genişliği kuralı çağıranın gridindedir (§1 notu). */}
           <div className="min-w-0">
             <Num
-              value={scaled(kpi.value, factor)}
+              value={shownValue}
               format={format}
               currency={currency}
               fractionDigits={fractionDigits}
               size="3xl"
-              noDataReason={factor === null ? SCALE_MISSING : `${kpi.label} hesaplanamadı`}
+              noDataReason={valueReason}
             />
-            <p className="mt-1 flex items-center gap-2 text-sm text-content-secondary">
-              <span aria-hidden="true">{trend.glyph}</span>
-              {Number.isFinite(kpi.trend?.changePercent) ? (
-                <Num value={kpi.trend.changePercent / 100} format="percent" size="sm" tone="secondary" />
-              ) : (
-                <NoData reason="Değişim oranı hesaplanmadı" />
-              )}
-              <span className="text-content-tertiary">
-                {kpi.trend?.comparedTo ? `· ${kpi.trend.comparedTo}` : null}
-              </span>
-              <span className="sr-only">{trend.word}</span>
-            </p>
+            {trend && kpi.trend ? (
+              <p className="mt-1 flex items-center gap-2 text-sm text-content-secondary">
+                <span aria-hidden="true">{trend.glyph}</span>
+                {Number.isFinite(kpi.trend.changePercent) ? (
+                  <Num value={kpi.trend.changePercent / 100} format="percent" size="sm" tone="secondary" />
+                ) : (
+                  <NoData reason="Değişim oranı hesaplanmadı" />
+                )}
+                <span className="text-content-tertiary">
+                  {kpi.trend.comparedTo ? `· ${kpi.trend.comparedTo}` : null}
+                </span>
+                <span className="sr-only">{trend.word}</span>
+              </p>
+            ) : (
+              <p className="mt-1 text-sm">
+                <NoData reason="Trend verisi üretilmedi" />
+              </p>
+            )}
           </div>
 
           {/* tone="neutral" ZORUNLU. Sparkline'ın `auto` kipi yükselişi YEŞİL
@@ -165,11 +190,9 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
               dolayısıyla doğru renk BİLİNEMEZ — bilinmeyen bir şeyi renkle
               iddia etmektense hiç iddia etmemek doğrudur. Yön glyph + sr-only
               kelimeyle zaten veriliyor. (S6 görsel incelemesinde yakalandı.) */}
-          <Sparkline
-            values={kpi.sparkline ?? []}
-            label={`${kpi.label} trendi`}
-            tone="neutral"
-          />
+          {kpi.sparkline?.length ? (
+            <Sparkline values={kpi.sparkline} label={`${kpi.label} trendi`} tone="neutral" />
+          ) : null}
         </div>
 
         {/* ---------- LEVEL 2 + 3 — açılınca ---------- */}
@@ -221,9 +244,13 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
               <div>
                 <dt className="text-xs text-content-tertiary">Risk</dt>
                 <dd className="mt-1">
-                  <Badge variant={risk.variant} size="sm">
-                    {risk.label}
-                  </Badge>
+                  {risk ? (
+                    <Badge variant={risk.variant} size="sm">
+                      {risk.label}
+                    </Badge>
+                  ) : (
+                    <NoData reason="Risk değerlendirmesi üretilmedi" />
+                  )}
                 </dd>
               </div>
             </dl>
@@ -260,6 +287,16 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
                   <dt className="text-xs text-content-tertiary">Sorumlu</dt>
                   <dd className="text-content-secondary">
                     {kpi.owner || <NoData reason="Sorumlu atanmadı" />}
+                  </dd>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <dt className="text-xs text-content-tertiary">Kaynak</dt>
+                  <dd className="text-content-secondary">{kpi.source}</dd>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <dt className="text-xs text-content-tertiary">Veri anı</dt>
+                  <dd className="text-content-secondary">
+                    <time dateTime={kpi.asOf}>{kpi.asOf.slice(0, 16).replace("T", " ")}</time>
                   </dd>
                 </div>
               </dl>

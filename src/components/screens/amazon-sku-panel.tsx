@@ -22,20 +22,17 @@
  *    sahte bir yetenektir; çizilmez.
  */
 
-import type { Alert } from "@/types/executive";
-import type { DataEnvelope } from "@/types/data-envelope";
 import type { MetricPeriod, SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
-import { amazonAlertsMock, skusMock } from "@/mocks/amazon";
+import { skusMock } from "@/mocks/amazon";
 import { useMockData } from "@/mocks/use-mock";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
 import { Heading, Mono, Num, Text } from "@/components/ui/typography";
-import { AlertStack } from "@/components/executive/alert-stack";
 import { Meter } from "@/components/executive/meter";
 import { PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 
@@ -104,7 +101,6 @@ export function AmazonSkuPanel() {
   const selected = useUiStore((s) => s.selectedEntity);
   const now = useNow();
   const skus = useMockData(skusMock);
-  const alerts = useMockData(amazonAlertsMock);
 
   /* Kimlikten kanonik kayda: kopya tutulmadığı için burada okunur. */
   const sku =
@@ -129,14 +125,6 @@ export function AmazonSkuPanel() {
   const status = SKU_STATUS[sku.status];
   const stockout = remainingTime(sku.estimatedStockoutAt, now);
 
-  /* İlgili uyarılar sözleşmeden gelir: Alert.affectedEntities (09-...md §6).
-     Türetme yok, eşleşme var. */
-  const related: DataEnvelope<Alert[]> | null = alerts.data
-    ? {
-        data: alerts.data.data.filter((a) => a.affectedEntities?.includes(sku.sku)),
-        meta: alerts.data.meta,
-      }
-    : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -382,13 +370,16 @@ export function AmazonSkuPanel() {
 
       {/* 6 — AI Recommendation: türetme yok, sözleşmeden eşleşme var */}
       <Group title="AI Recommendation">
-        {related && related.data.length > 0 ? (
-          <AlertStack env={related} title={`${sku.sku} için aksiyon gerektirenler`} />
-        ) : (
+        {/* FR-0046 v1 Alert'te varlık referansı (eski `affectedEntities`)
+            YOK — hangi uyarının bu SKU'ya ait olduğu sözleşmeden ÇIKARILAMAZ;
+            opak id'den SKU ayıklamak türetmedir, yapılmaz. Alan sorusu
+            13-...md §17'de; alan gelirse eşleşme buraya geri döner. */}
+        {(
           <Text size="sm" tone="tertiary">
-            Bu SKU&apos;yu etkileyen, aksiyon gerektiren bir uyarı yok. SKU
+            Uyarı sözleşmesinde (FR-0046 v1) varlık referansı alanı yok; bu
+            SKU&apos;ya ait uyarılar sözleşmeden eşleştirilemiyor. SKU
             seviyesinde ayrı bir AI önerisi sözleşmesi de tanımlı değil
-            (13-...md §16.2).
+            (13-...md §16.2, §17).
           </Text>
         )}
       </Group>

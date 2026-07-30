@@ -94,10 +94,10 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…103` serisindedir.
-ODIN'in kendi serisi `ADR-0001…0086` — **karıştırma.**
+Bu repodaki kararlar `UI-ADR-001…107` serisindedir (105 S7 dalında).
+ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-104`'ten**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-108`'den**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın sonuna bak.** S6'da iki oturum paralel
@@ -189,12 +189,18 @@ backend ile uyuşmadığı doğrulandı. Kanonik kaynak ODIN'dir; fark tablosu
 
 Üretildi, sahip onayı bekliyor: **S6 — Amazon Director** (`10c-screens.md`
 §7) — diğer 7 workspace'in şablonu; 3 yeni Executive bileşeni
-(`10b` §17–§19) ve 4 yeni karar (UI-ADR-099…102). S6, S5.5'in bulgularıyla
-hizalandı; kalan hizalama işleri (Decision · Heartbeat · confidence
-breakdown) S6 kapsamı dışıdır ve 09b §9'un 1. maddesindedir.
+(`10b` §17–§19) ve kararlar UI-ADR-099…104 + 106…107.
+
+**FR-0046 hizalaması yapıldı (30 Temmuz, UI-ADR-106/107):** dört ürün
+kavramı meclis sentezi + sahip onayıyla v1 sözleşmeye bağlandı
+(`09b` §10) — ExecutiveKPI/Alert/Opportunity KABUL (value zarfı
+`{status,value,reason}`, FR-0043 alanları mock'ta bile boş), Mission RET
+→ `Goal` (`GoalBoard`, kolonlar gerçek `level`). ODIN kayıt defterinin
+resmi kapanış paketi `13-...md §17`'de — ODIN tarafı bekliyor.
+Kalan hizalama işleri (Decision · Heartbeat · confidence breakdown) S6
+kapsamı dışıdır ve 09b §9'un 1. maddesindedir.
 Veri hâlâ **mock**, hepsi `meta.source === "mock"` ile işaretli
 (UI-ADR-094) ve S8'de değişecek.
-Sıradaki: sahibin 13-...md §15'teki beş kararı, sonra 09b §9 hizalaması.
 
 ### Her sprint sonunda
 

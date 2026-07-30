@@ -1528,3 +1528,101 @@ CEO'nun birim kârı neden göremediğini bilmesi gerekir.
 **Etki:** `types/screens.ts`, `mocks/amazon.ts`, `mocks/amazon.test.ts`
 (+6 değişmez, toplam 50 birim testi), `screens/amazon-director.tsx`,
 `screens/amazon-sku-panel.tsx` (skor gerekçesi artık ekranda).
+
+---
+
+## UI-ADR-106 — FR-0046 v1: dört ürün kavramının kanonik sözleşmesi
+
+**Durum:** ✅ Dondurulmuş (UI tarafı) · ODIN kayıt defteri kapanışı bekleniyor
+**Tarih:** 30 Temmuz 2026 — meclis denetimi (16-audit) sonrası
+**Danışılan:** gavadolar (terra · luna) + sistemciler (3 mimar) — kavram
+kabulünde 4/4 aynı yönde; iki noktada ayrıştılar, sentez aşağıda.
+**Sahip onayı:** 30 Temmuz 2026 — "gavadolarla sorup en doğru şekilde
+düzeltmene izin veriyorum, onaylıyorum" (kayıt: oturum). ODIN R-006
+FR-0046 satırının resmi kapanışı ODIN reposunda yapılacak; paket §17'de.
+
+**Sorun:** 16-audit UI-ADR-098 doğrulamasına dayanarak dört ürün kavramının
+(ExecutiveKPI · Alert · Opportunity · Mission) ODIN'de tanımı olmadığını
+tespit etti; sistemciler oybirliğiyle "S6 varsayılan tiplerle başlamaz"
+dedi ve FR-0046 açıldı. Mevcut S6 ise kapı konmadan ÖNCE, 🟡 TEKLİF
+tiplerle bitirilmişti.
+
+**Karar — kavram başına:**
+
+| Kavram | Karar | v1 sözleşme |
+|---|---|---|
+| ExecutiveKPI | **KABUL** | `id · metricKey · label · value{status,value,reason} · unit · currencyCode? · scale? · asOf · source` |
+| Alert | **KABUL** | `id · source · title · requiresAction · asOf · summary? · severity?` |
+| Opportunity | **KABUL** | `id · source · title · summary · suggestedAction · asOf · evidence?[]` |
+| Mission | **RET** | ADR-0132 zaten karara bağlamıştı: Goal'e emekli (UI-ADR-107) |
+
+**Sentezlenen çelişkiler:**
+- `Alert.severity` — terra "opsiyonel, kaynaksızsa atlanır"; luna "zorunlu,
+  dolduramayan yayınlamaz". **Sentez: opsiyonel + asla null yazılmaz.**
+  Dört üreticinin bugün ortak severity semantiği yok; zorunlu kılmak
+  üreticiyi eşleme UYDURMAYA zorlar — luna'nın kendi "sahte ortak semantik
+  üretme" ilkesi de bunu destekler. Severity'siz kayıt rozetsiz gösterilir
+  ve bilinenlerden sonra sıralanır.
+- `Opportunity.suggestedAction` — terra zorunlu, luna listelememişti.
+  **Sentez: zorunlu.** §1.6'nın tanımı "eyleme dönük feed"; önerisi olmayan
+  kayıt fırsat değildir, üreticiye özel çıktısında kalır.
+
+**Oybirliği maddeleri:**
+- `value` zarfı `{status: available|data_required|unavailable, value, reason}`
+  API sınırında KALMAZ, sözleşmenin parçasıdır — "Data Required" metni
+  sayı alanına giremez (ADR-0135).
+- Metrik kutbu (`higherIsBetter`) v1'e GİRMEZ — UI-ADR-102 nötr renk kuralı
+  kalır; kutup her metricKey için ODIN'de tanımlanmadan eklenirse kalıcı
+  null üretir (UI-ADR-104 dersi).
+- `estimatedImpact` v1'e GİRMEZ — ortak ve güvenilir parasal etki kaynağı
+  kanıtlanmadı. Eski fırsat kartındaki "Gelir etkisi" SÖKÜLDÜ. Kaynak +
+  formül + belirsizlik tanımlanırsa FR-0044 zarfıyla ayrı kararla döner.
+- FR-0043 alanları (trend · sparkline · aiInsight · forecast · risk ·
+  recommendedAction · evidence · owner) opsiyonel kalır ve MOCK DAHİ
+  DOLDURMAZ — `amazon.test.ts` bunu kapı olarak korur.
+- Kanonik kaynak ODIN'dir (FR-0039 fixture kanalı); `09b` salt yansımadır.
+
+**Bilinçli kayıplar (alan sorusu §17'ye düşüldü):**
+- Alert'te varlık referansı yok → SKU panelinin "ilgili uyarılar" eşleşmesi
+  yapılamıyor; bölüm gerekçeli boş.
+- Opportunity'de kategori/domain yok → PPC K3 / Feed ayrımı yapılamıyor;
+  tüm fırsatlar Feed'de, K3 gerekçeli boş.
+
+**Etki:** `types/executive.ts`, `executive-kpi-card.tsx` (+stories),
+`alert-stack.tsx`, `opportunity-card.tsx` (+stories), `amazon-director.tsx`,
+`amazon-sku-panel.tsx`, `mocks/amazon.ts`, `mocks/briefing.ts`,
+`mocks/amazon.test.ts` (53 birim testi), `stories.fixtures.ts`, 09b §10,
+13-...md §17.
+
+---
+
+## UI-ADR-107 — Mission, Goal'e emekli edildi (ODIN ADR-0132'nin UI uygulaması)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+
+**Sorun:** UI'daki 60 referanslı `Mission` tipinin ODIN'de karşılığı yoktu;
+9 alanından yalnızca 3'ü gerçek `goals.py` yayınına eşleniyordu. Kanban'ı
+süren `status` (planned/active/blocked/done) tamamen icattı. ODIN ADR-0132
+kararı: Mission, Goal'e emekli olur; MissionBoard hedef verisiyle beslenir;
+kolonlar GERÇEK `level` alanıyla gruplanır; kaynaksız alanlar DÜŞER.
+
+**Uygulama:**
+- `Mission`/`MissionStatus` silindi → `Goal { id, level, label, target,
+  progressPct }` (cockpit.py yayını birebir; `goals.py` doğrulandı:
+  `{id, level, label, target, progress_pct}`).
+- `MissionBoard` → `GoalBoard`: kolonlar verideki seviyelerden türer,
+  görüldükleri sırayla — ODIN seviye kümesini dondurmadığı için öncelik
+  sıralaması uydurulmadı. Termin/sorumlu/engel satırları kalktı.
+- TUZAK (ADR-0132): `goals.alignment()` hedef tanımsızken nötr 50 döner —
+  o "ölçülmedi"dir; adaptör null'a çevirir, tahta %50 çizmez. Tip yorumu ve
+  mock bu kuralı taşıyor.
+- Mission Control "Upcoming Deadlines" bölümü GEREKÇELİ BOŞ duruma döndü:
+  Goal yayınında termin alanı yok, tarih uydurulmaz (soru §14.2).
+- `AmazonSnapshot.missionProgress` → `goalProgressPct: number | null`;
+  Glance kartı "Goal Progress" oldu ve değeri goalsMock'un g-ppc hedefiyle
+  tutarlı (eski 62 hiçbir kaynağa bağlı değildi).
+
+**Etki:** `types/screens.ts`, `goal-board.tsx` (+stories, git mv ile),
+`mission-control.tsx`, `mocks/mission-control.ts`, `types/executive.ts`
+(AmazonSnapshot), `amazon-director.tsx`, `mocks/amazon.ts`.

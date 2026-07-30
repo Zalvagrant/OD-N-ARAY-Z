@@ -103,38 +103,81 @@ export const recommendationTekAlternatif: AIRecommendation = {
   alternatives: [recommendation.alternatives[0]!],
 };
 
+/**
+ * FR-0046 v1 minimal KPI — gerçekçi varsayılan hâl: FR-0043 katmanları
+ * (trend · sparkline · yorum · forecast · risk) ODIN'de üretilmediği için
+ * YOK; kart bunları NoData ile söyler.
+ */
 export const kpi: ExecutiveKPI = {
-  id: "kpi-net-profit",
+  id: "company.net_profit",
+  metricKey: "net_profit",
   label: "Net Profit",
-  value: 1_284_000,
+  value: { status: "available", value: 1_284_000 },
   unit: "currency",
-  currency: "TRY",
-  trend: { direction: "up", changePercent: 12, comparedTo: "önceki ay" },
-  sparkline: [980, 1020, 1005, 1120, 1180, 1210, 1284],
-  aiInsight: "Artış büyük ölçüde reklam verimliliğinden geliyor, hacimden değil.",
-  confidence: 94,
-  forecast: { value: 1_400_000, horizon: "30 gün", confidence: 81 },
-  risk: "low",
-  recommendedAction: recommendation,
-  evidence,
-  owner: "Finance AI",
+  currencyCode: "TRY",
+  asOf: ago(30 * 60_000),
+  source: "briefing",
 };
 
-/** Ölçülemeyen alanlar: confidence, forecast, AI yorumu yok. */
-export const kpiEksik: ExecutiveKPI = {
+/**
+ * FR-0043 katmanları DOLU varyant — bileşenin opsiyonel render yollarını
+ * (trend satırı · sparkline · Level 2/3) çalıştırmak İÇİNDİR. Bu bir story
+ * aracıdır; ürün mock'larına giremez (kaynak yok, anti-fake).
+ */
+export const kpiFr0043: ExecutiveKPI = {
   ...kpi,
-  id: "kpi-eksik",
+  id: "amazon.acos",
+  metricKey: "acos",
+  label: "ACOS",
+  value: { status: "available", value: 18.1 },
+  unit: "percent",
+  scale: "0-100",
+  currencyCode: undefined,
+  source: "amazon_director",
+  trend: { direction: "up", changePercent: 12, comparedTo: "geçen hafta" },
+  sparkline: [14.2, 14.8, 15.6, 16.4, 17.2, 17.8, 18.1],
+  aiInsight: "Artışın tamamı Kampanya B'den; diğer kampanyalar hedef bandında.",
+  confidence: 94,
+  forecast: { value: 15.2, horizon: "14 gün", confidence: 71 },
+  risk: "high",
+  recommendedAction: recommendation,
+  evidence,
+  owner: "Amazon AI",
+};
+
+/** Zarf `status !== "available"` — sayı yerine GEREKÇELİ NoData (ADR-0135). */
+export const kpiVeriGerekli: ExecutiveKPI = {
+  id: "amazon.net_profit",
+  metricKey: "net_profit",
+  label: "Net Profit",
+  value: {
+    status: "unavailable",
+    value: null,
+    reason: "COGS girilmeden net kâr hesaplanamaz.",
+  },
+  unit: "currency",
+  currencyCode: "USD",
+  asOf: ago(30 * 60_000),
+  source: "amazon_director",
+};
+
+/** Tek alternatifli öneri taşıyan varyant — öneri bölümü RENDER EDİLMEZ. */
+export const kpiEksik: ExecutiveKPI = {
+  ...kpiFr0043,
+  id: "knowledge.health",
+  metricKey: "knowledge_health",
   label: "Knowledge Health",
   unit: "score",
-  value: 72,
-  currency: undefined,
-  aiInsight: "",
-  confidence: Number.NaN,
-  forecast: { value: Number.NaN, horizon: "", confidence: Number.NaN },
+  value: { status: "available", value: 72 },
+  scale: undefined,
+  aiInsight: undefined,
+  confidence: undefined,
+  forecast: undefined,
+  risk: undefined,
   sparkline: [70],
   recommendedAction: recommendationTekAlternatif,
   evidence: [],
-  owner: "",
+  owner: undefined,
 };
 
 export const decision: Decision = {
@@ -229,52 +272,57 @@ export const directorAtimYok: DirectorHeartbeat = {
   lastBeat: null,
 };
 
+/* FR-0046 v1 Alert: source üretici kimliğidir; severity'siz kayıt rozetsiz
+   ve bilinenlerden sonra listelenir; requiresAction:false listeye girmez. */
 export const alerts: Alert[] = [
   {
-    id: "al-1",
+    id: "amazon_director.buybox_loss.3sku",
+    source: "amazon_director",
     severity: "critical",
     title: "BuyBox kaybı — 3 SKU",
-    description: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
-    module: "amazon",
-    affectedEntities: ["SKU-1042", "SKU-1188", "SKU-2001"],
-    suggestedMitigation: "Repricer eşiklerini gözden geçir.",
-    responsibleDirector: "Amazon AI",
+    summary: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
     requiresAction: true,
-    createdAt: ago(12 * 60_000),
+    asOf: ago(12 * 60_000),
   },
   {
-    id: "al-2",
-    severity: "risk",
+    id: "amazon_director.stockout_risk.sku-1042",
+    source: "amazon_director",
+    severity: "high",
     title: "Stok tükenme riski — SKU-1042",
-    description: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
-    module: "amazon",
-    affectedEntities: ["SKU-1042"],
-    responsibleDirector: "Amazon AI",
+    summary: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
     requiresAction: true,
-    createdAt: ago(3 * 60 * 60_000),
+    asOf: ago(3 * 60 * 60_000),
+  },
+  /* severity ATLANDI — belgelenmiş eşleme yok; uydurulmaz. */
+  {
+    id: "improvement_detectors.listing_error.sku-3310",
+    source: "improvement_detectors",
+    title: "Listeleme hatası — SKU-3310",
+    summary: "Görsel çözünürlüğü Amazon eşiğinin altında.",
+    requiresAction: true,
+    asOf: ago(26 * 60 * 60_000),
   },
   {
-    id: "al-3",
-    severity: "info",
+    id: "amazon_director.spapi_sync.done",
+    source: "amazon_director",
+    severity: "low",
     title: "Günlük senkronizasyon tamamlandı",
-    description: "Bilgi amaçlı — aksiyon gerektirmez, listeye girmemeli.",
-    module: "system",
-    affectedEntities: [],
-    responsibleDirector: "System",
+    summary: "Bilgi amaçlı — aksiyon gerektirmez, listeye girmemeli.",
     requiresAction: false,
-    createdAt: ago(30 * 60_000),
+    asOf: ago(30 * 60_000),
   },
 ];
 
+/* FR-0046 v1 Opportunity: suggestedAction zorunlu düz metin; parasal etki
+   alanı v1'de YOK (kaynağı kanıtlanmadı). */
 export const opportunity: Opportunity = {
-  id: "opp-1",
+  id: "amazon_director.keyword.rising-term",
+  source: "amazon_director",
   title: "Yükselen anahtar kelimeye bütçe kaydır",
-  category: "keyword",
-  revenueImpact: { amount: 64000, currency: "TRY" },
-  confidence: 83,
-  deadline: ago(-7 * 24 * 60 * 60_000),
-  recommendedAction: recommendation,
-  evidence,
+  summary: "Terim 14 günde gösterim payı kazandı; mevcut kampanyalar zayıf konumda.",
+  suggestedAction: "Terimi kazanan kampanyaya exact match olarak ekle, 7 gün CPC izle.",
+  evidence: ["keyword:katlanır kamp sandalyesi", "metric:impression_share"],
+  asOf: ago(55 * 60_000),
 };
 
 export const brief: ExecutiveBrief = {

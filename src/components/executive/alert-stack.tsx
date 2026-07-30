@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * AlertStack — 09-data-contracts.md §6, 06-workspaces.md §1.4.
+ * AlertStack — FR-0046 v1 Alert sözleşmesi (UI-ADR-106), 06-workspaces.md §1.4.
  *
  * TEK SERT KURAL: `requiresAction: false` olan öğe LİSTEYE GİRMEZ.
  * Alerts bölümü bir olay akışı değildir; yalnızca **aksiyon gerektiren**
@@ -25,18 +25,26 @@ import { DataGuard } from "./data-guard";
 import { TrustSignal } from "./trust-signal";
 import { relativeTime, useNow } from "@/lib/clock/tick";
 
+/* FR-0046 (UI-ADR-106) severity kümesi. `severity` OPSİYONELDİR: belgelenmiş
+   deterministik eşlemesi olmayan üretici alanı atlar, null yazmaz. Severity'si
+   olmayan kayıt rozetsiz gösterilir ve bilinenlerden SONRA sıralanır —
+   önem derecesi uydurulmaz. */
 const SEVERITY = {
   critical: { rank: 0, label: "Kritik", variant: "danger" },
-  risk: { rank: 1, label: "Risk", variant: "warning" },
-  warning: { rank: 2, label: "Uyarı", variant: "warning" },
-  info: { rank: 3, label: "Bilgi", variant: "info" },
+  high: { rank: 1, label: "Yüksek", variant: "danger" },
+  medium: { rank: 2, label: "Orta", variant: "warning" },
+  low: { rank: 3, label: "Düşük", variant: "info" },
 } as const;
+
+const UNRANKED = 9;
+
+function rank(a: Alert): number {
+  return a.severity ? SEVERITY[a.severity].rank : UNRANKED;
+}
 
 /** Listeye girme kuralı — tek yerde, test edilebilir. */
 export function actionableAlerts(alerts: Alert[]): Alert[] {
-  return alerts
-    .filter((a) => a.requiresAction === true)
-    .sort((a, b) => (SEVERITY[a.severity]?.rank ?? 9) - (SEVERITY[b.severity]?.rank ?? 9));
+  return alerts.filter((a) => a.requiresAction === true).sort((a, b) => rank(a) - rank(b));
 }
 
 export function AlertStack({
@@ -63,30 +71,25 @@ export function AlertStack({
               {shown.length ? (
                 <ul className="flex flex-col gap-3">
                   {shown.map((a) => {
-                    const sev = SEVERITY[a.severity] ?? SEVERITY.info;
-                    const age = relativeTime(a.createdAt, now);
+                    const sev = a.severity ? SEVERITY[a.severity] : null;
+                    const age = relativeTime(a.asOf, now);
                     const row = (
                       <>
                         <p className="flex flex-wrap items-center gap-2">
-                          <Badge variant={sev.variant} size="sm">
-                            {sev.label}
-                          </Badge>
+                          {sev && (
+                            <Badge variant={sev.variant} size="sm">
+                              {sev.label}
+                            </Badge>
+                          )}
                           <span className="text-content">{a.title}</span>
-                          <span className="text-xs text-content-tertiary">{a.module}</span>
                           {age && <span className="text-xs text-content-tertiary">· {age}</span>}
                         </p>
-                        <Text size="sm" tone="secondary">
-                          {a.description}
-                        </Text>
-                        {a.suggestedMitigation && (
-                          <Text size="sm" tone="tertiary">
-                            Önerilen: {a.suggestedMitigation}
+                        {a.summary && (
+                          <Text size="sm" tone="secondary">
+                            {a.summary}
                           </Text>
                         )}
-                        <p className="text-xs text-content-tertiary">
-                          Sorumlu: {a.responsibleDirector}
-                          {a.affectedEntities?.length > 0 && ` · ${a.affectedEntities.join(", ")}`}
-                        </p>
+                        <p className="text-xs text-content-tertiary">Kaynak: {a.source}</p>
                       </>
                     );
 

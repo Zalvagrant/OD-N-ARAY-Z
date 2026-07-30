@@ -27,11 +27,12 @@ import type {
   EvidenceRef,
   ExecutiveBrief,
   ExecutiveKPI,
+  MetricValue,
   Opportunity,
   PulseChannelStates,
 } from "@/types/executive";
 import type { ExecutiveHero } from "@/types/screens";
-import { ago, ahead, mockEnvelope } from "./envelope";
+import { ago, mockEnvelope } from "./envelope";
 
 /* --------------------------------------------------------------------------
    Kanıt ve öneri — açıklanabilirlik sözleşmesinin 7 alanı eksiksiz
@@ -358,66 +359,58 @@ export function staleDecisionMock(): DataEnvelope<Decision> {
    Kritik riskler — 05-dashboard.md §3.3 (09-...md §6 Alert sözleşmesi)
    -------------------------------------------------------------------------- */
 
+/* FR-0046 v1 Alert (UI-ADR-106): `source` GERÇEK üretici kimliğidir
+   (improvement_detectors · finance_quality · amazon_director · innovation).
+   ODIN'de karşılığı olmayan bir üretici mock'ta da uydurulmaz — eski
+   "trading" kur uyarısı bu yüzden düştü: o üretici yok. */
 export function risksMock(): DataEnvelope<Alert[]> {
   return mockEnvelope([
     {
-      id: "al-buybox",
+      id: "amazon_director.buybox_loss.3sku",
+      source: "amazon_director",
       severity: "critical",
       title: "BuyBox kaybı — 3 SKU",
-      description: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
-      module: "amazon",
-      affectedEntities: ["SKU-1042", "SKU-1188", "SKU-2001"],
-      suggestedMitigation: "Repricer eşiklerini gözden geçir.",
-      responsibleDirector: "Amazon AI",
+      summary: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
       requiresAction: true,
-      createdAt: ago(12 * 60_000),
+      asOf: ago(12 * 60_000),
     },
     {
-      id: "al-stock",
-      severity: "risk",
+      id: "amazon_director.stockout_risk.sku-1042",
+      source: "amazon_director",
+      severity: "high",
       title: "Stok tükenme riski — SKU-1042",
-      description: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
-      module: "amazon",
-      affectedEntities: ["SKU-1042"],
-      suggestedMitigation: "600 adetlik acil sipariş aç.",
-      responsibleDirector: "Amazon AI",
+      summary: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
       requiresAction: true,
-      createdAt: ago(3 * 60 * 60_000),
+      asOf: ago(3 * 60 * 60_000),
     },
     {
-      id: "al-fx",
-      severity: "risk",
-      title: "Kur oynaklığı ithalat maliyetini tehdit ediyor",
-      description: "USD/TRY 72 saatte %2,4 yükseldi.",
-      module: "trading",
-      affectedEntities: ["USD/TRY"],
-      responsibleDirector: "Trading AI",
-      requiresAction: true,
-      createdAt: ago(5 * 60 * 60_000),
-    },
-    {
-      id: "al-margin",
-      severity: "warning",
+      id: "finance_quality.margin_squeeze.2026-07",
+      source: "finance_quality",
+      severity: "medium",
       title: "Net kâr marjı %4 daraldı",
-      description: "Reklam harcaması sabit kalırken satış hacmi düştü.",
-      module: "finance",
-      affectedEntities: [],
-      suggestedMitigation: "PPC bütçe kararını bugün sonuçlandır.",
-      responsibleDirector: "Finance AI",
+      summary: "Reklam harcaması sabit kalırken satış hacmi düştü.",
       requiresAction: true,
-      createdAt: ago(90 * 60_000),
+      asOf: ago(90 * 60_000),
+    },
+    /* severity ATLANDI (null değil): bu üreticinin belgelenmiş önem eşlemesi
+       yok — rozetsiz listelenir, bilinenlerden sonra sıralanır. */
+    {
+      id: "improvement_detectors.listing_error.sku-3310",
+      source: "improvement_detectors",
+      title: "Listeleme hatası — SKU-3310",
+      summary: "Görsel çözünürlüğü Amazon eşiğinin altında.",
+      requiresAction: true,
+      asOf: ago(26 * 60 * 60_000),
     },
     /* requiresAction:false → listeye GİRMEZ, elendiği altta yazılır. */
     {
-      id: "al-sync",
-      severity: "info",
+      id: "amazon_director.spapi_sync.done",
+      source: "amazon_director",
+      severity: "low",
       title: "Günlük senkronizasyon tamamlandı",
-      description: "Bilgi amaçlı — aksiyon gerektirmez.",
-      module: "system",
-      affectedEntities: [],
-      responsibleDirector: "System",
+      summary: "Bilgi amaçlı — aksiyon gerektirmez.",
       requiresAction: false,
-      createdAt: ago(30 * 60_000),
+      asOf: ago(30 * 60_000),
     },
   ] satisfies Alert[]);
 }
@@ -426,27 +419,28 @@ export function risksMock(): DataEnvelope<Alert[]> {
    Fırsatlar — 05-dashboard.md §3.4 (risklerle EŞİT görsel ağırlık)
    -------------------------------------------------------------------------- */
 
+/* FR-0046 v1 Opportunity (UI-ADR-106): suggestedAction ZORUNLU düz metin;
+   parasal etki (`estimatedImpact`) v1'de YOK — kaynağı kanıtlanmadan
+   "Gelir etkisi" yazılmaz. */
 export function opportunitiesMock(): DataEnvelope<Opportunity[]> {
   return mockEnvelope([
     {
-      id: "opp-keyword",
+      id: "amazon_director.keyword.rising-term",
+      source: "amazon_director",
       title: "Yükselen anahtar kelimeye bütçe kaydır",
-      category: "keyword",
-      revenueImpact: { amount: 64_000, currency: "TRY" },
-      confidence: 83,
-      deadline: ahead(7 * 24 * 60 * 60_000),
-      recommendedAction: ppcRecommendation(),
-      evidence: evidence(),
+      summary: "Terim 14 günde gösterim payı kazandı; mevcut kampanyalar zayıf konumda.",
+      suggestedAction: "Terimi kazanan kampanyaya exact match olarak ekle, 7 gün CPC izle.",
+      evidence: ["keyword:katlanır kamp sandalyesi", "metric:impression_share"],
+      asOf: ago(55 * 60_000),
     },
     {
-      id: "opp-bundle",
+      id: "innovation.bundle.sku-1188-2001",
+      source: "innovation",
       title: "SKU-1188 + SKU-2001 paket satışı",
-      category: "bundle",
-      revenueImpact: { amount: 41_000, currency: "TRY" },
-      confidence: 71,
-      deadline: ahead(21 * 24 * 60 * 60_000),
-      recommendedAction: stockRecommendation(),
-      evidence: evidence().slice(0, 2),
+      summary: "İki ürün aynı sepette sık görülüyor; paket, masa stok baskısını hafifletir.",
+      suggestedAction: "Paket listing oluştur ve 21 gün dönüşümünü ölç.",
+      evidence: ["sku:SKU-1188", "sku:SKU-2001"],
+      asOf: ago(5 * 60 * 60_000),
     },
   ] satisfies Opportunity[]);
 }
@@ -455,144 +449,106 @@ export function opportunitiesMock(): DataEnvelope<Opportunity[]> {
    Executive KPI'lar — 05-dashboard.md §3.5 (dokümandaki 9 kalem, aynı sırada)
    -------------------------------------------------------------------------- */
 
-function kpi(over: Partial<ExecutiveKPI> & Pick<ExecutiveKPI, "id" | "label">): ExecutiveKPI {
-  return {
-    value: Number.NaN,
-    unit: "score",
-    trend: { direction: "flat", changePercent: Number.NaN, comparedTo: "önceki ay" },
-    sparkline: [],
-    aiInsight: "",
-    confidence: Number.NaN,
-    forecast: { value: Number.NaN, horizon: "", confidence: Number.NaN },
-    risk: "none",
-    evidence: [],
-    owner: "",
-    ...over,
-  };
+/* FR-0046 v1 (UI-ADR-106): değerler {status, value, reason} zarfındadır.
+   Trend · sparkline · AI yorumu · forecast · risk · öneri BİLEREK YOK —
+   kaynakları ODIN'de üretilmiyor (R-006 FR-0043) ve anti-fake mock'ta da
+   geçerlidir; kartlar bu katmanları NoData ile söyler. */
+const val = (n: number): MetricValue => ({ status: "available", value: n });
+
+function kpi(
+  over: Partial<ExecutiveKPI> &
+    Pick<ExecutiveKPI, "id" | "metricKey" | "label" | "value" | "unit">
+): ExecutiveKPI {
+  return { asOf: ago(30 * 60_000), source: "briefing", ...over };
 }
 
 export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
-  const rec = ppcRecommendation();
-
   return mockEnvelope([
     kpi({
-      id: "kpi-revenue",
+      id: "company.revenue",
+      metricKey: "revenue",
       label: "Revenue",
-      value: 4_182_000,
+      value: val(4_182_000),
       unit: "currency",
-      currency: "TRY",
-      trend: { direction: "up", changePercent: 8, comparedTo: "önceki ay" },
-      sparkline: [3_410, 3_620, 3_580, 3_910, 4_040, 4_120, 4_182],
-      aiInsight: "Büyüme adetten değil, ortalama sepet tutarından geliyor.",
-      confidence: 92,
-      forecast: { value: 4_400_000, horizon: "30 gün", confidence: 78 },
-      risk: "low",
-      evidence: evidence(),
-      owner: "Finance AI",
+      currencyCode: "TRY",
     }),
     kpi({
-      id: "kpi-net-profit",
+      id: "company.net_profit",
+      metricKey: "net_profit",
       label: "Net Profit",
-      value: 1_284_000,
+      value: val(1_284_000),
       unit: "currency",
-      currency: "TRY",
-      trend: { direction: "down", changePercent: 4, comparedTo: "önceki ay" },
-      sparkline: [1_402, 1_388, 1_371, 1_340, 1_318, 1_296, 1_284],
-      aiInsight: "Daralma reklam verimliliğinden; hacim değil, ACOS baskı yapıyor.",
-      confidence: 89,
-      forecast: { value: 1_240_000, horizon: "30 gün", confidence: 71 },
-      risk: "medium",
-      recommendedAction: rec,
-      evidence: evidence(),
-      owner: "Finance AI",
+      currencyCode: "TRY",
     }),
     kpi({
-      id: "kpi-cash-flow",
+      id: "company.cash_flow",
+      metricKey: "cash_flow",
       label: "Cash Flow",
-      value: 862_000,
+      value: val(862_000),
       unit: "currency",
-      currency: "TRY",
-      trend: { direction: "up", changePercent: 3, comparedTo: "önceki ay" },
-      sparkline: [790, 812, 806, 828, 840, 851, 862],
-      aiInsight: "Tahsilat vadeleri kısaldı; hafta sonu ödemeleri hâlâ yoğun.",
-      confidence: 84,
-      forecast: { value: 810_000, horizon: "30 gün", confidence: 63 },
-      risk: "low",
-      evidence: evidence().slice(0, 1),
-      owner: "Finance AI",
+      currencyCode: "TRY",
     }),
     kpi({
-      id: "kpi-amazon",
+      id: "amazon.health_score",
+      metricKey: "health_score",
       label: "Amazon",
-      value: 78,
+      value: val(78),
       unit: "score",
-      trend: { direction: "down", changePercent: 6, comparedTo: "geçen hafta" },
-      sparkline: [88, 87, 85, 83, 81, 79, 78],
-      aiInsight: "Sağlık skorunu düşüren tek kalem ACOS; stok ve iade normal.",
-      confidence: 90,
-      forecast: { value: 82, horizon: "14 gün", confidence: 66 },
-      risk: "medium",
-      recommendedAction: rec,
-      evidence: evidence(),
-      owner: "Amazon AI",
+      source: "amazon_director",
     }),
     kpi({
-      id: "kpi-inventory",
+      id: "amazon.inventory_health",
+      metricKey: "inventory_health",
       label: "Inventory",
-      value: 63.4,
+      value: val(63.4),
       unit: "percent",
       /* UI-ADR-093 — ölçek BİLDİRİLİR. Bu alan olmasaydı kart boş görünürdü. */
       scale: "0-100",
-      trend: { direction: "down", changePercent: 11, comparedTo: "geçen hafta" },
-      sparkline: [82, 79, 76, 72, 69, 66, 63.4],
-      aiInsight: "Stok sağlığı SKU-1042 yüzünden düşüyor; diğer 40 SKU stabil.",
-      confidence: 87,
-      forecast: { value: 48, horizon: "14 gün", confidence: 74 },
-      risk: "high",
-      recommendedAction: stockRecommendation(),
-      evidence: evidence().slice(0, 2),
-      owner: "Amazon AI",
+      source: "amazon_director",
     }),
     kpi({
-      id: "kpi-ai-confidence",
+      id: "council.ai_confidence",
+      metricKey: "ai_confidence",
       label: "AI Confidence",
-      value: 88,
+      value: val(88),
       unit: "score",
-      trend: { direction: "flat", changePercent: 0, comparedTo: "geçen hafta" },
-      sparkline: [86, 87, 88, 87, 88, 88, 88],
-      aiInsight: "Kurul ortalaması; son 30 kararda kalibrasyon sapması ±6 puan.",
-      confidence: 88,
-      forecast: { value: 88, horizon: "14 gün", confidence: 55 },
-      risk: "none",
-      evidence: evidence().slice(0, 1),
-      owner: "Reasoning AI",
+      source: "trust",
     }),
     /* --- Ölçüm kaynağı olmayan iki KPI: değer UYDURULMAZ. ---
        telemetry registry'de `knowledge_sync` ve `memory_indexing` kanalları
-       `available: false`. Kart çizilir ama değeri NoData'dır. */
+       `available: false`. Kart çizilir; zarf durumu ve GEREKÇESİ gelir,
+       sayı alanı null kalır (ADR-0135 sınırı). */
     kpi({
-      id: "kpi-knowledge-health",
+      id: "knowledge.health",
+      metricKey: "knowledge_health",
       label: "Knowledge Health",
-      owner: "Knowledge AI",
-    }),
-    kpi({
-      id: "kpi-memory-health",
-      label: "Memory Health",
-      owner: "Knowledge AI",
-    }),
-    kpi({
-      id: "kpi-decision-confidence",
-      label: "Decision Confidence",
-      value: 81,
+      value: {
+        status: "unavailable",
+        value: null,
+        reason: "knowledge_sync telemetri kanalı kapalı; skor üretilmiyor.",
+      },
       unit: "score",
-      trend: { direction: "up", changePercent: 5, comparedTo: "önceki çeyrek" },
-      sparkline: [72, 74, 75, 78, 79, 80, 81],
-      aiInsight: "Kanıt sayısı arttıkça karar güveni yükseliyor.",
-      confidence: 81,
-      forecast: { value: 84, horizon: "90 gün", confidence: 58 },
-      risk: "none",
-      evidence: evidence(),
-      owner: "Executive AI",
+      source: "knowledge",
+    }),
+    kpi({
+      id: "memory.health",
+      metricKey: "memory_health",
+      label: "Memory Health",
+      value: {
+        status: "unavailable",
+        value: null,
+        reason: "memory_indexing telemetri kanalı kapalı; skor üretilmiyor.",
+      },
+      unit: "score",
+      source: "knowledge",
+    }),
+    kpi({
+      id: "executive.decision_confidence",
+      metricKey: "decision_confidence",
+      label: "Decision Confidence",
+      value: val(81),
+      unit: "score",
+      source: "executive",
     }),
   ]);
 }

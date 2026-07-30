@@ -79,39 +79,69 @@ export interface AIRecommendation {
 }
 
 /* --------------------------------------------------------------------------
-   §1 ExecutiveKPI — 05-dashboard.md §4 katmanlı kart
+   ExecutiveKPI — FR-0046 v1 kanonik sözleşme (UI-ADR-106)
+   Meclis sentezi (gavadolar + sistemciler), sahip onayı 2026-07-30.
+   ODIN kayıt defteri (R-006 FR-0046) kapanışı bekleniyor — 13-...md §17.
    -------------------------------------------------------------------------- */
 
 /** Yüzde değerinin hangi aralıkta geldiği. Tahmin edilmez, bildirilir. */
 export type PercentScale = "0-1" | "0-100";
 
-export interface ExecutiveKPI {
-  id: string;
-  label: string;
-  value: number;
-  unit: "currency" | "percent" | "count" | "score";
-  currency?: string;
-  /** `unit === "percent"` ise ZORUNLU. Yoksa değer render edilmez. */
-  scale?: PercentScale;
+/** FR-0044 değer zarfı — sözleşmenin PARÇASIDIR, yalnız API sınırında değil. */
+export type MetricStatus = "available" | "data_required" | "unavailable";
 
-  /* Level 1 — her zaman görünür */
-  trend: {
+export interface MetricValue {
+  status: MetricStatus;
+  /**
+   * `status === "available"` ise sayı, değilse null. "Data Required" gibi
+   * sunum METNİ bu alana asla girmez (ADR-0135): string bir sayı alanında
+   * `typeof`/`toFixed` kırar ve truthy okunur.
+   */
+  value: number | null;
+  /** `status !== "available"` ise ZORUNLU — neden ölçülemediği de bilgidir. */
+  reason?: string;
+}
+
+export interface ExecutiveKPI {
+  /** Kararlı, namespaced kimlik — ör. `"amazon.gross_profit"`. */
+  id: string;
+  /** Kanonik ODIN metrik anahtarı — ör. `"gross_profit"`. */
+  metricKey: string;
+  label: string;
+  value: MetricValue;
+  unit: "currency" | "percent" | "count" | "score";
+  /** `unit === "currency"` ise ZORUNLU — ISO kodu (Amazon: USD, UI-ADR-103). */
+  currencyCode?: string;
+  /** `unit === "percent"` ise ZORUNLU. Yoksa değer render edilmez (UI-ADR-093). */
+  scale?: PercentScale;
+  /** ISO 8601 — metriğin veri anı. Zarfın `lastUpdated`'ından bağımsızdır. */
+  asOf: string;
+  /** Üretici — ör. `"amazon_director"`. */
+  source: string;
+
+  /*
+   * FR-0043 — kaynağı OLMAYAN katmanlar. ODIN retained time series tutmuyor;
+   * bu alanlar üretilene kadar opsiyoneldir, MOCK DAHİ DOLDURMAZ ve ekran
+   * NoData basar. Boş bir yorum paneli dürüsttür; üretilmiş olanı, anti-fake
+   * kuralının önlediği hatanın ta kendisidir (R-006 FR-0043).
+   *
+   * Metrik KUTBU (higherIsBetter) BİLEREK yok — UI-ADR-102: kutup her
+   * metricKey için ODIN'de tanımlanmadan eklenirse kalıcı null üretir
+   * (UI-ADR-104 dersi). Kutup bilinmedikçe renk iddiası yapılmaz.
+   */
+  trend?: {
     direction: "up" | "down" | "flat";
     changePercent: number;
     comparedTo: string;
   };
-  sparkline: (number | null)[];
-
-  /* Level 2 — açılınca */
-  aiInsight: string;
-  confidence: number;
-  forecast: { value: number; horizon: string; confidence: number };
-  risk: "none" | "low" | "medium" | "high" | "critical";
-
-  /* Level 3 */
+  sparkline?: (number | null)[];
+  aiInsight?: string;
+  confidence?: number;
+  forecast?: { value: number; horizon: string; confidence: number };
+  risk?: "none" | "low" | "medium" | "high" | "critical";
   recommendedAction?: AIRecommendation;
-  evidence: EvidenceRef[];
-  owner: string;
+  evidence?: EvidenceRef[];
+  owner?: string;
 }
 
 /* --------------------------------------------------------------------------
@@ -206,32 +236,60 @@ export interface DirectorHeartbeat {
 }
 
 /* --------------------------------------------------------------------------
-   §6 Alert · §7 Opportunity
+   Alert · Opportunity — FR-0046 v1 kanonik sözleşmeler (UI-ADR-106)
+   ODIN'in parçalı üreticileri (improvement_detectors · finance/quality ·
+   amazon_director · innovation) için ortak AD; yeni motor değil.
    -------------------------------------------------------------------------- */
 
+export type AlertSeverity = "critical" | "high" | "medium" | "low";
+
 export interface Alert {
+  /** Kararlı, üretici-namespaced kimlik. */
   id: string;
-  severity: "info" | "warning" | "risk" | "critical";
+  /** Üretici — ör. `"finance_quality"`. */
+  source: string;
   title: string;
-  description: string;
-  module: string;
-  affectedEntities: string[];
-  suggestedMitigation?: string;
-  responsibleDirector: string;
-  /** false ise Alerts listesine GİRMEZ (09-...md §6). */
+  /**
+   * false ise Alerts listesine GİRMEZ (06-...md §1.4). Üretici, aksiyon
+   * gerekip gerekmediğini semantik olarak belirleyemiyorsa kaydı kanonik
+   * Alert olarak YAYINLAMAZ — varsayılan true/false atanmaz.
+   */
   requiresAction: boolean;
-  createdAt: string;
+  /** ISO 8601. */
+  asOf: string;
+  /** Açıklama / kanıt özeti. */
+  summary?: string;
+  /**
+   * Belgelenmiş deterministik eşlemesi olmayan üretici bu alanı ATLAR,
+   * null yazmaz — dört üreticinin bugün ortak severity semantiği yok
+   * (meclis sentezi: sahte ortak semantik üretilmez).
+   */
+  severity?: AlertSeverity;
 }
 
 export interface Opportunity {
+  /** Kararlı, üretici-namespaced kimlik. */
   id: string;
+  /** Üreten ODIN bileşeni. */
+  source: string;
   title: string;
-  category: "product" | "pricing" | "advertising" | "bundle" | "keyword" | "other";
-  revenueImpact: Money;
-  confidence: number;
-  deadline?: string;
-  recommendedAction: AIRecommendation;
-  evidence: EvidenceRef[];
+  /** Fırsatın gerekçesi. */
+  summary: string;
+  /**
+   * Uygulanabilir öneri. Bunu sağlayamayan kayıt Opportunity DEĞİLDİR;
+   * üreticiye özel çıktısında kalır (meclis kararı — §1.6'nın "eyleme dönük
+   * feed" tanımının gereği).
+   *
+   * `estimatedImpact` v1'de BİLİNÇLİ OLARAK YOK: ortak ve güvenilir bir
+   * parasal etki kaynağı kanıtlanmadı; kalıcı null alan sahte yetenektir
+   * (UI-ADR-104). Kaynak+formül+belirsizlik tanımlanırsa FR-0044 zarfıyla
+   * ayrı ADR'de eklenir.
+   */
+  suggestedAction: string;
+  /** ISO 8601. */
+  asOf: string;
+  /** Kaynak anahtarları — ör. `"sku:SKU-1042"`, `"metric:acos"`. */
+  evidence?: string[];
 }
 
 /* --------------------------------------------------------------------------
@@ -314,7 +372,13 @@ export interface AmazonSnapshot {
   inventoryValue: Money;
   topRisk: Alert | null;
   topOpportunity: Opportunity | null;
-  missionProgress: number;
+  /**
+   * Günün Amazon hedefinin ilerlemesi — kaynağı ODIN `goals.py` yayını
+   * (`progress_pct`). Mission kavramı Goal'e emekli edildi (ODIN ADR-0132,
+   * UI-ADR-107). Ölçülmüyorsa null; goals.alignment()'ın nötr 50'si
+   * "ölçülmedi"dir, sınır adaptörü onu null'a çevirir — asla %50 sanılmaz.
+   */
+  goalProgressPct: number | null;
 
   /* Layer 2 — Executive Intelligence (5 adımlı format, ExecutiveBrief ile aynı) */
   intelligence: ExecutiveBrief;

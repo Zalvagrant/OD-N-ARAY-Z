@@ -38,27 +38,34 @@ export interface ExecutiveHero {
 }
 
 /* --------------------------------------------------------------------------
-   05-dashboard.md §5 — Mission Board (Primary Focus Area)
+   05-dashboard.md §5 — Goal Board (Primary Focus Area)
+
+   ⚠️ `Mission` tipi EMEKLİ EDİLDİ (ODIN ADR-0132 · UI-ADR-107). 60 referanslı
+   Mission'ın ODIN'de karşılığı yoktu; 9 alanından yalnızca 3'ü gerçek
+   `goals.py` yayınına eşleniyordu. Kanonik kaynak cockpit.py'nin yayınıdır:
+   `{id, level, label, target, progress_pct}` — BİREBİR bu. Kaynaksız alanlar
+   (status · ownerDirector · deadline · relatedDecisionId · blockedReason)
+   DÜŞÜRÜLDÜ, varsayılanla doldurulmadı.
    -------------------------------------------------------------------------- */
 
-export type MissionStatus = "planned" | "active" | "blocked" | "done";
-
-export interface Mission {
+export interface Goal {
   id: string;
-  title: string;
-  /** Bu görevin hangi hedefe hizmet ettiği — §5 "Current Objectives" */
-  objective: string;
-  status: MissionStatus;
-  /** 0–100. Ölçülmüyorsa null — "%0" ile "bilinmiyor" farklı şeylerdir. */
-  progressPercent: number | null;
-  /** Sorumlu Director id'si (07-...md §2 dondurulmuş liste) */
-  ownerDirector: string;
-  /** ISO 8601 — §5 "Upcoming Deadlines" bu alandan türer. */
-  deadline: string | null;
-  /** Varsa ilgili karar — Decision Center'a köprü */
-  relatedDecisionId?: string;
-  /** Görevi engelleyen şey; `status === "blocked"` iken beklenir. */
-  blockedReason?: string;
+  /**
+   * ODIN seviye etiketi (ör. "urgent") — tahta kolonları BUNUNLA gruplanır;
+   * icat edilmiş `status` kanban'ı değil (ADR-0132: "columns group by real
+   * level"). Değer kümesi ODIN'de dondurulmadığı için union yazılmadı.
+   */
+  level: string;
+  label: string;
+  /** Hedef ifadesi — ODIN serbest biçimde yayınlar. Yoksa null. */
+  target: string | null;
+  /**
+   * 0–100; ölçülmüyorsa null. TUZAK (ADR-0132): goals.alignment() hedef
+   * tanımsızken nötr 50 döner — o "ölçülmedi"dir, sınır adaptörü null'a
+   * çevirir. "%50 ilerleme" diye çizilirse ODIN'in düzelttiği hata UI'da
+   * yeniden doğar.
+   */
+  progressPct: number | null;
 }
 
 /* --------------------------------------------------------------------------

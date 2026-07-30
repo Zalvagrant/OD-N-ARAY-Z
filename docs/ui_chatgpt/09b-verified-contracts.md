@@ -233,3 +233,119 @@ gösterme" kuralının backend'de zaten karşılığı var.
 3. **Ancak ondan sonra** S6 şablon modülü yazılır.
 
 Gerekçe UI-ADR-098'de.
+
+---
+
+## 10. FR-0046 v1 sözleşmeleri — dört ürün kavramı (UI-ADR-106 · UI-ADR-107)
+
+**Statü: 🟡 SAHİP ONAYLI MECLİS SENTEZİ — ODIN kayıt defteri kapanışı
+bekleniyor.** Kanonik kaynak ODIN'dir (FR-0039 fixture kanalı); bu bölüm
+salt yansımadır. ODIN tarafı kapanış paketi: 13-...md §17.
+
+Meclis: gavadolar (terra · luna) + sistemciler — kabul 4/4; severity ve
+suggestedAction sentezleri UI-ADR-106'da. Mission: RET → Goal (ADR-0132).
+
+### ExecutiveKPI v1
+
+| Alan | Zorunlu | Kural |
+|---|---|---|
+| `id` | ✅ | Kararlı, namespaced — `"amazon.gross_profit"` |
+| `metricKey` | ✅ | Kanonik ODIN metrik anahtarı |
+| `label` | ✅ | Gösterim etiketi |
+| `value` | ✅ | `{status, value, reason}` — aşağıda |
+| `unit` | ✅ | `currency \| percent \| count \| score` |
+| `currencyCode` | koşullu | `unit=currency` ise zorunlu, ISO kodu |
+| `scale` | koşullu | `unit=percent` ise zorunlu (UI-ADR-093) |
+| `asOf` | ✅ | ISO 8601 — metriğin veri anı |
+| `source` | ✅ | Üretici — `"amazon_director"` |
+
+`value` zarfı: `status=available` → `value` sayı, `reason` opsiyonel;
+aksi hâlde `value=null` ve `reason` ZORUNLU. "Data Required" metni sayı
+alanına giremez (ADR-0135). Kutup (`higherIsBetter`) v1'de YOK (UI-ADR-102);
+`trend/sparkline/aiInsight/forecast/risk/recommendedAction/evidence/owner`
+FR-0043'e kadar opsiyonel ve mock'ta doldurulmaz.
+
+```json
+{
+  "id": "amazon.net_profit",
+  "metricKey": "net_profit",
+  "label": "Net Profit",
+  "unit": "currency",
+  "currencyCode": "USD",
+  "asOf": "2026-07-30T12:00:00Z",
+  "source": "amazon_director",
+  "value": {
+    "status": "unavailable",
+    "value": null,
+    "reason": "COGS girilmeden ücret-eksiksiz net kâr hesaplanamaz."
+  }
+}
+```
+
+### Alert v1
+
+| Alan | Zorunlu | Kural |
+|---|---|---|
+| `id` | ✅ | Üretici-namespaced |
+| `source` | ✅ | `improvement_detectors \| finance_quality \| amazon_director \| innovation` |
+| `title` | ✅ | |
+| `requiresAction` | ✅ | `false` ise Alerts listesine GİRMEZ (06 §1.4); belirleyemeyen üretici kaydı YAYINLAMAZ |
+| `asOf` | ✅ | ISO 8601 |
+| `summary` | — | Açıklama/kanıt özeti |
+| `severity` | — | `critical \| high \| medium \| low`; belgelenmiş eşlemesi olmayan üretici ATLAR, null yazmaz |
+
+```json
+{
+  "id": "finance_quality.missing_cost_data.2026-07",
+  "source": "finance_quality",
+  "title": "Cost data is required before profitability can be assessed",
+  "requiresAction": true,
+  "severity": "high",
+  "summary": "FBA fee data is missing for 12 active SKUs.",
+  "asOf": "2026-07-30T12:00:00Z"
+}
+```
+
+### Opportunity v1
+
+| Alan | Zorunlu | Kural |
+|---|---|---|
+| `id` | ✅ | Üretici-namespaced |
+| `source` | ✅ | Üreten ODIN bileşeni |
+| `title` | ✅ | |
+| `summary` | ✅ | Fırsatın gerekçesi |
+| `suggestedAction` | ✅ | Düz metin; sağlayamayan kayıt Opportunity DEĞİLDİR |
+| `asOf` | ✅ | ISO 8601 |
+| `evidence` | — | Kaynak anahtarları — `"sku:B0ABC"`, `"metric:acos"` |
+
+`estimatedImpact` v1'de BİLİNÇLİ YOK — kaynak+formül+belirsizlik
+tanımlanınca FR-0044 zarfıyla ayrı kararla eklenir.
+
+```json
+{
+  "id": "improvement_detectors.reprice_sku_B0ABC",
+  "source": "improvement_detectors",
+  "title": "Review price for SKU B0ABC",
+  "summary": "Current price is below the configured gross-margin threshold.",
+  "suggestedAction": "Review the listing price and target gross margin before the next replenishment cycle.",
+  "evidence": ["sku:B0ABC", "metric:gross_margin_per_unit"],
+  "asOf": "2026-07-30T12:00:00Z"
+}
+```
+
+### Goal (Mission'ın yerine — ADR-0132 · UI-ADR-107)
+
+cockpit.py yayını birebir: `{id, level, label, target, progress_pct}`.
+UI tipi: `Goal { id, level, label, target: string|null,
+progressPct: number|null }`. TUZAK: `goals.alignment()` nötr 50 =
+"ölçülmedi" → adaptör null'a çevirir, asla %50 çizilmez.
+
+### Fixture yayın kapıları (FR-0039)
+
+1. KPI `value` zarfı durum/değer/neden değişmezlerini geçer.
+2. Yüzdede `scale`, parada `currencyCode` vardır.
+3. `requiresAction` üretilemeyen kayıt kanonik Alert fixture'ına girmez.
+4. `severity` · `estimatedImpact` · kutup · trend: kaynak yoksa ATLANIR,
+   null ile yayınlanmaz.
+5. Her fixture kaydı somut bir mevcut üreticiye bağlanır; UI için sentetik
+   alan üretilmez.

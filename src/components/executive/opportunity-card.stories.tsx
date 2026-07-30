@@ -1,7 +1,7 @@
 /** S4 · 10 — OpportunityCard */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { OpportunityCard } from "./opportunity-card";
-import { envelope, opportunity, recommendationTekAlternatif } from "./stories.fixtures";
+import { envelope, opportunity } from "./stories.fixtures";
 
 const meta: Meta = {
   title: "Executive/10 · OpportunityCard",
@@ -9,22 +9,24 @@ const meta: Meta = {
 };
 export default meta;
 
-/** Risk ile EŞİT görsel ağırlık — fırsat yan kutu değildir. */
+/**
+ * Risk ile EŞİT görsel ağırlık — fırsat yan kutu değildir.
+ * FR-0046 v1: parasal etki ("Gelir etkisi") sözleşmede YOK; kart başlık +
+ * gerekçe + zorunlu önerilen aksiyon + kanıt anahtarlarından oluşur.
+ */
 export const Firsat: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
-      <OpportunityCard env={envelope(opportunity, { source: "ai" })} onApprove={() => {}} />
+      <OpportunityCard env={envelope(opportunity, { source: "ai" })} />
     </div>
   ),
 };
 
-/** Öneri şartı sağlamıyor → fırsat kalır, öneri bölümü çizilmez. */
-export const OneriGosterilmez: StoryObj = {
+/** Kanıt anahtarı yayınlanmamış → kanıt bölümü hiç çizilmez. */
+export const KanitYok: StoryObj = {
   render: () => (
     <div className="max-w-2xl">
-      <OpportunityCard
-        env={envelope({ ...opportunity, recommendedAction: recommendationTekAlternatif })}
-      />
+      <OpportunityCard env={envelope({ ...opportunity, evidence: undefined })} />
     </div>
   ),
 };

@@ -75,9 +75,16 @@ kadar sade, açıkken bir mini-rapor kadar zengin.
 
 | Level | İçerik | Görünürlük |
 |---|---|---|
-| 1 | metrik adı · değer · trend · sparkline · TrustSignal | her zaman |
-| 2 | AI yorumu · confidence · forecast · risk | "Detay" |
-| 3 | önerilen aksiyon · kanıt sayısı · sorumlu | "Detay" |
+| 1 | metrik adı · değer (FR-0044 zarfı) · trend* · sparkline* · TrustSignal | her zaman |
+| 2 | AI yorumu* · confidence* · forecast* · risk* | "Detay" |
+| 3 | önerilen aksiyon* · kanıt* · sorumlu* · kaynak · veri anı | "Detay" |
+
+\* FR-0043'e kadar KAYNAKSIZ (UI-ADR-106): opsiyoneldir, mock dahi
+doldurmaz, kart yokluğu NoData ile söyler. `value` artık
+`{status, value, reason}` zarfıdır — `status !== "available"` ise sayı
+yerine zarfın GEREKÇESİ basılır; "Data Required" metni sayı alanına
+giremez (ADR-0135). Trend gelmediyse glyph uydurulmaz ("flat" bir
+ölçümdür, varsayılan değil); risk gelmediyse "Risk yok" YAZILMAZ.
 
 **Tek açma düğmesi.** Level 2 ve 3 birlikte açılır: iki ayrı düğme sadeliği
 bozar ve CEO'ya ikinci bir gezinme kararı yükler.
@@ -223,24 +230,30 @@ Yaş metni ancak istemci saati geldikten sonra yazılır; SSR'da hiç yoktur —
 
 ## 9. AlertStack
 
-**Dosya:** `alert-stack.tsx`
+**Dosya:** `alert-stack.tsx` · **Sözleşme:** FR-0046 v1 Alert (09b §10)
 
-`requiresAction: false` olan öğe **listeye girmez** (09-...md §6). Kaç öğenin
-elendiği altta yazılır — sessiz yutma yoktur. Sıralama: critical → risk →
-warning → info. Renk eşlemesi `01-product-vision.md` §5'ten gelir ve
-değiştirilemez; her seviyenin metin etiketi vardır.
+`requiresAction: false` olan öğe **listeye girmez** (06-...md §1.4). Kaç
+öğenin elendiği altta yazılır — sessiz yutma yoktur. Sıralama:
+critical → high → medium → low → **severity'siz** (uydurulmaz, rozetsiz
+ve en sonda). Satır: rozet? · başlık · yaş (`asOf`) · özet? ·
+"Kaynak: {source}". Renk tek başına anlam taşımaz; her seviyenin metin
+etiketi vardır (01-...md §5).
 
 ---
 
 ## 10. OpportunityCard
 
-**Dosya:** `opportunity-card.tsx`
+**Dosya:** `opportunity-card.tsx` · **Sözleşme:** FR-0046 v1 Opportunity
+(09b §10)
 
 Risk ile **eşit görsel ağırlık** (05-...md §3.4). Sadece risk gösteren bir
 sistem korku üretir.
 
-Öneri açıklanabilirlik şartını sağlamazsa fırsat yine gösterilir: fırsat
-ölçülmüş bir gerçektir, öneri bir AI çıktısıdır.
+v1 kart: "Fırsat" rozeti · kaynak+yaş · başlık · gerekçe (`summary`) ·
+**zorunlu** önerilen aksiyon (`suggestedAction`, düz metin) · kanıt
+anahtarları (`evidence`, varsa). **"Gelir etkisi" YOK** (UI-ADR-106):
+`estimatedImpact` v1 sözleşmesinde yok, parasal etki kaynağı kanıtlanmadan
+yazılmaz. `confidence`/`deadline`/`category` de sözleşmede yok — çizilmez.
 
 ---
 

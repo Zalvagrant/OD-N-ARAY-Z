@@ -820,3 +820,37 @@ düştüğü an kullanıcı tüm göstergelere olan güvenini kaybeder.
 
 Öneri: bu üç oranın tutarlılığı için backend tarafında bir doğrulama testi
 bulunsun (ODIN'in `tests/test_math_audit.py` deseni).
+
+---
+
+## 17. FR-0046 kapanış paketi — ODIN tarafında yapılacaklar (UI-ADR-106)
+
+Sahip 2026-07-30'da meclis sentezini onayladı; UI tipleri buna hizalandı.
+**Resmi kapanış ODIN reposunda yapılmalı** (bu repo ODIN'e yazamaz):
+
+1. **R-006 FR-0046 satırı** → `decided` yap; karar: ExecutiveKPI/Alert/
+   Opportunity KABUL (v1 alan listeleri + örnek JSON'lar 09b §10'da),
+   Mission RET (ADR-0132 Goal). Gerekirse ADR: "UI product-concept
+   contracts v1".
+2. **FR-0039 fixture kanalı**: üç kavramın örnek JSON'ları 09b §10'daki
+   şemayla yayınlanır; §10'un beş yayın kapısı fixture testine girer.
+3. **`/api/amazon` (FR-0044/ADR-0135)** sınır adaptörü KPI'ları bu zarfla
+   döner — `realized_net_profit_usd`'nin `"Data Required"` metni
+   `{status:"data_required", value:null, reason:…}` olur.
+
+**UI'nin bilinçli kayıpları — alan soruları (üretici tarafı karar versin):**
+
+- **Alert varlık referansı.** v1'de yok → SKU panelinin "ilgili uyarılar"
+  eşleşmesi yapılamıyor. Öneri: Opportunity'deki gibi
+  `evidence: ["sku:SKU-1042"]` anahtar listesi. Gelirse eşleşme geri döner.
+- **Opportunity kategori/domain.** v1'de yok → PPC K3 / Feed ayrımı
+  yapılamıyor; tüm fırsatlar Feed'de. FR-0042 fingerprint'i zaten
+  `(domain, recommendation_type, …)` kullanıyor — aynı `domain` alanı
+  yayınlanırsa ayrım geri döner.
+- **Alert severity eşlemeleri.** Alan opsiyonel; hangi üreticinin hangi
+  belgelenmiş eşlemeyle yazacağı üretici üretici kararlaştırılmalı
+  (yazamayan ATLAR, null yazmaz).
+- **Goal termin alanı.** Mission emekli olunca "Upcoming Deadlines" kaynaksız
+  kaldı (§14.2 ile birleşir). ODIN termin yayınlarsa bölüm geri dolar.
+- **Metrik kutbu (`higherIsBetter`).** v1'de bilinçli yok (UI-ADR-102).
+  Metrik başına kutup ODIN'de tanımlanırsa sparkline/trend renklenebilir.

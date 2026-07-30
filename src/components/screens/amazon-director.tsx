@@ -248,17 +248,19 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
               )
             }
           />
+          {/* Mission → Goal (ODIN ADR-0132 · UI-ADR-107): kaynak goals.py
+              `progress_pct`. Nötr 50 buraya sızmaz — ölçülmüyorsa null. */}
           <Stat
-            label="Mission Progress"
+            label="Goal Progress"
             note="günün Amazon hedefi"
             value={
               <>
                 <Meter
-                  value={s.missionProgress}
-                  label="Görev ilerlemesi"
+                  value={s.goalProgressPct}
+                  label="Hedef ilerlemesi"
                   noDataReason="İlerleme ölçülmüyor"
                 />
-                <Num value={s.missionProgress} size="sm" noDataReason="Ölçülmedi" />
+                <Num value={s.goalProgressPct} size="sm" noDataReason="Ölçülmedi" />
               </>
             }
           />
@@ -414,15 +416,12 @@ export function AmazonDirector({
   };
 
   const skuRows = isEmpty ? [] : (skus.data?.data ?? []);
-  const allOpportunities = isEmpty ? [] : (opportunities.data?.data ?? []);
-  /* K3 reklam/anahtar kelime fırsatlarını alır; §1.6 Feed geri kalanı.
-     Aynı fırsat iki bölümde birden GÖSTERİLMEZ. */
-  const ppcOpportunities = allOpportunities.filter(
-    (o) => o.category === "advertising" || o.category === "keyword"
-  );
-  const feedOpportunities = allOpportunities.filter(
-    (o) => o.category !== "advertising" && o.category !== "keyword"
-  );
+  /* FR-0046 v1 Opportunity'de `category` YOK — reklam/genel ayrımını sürecek
+     bir kaynak alan kalmadı, ayrım UYDURULMAZ (UI-ADR-106). Tüm fırsatlar
+     §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
+     domain alanı sorusu 13-...md §17'de (FR-0042 fingerprint'i zaten
+     (domain, recommendation_type, …) kullanıyor — alan gelirse ayrım döner). */
+  const feedOpportunities = isEmpty ? [] : (opportunities.data?.data ?? []);
 
   const atRisk = skuRows.filter(
     (s) => s.status === "critical" || s.status === "at_risk"
@@ -734,18 +733,14 @@ export function AmazonDirector({
               Katman 3 — Opportunity Center: yalnızca sorunlar değil, kazanç
               fırsatları da.
             </Text>
-            {ppcOpportunities.length ? (
-              ppcOpportunities.map((o) => (
-                <OpportunityCard
-                  key={o.id}
-                  env={{ data: o, meta: opportunities.data!.meta }}
-                />
-              ))
-            ) : (
-              <Text size="sm" tone="tertiary">
-                Reklam tarafında ölçülmüş bir fırsat üretilmedi.
-              </Text>
-            )}
+            {/* Fırsatlar Feed'de (§1.6). FR-0046 v1 Opportunity'de reklam/genel
+                ayrımını sürecek alan yok; burada alt küme UYDURULMAZ. */}
+            <Text size="sm" tone="tertiary">
+              Fırsat sözleşmesinde (FR-0046 v1) reklam fırsatını genelden
+              ayıracak bir alan yok; tüm fırsatlar Opportunity Feed&apos;de
+              listeleniyor. Ayrım alanı ODIN&apos;e soruldu —
+              13-backend-recommendations.md §17.
+            </Text>
           </div>
 
           <SimulationPanel env={isEmpty ? empty(simulations.data) : simulations.data} />

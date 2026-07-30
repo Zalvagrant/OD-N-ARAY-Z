@@ -31,7 +31,11 @@ const pct = (n: number) => Number(n.toFixed(1));
 const kpiValue = (id: string) => {
   const k = amazonKpisMock().data.find((x) => x.id === id);
   if (!k) throw new Error(`KPI yok: ${id}`);
-  return k.value;
+  /* FR-0044 zarfı: sayı yalnızca available iken vardır (UI-ADR-106). */
+  if (k.value.status !== "available" || k.value.value === null) {
+    throw new Error(`KPI değeri available değil: ${id}`);
+  }
+  return k.value.value;
 };
 
 describe("amazon mock — iç tutarlılık (UI-ADR-103)", () => {
@@ -146,19 +150,58 @@ describe("amazon mock — iç tutarlılık (UI-ADR-103)", () => {
     expect([...found]).toEqual([MARKETPLACE_CURRENCY]);
   });
 
-  it("para taşıyan KPI'lar currency alanını bildirir", () => {
+  it("para taşıyan KPI'lar currencyCode, yüzde KPI'ları scale bildirir", () => {
     for (const k of amazonKpisMock().data) {
-      if (k.unit !== "currency") continue;
-      expect(k.currency).toBe(MARKETPLACE_CURRENCY);
+      if (k.unit === "currency") expect(k.currencyCode, k.id).toBe(MARKETPLACE_CURRENCY);
+      if (k.unit === "percent") expect(k.scale, k.id).toBeDefined();
+    }
+  });
+
+  it("KPI zarfı değişmezleri: available ⇔ sayı, değilse reason zorunlu", () => {
+    /* "Data Required" METNİ sayı alanına giremez (ADR-0135 / UI-ADR-106). */
+    for (const k of amazonKpisMock().data) {
+      if (k.value.status === "available") {
+        expect(typeof k.value.value, k.id).toBe("number");
+      } else {
+        expect(k.value.value, k.id).toBeNull();
+        expect(k.value.reason, k.id).toBeTruthy();
+      }
+    }
+  });
+
+  it("FR-0043 alanları mock'ta DOLDURULMAZ — kaynağı yok", () => {
+    /* Boş yorum paneli dürüsttür; üretilmişi anti-fake ihlalidir (R-006
+       FR-0043). Bu kapı, alanların mock'a geri sızmasını engeller. */
+    for (const k of amazonKpisMock().data) {
+      expect(k.trend, k.id).toBeUndefined();
+      expect(k.sparkline, k.id).toBeUndefined();
+      expect(k.aiInsight, k.id).toBeUndefined();
+      expect(k.forecast, k.id).toBeUndefined();
+      expect(k.recommendedAction, k.id).toBeUndefined();
+    }
+  });
+
+  it("fırsatların önerilen aksiyonu boş olamaz — aksiyonsuz kayıt fırsat değildir", () => {
+    for (const o of amazonOpportunitiesMock().data) {
+      expect(o.suggestedAction.trim().length, o.id).toBeGreaterThan(0);
+      expect(o.summary.trim().length, o.id).toBeGreaterThan(0);
+    }
+  });
+
+  it("severity ya union'dandır ya hiç yoktur — null yazılmaz", () => {
+    for (const a of amazonAlertsMock().data) {
+      if (a.severity !== undefined) {
+        expect(["critical", "high", "medium", "low"], a.id).toContain(a.severity);
+      }
     }
   });
 
   it("KPI şeridi ile Executive Glance aynı tutarları söyler", () => {
     /* İki ayrı yerde yazılan aynı sayı, en kolay çelişme noktasıdır. */
     const snap = snapshotMock().data;
-    expect(kpiValue("am-kpi-net-sales")).toBe(snap.revenue.amount);
-    expect(kpiValue("am-kpi-inventory-value")).toBe(snap.inventoryValue.amount);
-    expect(kpiValue("am-kpi-gross-profit")).toBe(snap.grossProfit?.amount);
+    expect(kpiValue("amazon.net_sales")).toBe(snap.revenue.amount);
+    expect(kpiValue("amazon.inventory_value")).toBe(snap.inventoryValue.amount);
+    expect(kpiValue("amazon.gross_profit")).toBe(snap.grossProfit?.amount);
   });
 
   it("AI brifinginin sayıları Executive Glance ile aynıdır", () => {
@@ -189,26 +232,18 @@ describe("amazon mock — iç tutarlılık (UI-ADR-103)", () => {
     }
   });
 
-  it("uyarıların işaret ettiği SKU'lar SKU listesinde vardır", () => {
-    /* Var olmayan bir SKU'ya bağlı uyarı, sağ panelde "kayıt yok" boş
-       durumunu tetikler ve ekran kendi kendisiyle çelişir. */
-    const known = new Set(skusMock().data.map((s) => s.sku));
-    for (const a of amazonAlertsMock().data) {
-      for (const e of a.affectedEntities ?? []) {
-        if (!e.startsWith("SKU-")) continue;
-        expect(known, `${a.id} → ${e}`).toContain(e);
-      }
-    }
-  });
+  /* Eski "uyarının SKU'su listede var" kapısı kaldırıldı: FR-0046 v1
+     Alert'te varlık referansı alanı yok (soru 13-...md §17). Alan dönerse
+     kapı da döner. */
 
   it("KPI şeridi snapshot ile aynı ACOS ve TACOS'u söyler", () => {
     const snap = snapshotMock().data;
-    expect(pct(kpiValue("am-kpi-acos"))).toBe(pct(snap.acos));
-    expect(pct(kpiValue("am-kpi-tacos"))).toBe(pct(snap.tacos));
+    expect(pct(kpiValue("amazon.acos"))).toBe(pct(snap.acos));
+    expect(pct(kpiValue("amazon.tacos"))).toBe(pct(snap.tacos));
   });
 
   it("KPI şeridinde ROAS PPC kartıyla aynıdır", () => {
-    expect(pct(kpiValue("am-kpi-roas"))).toBe(pct(ppcOverviewMock().data.roas));
+    expect(pct(kpiValue("amazon.roas"))).toBe(pct(ppcOverviewMock().data.roas));
   });
 
   it("net kâr hiçbir yerde üretilmez — COGS yok (UI-ADR-099)", () => {

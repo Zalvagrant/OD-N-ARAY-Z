@@ -28,6 +28,7 @@ import type {
   CampaignIntelligence,
   EvidenceRef,
   ExecutiveKPI,
+  MetricValue,
   Opportunity,
   PPCOverview,
   SimulationCase,
@@ -98,28 +99,6 @@ function adsEvidence(): EvidenceRef[] {
   ];
 }
 
-function stockEvidence(): EvidenceRef[] {
-  return [
-    {
-      id: "ev-velocity",
-      type: "metric",
-      title: "Satış hızı — SKU-1042",
-      excerpt: "Günlük ortalama 63 adet; üç haftada %22 arttı.",
-      sourceQuality: 90,
-      freshness: ago(2 * 60 * 60_000),
-      supportsOrContradicts: "supports",
-    },
-    {
-      id: "ev-leadtime",
-      type: "document",
-      title: "Tedarik süresi tablosu",
-      excerpt: "Deniz yolu 21 gün, hava kargo 6 gün.",
-      sourceQuality: 78,
-      freshness: ago(6 * 24 * 60 * 60_000),
-      supportsOrContradicts: "supports",
-    },
-  ];
-}
 
 function bidRecommendation(): AIRecommendation {
   return {
@@ -193,148 +172,112 @@ function scaleRecommendation(): AIRecommendation {
   };
 }
 
-function stockRecommendation(): AIRecommendation {
-  return {
-    id: "rec-stock-1042",
-    recommendation: "SKU-1042 için 600 adetlik acil sipariş aç.",
-    numbers: { "Kalan gün": 9, "Tedarik süresi (gün)": 21, "Günlük satış": 63 },
-    causeAnalysis: "Satış hızı üç haftada %22 arttı, sipariş planı güncellenmedi.",
-    impactAnalysis: "Tükenme 12 gün stoksuz kalma demek; BuyBox ve sıralama kaybı.",
-    alternatives: [
-      {
-        title: "600 adet acil sipariş",
-        description: "Hava kargo, 6 gün.",
-        expectedOutcome: "Stoksuz gün sayısı 0.",
-        risk: "medium",
-      },
-      {
-        title: "300 adet + fiyat artışı",
-        description: "Talebi yavaşlatarak süreyi uzat.",
-        expectedOutcome: "Stoksuz kalınmaz, satış adedi düşer.",
-        risk: "low",
-      },
-    ],
-    expectedFinancialResult: { amount: 3_050, currency: USD },
-    confidence: 88,
-    evidence: stockEvidence(),
-    whyGenerated: "Tahmini tükenme süresi tedarik süresinin altına indi.",
-    responsibleDirector: "Amazon AI",
-    relatedKnowledge: ["Tedarik süresi tablosu", "2026-Q2 stok politikası"],
-    lastValidated: ago(40 * 60_000),
-    potentialRisks: ["Hava kargo birim maliyeti %14 daha yüksek"],
-  };
-}
 
 /* --------------------------------------------------------------------------
    Uyarılar ve fırsatlar — 09-...md §6 · §7 (yalnızca Amazon modülü)
    -------------------------------------------------------------------------- */
 
+/* FR-0046 v1 Alert (UI-ADR-106): source üretici kimliğidir; severity yalnızca
+   belgelenmiş eşleme varken yazılır (mock'ta amazon_director eşlemesi VAR
+   sayılır, biri bilerek severity'siz bırakıldı — rozetsiz hâl de görülsün). */
 export function amazonAlertsMock(): DataEnvelope<Alert[]> {
   return mockEnvelope([
     {
-      id: "am-al-buybox",
+      id: "amazon_director.buybox_loss.3sku",
+      source: "amazon_director",
       severity: "critical",
       title: "BuyBox kaybı — 3 SKU",
-      description: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
-      module: "amazon",
-      affectedEntities: ["SKU-1042", "SKU-1188", "SKU-2001"],
-      suggestedMitigation: "Repricer eşiklerini gözden geçir.",
-      responsibleDirector: "Amazon AI",
+      summary: "Fiyat rekabeti nedeniyle üç SKU'da BuyBox kaybedildi.",
       requiresAction: true,
-      createdAt: ago(12 * 60_000),
+      asOf: ago(12 * 60_000),
     },
     {
-      id: "am-al-stock",
-      severity: "risk",
+      id: "amazon_director.stockout_risk.sku-1042",
+      source: "amazon_director",
+      severity: "high",
       title: "Stok tükenme riski — SKU-1042",
-      description: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
-      module: "amazon",
-      affectedEntities: ["SKU-1042"],
-      suggestedMitigation: "600 adetlik acil sipariş aç.",
-      responsibleDirector: "Amazon AI",
+      summary: "Tahmini tükenme 9 gün. Tedarik süresi 21 gün.",
       requiresAction: true,
-      createdAt: ago(3 * 60 * 60_000),
+      asOf: ago(3 * 60 * 60_000),
     },
     {
-      id: "am-al-acos",
-      severity: "risk",
+      id: "amazon_director.acos_rising.camp-b",
+      source: "amazon_director",
+      severity: "high",
       title: "ACOS yükselişi — Kampanya B",
-      description: "ACOS %31,4'e çıktı; hedef %18.",
-      module: "amazon",
-      affectedEntities: ["camp-b"],
-      suggestedMitigation: "Teklifleri %12 düşür, bütçeyi D'ye kaydır.",
-      responsibleDirector: "Amazon AI",
+      summary: "ACOS %31,4'e çıktı; hedef %18.",
       requiresAction: true,
-      createdAt: ago(70 * 60_000),
+      asOf: ago(70 * 60_000),
     },
+    /* Severity ATLANDI (null değil): listing kalitesi için belgelenmiş bir
+       önem eşlemesi yok — uydurulmaz, kayıt rozetsiz ve en sonda listelenir. */
     {
-      id: "am-al-listing",
-      severity: "warning",
+      id: "improvement_detectors.listing_error.sku-3310",
+      source: "improvement_detectors",
       title: "Listeleme hatası — SKU-3310",
-      description: "Görsel çözünürlüğü Amazon eşiğinin altında; arama görünürlüğü düşük.",
-      module: "amazon",
-      affectedEntities: ["SKU-3310"],
-      suggestedMitigation: "Ana görseli 1600 px üzerine çıkar.",
-      responsibleDirector: "Amazon AI",
+      summary: "Görsel çözünürlüğü Amazon eşiğinin altında; arama görünürlüğü düşük.",
       requiresAction: true,
-      createdAt: ago(26 * 60 * 60_000),
+      asOf: ago(26 * 60 * 60_000),
     },
     /* requiresAction:false → listeye GİRMEZ, elendiği altta yazılır. */
     {
-      id: "am-al-sync",
-      severity: "info",
+      id: "amazon_director.spapi_sync.done",
+      source: "amazon_director",
+      severity: "low",
       title: "SP-API senkronizasyonu tamamlandı",
-      description: "Bilgi amaçlı — aksiyon gerektirmez.",
-      module: "amazon",
-      affectedEntities: [],
-      responsibleDirector: "Amazon AI",
+      summary: "Bilgi amaçlı — aksiyon gerektirmez.",
       requiresAction: false,
-      createdAt: ago(18 * 60_000),
+      asOf: ago(18 * 60_000),
     },
   ] satisfies Alert[]);
 }
 
+/* FR-0046 v1 Opportunity (UI-ADR-106): suggestedAction ZORUNLU düz metin;
+   estimatedImpact/confidence/deadline/category sözleşmede YOK — kaynağı
+   kanıtlanmadan parasal etki yazılmaz (eski "Gelir etkisi" kartı söküldü). */
 export function amazonOpportunitiesMock(): DataEnvelope<Opportunity[]> {
   return mockEnvelope([
     {
-      id: "am-opp-scale",
+      id: "amazon_director.scale.camp-d",
+      source: "amazon_director",
       title: "Kampanya D ölçeklenebilir — bütçe gün bitmeden tükeniyor",
-      category: "advertising",
-      revenueImpact: { amount: 2_810, currency: USD },
-      confidence: 87,
-      deadline: ahead(9 * 24 * 60 * 60_000),
-      recommendedAction: scaleRecommendation(),
-      evidence: adsEvidence().slice(0, 2),
+      summary:
+        "ACOS %11,2 ile hedefin altında ve günlük bütçe 9 gündür gün bitmeden tükeniyor; talep karşılanmıyor.",
+      suggestedAction: "Kampanya D bütçesini %20 artır, 7 gün sonra yeniden ölç.",
+      evidence: ["campaign:camp-d", "metric:acos", "metric:budget_exhaustion"],
+      asOf: ago(35 * 60_000),
     },
     {
-      id: "am-opp-keyword",
+      id: "amazon_director.keyword.katlanir-kamp-sandalyesi",
+      source: "amazon_director",
       title: "Yükselen arama terimi — 'katlanır kamp sandalyesi'",
-      category: "keyword",
-      revenueImpact: { amount: 1_520, currency: USD },
-      confidence: 83,
-      deadline: ahead(7 * 24 * 60 * 60_000),
-      recommendedAction: bidRecommendation(),
-      evidence: adsEvidence(),
+      summary:
+        "Terim 14 günde gösterim payı kazandı; mevcut kampanyalar bu terimde zayıf konumda.",
+      suggestedAction:
+        "Terimi Kampanya D'ye exact match olarak ekle ve ilk 7 gün CPC'yi izle.",
+      evidence: ["keyword:katlanır kamp sandalyesi", "metric:impression_share"],
+      asOf: ago(55 * 60_000),
     },
     {
-      id: "am-opp-pricing",
+      id: "improvement_detectors.reprice.sku-2988",
+      source: "improvement_detectors",
       title: "SKU-2988 fiyatı rakip bandının %8 altında",
-      category: "pricing",
-      revenueImpact: { amount: 655, currency: USD },
-      confidence: 76,
-      deadline: ahead(14 * 24 * 60 * 60_000),
-      recommendedAction: scaleRecommendation(),
-      evidence: adsEvidence().slice(1, 3),
+      summary:
+        "BuyBox payı %99,1 — fiyat rekabet baskısı yokken banda yaklaşmak marj bırakıyor.",
+      suggestedAction:
+        "Fiyatı kademeli olarak rakip bandına yaklaştır; BuyBox payı %95 altına inerse geri al.",
+      evidence: ["sku:SKU-2988", "metric:buybox_rate"],
+      asOf: ago(2 * 60 * 60_000),
     },
     {
-      id: "am-opp-bundle",
+      id: "innovation.bundle.sku-1188-2001",
+      source: "innovation",
       title: "SKU-1188 + SKU-2001 paket satışı",
-      category: "bundle",
-      revenueImpact: { amount: 975, currency: USD },
-      confidence: 71,
-      deadline: ahead(21 * 24 * 60 * 60_000),
-      recommendedAction: stockRecommendation(),
-      evidence: stockEvidence(),
+      summary:
+        "İki ürün aynı sepette sık görülüyor; paket, kamp masası stok baskısını da hafifletir.",
+      suggestedAction: "Paket listing oluştur ve 21 gün dönüşümünü ölç.",
+      evidence: ["sku:SKU-1188", "sku:SKU-2001"],
+      asOf: ago(5 * 60 * 60_000),
     },
   ] satisfies Opportunity[]);
 }
@@ -375,7 +318,9 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
       inventoryValue: { amount: 45_950, currency: USD },
       topRisk: alerts.find((a) => a.severity === "critical") ?? null,
       topOpportunity: opportunities[0] ?? null,
-      missionProgress: 62,
+      /* Kaynak: goals.py `progress_pct` (g-ppc hedefi). ADR-0132: nötr 50
+         buraya asla yazılmaz — ölçülmüyorsa null gelir. */
+      goalProgressPct: 42,
 
       intelligence: {
         numbers: {
@@ -404,152 +349,97 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
 /* --------------------------------------------------------------------------
    Executive KPI Strip — 06-workspaces.md §1.2 (sekiz kalem, aynı sırada)
 
+   FR-0046 v1 (UI-ADR-106): değerler {status, value, reason} zarfındadır.
+   Trend · sparkline · AI yorumu · forecast · risk · öneri BİLEREK YOK:
+   ODIN retained time series tutmadığı için bu alanların kaynağı yoktur
+   (R-006 FR-0043) ve ANTI-FAKE MOCK'TA DA GEÇERLİDİR — kart onları NoData
+   ile söyler. Boş yorum paneli dürüsttür; üretilmişi, kuralın önlediği
+   hatanın ta kendisidir.
+
    "Net Profit" kartı YOKTUR (UI-ADR-099): hesaplanamayan bir kâr rakamı
    yerine "Gross Profit (ücretler hariç)" gösterilir ve neyin hariç tutulduğu
    şeridin altında yazılır.
    -------------------------------------------------------------------------- */
 
-function kpi(over: Partial<ExecutiveKPI> & Pick<ExecutiveKPI, "id" | "label">): ExecutiveKPI {
-  return {
-    value: Number.NaN,
-    unit: "score",
-    trend: { direction: "flat", changePercent: Number.NaN, comparedTo: "önceki ay" },
-    sparkline: [],
-    aiInsight: "",
-    confidence: Number.NaN,
-    forecast: { value: Number.NaN, horizon: "", confidence: Number.NaN },
-    risk: "none",
-    evidence: [],
-    owner: "Amazon AI",
-    ...over,
-  };
+/** FR-0044 zarfı kısayolu — mock'ta hepsi ölçülmüş değerlerdir. */
+const val = (n: number): MetricValue => ({ status: "available", value: n });
+
+function kpi(
+  over: Partial<ExecutiveKPI> &
+    Pick<ExecutiveKPI, "id" | "metricKey" | "label" | "value" | "unit">
+): ExecutiveKPI {
+  return { asOf: ago(30 * 60_000), source: "amazon_director", ...over };
 }
 
 export function amazonKpisMock(): DataEnvelope<ExecutiveKPI[]> {
-  const bid = bidRecommendation();
-  const stock = stockRecommendation();
-
   return mockEnvelope([
     kpi({
-      id: "am-kpi-net-sales",
+      id: "amazon.net_sales",
+      metricKey: "net_sales",
       label: "Net Sales",
-      value: 99_600,
+      value: val(99_600),
       unit: "currency",
-      currency: USD,
-      trend: { direction: "up", changePercent: 8, comparedTo: "önceki ay" },
-      sparkline: [81.2, 86.2, 85.2, 93.1, 96.2, 98.1, 99.6],
-      aiInsight: "Büyüme adetten değil, ortalama sepet tutarından geliyor.",
-      confidence: 92,
-      forecast: { value: 104_800, horizon: "30 gün", confidence: 78 },
-      risk: "low",
-      evidence: adsEvidence().slice(0, 2),
+      currencyCode: USD,
     }),
     kpi({
-      id: "am-kpi-gross-profit",
+      id: "amazon.gross_profit",
+      metricKey: "gross_profit",
       label: "Gross Profit (ücretler hariç)",
-      value: 62_860,
+      value: val(62_860),
       unit: "currency",
-      currency: USD,
-      trend: { direction: "down", changePercent: 4, comparedTo: "önceki ay" },
-      sparkline: [66.9, 66.3, 65.3, 64.4, 64.0, 63.4, 62.9],
-      aiInsight:
-        "Bu NET KÂR DEĞİLDİR: Amazon ücretleri, COGS, iade ve nakliye düşülmemiştir. Net kâr COGS girilene kadar hesaplanamaz.",
-      confidence: 84,
-      forecast: { value: 61_430, horizon: "30 gün", confidence: 66 },
-      risk: "medium",
-      recommendedAction: bid,
-      evidence: adsEvidence().slice(0, 3),
-      owner: "Finance AI",
+      currencyCode: USD,
     }),
     kpi({
-      id: "am-kpi-acos",
+      id: "amazon.acos",
+      metricKey: "acos",
       label: "ACOS",
-      value: 18.1,
+      value: val(18.1),
       unit: "percent",
       scale: "0-100",
-      trend: { direction: "up", changePercent: 21, comparedTo: "geçen hafta" },
-      sparkline: [14.2, 14.8, 15.6, 16.4, 17.2, 17.8, 18.1],
-      aiInsight: "Artışın tamamı Kampanya B'den; diğer üç kampanya hedef bandında.",
-      confidence: 93,
-      forecast: { value: 15.2, horizon: "14 gün", confidence: 71 },
-      risk: "high",
-      recommendedAction: bid,
-      evidence: adsEvidence(),
     }),
     kpi({
-      id: "am-kpi-tacos",
-      label: "TACOS",
+      id: "amazon.tacos",
+      metricKey: "tacos",
       /* 135.000 / 4.182.000 — PPC harcaması ile ciro arasındaki gerçek oran
          (UI-ADR-103). Eskiden 9,4 yazıyordu; o değer ekrandaki harcamayla
          160 kat uyumsuzdu. */
-      value: 3.2,
+      label: "TACOS",
+      value: val(3.2),
       unit: "percent",
       scale: "0-100",
-      trend: { direction: "up", changePercent: 12, comparedTo: "geçen hafta" },
-      sparkline: [2.7, 2.8, 2.9, 3.0, 3.1, 3.1, 3.2],
-      aiInsight: "Toplam ciroya göre reklam yükü artıyor; organik satış payı düşüyor.",
-      confidence: 88,
-      forecast: { value: 3.5, horizon: "14 gün", confidence: 64 },
-      risk: "medium",
-      evidence: adsEvidence().slice(0, 2),
     }),
     kpi({
-      id: "am-kpi-roas",
-      label: "ROAS",
+      id: "amazon.roas",
+      metricKey: "roas",
       /* PPC kartıyla AYNI değer: 745.900 / 135.000 = 5,5 (UI-ADR-103).
          Şerit ile kart farklı ROAS söylerse ikisi de inandırıcılığını
          kaybeder. `amazon.test.ts` bu eşitliği koruyor. */
-      value: 5.5,
+      label: "ROAS",
+      value: val(5.5),
       unit: "score",
-      trend: { direction: "down", changePercent: 14, comparedTo: "geçen hafta" },
-      sparkline: [7.1, 6.8, 6.4, 6.1, 5.9, 5.7, 5.5],
-      aiInsight: "ACOS'un aynası; kampanya B düzeltilirse 6,5 bandına döner.",
-      confidence: 90,
-      forecast: { value: 6.5, horizon: "14 gün", confidence: 69 },
-      risk: "medium",
-      evidence: adsEvidence().slice(0, 2),
     }),
     kpi({
-      id: "am-kpi-active-skus",
+      id: "amazon.active_skus",
+      metricKey: "active_skus",
       label: "Active SKUs",
-      value: 41,
+      value: val(41),
       unit: "count",
-      trend: { direction: "flat", changePercent: 0, comparedTo: "önceki ay" },
-      sparkline: [41, 41, 42, 42, 41, 41, 41],
-      aiInsight: "SKU-3310 listeleme hatası nedeniyle arama sonuçlarında zayıf.",
-      confidence: 97,
-      forecast: { value: 43, horizon: "30 gün", confidence: 52 },
-      risk: "low",
-      evidence: [],
     }),
     kpi({
-      id: "am-kpi-inventory-value",
+      id: "amazon.inventory_value",
+      metricKey: "inventory_value",
       label: "Inventory Value",
-      value: 45_950,
+      value: val(45_950),
       unit: "currency",
-      currency: USD,
-      trend: { direction: "down", changePercent: 9, comparedTo: "önceki ay" },
-      sparkline: [52.6, 51.4, 49.8, 48.6, 47.4, 46.5, 45.9],
-      aiInsight: "Düşüş satıştan; yeniden sipariş açılmazsa 3 hafta içinde riskli.",
-      confidence: 86,
-      forecast: { value: 39_050, horizon: "30 gün", confidence: 73 },
-      risk: "high",
-      recommendedAction: stock,
-      evidence: stockEvidence(),
+      currencyCode: USD,
     }),
     kpi({
-      id: "am-kpi-buybox",
+      id: "amazon.buybox_rate",
+      metricKey: "buybox_rate",
       label: "BuyBox Rate",
-      value: 91.6,
+      value: val(91.6),
       unit: "percent",
       scale: "0-100",
-      trend: { direction: "down", changePercent: 3, comparedTo: "geçen hafta" },
-      sparkline: [97.1, 96.4, 95.2, 94.1, 93.0, 92.2, 91.6],
-      aiInsight: "Üç SKU'da kayıp var; ikisi fiyat, biri stok kaynaklı.",
-      confidence: 85,
-      forecast: { value: 94, horizon: "14 gün", confidence: 61 },
-      risk: "high",
-      evidence: [],
     }),
   ]);
 }

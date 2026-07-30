@@ -35,7 +35,8 @@ doldurulmaz:
 |---|---|---|
 | `Knowledge Health` · `Memory Health` KPI | registry'de kanal `available: false` | `NoData` |
 | `AI Readiness` | sözleşmede karşılığı yok (13-...md §14.1) | `NoData` |
-| `Mission.progressPercent` (kur riski görevi) | kısmi ve sürekli, ölçülmüyor | `NoData` |
+| `Goal.progressPct` (kur riski hedefi) | kısmi ve sürekli, ölçülmüyor — nötr 50 de "ölçülmedi"dir (ADR-0132) | `NoData` |
+| KPI `trend` · `sparkline` · `aiInsight` · `forecast` · `risk` | ODIN retained time series tutmuyor (FR-0043, UI-ADR-106) | `NoData` |
 | Active Projects · Resource Allocation · Automation Queue | sözleşme yok (UI-ADR-096) | gerekçeli boş durum |
 
 ### 0.3 Sunucuda veri YOK, bu bilinçlidir
@@ -124,21 +125,24 @@ oturumda işaretlenir ve altında bunun **hiçbir yere yazılmadığı** yazar
 
 **Dosya:** `screens/mission-control.tsx` · **Rota:** `/mission-control`
 
-**Primary Focus Area: Mission Board.** Ekranda ondan ağır ikinci bir alan
-yoktur (03-...md §5).
+**Primary Focus Area: Goal Board** (Mission → Goal, ODIN ADR-0132 ·
+UI-ADR-107). Ekranda ondan ağır ikinci bir alan yoktur (03-...md §5).
 
 ```
-WorkspaceHeader (arama: görev/hedef/Director)
+WorkspaceHeader (arama: hedef/seviye/başlık)
 Operational Status         ← registry + heartbeat ölçümü, tahmin yok
-Mission Board              ← PRIMARY: 4 sütun (Yürüyen · Engelli · Planlı · Tamamlanan)
+Goal Board                 ← PRIMARY: kolonlar ODIN'in GERÇEK `level` alanından
 Upcoming Deadlines | Executive Alerts
+  └─ Deadlines GEREKÇELİ BOŞ: Goal yayınında termin alanı yok, uydurulmaz
 Director Coordination
 Active Projects | Resource Allocation | Automation Queue   ← sözleşme yok (UI-ADR-096)
 ```
 
-`MissionBoard` ilerlemeyi `Meter` ile çizer; `progressPercent === null` ise
-çubuk çizilmez. Termin **kalan süreyle** yazılır (`remainingTime`), yaşla
-değil — bkz. §5.
+`GoalBoard` ilerlemeyi `Meter` ile çizer; `progressPct === null` ise çubuk
+çizilmez — `goals.alignment()`'ın nötr 50'si "ölçülmedi"dir, adaptör null'a
+çevirir, tahta asla %50 çizmez (ADR-0132 tuzağı). Eski kanban `status`
+kolonları (Yürüyen · Engelli · Planlı · Tamamlanan) İCATTI ve kaldırıldı;
+termin/sorumlu/engel alanları da kaynaksızdı, düştü.
 
 ---
 
@@ -328,6 +332,26 @@ pencerenin kendisi yazılıyor.
 Ayrıca tabloda **iki etiket düzeldi**: SKU-4102 skoru 55 iken "İzlemede",
 SKU-1188 skoru 64 iken "Riskli" görünüyordu — daha kötü skorlu SKU daha iyi
 etiketliydi. Eşik tablosu (`statusBasis`) bunu kapattı.
+
+---
+
+### 7.10 FR-0046 hizalaması (UI-ADR-106 · UI-ADR-107)
+
+Meclis denetimi (16-audit) S6'yı FR-0046'ya kapılamıştı; sahip onaylı
+meclis sentezi sonrası ekran v1 sözleşmelere hizalandı:
+
+- **KPI Strip:** değerler `{status, value, reason}` zarfında; FR-0043
+  katmanları (trend · sparkline · yorum · forecast · risk) mock'tan da
+  çıkarıldı — kartlar NoData basar, `amazon.test.ts` geri sızmayı kapılar.
+- **Fırsat kartı:** "Gelir etkisi" SÖKÜLDÜ (`estimatedImpact` v1'de yok);
+  kart artık gerekçe + zorunlu düz-metin öneri + kanıt anahtarları.
+- **PPC Katman 3:** Opportunity'de kategori alanı kalmadığı için reklam/genel
+  ayrımı yapılamıyor — tüm fırsatlar Feed'de, K3 gerekçeli boş (soru
+  13-...md §17).
+- **SKU paneli "ilgili uyarılar":** Alert'te varlık referansı yok →
+  eşleşme yapılamıyor, gerekçeli boş (soru 13-...md §17).
+- **Glance:** "Mission Progress" → "Goal Progress" (`goalProgressPct`,
+  kaynak goals.py; mock değeri Goal Board'un g-ppc hedefiyle tutarlı).
 
 ---
 
