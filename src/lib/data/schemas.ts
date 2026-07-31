@@ -131,11 +131,30 @@ export const alertSchema = z.object({
   thresholdProvenance: z.enum(["unapproved_default", "owner_policy"]).optional(),
 });
 
-/* Opportunity ve Goal/Mission için şema YOKTUR — ADR-0143 §3 ve §4 ikisini
-   de KAVRAM OLARAK REDDETTİ. Fırsat, öneri kaydının görünümüdür; Mission
-   Board, izlenen kararlar + vadesi gelen ertelemelerin görünümü. Reddedilmiş
-   bir kavrama şema yazmak, UI-ADR-113'ün tam olarak yasakladığı şeydir:
-   karşılığı olmayan tipe şema yazmak onu zamanla gerçek gösterir. */
+/* Goal/Mission için şema YOKTUR — ADR-0143 §4 Mission'ı KAVRAM OLARAK
+   REDDETTİ ve karşılığı olmayan tipe şema yazmak, UI-ADR-113'ün tam olarak
+   yasakladığı şeydir.
+
+   OPPORTUNITY İÇİN DURUM DEĞİŞTİ (UI-ADR-141). ADR-0143 §3 onu ayrı bir
+   KAYIT olarak reddetmişti ve o gerekçeyle burada şema yoktu. ODIN
+   ADR-0154 ikinci bir kayıt türü yaratmadan, mevcut iyileştirme kayıtları
+   üzerinde bir GÖRÜNÜM yayınladı — yani artık gerçek bir üretici var ve
+   şema onun şeklidir, arayüzün varsayımı değil. Yasak, karşılığı olmayana
+   şema yazmaktı; karşılığı olana yazmamak da aynı ailenin hatası olurdu. */
+
+export const opportunitySchema = z.object({
+  id: z.string().min(1),
+  source: z.string().min(1),
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  /* Aksiyon öneremeyen kayıt Opportunity DEĞİLDİR (ADR-0143 §3) —
+     ODIN onu zaten düşürüyor, şema da kabul etmez. */
+  suggestedAction: z.string().min(1),
+  asOf: isoDate,
+  evidence: z.array(z.string()),
+  category: z.string().nullable().optional(),
+  priorityLevel: z.string().nullable().optional(),
+});
 
 /* --------------------------------------------------------------------------
    Derleme zamanı kilidi: şema çıktısı ile TypeScript tipi ayrışırsa burada

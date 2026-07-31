@@ -42,7 +42,22 @@ export const TELEMETRY_CHANNELS: TelemetryChannel[] = [
   { id: "background_jobs", label: "İşler",       source: "jobs",     available: true,  format: "count" },
   { id: "error_count",     label: "Hata",        source: "logs",     available: true,  format: "count" },
 
-  // 🔜 S9 (AI Gateway) kurulunca kendiliğinden gelir
+  /* S9 GELDİ, BU İKİSİ GELMEDİ — ve `available: false` kalmalarının
+     sebebi artık "henüz yapılmadı" değil, ÖLÇÜLMÜŞ bir sebep (UI-ADR-141).
+
+     ODIN ADR-0150 ile AI yönlendirmesini gerçekten kurdu (`odin/ai.py`,
+     görev→sağlayıcı politikası) ama:
+     - KUYRUK YOK. Çağrılar eşzamanlı yapılır, sıraya girmez; "AI kuyruk"
+       sayacının okuyacağı bir sayı mevcut değil. Sıfır göstermek "kuyruk
+       boş" demek olurdu — oysa doğru cevap "kuyruk diye bir şey yok".
+     - MALİYET KISMİ. `ai.usage()` maliyeti YALNIZ kendi maliyetini
+       bildiren çağrılar üstünden toplar ve kaç çağrının bildirdiğini
+       (`cost_known_calls`) yanına yazar. Fiyat tablosu olmadan tek bir
+       "AI maliyet" rakamı, bildirmeyenleri sıfır sayan bir toplam olur.
+
+     İkisi de açılabilir; şartı ODIN tarafında (kuyruk kavramı, fiyat
+     tablosu). Şartı yazmadan `available: true` yapmak, arayüzün en sık
+     yaptığı hata olurdu: eksik veriyi tam gibi göstermek. */
   { id: "ai_queue", label: "AI kuyruk",  source: "aiGateway", available: false, format: "count",    plannedFor: "v1.0" },
   { id: "ai_cost",  label: "AI maliyet", source: "aiGateway", available: false, format: "currency", plannedFor: "v1.0" },
 

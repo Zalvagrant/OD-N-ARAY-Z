@@ -555,3 +555,35 @@ export interface RuntimeDirector {
   jobs: RuntimeDirectorJob[];
 }
 
+/* --------------------------------------------------------------------------
+   Opportunity — ODIN ADR-0154 (UI-ADR-141)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ADR-0143 §3 Opportunity'yi KAYIT olarak reddetmişti ve arayüz de haklı
+ * olarak tip yazmamıştı: karşılığı olmayan tipe şema yazmak onu zamanla
+ * gerçek gösterir (UI-ADR-113).
+ *
+ * ODIN ADR-0154 ile durum DEĞİŞTİ — ikinci bir kayıt türü yaratılmadı,
+ * mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM yayınlandı. Yani tip
+ * artık gerçek bir üreticinin şeklidir, arayüzün varsayımı değil.
+ *
+ * Filtreleme de ODIN'de: yalnız `detected` kayıtlar ve yalnız uygulanabilir
+ * bir adımı olanlar geliyor. Arayüz filtre uygulamaz.
+ */
+export interface Opportunity {
+  id: string;
+  /** Üreten dedektör — ör. `"telemetry"`, `"knowledge_metrics"`. */
+  source: string;
+  title: string;
+  summary: string;
+  /** Zorunlu: aksiyon öneremeyen kayıt zaten Opportunity değildir. */
+  suggestedAction: string;
+  /** ISO 8601 — tespit anı. */
+  asOf: string;
+  /** `anahtar=değer` — sayı korunur, "backlog" değil "backlog=257". */
+  evidence: string[];
+  category?: string | null;
+  /** ODIN'in deterministik önceliği (ADR-0114); arayüz sıralama icat etmez. */
+  priorityLevel?: string | null;
+}
