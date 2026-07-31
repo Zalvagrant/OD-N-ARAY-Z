@@ -2530,3 +2530,47 @@ değildir.
 Director Coordination aynı ekranda 8 gerçek direktörü göstermeye devam
 ediyor. Alarmın dolu hâli Storybook'ta (`AlertStack`) ve ODIN'in birim
 testlerinde kapsanıyor.
+
+---
+
+## UI-ADR-140 — Her metrik kendi ölçüm penceresini söyler (S15)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** ODIN ADR-0138 · ADR-0147 · ADR-0149 · `backend-istekleri.md` #13
+
+⚠️ **NUMARA NEDEN 140?** `main`'de UI-ADR-129 var (S14, benim) ve
+`feature/s13-frontend-architecture` dalında **129–134** bekliyor — beşinci
+numara çakışması. Aralık bırakıldı ki S13 merge olurken çarpışma
+büyümesin. Bu bir tercih değil, paralel oturum gerçeğine karşı bir
+önlem; kalıcı çözüm numaraların `main`'den alınması.
+
+### Karar
+
+ODIN her KPI'a kendi `report_period`'unu koyuyordu (ADR-0138); arayüz
+yalnız `asOf`u okuyordu. Yaş sorusu cevaplanıyor, **pencere sorusu
+cevaplanmıyordu**: "38 adet satıldı" ile "hangi 38 gün" ayrı bilgilerdir.
+
+**1. Sözleşme genişledi.** `ExecutiveKPI.reportPeriod` eklendi
+(opsiyonel, `null` kabul). Meclis 2/2: bu bir sözleşme işidir, yalnız
+görsel değil — arayüz pencereyi türetemez.
+
+**2. Pencere NORMALLEŞTİRİLMEZ.** Kayıt "30 Temmuz'da biten 7 günlük
+pencere" diyorsa ekran da onu der. Sabit bir tarih aralığına çevirmek,
+kaydın söylemediği bir kesinlik iddia etmek olurdu. (SkuHealth'teki
+başlangıç hesabı AYRI bir durumdur ve orada beyanın aritmetiğidir.)
+
+**3. HER kartta gösterilir, yalnız farklı olanlarda değil.** Meclis
+burada ayrıştı: terra "hepsi aynıysa kartı kirletme, başlıkta göster",
+luna "her kartta kompakt göster — dönemi karttan koparmak bağlamı da
+koparır ve ekran okuyucuda metrik penceresiz kalır". luna'nınki alındı:
+kart kendi kendini anlatmalı. Bugün zaten üç farklı pencere yan yana.
+
+**4. Beyan yoksa `null` — uydurulmaz.** Alan opsiyonel: pencere
+yayınlamayan bir üretici için de sözleşme geçerli kalır.
+
+### Ölçüm — gerçek modda, üretim derlemesiyle
+
+`/amazon` KPI şeridi: "Satılan adet 38 · **son 7 gün · 30 Tem'e kadar**",
+"Kritik stoktaki SKU 3 · **anlık**", reklam metrikleri kendi
+1–30 Temmuz aralığıyla.

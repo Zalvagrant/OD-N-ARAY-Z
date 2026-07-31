@@ -41,7 +41,8 @@ describe("runtime Alert", () => {
   });
 
   it("`requiresAction` varsayılansızdır", () => {
-    const { requiresAction: _drop, ...without } = RUNTIME_ALERT;
+    const without: Record<string, unknown> = { ...RUNTIME_ALERT };
+    delete without.requiresAction;
     expect(() => alertSchema.parse(without)).toThrow();
   });
 

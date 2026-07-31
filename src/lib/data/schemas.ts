@@ -70,6 +70,19 @@ export const executiveKpiSchema = z
     scale: z.enum(["0-1", "0-100"]).optional(),
     reason: z.string().nullable().optional(),
     asOf: isoDate,
+    /* ODIN'in kayıt-başına bildirdiği pencere (ADR-0138). Şekil kaynağa
+       göre değişir; `looseObject` çünkü ODIN alan ekleyebilmeli ve
+       arayüz pencereyi normalleştirmez. `null` = beyan yok. */
+    reportPeriod: z
+      .looseObject({
+        basis: z.string().nullable().optional(),
+        windowDays: z.number().nullable().optional(),
+        start: z.string().nullable().optional(),
+        end: z.string().nullable().optional(),
+        at: z.string().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
     /* ODIN ADR-0146: bu seviyeyi doğuran EŞİĞİN kaynağı. "3 SKU kritik
        stokta" sayısı ölçülmüştür ama "kritik" bir sınıra dayanır ve meclis
        o sınırı gerçek veriden türetmeyi REDDETTİ (bir haftalık 18 SKU bir

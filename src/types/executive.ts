@@ -114,6 +114,20 @@ export interface AIRecommendation {
 export type PercentScale = "0-1" | "0-100";
 
 /** ADR-0143 §2 sınır zarfının durumu (FR-0044'ten genelleşti). */
+/**
+ * ODIN'in kayıt-başına bildirdiği pencere. Şekli kaynağa göre değişir ve
+ * arayüz onu NORMALLEŞTİRMEZ: bir kayan pencereyi sabit tarihe çevirmek,
+ * kaydın söylemediği bir şeyi söylemek olurdu.
+ */
+export interface MetricReportPeriod {
+  /** `rolling_window` · `as_of` · (Ads raporunda hiç yok) */
+  basis?: string | null;
+  windowDays?: number | null;
+  start?: string | null;
+  end?: string | null;
+  at?: string | null;
+}
+
 export type MetricStatus = "available" | "data_required" | "unavailable";
 
 /**
@@ -148,6 +162,17 @@ export interface ExecutiveKPI {
   reason?: string | null;
   /** ISO 8601 — metriğin veri anı. */
   asOf: string;
+  /**
+   * Metriğin ÖLÇÜM PENCERESİ — ODIN ADR-0138/0147 (UI-ADR-140).
+   *
+   * `asOf` "ne kadar eski" sorusunu cevaplar; bu alan "hangi aralık"
+   * sorusunu. İkisi ayrı bilgidir: "38 adet satıldı" ile "hangi 38 gün"
+   * aynı şey değil, ve bugün ekranda ÜÇ farklı pencere yan yana duruyor
+   * (7 günlük kayan · anlık · 2026-07-01→30).
+   *
+   * Kaynak dönemini beyan etmemişse `null` — arayüz pencere UYDURMAZ.
+   */
+  reportPeriod?: MetricReportPeriod | null;
   /**
    * Eşiği olan metrik/alarm bunu TAŞIR; olmayan ATLAR (null yazmaz).
    * `unapproved_default` geldiğinde arayüz GÖSTERMEK zorundadır:

@@ -232,7 +232,17 @@ hesaplanamıyor" der. Meclis 2/2.
 
 ---
 
-## 9. Net kâr — ODIN'in işi, arayüzün değil
+## 9. ✅ KAPANDI — net kâr yayınlanıyor
+
+**ODIN ADR-0147 (31 Temmuz 2026).** `realized_net_profit` KPI olarak
+canlı: **$653,36**, kendi kaynağı ve dönemiyle. Kural korundu —
+hesaplanamadığında sayı UYDURULMUYOR, `data_required` + gerekçe
+geliyor.
+
+⚠️ İleriye dönük net kâr (Amazon ücretleri dahil) hâlâ eksik; girdisi
+FR-0041 SP-API Finances adaptörü.
+
+### Tarihsel
 
 `Net Kâr = Satış − Amazon ücretleri − Reklam − İade − COGS − Nakliye/gümrük`
 
@@ -291,7 +301,25 @@ bölüm eklemekten iyidir.
 
 ---
 
-## 12. `meta.universeId` — yanıtın hangi evrene ait olduğu doğrulanamıyor
+## 12. ❌ REDDEDİLDİ — `meta.universeId`
+
+**ODIN ADR-0155 / FR-0056 (31 Temmuz 2026, meclis 2/2).** Ölçüldü:
+"universe" kelimesi ODIN'in **hiçbir yerinde geçmiyor** — kodda 0,
+registry'de 0, 154 ADR'de 0. Karşılığı olmayan bir kavram yayınlanmaz.
+
+Sabit bir değer yayınlamak **uydurma bir ayrım** olurdu ve ilk aldığı şey
+"bu sınır uygulanıyor" yanılgısıdır. Gerçek bir evren modeli ise tek
+sahipli tek işletme için çözdüğünden fazla sorun yaratır.
+
+**Alttaki soru zaten daha iyi cevaplanıyor:** her KPI/Alert/SKU kendi
+`source` (kayıt kimliği), `asOf` ve `reportPeriod` alanlarını taşıyor.
+Yanıt seviyesinde bir etiket "doğru evren" der ama hangi kayıt, ne zaman,
+hangi pencere sorularının hiçbirini cevaplamaz.
+
+Arayüz `universeId` doğrulamasını v1'den çıkardı; evren anahtarlayıcısı
+bugün fiilen ne ise o kalıyor — bir gezinme öğesi.
+
+### Tarihsel
 
 **S7'den devredilen borç** (meclis bulgusu; bu listeyi ADR-0143'e göre
 yeniden yazarken bir tur düşmüş, geri kondu).
@@ -335,7 +363,14 @@ sunucu tarafında ve `NEXT_PUBLIC_` olmayan `ODIN_ORIGIN`'den geliyor
 
 ---
 
-## 13. AÇIK — `report_period` yayınlanıyor ama arayüz OKUMUYOR
+## 13. ✅ KAPANDI — `report_period` artık okunuyor
+
+**UI-ADR-140 (31 Temmuz 2026).** `ExecutiveKPI.reportPeriod` sözleşmeye
+eklendi ve her KPI kartı kendi penceresini kompakt gösteriyor:
+"son 7 gün · 30 Tem'e kadar", "anlık". Pencere normalleştirilmiyor,
+beyan yoksa `null`.
+
+### Tarihsel
 
 ODIN ADR-0147, ADR-0143'ün dondurduğu zarfa bir **genişletme** ekledi: her
 KPI kendi kaydının bildirdiği `report_period`'u taşıyor. Pencereler
