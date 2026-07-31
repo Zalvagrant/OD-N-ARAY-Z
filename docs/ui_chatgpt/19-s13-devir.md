@@ -43,15 +43,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **144** | Bölme ÖLÇÜTÜ (4 koşul); yalnız `VerdictForm` geçti | 6 dosya ölçüldü 1'i bölündü (419→307); ADR-0085 açıklanabilirlik kapısı ilk kez test altına alındı |
 | **145** | §2.3'ün kalanı ölçüldü; iki iddia ÇÜRÜDÜ | `GuardedCard` yazılmadı (varyasyon matrisi) · `Caption` 48 değil 9'muş · tek gerçek elle-yazım düzeltildi |
 | **146** | Yazılımcılar denetimi | Sahte-veri kaçağı kapısı (`value={x ?? 0}`) + modal odak tuzağı testi; 2 bulgu ölçülüp elendi, 1'i açık bırakıldı |
+| **147** | **SAHİP KARARI:** `Metric` → `Stat` | `truncate` yerleşim güvencesi olarak prop oldu (varsayılan kapalı); elle yazılmış kopya sıfırlandı |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **66 dosya/412 test**
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **66 dosya/413 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
 +4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den, +5 dosya/+42 test UI-ADR-142'den, +1 dosya/+9 test UI-ADR-144'ten),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…146**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…147**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -114,11 +115,10 @@ import (`./director/screen`) ilk denemede KAÇTI**, desen tamamlandı.
 - Yüzde gösterimi 10 çağrı yeri → UI-ADR-138'de tek `Pct`.
 - `ChartProps` export edildi (UI-ADR-142).
 
-⚠️ **AÇIK — SAHİP KARARI:** `director-card`in yerel `Metric`i etiketi
-**truncate + normal harf**, `Stat` ise **BÜYÜK HARF + geniş aralık**
-çiziyor. Birleştirmek görünümü sessizce değiştirir ya da tek çağıran için
-görünüm prop'u ekler. Hangi etiket muamelesi kanonik? Tasarım dili
-kararıdır, kendiliğinden verilmedi.
+✅ **SAHİP KARAR VERDİ (UI-ADR-147):** `Stat` kanonik. `Metric` ve
+`runtime-director-card`in iki elle yazılmış hücresi `Stat`a bağlandı;
+`truncate` bir yerleşim güvencesi olarak prop oldu (varsayılan KAPALI —
+mevcut çağıranların görünümü değişmesin diye).
 
 ### 2.5 · ~~Test edilmeyen "test edilebilir" yardımcılar~~ ✅ KAPANDI
 
@@ -230,8 +230,8 @@ npm run lint              # 0 hata olmalı
 # uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
 # de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
 npx vitest run --project=unit        # 15 dosya / 220 test
-npx vitest run --project=storybook   # 51 dosya / 192 test  (TEK komut)
-#                            TOPLAM: 66 dosya / 412 test
+npx vitest run --project=storybook   # 51 dosya / 193 test  (TEK komut)
+#                            TOPLAM: 66 dosya / 413 test
 # ⚠️ `npx vitest run` (ikisi birden) KULLANMA — tuzak #1'e bak.
 
 # ÜRETİM DERLEMESİ + EKRAN DOĞRULAMASI (31 Tem'de yapıldı)

@@ -19,6 +19,7 @@ import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { relativeTime, useNow } from "@/lib/clock/tick";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Stat } from "@/components/ui/stat";
 import { Caption, Heading, Num, type NumFormat } from "@/components/ui/typography";
 import { NoData } from "@/components/ui/no-data";
 import { DataGuard } from "./data-guard";
@@ -31,6 +32,18 @@ const VERDICT = {
   unknown: { variant: "secondary", label: "Bilinmiyor", glyph: "○" },
 } as const;
 
+/**
+ * Metrik hücresi — SAHİP KARARI ile `Stat`a bağlandı (UI-ADR-147).
+ *
+ * Burada `Metric` adında yerel bir bileşen vardı ve `Stat`ın satır satır
+ * kopyasıydı; tek farkı etiket muamelesiydi (truncate + normal harf, vs
+ * `Stat`ın BÜYÜK HARF + geniş aralığı). Hangisinin kanonik olduğu bir
+ * tasarım dili kararıydı ve sahip `Stat` dedi.
+ *
+ * Bu artık bir BİLEŞEN değil, `Num`un altı kez tekrarlanan biçimlendirme
+ * argümanlarını tek yerde tutan bir sarmalayıcı: para birimi USD'dir ve
+ * yüzde bir ondalıkla yazılır — ikisi de karar, ikisi de tek yerde.
+ */
 function Metric({
   label,
   value,
@@ -40,16 +53,15 @@ function Metric({
   label: string;
   value: number | null;
   /* UI-ADR-145: bu birlik burada ELLE yeniden yazılıydı, oysa
-     `typography.tsx` onu `NumFormat` olarak zaten export ediyor. İki
-     kopya demek, `Num`a yeni bir biçim eklendiğinde buranın sessizce
-     geride kalması demektir. */
+     `typography.tsx` onu `NumFormat` olarak zaten export ediyor. */
   format?: NumFormat;
   reason: string;
 }) {
   return (
-    <div className="min-w-0">
-      <dt className="truncate text-xs text-content-tertiary">{label}</dt>
-      <dd className="mt-1">
+    <Stat
+      label={label}
+      truncate
+      value={
         <Num
           value={value}
           format={format ?? "plain"}
@@ -57,8 +69,8 @@ function Metric({
           fractionDigits={format === "percent" ? 1 : undefined}
           noDataReason={reason}
         />
-      </dd>
-    </div>
+      }
+    />
   );
 }
 

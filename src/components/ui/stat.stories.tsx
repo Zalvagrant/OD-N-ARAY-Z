@@ -94,3 +94,41 @@ export const TonSozlugu: Story = {
     await expect(nums[2].classList.contains("text-success")).toBe(true);
   },
 };
+
+export const TruncateYerlesimGuvencesidir: Story = {
+  name: "truncate — dar hücrede etiket KIRPILIR, varsayılan KAPALI",
+  render: () => (
+    <dl className="grid w-48 grid-cols-2 gap-4">
+      <div data-testid="off">
+        <Stat label="Çok uzun bir metrik etiketi" value={12} />
+      </div>
+      <div data-testid="on">
+        <Stat label="Çok uzun bir metrik etiketi" value={12} truncate />
+      </div>
+    </dl>
+  ),
+  play: async ({ canvasElement }) => {
+    const dt = (id: string) =>
+      canvasElement.querySelector(`[data-testid="${id}"] dt`)!;
+    const wrapper = (id: string) =>
+      canvasElement.querySelector(`[data-testid="${id}"] dt`)!.parentElement!;
+
+    /* VARSAYILAN KAPALI. `truncate` `white-space: nowrap` demektir ve iki
+       satıra sarabilen bir etiketi tek satıra kırpar; açık gelseydi
+       UI-ADR-147 mevcut ON KÜSUR çağıranın hepsinin görünümünü sessizce
+       değiştirirdi. */
+    await expect(dt("off").classList.contains("truncate")).toBe(false);
+    await expect(wrapper("off").classList.contains("min-w-0")).toBe(false);
+
+    /* AÇIKKEN İKİSİ BİRDEN. `truncate` tek başına yetmez: `min-w-0`
+       olmadan grid hücresi içeriğinin altına inemez, sütun şişer ve
+       komşusunun üstüne taşar — kırpma hiç devreye girmez. */
+    await expect(dt("on").classList.contains("truncate")).toBe(true);
+    await expect(wrapper("on").classList.contains("min-w-0")).toBe(true);
+
+    /* Kırpılan etiket ekranda taşmaz ama METNİ KAYBOLMAZ: DOM'da tam
+       hâliyle durur, yani ekran okuyucu tamamını okur. */
+    await expect(dt("on").textContent).toBe("Çok uzun bir metrik etiketi");
+    await expect(dt("on").scrollWidth).toBeGreaterThan(dt("on").clientWidth);
+  },
+};

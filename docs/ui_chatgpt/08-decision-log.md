@@ -3755,3 +3755,57 @@ enjeksiyonu (fixture'ı `play` öncesi çözülmüş hâle getirmek). `19-s13-de
 ### Ölçüm
 
 `tsc` 0 · `lint` 0 hata · **66 dosya / 412 test** (+1 test).
+
+---
+
+## UI-ADR-147 — `Metric` `Stat`a bağlandı; `truncate` bir yerleşim güvencesidir (SAHİP KARARI)
+
+**Durum:** ✅ Dondurulmuş — **sahip kararı**, ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-136 · UI-ADR-145 · CLAUDE.md §5
+
+### Soru ve karar
+
+UI-ADR-145 bunu açık bırakmıştı: `director-card`in yerel `Metric`i
+`Stat`ın satır satır kopyasıydı ama etiket muamelesi farklıydı —
+`Metric` **truncate + normal harf**, `Stat` **BÜYÜK HARF + geniş aralık**.
+Hangisinin kanonik olduğu bir tasarım dili kararıydı.
+
+**Sahip: `Stat` ile birleşsin.** `Stat`ın muamelesi kanoniktir.
+
+### `truncate` neden prop oldu, neden varsayılan KAPALI
+
+Birleşmede kaybedilmemesi gereken tek şey `Metric`in `min-w-0` +
+`truncate` çiftiydi. **Bu bir görünüm tercihi değil, yerleşim
+güvencesidir:** `min-w-0` olmadan bir grid hücresi içeriğinin altına
+inemez; uzun bir etiket sütunu şişirir ve komşusunun üstüne taşar (aynı
+hata S4'te görsel incelemede yakalanmıştı). İkisi birlikte çalışır —
+`truncate` tek başına yetmez, çünkü kırpma hiç devreye girmez.
+
+Varsayılan **kapalı**: `truncate` `white-space: nowrap` demektir ve iki
+satıra sarabilen bir etiketi tek satıra kırpar. Açık gelseydi mevcut on
+küsur `Stat` çağıranının hepsinin görünümü sessizce değişirdi. Açan,
+hücrenin dar olduğunu BİLDİĞİ için açar.
+
+### Uygulama
+
+- `director-card`in yerel `Metric`i artık bir bileşen değil, `Num`un altı
+  kez tekrarlanan biçimlendirme argümanlarını (USD · yüzde bir ondalık)
+  tek yerde tutan ince bir sarmalayıcı; gövdesi `Stat`.
+- `runtime-director-card`in elle yazılmış İKİ `<dt>/<dd>` çifti de `Stat`a
+  bağlandı — aynı şekli tekrarlıyorlardı.
+- Repoda `truncate text-xs text-content-tertiary` elle yazan **sıfır**
+  yer kaldı.
+
+### Kapı
+
+`stat.stories.tsx` → `truncate` varsayılan kapalı · açıkken `min-w-0` ve
+`truncate` İKİSİ BİRDEN · kırpılan etiketin metni DOM'da tam kalır
+(ekran okuyucu tamamını okur, yalnız göz kırpılmışını görür).
+
+### Ölçüm — görsel değişim ekranda doğrulandı
+
+`tsc` 0 · `lint` 0 hata · **66 dosya / 413 test**. Üretim derlemesiyle
+`/mission-control` tarayıcıda okundu: sekiz metrik hücresinin sekizinde de
+`text-transform: uppercase` uygulanmış, `truncate` ve `min-w-0` yerinde,
+"veri yok" tireleri korunmuş, konsol hatasız.

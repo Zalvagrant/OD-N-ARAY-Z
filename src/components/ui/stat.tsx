@@ -30,6 +30,7 @@ export function Stat({
   note,
   tone = "default",
   size = "lg",
+  truncate = false,
 }: {
   label: string;
   /** Düz sayı/metin satır içi `odin-num` ile yazılır; düğüm olduğu gibi geçer. */
@@ -37,12 +38,33 @@ export function Stat({
   note?: ReactNode;
   tone?: Tone;
   size?: keyof typeof SIZE;
+  /**
+   * Dar ızgara hücresi: etiket sarmak yerine KIRPILIR — UI-ADR-147.
+   *
+   * Bu bir görünüm tercihi değil YERLEŞİM GÜVENCESİDİR. `min-w-0` olmadan
+   * bir grid hücresi içeriğinin altına inemez; uzun bir etiket sütunu
+   * şişirir ve komşusunun üstüne taşar (aynı hata S4'te görsel incelemede
+   * yakalanmıştı). Altı metriğin üç sütuna sığdığı `director-card` gibi
+   * yerlerde gerekli.
+   *
+   * Varsayılan `false`: `truncate` `white-space: nowrap` demektir ve iki
+   * satıra sarabilen bir etiketi tek satıra kırpar. Mevcut çağıranların
+   * hiçbirinin davranışı değişmesin diye kapalı geliyor — açan, dar bir
+   * hücrede olduğunu BİLDİĞİ için açar.
+   */
+  truncate?: boolean;
 }) {
   const plain = typeof value === "number" || typeof value === "string";
 
   return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-content-tertiary">{label}</dt>
+    <div className={truncate ? "min-w-0" : undefined}>
+      <dt
+        className={`text-xs uppercase tracking-wide text-content-tertiary ${
+          truncate ? "truncate" : ""
+        }`}
+      >
+        {label}
+      </dt>
       {/* flex-wrap + gap: bir hücrede birden fazla düğüm olabiliyor
           (Meter + Num, ya da Num + birim). S6'da üç yerde gerekti. */}
       <dd className="mt-1 flex flex-wrap items-baseline gap-2">
