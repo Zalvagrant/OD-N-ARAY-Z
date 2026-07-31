@@ -234,8 +234,23 @@ npx vitest run --project=storybook src/components/executive       src/components
 npx vitest run --project=storybook src/styles src/components/screens  # 5 / 17
 #                                                        TOPLAM: 59 / 344
 
-npx next dev -p 3111      # /briefing /amazon /mission-control /goals → 200
-                          # /bilinmeyen-ekran → 404
+# ÜRETİM DERLEMESİ + EKRAN DOĞRULAMASI (31 Tem'de yapıldı)
+npx next build            # 7 sayfa, 0 hata
+npx next start -p 3111    # 3000 BAŞKA worktree'de olabilir
+# /briefing /mission-control /amazon /goals → 200 · /bilinmeyen → 404
+#
+# ⚠️ curl YETMEZ: SSR iskelet basıyor, gerçek içerik hidrasyondan sonra
+# geliyor (tuzak #3'ün aynısı). TARAYICI şart. Ölçülen:
+#   /mission-control → Stat: "Sağlıklı Director = 6 [odin-num text-lg
+#     text-success]", "Bilinmiyor = 2 [... text-content-tertiary]"
+#     → paylaşılan Stat + birleşmiş TONE ekranda, CANLI ODIN verisiyle
+#   /amazon → 10 farklı yüzde, hepsi tek ondalıkla (%8,1 · %71,5 · %122,8…)
+#     → Pct ekranda, canlı veriyle
+#   konsol: 0 hata
+#
+# ⚠️ /briefing'in HeroView'i üretim (odin) modunda ÇİZİLMEZ: fixture
+# fail-closed. Oradaki dört Stat yalnız Storybook ekran story'sinde
+# görünür — bu S8'den beri böyle, UI-ADR-136'nın getirdiği bir şey değil.
 ```
 
 Katman kenarlarını ölçmek için `scratchpad/deps.py` kullanıldı; mantığı
