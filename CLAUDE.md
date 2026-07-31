@@ -94,16 +94,22 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…129` serisindedir.
+Bu repodaki kararlar `UI-ADR-001…140` serisindedir (130–139 BOŞ — aşağıya bak).
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-130`'dan**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-141`'den**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
 DÖRT kez numara çakıştı (098; 099/100 iki kez; 116/117 — bir oturum
 099/100'ü 116/117'ye taşırken başka bir oturum 116/117'yi S8 için almıştı)
 çünkü paralel oturumlar aynı anda numara alıyor. Karar günlüğü bu repoda geri alınması en zor dosyadır.
+
+**BEŞİNCİ çakışma (31 Tem 2026) ve neden 130–139 boş:** `main`'de
+UI-ADR-129 (S14) varken `feature/s13-frontend-architecture` dalı da
+129–134'ü almıştı. Merge sırası çakışmayı büyütmesin diye S15
+**140'tan** devam etti. Boşluk zararsız, çakışma değil — ama asıl
+kural şu: **numarayı `main`'den al, dalından değil.**
 
 ### 7. Karar ODIN çekirdeğini etkiliyorsa
 

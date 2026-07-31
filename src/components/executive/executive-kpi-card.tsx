@@ -19,11 +19,11 @@
  *  - `unit: "percent"` ve `scale` yoksa değer gösterilmez (UI-ADR-093).
  */
 
-import type { ExecutiveKPI } from "@/types/executive";
+import type { ExecutiveKPI, MetricReportPeriod } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { PERCENT_SCALE_MISSING, percentFactor } from "@/lib/format/percent";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
-import { Heading, Num } from "@/components/ui/typography";
+import { Heading, Num, Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
 import { ThresholdNote } from "./threshold-note";
 import { TrustSignal } from "./trust-signal";
@@ -106,6 +106,14 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
           {/* Sayının HEMEN altında: "kritik" hükmünün onaylanmamış bir
               eşikten geldiğini görmeyen okur, ölçülmüş bir sayıyı
               kararlaştırılmış bir sınırla karıştırır (UI-ADR-126). */}
+          {/* Dönem, değerin hemen altında ve kompakt: "38 adet" ile
+              "hangi 38 gün" ayrı bilgilerdir ve kart kendi kendini
+              anlatmalıdır (UI-ADR-140). */}
+          {periodLabel(kpi.reportPeriod) && (
+            <Text size="sm" tone="tertiary" className="mt-1">
+              {periodLabel(kpi.reportPeriod)}
+            </Text>
+          )}
           <ThresholdNote provenance={kpi.thresholdProvenance} className="mt-1" />
         </div>
       </CardBody>
@@ -115,6 +123,33 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
       </CardFooter>
     </Card>
   );
+}
+
+
+/**
+ * ODIN'in bildirdiği ölçüm penceresini okunur yazar — UI-ADR-140.
+ *
+ * HESAP YOK, ÇEVİRİ VAR: kayan pencerenin başlangıcı burada
+ * TÜRETİLMEZ. Kayıt "30 Temmuz'da biten 7 günlük pencere" diyorsa ekran
+ * da onu der; sabit bir tarihe çevirmek kaydın söylemediği bir kesinlik
+ * iddia etmek olurdu.
+ *
+ * HER KARTTA gösterilir, yalnız farklı olanlarda değil (meclis · luna):
+ * dönemi karttan koparmak bağlamı da koparır ve ekran okuyucuda metrik
+ * penceresiz kalır. Bugün üç farklı pencere yan yanadır.
+ */
+function periodLabel(p: MetricReportPeriod | null | undefined): string | null {
+  if (!p) return null;
+  const d = (iso: string) =>
+    new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" }).format(
+      new Date(iso)
+    );
+  if (p.basis === "as_of" || p.at) return "anlık";
+  if (typeof p.windowDays === "number" && p.end)
+    return `son ${p.windowDays} gün · ${d(p.end)}'e kadar`;
+  if (p.start && p.end) return `${d(p.start)} – ${d(p.end)}`;
+  if (p.end) return `${d(p.end)}'e kadar`;
+  return null;
 }
 
 export function ExecutiveKPICard({
