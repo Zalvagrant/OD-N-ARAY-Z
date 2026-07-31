@@ -37,6 +37,34 @@ const tokenRules = {
       message:
         "Inline animasyon süresi yasak. src/animations/motion.ts'ten import et.",
     },
+    /* SAHTE VERİ KAÇAĞI — UI-ADR-146 (yazılımcılar denetimi).
+     *
+     * `Num` / `Pct` / `Meter` / `Stat` hepsi `null`ı NoData'ya çevirir; bu,
+     * "ölçülmedi" ile "sıfır"ı ayıran TEK mekanizmadır. Ama çağıran
+     * değeri bileşene ULAŞMADAN önce ezerse mekanizma hiç devreye girmez:
+     *
+     *     <Num value={metrics?.confidence ?? 0} />   // ← %0 UYDURUR
+     *
+     * Bu kod tip-güvenlidir, render edilir, axe'tan geçer ve hiçbir
+     * mevcut kapı onu görmez — ekranda ölçülmemiş bir metrik SIFIR olarak
+     * görünür. Sahte veri yasağının (CLAUDE.md §2) en sessiz ihlali budur.
+     *
+     * Kapsam KASITLI OLARAK DAR: yalnız `value=` prop'unun içi. Sıralama
+     * epoch'u (`new Date(x ?? 0)`) ve uzunluk kontrolü (`x?.length ?? 0`)
+     * meşrudur ve repoda üç yerde geçer — geniş bir desen onları da
+     * vururdu. */
+    {
+      selector:
+        "JSXAttribute[name.name='value'] LogicalExpression[operator='??'][right.value=0]",
+      message:
+        "SAHTE VERİ: `value={x ?? 0}` ölçülmemiş bir metriği SIFIR gösterir (CLAUDE.md §2). Ham değeri geçir — Num/Pct/Meter null'ı NoData'ya çevirir; gerekçe için noDataReason kullan.",
+    },
+    {
+      selector:
+        "JSXAttribute[name.name='value'] LogicalExpression[operator='||'][right.value=0]",
+      message:
+        "SAHTE VERİ: `value={x || 0}` ölçülmemiş bir metriği SIFIR gösterir — üstelik GERÇEK 0'ı da ezer (CLAUDE.md §2). Ham değeri geçir.",
+    },
   ],
   "react/forbid-dom-props": [
     "error",

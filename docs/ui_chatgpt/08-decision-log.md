@@ -3674,3 +3674,84 @@ KARARDIR** — ve o karar henüz verilmemiş.
 
 `tsc` 0 · `lint` 0 hata · **66 dosya / 411 test** (değişmedi — bu tur
 davranış değiştirmedi, yalnız tekrar sildi).
+
+---
+
+## UI-ADR-146 — Yazılımcılar denetimi: iki kapı eklendi, üç bulgu ölçülüp elendi (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-140…145 · yazılımcılar meclisi
+
+S13 kapanmadan önce yazılımcılara nihai denetim yaptırıldı. Beş bulgu
+geldi; **hepsi kaynaktan doğrulandı** (meclis-önce-doğrula kuralı) ve
+sonuç ikiye ayrıldı.
+
+### ✅ 1 · SAHTE VERİ KAÇAĞI — gerçek açık, kapı kuruldu
+
+En güçlü bulgu. `Num` · `Pct` · `Meter` · `Stat` hepsi `null`ı NoData'ya
+çevirir; bu, **"ölçülmedi" ile "sıfır"ı ayıran tek mekanizmadır.** Ama
+çağıran değeri bileşene ULAŞMADAN ezerse mekanizma hiç devreye girmez:
+
+```tsx
+<Num value={metrics?.confidence ?? 0} />   // ← %0 UYDURUR
+```
+
+Bu kod tip-güvenlidir, render edilir, axe'tan geçer ve **mevcut kapıların
+hiçbiri onu görmez.** Sahte veri yasağının en sessiz ihlali budur.
+
+Ölçüldü: repoda şu an bu kalıptan **yok** — ama kapı da yoktu. ESLint
+`no-restricted-syntax` ile kapatıldı; kapsam **kasıtlı olarak dar**
+(yalnız `value=` prop'unun içi), çünkü sıralama epoch'u
+(`new Date(x ?? 0)`) ve uzunluk kontrolü (`x?.length ?? 0`) meşrudur ve
+repoda üç yerde geçer. Meclisin önerdiği geniş desen onları da vururdu.
+
+**Denendi:** iki ihlal (`?? 0`, `|| 0`) yakalandı, üç meşru kullanım
+vurulmadı.
+
+### ✅ 2 · MODAL ODAK TUZAĞI — yazılmış ama TEST EDİLMEMİŞ
+
+`useDialogBehavior` odağı diyaloga alıyor, Tab'ı içeride döndürüyor ve
+kapanınca açana geri veriyor. Üçü de vardı; **hiçbirinin testi yoktu.**
+
+Meclisin isabetli tespiti: **axe bunu göremez** — axe o andaki DOM'un
+semantiğine bakar, klavyenin nereye gittiğine değil. Odak tuzağı
+çalışmayan bir modal klavye kullanıcısını arkadaki sayfaya kaçırır;
+kullanıcı hâlâ diyalogda sanır ama tıkladığı şey altındaki ekrandadır.
+Görerek fark edilmez. Üç iddia yazıldı.
+
+### ❌ 3 · React Query anahtarı eksik parametre → UYGULANMIYOR
+
+Meclis `queryKey: ["recommendation"]` gibi parametresiz bir anahtarın
+önceki varlığın verisini göstereceğini söyledi. Ölçüldü: bu repodaki
+**yedi sorgunun hiçbiri parametre almıyor** (`["odin","amazon","kpis"]`
+gibi sabit uç noktalar; tek parametreli olan `["fixture", key]` zaten
+doğru kurulmuş). Bulgu geçerli bir kalıp uyarısıdır ama burada karşılığı
+yok.
+
+### ❌ 4 · Geniş Zustand seçimi → UYGULANMIYOR
+
+Ölçüldü: `useNavigationStore` her çağrıda TEK alan seçiyor
+(`(s) => s.expandedId` gibi). Meclisin uyardığı `useStore()` biçimi
+repoda hiç yok.
+
+### ⚠️ 5 · EKRAN SEVİYESİ DURUM MATRİSİ — açık kaldı, gerekçesiyle
+
+Meclisin en değerli test-sınıfı bulgusu: bileşen testleri parçaları
+kanıtlıyor ama `veri durumu → ekran` zincirini kimse kanıtlamıyor.
+Doğrulandı: dört ekranın `loading` / `empty` / `error` story'si **var ama
+hiçbiri bir şey İDDİA ETMİYOR**, yalnız render ediyorlar.
+
+Yazıldı ve **geri alındı.** Sebep dürüstçe kayda geçiyor: `demo` prop'u
+`useOdinFixture`in asenkron yüklemesine bağlı; `play` çalıştığında zarf
+henüz `null` olabiliyor ve tahta "Karar verisi yok" ile "İzlenen karar
+yok" arasında zamanlamaya göre değişiyor. Bu haliyle yazılan test
+**kararsız** olurdu — ve kararsız bir test, testsizlikten kötüdür.
+
+Doğru çözümü ayrı bir iştir: ekran seviyesinde deterministik zarf
+enjeksiyonu (fixture'ı `play` öncesi çözülmüş hâle getirmek). `19-s13-devir.md`
+§2.8'e açık madde olarak yazıldı.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **66 dosya / 412 test** (+1 test).

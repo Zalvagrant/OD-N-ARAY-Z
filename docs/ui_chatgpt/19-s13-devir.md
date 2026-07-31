@@ -42,15 +42,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **143** | Ekranlar `features/<alan>/screen.tsx`e taşındı | `components/screens/` KALKTI; kapı dosya adına bağlandı, 4 ihlalle denendi (biri ilk denemede kaçtı) |
 | **144** | Bölme ÖLÇÜTÜ (4 koşul); yalnız `VerdictForm` geçti | 6 dosya ölçüldü 1'i bölündü (419→307); ADR-0085 açıklanabilirlik kapısı ilk kez test altına alındı |
 | **145** | §2.3'ün kalanı ölçüldü; iki iddia ÇÜRÜDÜ | `GuardedCard` yazılmadı (varyasyon matrisi) · `Caption` 48 değil 9'muş · tek gerçek elle-yazım düzeltildi |
+| **146** | Yazılımcılar denetimi | Sahte-veri kaçağı kapısı (`value={x ?? 0}`) + modal odak tuzağı testi; 2 bulgu ölçülüp elendi, 1'i açık bırakıldı |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **66 dosya/411 test**
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **66 dosya/412 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
 +4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den, +5 dosya/+42 test UI-ADR-142'den, +1 dosya/+9 test UI-ADR-144'ten),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…145**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…146**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -128,6 +129,23 @@ ayrı sayılmalıydı) `components/executive/helpers.test.ts` altında,
 Test yazılırken `decision-queue.tsx` başlığının **kodla çeliştiği**
 ortaya çıktı: silinmiş `priority`/`financialImpact` sıralamasını
 anlatıyordu (UI-ADR-100). Düzeltildi.
+
+### 2.8 · ⚠️ AÇIK — ekran seviyesi durum matrisi (UI-ADR-146)
+
+**Yazılımcılar meclisinin bulduğu tek kapanmamış açık.** Bileşen testleri
+parçaları kanıtlıyor ama `veri durumu → ekran` zincirini kimse
+kanıtlamıyor. Dört ekranın `loading`/`empty`/`error` story'si VAR ama
+hiçbiri bir şey İDDİA ETMİYOR — yalnız render ediyorlar.
+
+Yazıldı ve GERİ ALINDI: `demo` prop'u `useOdinFixture`in asenkron
+yüklemesine bağlı; `play` çalıştığında zarf henüz `null` olabiliyor ve
+tahta "Karar verisi yok" ile "İzlenen karar yok" arasında zamanlamaya
+göre değişiyor. Kararsız bir test, testsizlikten kötüdür.
+
+**Doğru çözüm:** ekran seviyesinde deterministik zarf enjeksiyonu —
+`play` öncesi fixture'ı çözülmüş hâle getirecek bir yol. Kilitlenecek
+ayrım: **"yükleniyor" ile "ölçüldü ve sıfır" ile "ölçülmedi" ÜÇ AYRI
+ŞEYDİR** ve üçü de birbirine benzeyen bir ekran üretebilir.
 
 ### 2.6 · ~~Tüketicisi olmayan modüller~~ ✅ SAHİP KARAR VERDİ
 
@@ -212,8 +230,8 @@ npm run lint              # 0 hata olmalı
 # uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
 # de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
 npx vitest run --project=unit        # 15 dosya / 220 test
-npx vitest run --project=storybook   # 51 dosya / 191 test  (TEK komut)
-#                            TOPLAM: 66 dosya / 411 test
+npx vitest run --project=storybook   # 51 dosya / 192 test  (TEK komut)
+#                            TOPLAM: 66 dosya / 412 test
 # ⚠️ `npx vitest run` (ikisi birden) KULLANMA — tuzak #1'e bak.
 
 # ÜRETİM DERLEMESİ + EKRAN DOĞRULAMASI (31 Tem'de yapıldı)

@@ -141,3 +141,62 @@ export const AciklamaYoksaBagYok: StoryObj = {
     await expect(dialog).not.toHaveAttribute("aria-describedby");
   },
 };
+
+/**
+ * ODAK TUZAĞI — UI-ADR-146 (yazılımcılar denetimi).
+ *
+ * `useDialogBehavior` odağı diyaloga alıyor, Tab'ı içeride döndürüyor ve
+ * kapanınca AÇANA geri veriyor. Üçü de yazılmıştı ama **hiçbirinin testi
+ * yoktu** — ve axe bunların hiçbirini göremez: axe o ANDAKİ DOM'un
+ * semantiğine bakar, klavyenin nereye gittiğine değil.
+ *
+ * Odak tuzağı olmayan bir modal, klavye kullanıcısını arkadaki sayfaya
+ * kaçırır: kullanıcı hâlâ diyalogda sanır ama tıkladığı şey altındaki
+ * ekrandadır. Görerek fark edilmez.
+ */
+export const OdakTuzagi: StoryObj = {
+  name: "Odak diyaloga girer, içeride döner ve kapanınca AÇANA geri döner",
+  render: function Render() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <Button variant="primary" onClick={() => setOpen(true)}>
+          Aç
+        </Button>
+        <Modal
+          open={open}
+          onClose={() => setOpen(false)}
+          title="Kararı onayla"
+          footer={<Button variant="primary">Onayla</Button>}
+        >
+          <Text>Gövde.</Text>
+        </Modal>
+      </>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", { name: "Aç" });
+    await userEvent.click(trigger);
+
+    const body = within(document.body);
+    const dialog = await body.findByRole("dialog", { name: "Kararı onayla" });
+
+    /* 1. Açılınca odak İÇERİ girer — arkadaki sayfada kalmaz. */
+    await expect(dialog.contains(document.activeElement)).toBe(true);
+
+    /* 2. Tab diyaloğun İÇİNDE döner. Odaklanabilirlerin sonundan sonra
+       başa sarmalı; sarmazsa odak arkadaki ekrana kaçar. */
+    const focusables = dialog.querySelectorAll<HTMLElement>(
+      "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
+    );
+    await expect(focusables.length).toBeGreaterThan(1);
+    for (let i = 0; i < focusables.length + 1; i++) await userEvent.tab();
+    await expect(dialog.contains(document.activeElement)).toBe(true);
+
+    /* 3. Escape kapatır ve odak AÇANA döner — yoksa odak silinen bir
+       düğümde kalır ve sonraki Tab belgenin başına atlar. */
+    await userEvent.keyboard("{Escape}");
+    await expect(body.queryByRole("dialog")).toBeNull();
+    await expect(trigger).toHaveFocus();
+  },
+};
