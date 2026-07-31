@@ -18,10 +18,16 @@
 
 import { useState } from "react";
 import type { Decision } from "@/types/executive";
-import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
+import type { DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
 import { useNow } from "@/lib/clock/tick";
 import { MockBadge } from "@/components/ui/mock-badge";
+import {
+  demoError,
+  emptied,
+  screenState,
+  type DemoState,
+} from "@/features/shell/screen-state";
 import { greeting } from "@/features/executive/presentation/greeting";
 import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Button } from "@/components/ui/button";
@@ -29,7 +35,7 @@ import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Timeline } from "@/components/ui/timeline";
 import { Heading, Num, Text } from "@/components/ui/typography";
-import { Section, type SectionError } from "@/components/layout/section";
+import { Section } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
 import { AIPulse } from "@/components/executive/ai-pulse";
@@ -125,22 +131,17 @@ function HeroView({ hero, meta }: { hero: ExecutiveHero; meta: DataMeta }) {
    Ekran
    -------------------------------------------------------------------------- */
 
-const DEMO_ERROR: SectionError = {
-  what: "Brifing verisi yüklenemedi",
-  why: "ODIN yerel sunucusu (127.0.0.1) yanıt vermedi.",
-  impact: "Bugünün kararları, riskleri ve KPI'ları güncel değil; onay verilmemeli.",
-  fix: "ODIN sunucusunu başlat, sonra yeniden dene.",
-};
+const DEMO_ERROR = demoError(
+  "Brifing verisi yüklenemedi",
+  "Kritik kararlar ve riskler güncel değil."
+);
 
-function empty<T>(env: DataEnvelope<T[]> | null): DataEnvelope<T[]> | null {
-  return env ? { data: [], meta: env.meta } : null;
-}
 
 export function ExecutiveBriefing({
   demo,
 }: {
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
-  demo?: "loading" | "empty" | "error";
+  demo?: DemoState;
 }) {
   const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
 
@@ -154,21 +155,12 @@ export function ExecutiveBriefing({
   const timeline = useOdinFixture("briefing.timeline");
   const pulse = useOdinFixture("briefing.pulse");
 
-  const loading = demo === "loading" || hero.loading;
-  const error = demo === "error" ? DEMO_ERROR : null;
-  const isEmpty = demo === "empty";
-
-  const reloadAll = () => {
-    hero.refetch();
-    decisions.refetch();
-    risks.refetch();
-    opportunities.refetch();
-    kpis.refetch();
-    brief.refetch();
-    directors.refetch();
-    timeline.refetch();
-    pulse.refetch();
-  };
+  const { loading, error, isEmpty, reloadAll } = screenState({
+    demo,
+    primary: hero,
+    sources: [hero, decisions, risks, opportunities, kpis, brief, directors, timeline, pulse],
+    error: DEMO_ERROR,
+  });
 
   /* Verdict S7'de POST /api/command'a bağlanacak (ER-0025). Şimdilik
      oturum içi işaretlenir ve KAYDEDILMEDIGI açıkça yazılır. */
@@ -218,7 +210,7 @@ export function ExecutiveBriefing({
         onRetry={reloadAll}
       >
         <DecisionQueue
-          env={isEmpty ? empty(decisions.envelope) : decisions.envelope}
+          env={isEmpty ? emptied(decisions.envelope) : decisions.envelope}
           limit={3}
           onVerdict={onVerdict}
         />
@@ -245,7 +237,7 @@ export function ExecutiveBriefing({
           {/* Kart başlığı FİLTRE KURALINI söyler; boş bırakılırsa kartın
               üstünde boş bir şerit kalır ve eleme kuralı görünmez olur. */}
           <AlertStack
-            env={isEmpty ? empty(risks.envelope) : risks.envelope}
+            env={isEmpty ? emptied(risks.envelope) : risks.envelope}
             title="Aksiyon gerektirenler"
           />
         </Section>

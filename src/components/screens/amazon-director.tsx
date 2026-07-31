@@ -27,12 +27,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AmazonSnapshot } from "@/types/executive";
-import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
+import type { DataMeta } from "@/types/data-envelope";
 import type { SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
 import { MockBadge } from "@/components/ui/mock-badge";
+import {
+  demoError,
+  emptied,
+  noContract,
+  screenState,
+  type DemoState,
+} from "@/features/shell/screen-state";
 import {
   useAmazonAlerts,
   useAmazonKpis,
@@ -377,32 +384,18 @@ function skuColumns(): ColumnDef<SkuHealth, unknown>[] {
    Ekran
    -------------------------------------------------------------------------- */
 
-const DEMO_ERROR: SectionError = {
-  what: "Amazon verisi yüklenemedi",
-  why: "ODIN yerel sunucusu (127.0.0.1) yanıt vermedi.",
-  impact: "KPI'lar, SKU sağlığı ve PPC verisi güncel değil; bütçe kararı verilmemeli.",
-  fix: "ODIN sunucusunu başlat, sonra yeniden dene.",
-};
+const DEMO_ERROR = demoError(
+  "Amazon verisi yüklenemedi",
+  "KPI'lar, SKU sağlığı ve PPC verisi güncel değil; bütçe kararı verilmemeli."
+);
 
-/** Sözleşmesi olmayan bölümlerin ortak metni — UI-ADR-096. */
-function noContract(name: string, why: string) {
-  return {
-    emptyTitle: `${name} sözleşmesi tanımlı değil`,
-    emptyDescription: why,
-    emptySuggestion:
-      "Soru 13-backend-recommendations.md §16.4'e düşüldü; sözleşme geldiğinde bölüm aynı yere oturur.",
-  };
-}
 
-function empty<T>(env: DataEnvelope<T[]> | null): DataEnvelope<T[]> | null {
-  return env ? { data: [], meta: env.meta } : null;
-}
 
 export function AmazonDirector({
   demo,
 }: {
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
-  demo?: "loading" | "empty" | "error";
+  demo?: DemoState;
 }) {
   const router = useRouter();
   const now = useNow();
@@ -438,20 +431,12 @@ export function AmazonDirector({
   const sectionError = (live: { toErrorState: () => SectionError } | null) =>
     demo === "error" ? DEMO_ERROR : (live?.toErrorState() ?? null);
 
-  const loading = demo === "loading" || snapshot.loading;
-  const error = demo === "error" ? DEMO_ERROR : null;
-  const isEmpty = demo === "empty";
-
-  const reloadAll = () => {
-    snapshot.refetch();
-    kpis.refetch();
-    skus.refetch();
-    ppc.refetch();
-    campaigns.refetch();
-    simulations.refetch();
-    alerts.refetch();
-    opportunities.refetch();
-  };
+  const { loading, error, isEmpty, reloadAll } = screenState({
+    demo,
+    primary: snapshot,
+    sources: [snapshot, kpis, skus, ppc, campaigns, simulations, alerts, opportunities],
+    error: DEMO_ERROR,
+  });
 
   const skuRows = isEmpty ? [] : (skus.envelope?.data ?? []);
   /* FR-0046 v1 Opportunity'de `category` YOK — reklam/genel ayrımını sürecek
@@ -635,7 +620,8 @@ export function AmazonDirector({
           empty
           {...noContract(
             "Order",
-            "09-data-contracts.md sipariş seviyesinde bir sözleşme içermiyor; `AmazonSnapshot.orders` yalnızca bir SAYIDIR. Akış ve anomali listesi bu sayıdan türetilemez."
+            "09-data-contracts.md sipariş seviyesinde bir sözleşme içermiyor; `AmazonSnapshot.orders` yalnızca bir SAYIDIR. Akış ve anomali listesi bu sayıdan türetilemez.",
+            "13-backend-recommendations.md §16.4"
           )}
         />
         </div>
@@ -649,7 +635,8 @@ export function AmazonDirector({
           empty
           {...noContract(
             "Zaman serisi",
-            "09-data-contracts.md hiçbir yerde etiketli zaman serisi tanımlamıyor; `ExecutiveKPI.sparkline` yalnızca YÖN gösterir, tarihli seri değildir. Eksen etiketlerini uydurmak, olmayan bir ölçümü varmış gibi göstermek olurdu."
+            "09-data-contracts.md hiçbir yerde etiketli zaman serisi tanımlamıyor; `ExecutiveKPI.sparkline` yalnızca YÖN gösterir, tarihli seri değildir. Eksen etiketlerini uydurmak, olmayan bir ölçümü varmış gibi göstermek olurdu.",
+            "13-backend-recommendations.md §16.4"
           )}
         />
 
@@ -760,7 +747,7 @@ export function AmazonDirector({
           onRetry={reloadAll}
         >
           <AlertStack
-            env={isEmpty ? empty(alerts.envelope) : alerts.envelope}
+            env={isEmpty ? emptied(alerts.envelope) : alerts.envelope}
             title="Aksiyon gerektirenler"
           />
         </Section>
@@ -778,7 +765,7 @@ export function AmazonDirector({
         onRetry={reloadAll}
       >
         <div className="grid gap-8 xl:grid-cols-3 [&>*]:min-w-0">
-          <CampaignIntelligenceList env={isEmpty ? empty(campaigns.envelope) : campaigns.envelope} />
+          <CampaignIntelligenceList env={isEmpty ? emptied(campaigns.envelope) : campaigns.envelope} />
 
           <div className="flex flex-col gap-4">
             <Text size="sm" tone="secondary">
@@ -795,7 +782,7 @@ export function AmazonDirector({
             </Text>
           </div>
 
-          <SimulationPanel env={isEmpty ? empty(simulations.envelope) : simulations.envelope} />
+          <SimulationPanel env={isEmpty ? emptied(simulations.envelope) : simulations.envelope} />
         </div>
       </Section>
 

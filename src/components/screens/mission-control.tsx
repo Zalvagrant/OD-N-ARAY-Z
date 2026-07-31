@@ -20,18 +20,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
-import type { DataEnvelope } from "@/types/data-envelope";
 import {
   useOdinDirectors,
   type RuntimeDirectorParsed,
 } from "@/lib/data/odin-state";
 import { MockBadge } from "@/components/ui/mock-badge";
+import {
+  demoError,
+  emptied,
+  noContract,
+  screenState,
+  type DemoState,
+} from "@/features/shell/screen-state";
 import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
 import { Text } from "@/components/ui/typography";
-import { Section, type SectionError } from "@/components/layout/section";
+import { Section } from "@/components/layout/section";
+import type { DataEnvelope } from "@/types/data-envelope";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { RuntimeDirectorCard } from "@/components/executive/runtime-director-card";
@@ -137,24 +144,19 @@ function OperationalStatus({
    Ekran
    -------------------------------------------------------------------------- */
 
-const DEMO_ERROR: SectionError = {
-  what: "Operasyon verisi yüklenemedi",
-  why: "ODIN yerel sunucusu (127.0.0.1) yanıt vermedi.",
-  impact: "Görev tahtası ve Director koordinasyonu güncel değil.",
-  fix: "ODIN sunucusunu başlat, sonra yeniden dene.",
-};
+const NO_CONTRACT_WHY =
+  "09-data-contracts.md bu bölüm için bir veri sözleşmesi içermiyor. Uydurulmuş bir liste göstermek yerine boş bırakıldı.";
 
-/** Sözleşmesi olmayan bölümlerin ortak metni — UI-ADR-096. */
-const NO_CONTRACT = (name: string, ref: string) => ({
-  title: `${name} sözleşmesi tanımlı değil`,
-  description: `09-data-contracts.md bu bölüm için bir veri sözleşmesi içermiyor. Uydurulmuş bir liste göstermek yerine boş bırakıldı.`,
-  suggestion: `Soru ${ref}'e düşüldü; sözleşme geldiğinde bölüm aynı yere oturur.`,
-});
+const DEMO_ERROR = demoError(
+  "Operasyon verisi yüklenemedi",
+  "Görev tahtası ve Director koordinasyonu güncel değil."
+);
+
 
 export function MissionControl({
   demo,
 }: {
-  demo?: "loading" | "empty" | "error";
+  demo?: DemoState;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -167,18 +169,14 @@ export function MissionControl({
   const directors = useOdinDirectors();
   const alerts = useOdinFixture("briefing.risks");
 
-  const loading = demo === "loading" || decisions.loading;
-  const error = demo === "error" ? DEMO_ERROR : null;
-  const isEmpty = demo === "empty";
+  const { loading, error, isEmpty, reloadAll } = screenState({
+    demo,
+    primary: decisions,
+    sources: [decisions, directors, alerts],
+    error: DEMO_ERROR,
+  });
 
-  const reloadAll = () => {
-    decisions.refetch();
-    directors.refetch();
-    alerts.refetch();
-  };
-
-  const decisionEnv =
-    isEmpty && decisions.envelope ? { data: [], meta: decisions.envelope.meta } : decisions.envelope;
+  const decisionEnv = isEmpty ? emptied(decisions.envelope) : decisions.envelope;
 
   return (
     <div className="flex max-w-screen-2xl flex-col gap-8">
@@ -253,7 +251,7 @@ export function MissionControl({
           onRetry={reloadAll}
         >
           <AlertStack
-            env={isEmpty && alerts.envelope ? { data: [], meta: alerts.envelope.meta } : alerts.envelope}
+            env={isEmpty ? emptied(alerts.envelope) : alerts.envelope}
           />
         </Section>
       </div>
@@ -285,17 +283,29 @@ export function MissionControl({
         <Section
           title="Active Projects"
           empty
-          {...emptyProps(NO_CONTRACT("Project", "13-backend-recommendations.md §14.2"))}
+          {...noContract(
+            "Project",
+            NO_CONTRACT_WHY,
+            "13-backend-recommendations.md §14.2"
+          )}
         />
         <Section
           title="Resource Allocation"
           empty
-          {...emptyProps(NO_CONTRACT("ResourceAllocation", "13-backend-recommendations.md §14.2"))}
+          {...noContract(
+            "ResourceAllocation",
+            NO_CONTRACT_WHY,
+            "13-backend-recommendations.md §14.2"
+          )}
         />
         <Section
           title="Automation Queue"
           empty
-          {...emptyProps(NO_CONTRACT("AutomationQueue", "13-backend-recommendations.md §14.2"))}
+          {...noContract(
+            "AutomationQueue",
+            NO_CONTRACT_WHY,
+            "13-backend-recommendations.md §14.2"
+          )}
         />
       </div>
 
@@ -314,10 +324,3 @@ export function MissionControl({
   );
 }
 
-function emptyProps(v: { title: string; description: string; suggestion: string }) {
-  return {
-    emptyTitle: v.title,
-    emptyDescription: v.description,
-    emptySuggestion: v.suggestion,
-  };
-}

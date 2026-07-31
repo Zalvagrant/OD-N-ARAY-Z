@@ -2687,3 +2687,65 @@ Kenarlar: `screens → mocks` 0 · `layout → screens` 0 ·
 Dev sunucusunda `/amazon`: BuyBox listesi en kötüden sıralı
 (%62,0 · %71,3 · %78,4 · %88,0) ve altında onaylanmamış eşik uyarısı
 görünüyor.
+
+---
+
+## UI-ADR-131 — Ekran iskelesi tek yerde; "sözleşme yok" metninin iki şekli birleşti (S13)
+
+**Durum:** ✅ Dondurulmuş — dört ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-096 · UI-ADR-129 · UI-ADR-130
+
+### Bulgu
+
+Üç ekran (`executive-briefing` · `mission-control` · `amazon-director`)
+beş şeyi kelimesi kelimesine tekrar yazıyordu:
+
+| Tekrar | Kaç kopya |
+|---|---|
+| `DEMO_ERROR` nesnesi (`why`/`fix` ÜÇÜNDE DE AYNI) | 3 |
+| `demo` → `loading`/`error`/`isEmpty` türetmesi | 3 |
+| `reloadAll` yelpazesi | 3 |
+| `empty<T>()` zarf boşaltıcı | 2 + 2 satır-içi |
+| "sözleşme yok" metni | 2 **AYRI ŞEKİL** |
+
+Sonuncusu tekrarın nasıl SAPMAYA döndüğünün örneğiydi: `amazon-director`
+`emptyTitle/emptyDescription/emptySuggestion` üretiyordu, `mission-control`
+`title/description/suggestion` üretiyor ve arada `emptyProps` diye bir
+**adaptör fonksiyonu** taşıyordu. Aynı UI-ADR-096 deseninin iki şekli ve
+onları birbirine bağlayan üçüncü bir parça.
+
+Bu tekrarların çoğu UI-ADR-129'dan ÖNCE toplanamazdı: iki veri zinciri
+varken ekranların durum şekilleri de farklıydı. Boru birleşince
+soyutlama mümkün ve doğru hâle geldi.
+
+### Karar
+
+`src/features/shell/screen-state.ts` — `demoError` · `screenState` ·
+`emptied` · `noContract`.
+
+**Hiçbiri hook DEĞİL** ve bu bilinçli: saf fonksiyonlar renderer olmadan
+test edilebilir. Repo bu dersi `mockGate`te bir kez öğrenmişti — kritik
+dal, doğrulanması için tarayıcı gerektirmemeli.
+
+`emptyProps` adaptörü SİLİNDİ: `noContract` artık `Section`'ın beklediği
+adları doğrudan üretiyor, çevrilecek bir şey kalmadı.
+
+### Korunan davranışlar
+
+- `loading` hâlâ TEK bir birincil kaynağa bağlı, "herhangi biri
+  yükleniyor" değil. Hepsini OR'lamak en yavaş uç noktanın tüm ekranı
+  iskelette tutması demek olurdu — üç ekranda da bugünkü davranış budur.
+- `emptied` zarfı boşaltır ama **meta'yı korur**: `null` "veri yok"
+  demektir, boş dizi + meta "ölçüldü, sonuç boş" demektir. İkisi ayrı
+  ifadelerdir.
+
+### Ölçüm
+
+Lint 0 · `tsc` 0 · 55 dosya / **302 test** yeşil (295'ten +7).
+`amazon-director` 815 → 802 satır; `executive-briefing` 376 → 368.
+
+Dev sunucusu temiz derlemeyle yeniden başlatıldı; dört rotanın dördü de
+derleme hatasız. `/amazon` BuyBox listesi sıralı (%62,0 · %71,3 · %78,4 ·
+%88,0) ve onaylanmamış eşik uyarısı altında görünüyor.
+`/mission-control` üç "sözleşme yok" bölümü tek şekilden basılıyor.
