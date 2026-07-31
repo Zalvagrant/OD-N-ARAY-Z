@@ -268,6 +268,18 @@ describe("iptal: zaman aşımı ile çağıranın iptali ayrılır", () => {
     vi.unstubAllGlobals();
   });
 
+  it("AĞ HATASI iptal bayrağının arkasına SAKLANMAZ", async () => {
+    /* Meclis ikinci turu: yalnız `signal.aborted` bakılsaydı, ağ kopması
+       kullanıcının iptaliyle aynı ana denk geldiğinde hata YUTULUR ve
+       ekran sessizce boş kalırdı. Hata TİPİ de kontrol edilir. */
+    vi.stubGlobal("fetch", () =>
+      new Promise((_res, rej) => setTimeout(() => rej(new TypeError("fetch failed")), 5))
+    );
+    const p = httpLoad("/api/state", { signal: AbortSignal.abort(), timeoutMs: 50 });
+    await expect(p).rejects.toBeInstanceOf(OdinError);
+    vi.unstubAllGlobals();
+  });
+
   it("ÇAĞIRAN İPTAL ETTİYSE zaman aşımı da dolmuş olsa hata üretilmez", async () => {
     /*
      * UI-ADR-121'in gerçek yarışı. İKİSİ DE abort olmuş durumda yakalanır:

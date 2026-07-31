@@ -73,6 +73,11 @@ export function parseEnvelope<T>(
   };
 }
 
+/** `AbortController`/`AbortSignal.timeout` bu adla `DOMException` atar. */
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
+}
+
 /**
  * ODIN'e HTTP isteği. S8'de gerçek uç noktalara bağlanacak olan budur;
  * S7'de yazıldı ve testle doğrulandı ama henüz hiçbir ekran çağırmıyor.
@@ -110,8 +115,13 @@ export async function httpLoad(
      * Doğru kural tek cümle: çağıran iptal ettiyse — zaman aşımı da olsa —
      * bu bizim raporlayacağımız bir hata değildir. Kullanıcı o ekrandan
      * ayrıldı; React Query iptali zaten sessizce düşürür.
+     *
+     * AMA yalnız GERÇEK iptal hatası yutulur (meclis ikinci turu): ağ
+     * kopması ile kullanıcının iptali aynı ana denk gelirse, `aborted`
+     * bayrağına bakıp her hatayı yutmak ağ hatasını GİZLERDİ. Hata tipi
+     * de kontrol edilir; iptal olmayan bir hata her zaman sınıflandırılır.
      */
-    if (signal?.aborted) throw err;
+    if (signal?.aborted && isAbortError(err)) throw err;
     throw classifyError(err, path);
   }
 

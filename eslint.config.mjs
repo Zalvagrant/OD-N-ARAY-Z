@@ -78,6 +78,27 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
      Kalıcı çözüm: 11-design-tokens.md güncellenip kod yenilenmeli. */
   files: ["src/components/layout/theme-provider.tsx"],
   rules: { "react-hooks/set-state-in-effect": "off" },
+}, {
+  /* MOCK ERİŞİMİ TEK KAPIDAN — UI-ADR-123.
+     Bir ekran mock modülünü doğrudan import ederse modül üretim paketine
+     geri girer; `build:release` kapısı bunu yakalar ama derleme sonunda,
+     yani en geç. Kural aynı hatayı düzenleyicide yakalar.
+     Muafiyet: kayıt defterinin kendisi, hikâyeler ve testler (bunlar
+     üretim paketine girmez). */
+  files: ["src/**/*.{ts,tsx}"],
+  ignores: [
+    "src/mocks/**",
+    "src/**/*.stories.tsx",
+    "src/**/*.test.{ts,tsx}",
+  ],
+  rules: {
+    "no-restricted-imports": ["error", {
+      patterns: [{
+        group: ["@/mocks/amazon", "@/mocks/briefing", "@/mocks/feed", "**/mocks/amazon", "**/mocks/briefing", "**/mocks/feed"],
+        message: "Mock modülünü doğrudan import etme (UI-ADR-123): üretim paketine girer. useMockData(\"anahtar\") kullan — anahtarlar src/mocks/registry.ts'te.",
+      }],
+    }],
+  },
 }, globalIgnores([
   // Default ignores of eslint-config-next:
   ".next/**",

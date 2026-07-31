@@ -2032,9 +2032,16 @@ throw classifyError(err, path);
 Kullanıcı o ekrandan ayrılmıştır; React Query iptali zaten sessizce düşürür.
 Fazladan `AbortController` ve bayrak da gitti — doğru kural daha az koddu.
 
+**İKİNCİ TUR RAFİNESİ (meclis):** yalnız `signal.aborted` bakmak da eksikti.
+Ağ kopması kullanıcının iptaliyle aynı ana denk gelirse her hata yutulur ve
+**ağ hatası gizlenirdi.** Hata TİPİ de kontrol edilir:
+`if (signal?.aborted && isAbortError(err)) throw err;` — iptal olmayan bir
+hata her zaman sınıflandırılır.
+
 **Kapı ölçüldü:** test önce yazıldı ve ESKİ koşulla DÜŞTÜĞÜ, düzeltmeyle
 GEÇTİĞİ ayrı ayrı çalıştırılarak doğrulandı. İlk yazdığım test her iki
-kodla da geçiyordu — yani kapı değildi; düşemeyen test tiyatrodur.
+kodla da geçiyordu — yani kapı değildi; düşemeyen test tiyatrodur. Ağ
+hatası testi de aynı yöntemle kapı olduğu kanıtlanarak eklendi.
 
 **Etki:** `lib/data/client.ts`.
 
@@ -2112,6 +2119,40 @@ DÜŞEBİLDİĞİ kanıtlandı: mock modda derlenen çıktıda 22 eşleşme bulu
 - Gerçek mod: rozet yok, Director sayaçları `—` + "kaynak bağlı değil —
   ölçülmedi", bölümler gerekçeli boş durum basıyor, konsolda hata yok.
 
+**İKİNCİ TUR — meclisin bulduğu üç açık kapatıldı:**
+
+1. **Sözleşme kapısı** (`mocks/registry.contract.ts`). Kör noktaydı: alias
+   yalnız paketleyicidedir, `tsc` her zaman gerçek `registry.ts`'i görür —
+   yani stub imzadan sapabilir, derleme yeşil kalır ve kırılma YALNIZ
+   release paketinde çıkardı. Artık release modülü gerçek modülün tipine
+   atanıyor; sapma derlemeyi düşürür. Düştüğü ÖLÇÜLDÜ (imza bozulunca
+   TS2322).
+2. **ESLint kuralı.** `no-restricted-imports` mock modüllerinin doğrudan
+   import'unu yasaklar (registry, hikâyeler ve testler muaf). Paket kapısı
+   aynı hatayı yakalıyordu ama derleme SONUNDA; kural düzenleyicide
+   yakalar. Ateşlediği ÖLÇÜLDÜ.
+3. **Uçuştaki yükleme tekilleştirmesi.** Aynı mock'u iki bölüm kullandığında
+   (decisions hem Briefing'de hem Mission Control'de) iki dinamik import
+   başlıyordu. `INFLIGHT` haritası eklendi.
+   **İlk uygulamam çalışmıyordu ve testi yazınca ortaya çıktı:** `fillStore`
+   `async` olduğu için `return task` sözü YENİ bir sözle sarmalıyordu;
+   uçuştaki sözün kimliği kayboluyor, ikinci çağıran onu tanımıyordu.
+   `async` kaldırıldı. Test referans eşitliğini ölçer — tekilleştirme
+   kaldırılırsa düşer.
+
+Ayrıca her `MockKey`'in gerçekten çözüldüğü test edildi: tipe eklenip
+`switch`'e eklenmeyen bir anahtar sessizce `null` döner ve ekran "veri yok"
+derdi — mock modda teşhisi en zor hata budur.
+
+**RESPONSIVE ÖLÇÜMÜ (sahibin 2. sorusu).** 375px'te ölçüp "kusur var"
+diyecektim; `03-information-architecture.md` §9.4 tablet ve mobili açıkça
+**"(gelecek)"** diyor, hedefler 1366–3840. Yanlış kapıya ölçüyormuşum.
+Desteklenen aralıkta ölçüldü: **1366** → yatay taşma 0, KPI 4 sütun
+(247px), bölümler 2/3 sütun; **1920** → yatay taşma 0, 8 bölüm, hata
+kutusu yok. Mobil kenar çubuğu davranışı (224px sabit, breakpoint sınıfı
+yok) S2'den gelir ve S8 ona dokunmadı — kapsam dışıdır, kusur değil.
+
 **Etki:** `mocks/registry.ts` (yeni), `mocks/registry.release.ts` (yeni),
-`mocks/use-mock.ts`, beş ekran, `next.config.ts`,
+`mocks/registry.contract.ts` (yeni), `mocks/registry.test.ts` (yeni),
+`mocks/use-mock.ts`, beş ekran, `next.config.ts`, `eslint.config.mjs`,
 `scripts/assert-no-mock-in-bundle.mjs` (yeni), `package.json`.

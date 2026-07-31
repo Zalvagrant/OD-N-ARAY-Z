@@ -70,15 +70,39 @@ function readSnapshot(key: MockKey): unknown {
   return storeFor(key).snapshot; // saf okuma — yan etki YOK
 }
 
-async function fillStore(key: MockKey, force: boolean): Promise<void> {
+/* Uçuştaki yüklemeler: aynı anahtar için ikinci bir istek YENİ bir dinamik
+   import başlatmaz, mevcut sözü bekler (meclis bulgusu). Aynı mock'u iki
+   bölüm kullandığında iki kez yükleme olurdu. */
+const INFLIGHT = new Map<MockKey, Promise<void>>();
+
+/**
+ * Dışa açık YALNIZ tekilleştirme testi için (aşağıdaki INFLIGHT kuralı).
+ *
+ * `async` DEĞİL ve bu kasıtlı: `async` bir fonksiyon `return task` yaparken
+ * sözü YENİ bir sözle sarmalar, uçuştaki sözün kimliği kaybolur ve ikinci
+ * çağıran onu tanıyamaz. Testle yakalandı — tekilleştirme yazılmış ama
+ * çalışmıyordu.
+ */
+export function fillStore(key: MockKey, force: boolean): Promise<void> {
   const s = storeFor(key);
-  if (!force && s.snapshot !== null) return;
-  /* Gerçek modda `loadMock` daima null döner (fail-closed) ve store hiç
-     dolmaz — bölümler "veri yok" gerekçesini basar. */
-  const value = await loadMock(key);
-  if (value === null) return;
-  s.snapshot = value;
-  s.listeners.forEach((l) => l());
+  if (!force && s.snapshot !== null) return Promise.resolve();
+
+  const running = INFLIGHT.get(key);
+  if (running && !force) return running;
+
+  const task: Promise<void> = (async () => {
+    /* Gerçek modda `loadMock` daima null döner (fail-closed) ve store hiç
+       dolmaz — bölümler "veri yok" gerekçesini basar. */
+    const value = await loadMock(key);
+    if (value === null) return;
+    s.snapshot = value;
+    s.listeners.forEach((l) => l());
+  })().finally(() => {
+    if (INFLIGHT.get(key) === task) INFLIGHT.delete(key);
+  });
+
+  INFLIGHT.set(key, task);
+  return task;
 }
 
 /**
