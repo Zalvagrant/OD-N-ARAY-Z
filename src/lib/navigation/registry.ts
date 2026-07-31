@@ -27,6 +27,7 @@ import {
   ScrollText,
   Settings,
   ShoppingCart,
+  Target,
 } from "lucide-react";
 
 export interface NavChild {
@@ -118,6 +119,17 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/decisions",
         icon: Gauge,
         type: "operational",
+      },
+      /* Hedefler EXECUTIVE altında ve Mission Control'den AYRI — UI-ADR-124.
+         `Goal` ODIN'in kendi varlığıdır (ADR-0034); ADR-0143 §4'ün reddettiği
+         `Mission` DEĞİLDİR. Adı "Mission" içeremez: o kavramı arayüze geri
+         getirmek kararı sessizce iptal ederdi. */
+      {
+        id: "goals",
+        label: "Hedefler",
+        href: "/goals",
+        icon: Target,
+        type: "executive",
       },
     ],
   },

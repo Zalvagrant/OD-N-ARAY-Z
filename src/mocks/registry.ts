@@ -39,6 +39,7 @@ const REAL_MODE = process.env.NEXT_PUBLIC_ODIN_DATA_MODE === "odin";
 type AmazonMocks = typeof import("./amazon");
 type BriefingMocks = typeof import("./briefing");
 type FeedMocks = typeof import("./feed");
+type GoalMocks = typeof import("./goals");
 
 /** Anahtar → o anahtarın döndürdüğü zarf tipi. */
 export interface MockMap {
@@ -60,6 +61,7 @@ export interface MockMap {
   "briefing.risks": ReturnType<BriefingMocks["risksMock"]>;
   "briefing.timeline": ReturnType<BriefingMocks["timelineMock"]>;
   "feed.items": ReturnType<FeedMocks["feedMock"]>;
+  "goals.items": ReturnType<GoalMocks["goalsMock"]>;
 }
 
 export type MockKey = keyof MockMap;
@@ -109,6 +111,8 @@ export async function loadMock<K extends MockKey>(key: K): Promise<MockMap[K] | 
       return (await import("./briefing")).timelineMock() as MockMap[K];
     case "feed.items":
       return (await import("./feed")).feedMock() as MockMap[K];
+    case "goals.items":
+      return (await import("./goals")).goalsMock() as MockMap[K];
   }
 
   /* Anahtar kümesi tipten geliyor; buraya düşmek derleme hatasıdır. */

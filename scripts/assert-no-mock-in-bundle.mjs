@@ -24,6 +24,8 @@ const SIGNATURES = [
   "amazonKpisMock",
   "snapshotMock",
   "feedMock",
+  "goalsMock",
+  "GOAL-ACIL-STOK-2026-07",
 ];
 
 const ROOTS = [".next/static", ".next/server"];
@@ -69,4 +71,4 @@ if (hits.length > 0) {
   process.exit(1);
 }
 
-console.log("✓ release paketinde mock verisi yok (7 imza tarandı).");
+console.log("✓ release paketinde mock verisi yok (9 imza tarandı).");

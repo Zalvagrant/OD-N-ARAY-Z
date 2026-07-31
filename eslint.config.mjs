@@ -66,7 +66,14 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
      metnindeki açık istisnadır ("dinamik ölçü — renk asla"). Bu dosyalarda
      inline style YALNIZCA height/transform için kullanılır; renk her zaman
      Tailwind semantic sınıfından gelir. */
-  files: ["src/components/ui/table.tsx", "src/components/ui/chart.tsx"],
+  files: [
+    "src/components/ui/table.tsx",
+    "src/components/ui/chart.tsx",
+    /* Hedef ilerleme çubuğunun genişliği ölçülen değerden gelir —
+       kuralın kendi metnindeki "ilerleme genişliği" istisnası (UI-ADR-124).
+       Renk yine token'dan: bg-accent. */
+    "src/components/screens/goals.tsx",
+  ],
   rules: { "react/forbid-dom-props": "off" },
 }, {
   /* AÇIK BORÇ — sahibin kararı bekleniyor.

@@ -73,9 +73,22 @@ export function parseEnvelope<T>(
   };
 }
 
-/** `AbortController`/`AbortSignal.timeout` bu adla `DOMException` atar. */
-function isAbortError(err: unknown): boolean {
-  return err instanceof DOMException && err.name === "AbortError";
+/**
+ * İptal hatası mı? — ŞEKLE bakar, sınıfa değil (meclis üçüncü tur).
+ *
+ * `err instanceof DOMException` güvenilir DEĞİL: Node'un `undici`'si bazı
+ * sürümlerde `AbortError` adında sıradan bir `Error` atar ve jsdom/worker
+ * gibi ayrı realm'lerde `instanceof` zaten `false` döner. O durumda gerçek
+ * bir kullanıcı iptali "ağ hatası" diye sınıflanırdı.
+ *
+ * `signal.reason` ile kimlik karşılaştırması en kesin kanıttır; kalanı ad
+ * ve kod üzerinden şekil kontrolü.
+ */
+function isAbortError(err: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted && err === signal.reason) return true;
+  if (typeof err !== "object" || err === null) return false;
+  const e = err as { name?: unknown; code?: unknown };
+  return e.name === "AbortError" || e.code === "ABORT_ERR";
 }
 
 /**
@@ -121,7 +134,7 @@ export async function httpLoad(
      * bayrağına bakıp her hatayı yutmak ağ hatasını GİZLERDİ. Hata tipi
      * de kontrol edilir; iptal olmayan bir hata her zaman sınıflandırılır.
      */
-    if (signal?.aborted && isAbortError(err)) throw err;
+    if (signal?.aborted && isAbortError(err, signal)) throw err;
     throw classifyError(err, path);
   }
 

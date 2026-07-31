@@ -17,7 +17,7 @@ const KEYS: MockKey[] = [
   "amazon.opportunities", "briefing.brief", "briefing.decisions",
   "briefing.directors", "briefing.hero", "briefing.kpis",
   "briefing.opportunities", "briefing.pulse", "briefing.risks",
-  "briefing.timeline", "feed.items",
+  "briefing.timeline", "feed.items", "goals.items",
 ];
 
 describe("kayıt defteri", () => {

@@ -2156,3 +2156,64 @@ yok) S2'den gelir ve S8 ona dokunmadı — kapsam dışıdır, kusur değil.
 `mocks/registry.contract.ts` (yeni), `mocks/registry.test.ts` (yeni),
 `mocks/use-mock.ts`, beş ekran, `next.config.ts`, `eslint.config.mjs`,
 `scripts/assert-no-mock-in-bundle.mjs` (yeni), `package.json`.
+
+---
+
+## UI-ADR-124 — `Goal` ayrı bir ekrandır; ilerleme yalnızca ölçülmüşse çizilir (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 31 Temmuz 2026
+**Sahip:** (b) ve (c) arasında kaldı, meclise havale etti
+**Meclis:** gavadolar (terra · luna) — **2/2 (c) oybirliği**
+
+**Karar:** `Goal` için **ayrı bir ekran**: `/goals`, sol menüde EXECUTIVE
+altında **"Hedefler"**. Mission Control'e hedef bölümü EKLENMEZ.
+
+**Neden Mission Control değil:** o ekranın birincil odağı izlenen kararlar +
+vadesi gelen ertelemelerdir ve `03-information-architecture.md` §5
+"**ondan ağır ikinci bir alan yoktur**" der. Ayrıca ÖLÇÜLDÜ: sekiz hedefin
+üçü `urgent` operasyonel iş, beşi `quarterly` ürün yol haritası — ikisi
+aynı bağlama ait değil.
+
+**⚠️ ADLANDIRMA:** "Mission" kelimesi kullanılmaz. ADR-0143 §4 o kavramı
+reddetti; arayüze geri getirmek kararı sessizce iptal ederdi. Varlığın
+teknik adı `Goal` kalır, kullanıcı arayüzündeki karşılığı **Hedefler**.
+
+**Bu ekran bir ilerleme panosu DEĞİLDİR.** ADR-0143 §4: "ilerleme yüzdesi
+kavramı kendi ölçülmüş kaynağını ister ve burada yaratılmıyor." Ölçüldü:
+3 hedefte `progress_pct` sayı (%25/%0/%0), 5 çeyreklikte `null`. Çubuklar
+etrafında kurulmuş bir ekran çoğunlukla boş kutu gösterirdi. Ekran
+hedeflerin **envanteri ve ufuk görünümüdür**.
+
+**`progress_pct: null` sözleşmesi (meclis 2/2):** çubuk YOK, yüzde YOK,
+**`0` YOK**. `0` "ölçüldü ve sıfır" demektir; ölçülmeyeni öyle göstermek
+uydurma veridir. Yerine "İlerleme ölçülmüyor" YAZILIR — sessizce boş
+bırakmak alanı gözden kaçırtırdı. (terra "etiket de yazma" dedi, luna
+"yaz" dedi; anayasanın "veri yoksa 'veri yok' gösterilir, placeholder
+değil" kuralı luna'yı destekliyor, o uygulandı.)
+
+**Meclis içi ikinci fark:** terra Mission Control'e "en fazla 3 satırlık
+acil hedef özeti + bağlantı" konabileceğini söyledi, luna hiç
+konmamasını. **luna uygulandı** — özet büyüdüğü an fiilen (b) olur ve
+terra'nın kendi uyarısına düşer.
+
+**Bir tuzak ölçülerek bulundu:** cockpit tanımsız hedefi **boş dize**
+yayınlıyor (`goal.get("target","")`), `null` değil. Boş dize için satır
+hiç çizilmez — boş bir satır "hedef var ama yazılmamış" diye okunurdu.
+
+**Kapı:** `odin-state.test.ts` — fixture çalışan cockpit'ten DOĞRUDAN
+alındı (`__fixtures__/api-state-goals.json`, 8 gerçek hedef). Zincirin
+tamamı ölçülür: ham ODIN → `stateSchema` → `adaptGoals` → `goalSchema`.
+Ölçülen/ölçülmeyen ilerlemenin ayrı kaldığı ve `null`'ın `0`'a düşmediği
+ayrıca test edilir.
+
+**⚠️ TARAYICI DOĞRULAMASI YAPILAMADI — dürüst kayıt.** Ekran sunucuda
+doğru render ediliyor (başlık, üç grup, metinler) ve `useOdinGoals`
+`IS_MOCK=false` ile çalışıyor (sunucu logunda görüldü); vekil de sayfa
+bağlamından 8 gerçek hedef döndürüyor. **Ama istemci hidrasyonu bu
+oturumun sonunda tüm uygulamada durdu** — mock modda da, Mission
+Control'de de; "Daralt" düğmesi bile tepki vermiyor, hiçbir chunk
+düşmüyor, konsolda hata yok. Oturumun başında hidrasyon ÇALIŞIYORDU
+(mock veri ekrana gelmişti), dolayısıyla bu ortamsal bir bozulmadır, bu
+ekranın kusuru değil. **Ekranın canlı ODIN verisini gösterdiği
+DOĞRULANMAMIŞTIR** ve doğrulanana kadar öyle sayılmamalıdır.

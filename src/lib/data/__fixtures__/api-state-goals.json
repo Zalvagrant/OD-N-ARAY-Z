@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-07-31T08:53:25+00:00",
+  "goals": [
+    {
+      "id": "GOAL-ACIL-STOK-2026-07",
+      "level": "urgent",
+      "label": "ACIL: 8 urun icin tedarikci siparisi (stok krizi - momentum -%16 nedeni)",
+      "target": "OTICON (1.5 ay tedarik, simdi ver): Lillu TV Adapter ~45 Â· OEM Mini ~53 Â· MiniFit ~40 | PHONAK (2 hafta tedarik): CapDome10 ~36 Â· VentedDome-M ~17 Â· OpenDome-L ~10 Â· P-Rcv-L2 ~7 Â· P-Rcv-L1 ~6 Â· CapDome-XS20 ~6 | Q4 x1.4 varsayimli; Eylul sonu Phonak top-up (TV Connector +35), Kasim basi Oticon top-up",
+      "progress_pct": 25
+    },
+    {
+      "id": "GOAL-ACIL-TV-IADE-2026-07",
+      "level": "urgent",
+      "label": "ACIL: TV grubuna uyumluluk kilavuzu (iade dusurme)",
+      "target": "TV Connector 30 gunluk plan UYGULAMASI (staging: karar-onerisi-tv-connector-30gun, panel 80 konsensus): H1-2 listing (ILK IS: uyumluluk tablosu gorseli - Audeo Marvel/Paradise/Lumity) -> H3 PPC long-tail exact -> H4 olcum (donusum %3.9->%6+, iade %21->%12). Bundle YENIDEN SIPARIS ETME - once %100 iade cozulecek",
+      "progress_pct": 0
+    },
+    {
+      "id": "GOAL-ADS-API-BASVURU",
+      "level": "weekly",
+      "label": "ACIL YAPILACAK: Amazon Ads API erisim basvurusu (sahip yapacak, 2026-07-22 sozu)",
+      "target": "Basvuru gonderildi -> onay bekleniyor -> kimlikler vault'a",
+      "progress_pct": 0
+    },
+    {
+      "id": "GOAL-RETURN-INTEL",
+      "level": "quarterly",
+      "label": "Return Intelligence Engine: iade kok-neden + Return Risk Index (SKU bazli)",
+      "target": "Her SKU icin Return Risk Index (0-100) + kok-neden + aksiyon onerisi. Akis: Returns Report -> siniflandirma -> finansal etki -> tahmin.",
+      "progress_pct": null
+    },
+    {
+      "id": "GOAL-PROFIT-INTEL",
+      "level": "quarterly",
+      "label": "True Profit Intelligence Engine: SKU bazli GERCEK net kar / P&L",
+      "target": "SKU/ASIN/marka coklu-katman P&L; gercek marj/ROI/ROAS/break-even; 'satiyor ama para kazandirmiyor' tespiti + oneri.",
+      "progress_pct": null
+    },
+    {
+      "id": "GOAL-VELOCITY-INTEL",
+      "level": "quarterly",
+      "label": "Sales Velocity Intelligence Engine: momentum + forecast + siparis motoru",
+      "target": "1-365 gun hiz/momentum, EMA/SMA/trend, talep spike/collapse tespiti, Recommended Order (lead time + MOQ + seasonality).",
+      "progress_pct": null
+    },
+    {
+      "id": "GOAL-LISTING-INTEL",
+      "level": "quarterly",
+      "label": "Listing Intelligence Engine: AI listing denetleyici + Listing Health Score",
+      "target": "Title/bullet/A+/gorsel/backend KW/uyumluluk denetimi -> Listing Health Score (0-100) + oncelikli oneriler (CTR/CVR/iade etkisiyle).",
+      "progress_pct": null
+    },
+    {
+      "id": "GOAL-COMPETITIVE-INTEL",
+      "level": "quarterly",
+      "label": "Competitive Intelligence Engine: Buy Box / rakip fiyat / BSR / share of voice",
+      "target": "Buy Box kazanma orani, rakip fiyat/stok/BSR/yorum takibi; 'neden satisim dustu?' sorusuna sayisal cevap.",
+      "progress_pct": null
+    }
+  ]
+}
