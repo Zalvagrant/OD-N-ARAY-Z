@@ -141,6 +141,46 @@ değerli ama hatasız değil.
 - Vekilin önünde yetkilendirme yok — dağıtım hâlinde gerekir (§10).
 - Alias çözümü **geçiş sınırı** olarak kayıtlı borçtur (meclis şartı).
 
-**Meclisin merge hükmü:** koşullu — "S8 işlevsel olarak tamam; merge
-entegrasyon doğrulamasına bağlı." Rebase şartı konusuz (taban zaten
-`origin/main`); canlı vekil doğrulaması yapıldı.
+---
+
+## 7. MECLİSİN KAPANIŞ HÜKMÜ (gavadolar 2/2, oybirliği)
+
+Koydukları teknik şartların hepsi kapatıldı ve kabul edildi. Hüküm ikiye
+ayrılıyor ve bu ayrım **kayda geçmek zorunda**:
+
+| Karar | Hüküm |
+|---|---|
+| **Teknik merge** | ✅ **EVET** — sözleşme kapısı, mock yasağı, tekilleştirme, iptal/ağ ayrımı, canlı vekil, daraltılmış rota, iki mod doğrulaması yeterli |
+| **S8 ürün kapanışı** | ❌ **HAYIR** — ekranda canlı ODIN değeri yok |
+
+> "S8 mühendislik altyapısı tamamlandı; S8'in 'Amazon Canlı Veri' kullanıcı
+> sonucu, yayınlanmış sözleşme ve Goal bağlama kararı olmadığı için teslim
+> edilemedi." — terra
+
+**Sahibe sunuş dili de karara bağlandı.** "İstersen bağlarım" DEMEK
+YASAK — gerçeği gizler. Doğrusu, seçenekleri simetrik ve sonuçlarıyla
+sunmak: Goal bağlanırsa canlı değer görünür ve S8 kapanabilir; bağlanmazsa
+S8 teknik olarak eksik kalır ya da yeniden kapsamlanır. Bu baskı değil,
+ölçülmüş kritik-yol bilgisidir (luna + terra aynı fikirde).
+
+## 8. ÖRÜNTÜ TEŞHİSİ — çalışma tarzımdaki zayıflık
+
+Bu sprintte dört hatamı da ölçerken yakaladım, incelerken değil. Meclise
+"bu bir örüntü mü" diye sordum; ikisi de **evet** dedi ve aynı teşhisi
+koydu:
+
+> **Yerel doğrulama güçlü, uçtan uca KABUL doğrulaması geç geliyor.**
+> Uygulama önce kuruluyor; değişmezler, negatif durumlar ve izlenebilir
+> kabul kriterleri sonra sınanıyor.
+
+En büyük örneği bu sprintin kendisi: "canlı veri" için
+`uç nokta → kanca → seçici → bileşen render` zincirinin uçtan uca
+erişilebilirliği **baştan bir kabul kriteri yapılsaydı**, sprint adının
+karşılanmadığı ilk gün görülürdü — son gün değil.
+
+**Kalıcı kapı (uygulandı):** `CLAUDE.md`'nin sprint sonu sorularına
+**6. soru** eklendi — "bu sprintin adını karşılayan çıktının kaç GERÇEK
+EKRAN TÜKETİCİSİ var?" Sıfırsa sprint altyapı işidir ve öyle etiketlenir.
+**"Test geçti" ile "sprint adı karşılandı" ayrı kararlardır.**
+
+Bugünkü cevap: **0.**

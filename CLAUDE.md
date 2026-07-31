@@ -205,6 +205,20 @@ sprinte geçilmez:
 4. Mimariye uygun mu?
 5. Merge edilmeye hazır mı?
 
+**6. (S8'de eklendi) Bu sprintin adını karşılayan çıktının KAÇ GERÇEK EKRAN
+TÜKETİCİSİ var?**
+
+Sıfırsa sprint "altyapı işi"dir, adının vaat ettiği teslimat DEĞİLDİR — ve
+öyle etiketlenir. S8'de bu tam olarak yaşandı: "Amazon Canlı Veri" sprinti
+boruyu, kapıları ve canlı vekil doğrulamasını teslim etti ama `httpLoad`
+ile `useOdinQuery`'nin **hiçbir ekran çağıranı yoktu**; ekranda tek bir
+canlı ODIN değeri görünmüyordu. Testlerin geçmesi bunu gizlemişti.
+
+Meclis kuralı (gavadolar 2/2): **"test geçti" ile "sprint adı karşılandı"
+AYRI kararlardır.** Teknik merge onayı ürün kapanış onayı değildir; ikisi
+ayrı ayrı verilir. Bir veri borusu için kabul, en az bir gerçek değerin
+gerçek uç noktadan gelip EKRANDA render edilmesidir.
+
 ### Emin değilsen
 
 **Dur ve sor.** Tahmin etme. Dokümanda cevabı yoksa, cevabı uydurmak yerine
