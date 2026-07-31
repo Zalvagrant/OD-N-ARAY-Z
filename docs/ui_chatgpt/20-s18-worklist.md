@@ -68,6 +68,58 @@ Ham HTTP baytında geçerli UTF-8 var (`şİğüöç`), U+FFFD yok, mojibake imz
 Sıra **terra**'nınki (bkz. §3 çelişki kaydı): baz hattı önce, çünkü kirli
 ağaç üzerinde alınan her ölçüm sahte.
 
+> ## ⛔ KAPSAM YENİDEN DARALTILDI — Feature Freeze (1 Ağu 2026, sahip)
+>
+> **S18 artık İKİ bloktur: B1 + B4.** Implementation Mode geçerli: yeni
+> mimari, yeni ADR, yeni ER, yeni katman, yeni yardımcı araç YOK. Tüm enerji
+> mevcut roadmap'i bitirmeye.
+>
+> | Blok | Durum |
+> |---|---|
+> | **B1** Repository Baseline | ✅ **yapıldı** |
+> | **B4** Operational Score (C-2) | ✅ **yapıldı** — aşağıya bak |
+> | ~~B2~~ Generated CLAUDE.md | ⏸️ **S19** |
+> | ~~B3~~ Commit Guard | ⏸️ **S19** |
+> | ~~B5~~ Session Lease Detection | ⏸️ **S19** |
+>
+> Gerekçe: B2/B3/B5 ürün özelliği olmasa da **yeni altyapı modülleridir** ve
+> ODIN'in ayağa kalkmasını doğrudan sağlamıyorlar. Runtime stabil olduktan
+> sonra S19'da yapılmaları daha doğru.
+>
+> **Teslim edilen (ODIN çekirdeği, üç commit):**
+> - `27c1a2d` — `operational` 4 → 6 bileşen. Yeni mekanizma YOK: `_score()`
+>   zaten `value=None`'ı ortalamadan çıkarıp `expected`'a sayıyordu.
+>   `Director sağlığı` runtime'ın kendi `status` alanını sayar (6/8),
+>   `Güvenlik` kaynaksız olduğu için `None`. Kapsam **4/4 → 5/6**.
+> - `4f2c7af` — brifingde `## Operasyonel Hazırlık` bölümü. Bileşenler
+>   hesaplanıyor ve yayınlanıyordu ama hiçbir yerde YAZILMIYORDU; başlıktaki
+>   "69/100 (kapsam 5/6)" açıklanamıyordu. Kaynaksız eksen "ölçülmedi" yazar.
+> - `a4305ce` — **bulunan hata:** `agents=None` (cockpit bunu bilerek
+>   yayınlıyor) brifingi `TypeError` ile çökertiyordu; `.get(k, [])`
+>   varsayılanı açık `None` için devreye girmez. `or []` ile susturulmadı —
+>   o da "0 ajan görevde" yazardı, yani başarısız okuma ölçüm kılığında.
+>
+> Doğrulama: **1396 test OK** · canlı `/api/state` `5/6` yayınlıyor ·
+> olay veriyolu `operational_expected` 4 → **6** (23:26:40) · her iki kapı
+> kasıtlı ihlalle denendi ve **kırmızı yandı**.
+>
+> **Yapılmadı, bilerek:** kalan dört eksen (Memory · Knowledge · Finance ·
+> Amazon) eklenmedi — her biri ya mevcut bir bileşenle aynı sinyali iki kez
+> sayardı (`Bilgi akışı` ≈ Knowledge/Memory, `Nakit akışı` ≈ Finance;
+> ADR-0161 tam bu hatayı düzeltmişti) ya da uydurma eşik gerektirirdi.
+> İkisi de **karar** konusudur, implementasyon değil.
+>
+> **B4.1 sonucu — ORPHAN:** `health_score`'un çekirdekte beş tüketicisi var
+> (`briefing` · `challenge` · `review` · `runtime` · `cockpit`) ama
+> **arayüzde HİÇ yok**: `odin-state.ts` yalnız `goals` ve `directors`
+> okuyor, `contracts/` içinde `health_score` geçmiyor. Yeni iki alan da
+> dahil, tüm sistem sağlık skoru arayüz için orphan. UI tüketicisi yazmak
+> S19'a ait (UI işi, freeze kapsamı).
+>
+> ---
+>
+> <details><summary>Kapsam daraltılmadan önceki beş bloklu plan (tarihsel)</summary>
+>
 > **SAHİP KARARI — S18 beş bloktur ve kapsam kilitlendi (1 Ağu 2026):**
 > B1 Repository Baseline · B2 Generated CLAUDE.md · B3 Commit Guard ·
 > B4 Operational Score (C-2) · B5 Session Lease Detection.
@@ -76,6 +128,8 @@ ağaç üzerinde alınan her ölçüm sahte.
 > Bu ayrım B5'te en keskin: tespit ve uyarı S18, read-only/force-lock/
 > kill-session/otomatik worktree S19. Aynı ilke B3 için de geçerli —
 > guard raporlar ve reddeder, ortamı yeniden yapılandırmaz.
+>
+> </details>
 
 ### B1 — Repository Baseline  *(ön koşul, ürün işi değil)*
 
