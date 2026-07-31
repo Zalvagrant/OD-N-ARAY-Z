@@ -471,3 +471,62 @@ export interface SimulationCase {
   request: SimulationRequest;
   result: SimulationResult;
 }
+
+/* --------------------------------------------------------------------------
+   §4b RuntimeDirector — ODIN ADR-0148 (UI-ADR-127)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in İKİ ayrı canlılık yüzeyi var, çünkü iki tür işçisi var:
+ *
+ *   `AgentHealth`     — GÖREV-ajanları (`AgentHealthMonitor`). Kuyruktan
+ *                       görev yürütürler. Bugün BOŞ: sistemde hiç `task.*`
+ *                       olayı yok, kuyruk hiç kullanılmadı.
+ *   `RuntimeDirector` — ZAMANLANMIŞ işler (`JOBS` + `runtime/metrics.json`),
+ *                       heartbeat üstünde koşan 18 iş, her işin KENDİ beyan
+ *                       ettiği `agent` alanına göre gruplanmış. Canlı.
+ *
+ * İkisi BİRLEŞTİRİLMEZ ve biri diğerine ADAPTE EDİLMEZ (meclis 2/2).
+ * `directors`ı `AgentHealth` şekline sokmak, `failuresTotal`ı
+ * `consecutiveFailures` alanına yazmak demekti — ODIN ardışık seri
+ * ÖLÇMÜYOR ve bu, arayüzün fark edemeyeceği bir yalan olurdu.
+ */
+
+/**
+ * Dört değer, üç değil. `stale` KORUNUR: gecikmiş bir kalp atışı ile
+ * hata veren bir iş aynı şey değildir ve sahibin bu farkı görmesi gerekir.
+ * `AgentHealth.verdict`in üç değerine sıkıştırmak bilgi kaybıdır.
+ */
+export type DirectorStatus = "healthy" | "stale" | "failed" | "unknown";
+
+export interface RuntimeDirectorJob {
+  id: string;
+  status: DirectorStatus;
+  /** ISO 8601 | null */
+  lastBeat: string | null;
+  cadence?: string | null;
+  lastError?: string | null;
+}
+
+export interface RuntimeDirector {
+  /** İşin KENDİ beyan ettiği agent adı — arayüz isim icat etmez. */
+  id: string;
+  /** Hükmü ODIN verir; arayüz eşik tutmaz (ADR-0148). */
+  status: DirectorStatus;
+  /** ISO 8601 | null — yaşı yazılır, yorumlanmaz. */
+  lastBeat: string | null;
+  /**
+   * YAPILANDIRILMIŞ beklenen aralık, ölçülmüş değil: "bu her N'de bir
+   * ateşlenmeli" der, "N'de bir ateşlendi" demez. Cadence bilinmiyorsa
+   * `null` — tahmin edilmez.
+   */
+  beatIntervalMs: number | null;
+  /**
+   * KÜMÜLATİF. `consecutiveFailures` DEĞİL — ODIN seri ölçmüyor ve o adı
+   * kullanmak uydurma olurdu.
+   */
+  failuresTotal: number;
+  lastError: string | null;
+  jobs: RuntimeDirectorJob[];
+}
+

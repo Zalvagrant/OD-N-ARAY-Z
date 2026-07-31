@@ -54,6 +54,7 @@ export interface MockMap {
   "briefing.brief": ReturnType<BriefingMocks["briefMock"]>;
   "briefing.decisions": ReturnType<BriefingMocks["decisionsMock"]>;
   "briefing.directors": ReturnType<BriefingMocks["directorsMock"]>;
+  "briefing.directors.runtime": ReturnType<BriefingMocks["runtimeDirectorsMock"]>;
   "briefing.hero": ReturnType<BriefingMocks["heroMock"]>;
   "briefing.kpis": ReturnType<BriefingMocks["kpisMock"]>;
   "briefing.opportunities": ReturnType<BriefingMocks["opportunitiesMock"]>;
@@ -97,6 +98,8 @@ export async function loadMock<K extends MockKey>(key: K): Promise<MockMap[K] | 
       return (await import("./briefing")).decisionsMock() as MockMap[K];
     case "briefing.directors":
       return (await import("./briefing")).directorsMock() as MockMap[K];
+    case "briefing.directors.runtime":
+      return (await import("./briefing")).runtimeDirectorsMock() as MockMap[K];
     case "briefing.hero":
       return (await import("./briefing")).heroMock() as MockMap[K];
     case "briefing.kpis":

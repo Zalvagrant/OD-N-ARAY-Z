@@ -170,3 +170,30 @@ export const goalSchema = z.object({
    */
   progressPct: z.number().min(0).max(100).nullable(),
 });
+
+/* --------------------------------------------------------------------------
+   RuntimeDirector — ODIN ADR-0148 (UI-ADR-127)
+   -------------------------------------------------------------------------- */
+
+const directorStatusSchema = z.enum(["healthy", "stale", "failed", "unknown"]);
+
+export const runtimeDirectorSchema = z.object({
+  id: z.string().min(1),
+  status: directorStatusSchema,
+  lastBeat: isoDate.nullable(),
+  /* `null` bilinmeyen cadence demektir ve KABUL EDİLİR — ODIN tahmin
+     etmiyor, arayüz de etmemeli. */
+  beatIntervalMs: z.number().positive().nullable(),
+  /* KÜMÜLATİF (ADR-0148 §6). Ardışık seri ölçülmüyor. */
+  failuresTotal: z.number().int().min(0),
+  lastError: z.string().nullable(),
+  jobs: z.array(
+    z.object({
+      id: z.string().min(1),
+      status: directorStatusSchema,
+      lastBeat: isoDate.nullable(),
+      cadence: z.string().nullable().optional(),
+      lastError: z.string().nullable().optional(),
+    })
+  ),
+});
