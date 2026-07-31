@@ -268,6 +268,40 @@ describe("iptal: zaman aşımı ile çağıranın iptali ayrılır", () => {
     vi.unstubAllGlobals();
   });
 
+  it("AĞ HATASI iptal bayrağının arkasına SAKLANMAZ", async () => {
+    /* Meclis ikinci turu: yalnız `signal.aborted` bakılsaydı, ağ kopması
+       kullanıcının iptaliyle aynı ana denk geldiğinde hata YUTULUR ve
+       ekran sessizce boş kalırdı. Hata TİPİ de kontrol edilir. */
+    vi.stubGlobal("fetch", () =>
+      new Promise((_res, rej) => setTimeout(() => rej(new TypeError("fetch failed")), 5))
+    );
+    const p = httpLoad("/api/state", { signal: AbortSignal.abort(), timeoutMs: 50 });
+    await expect(p).rejects.toBeInstanceOf(OdinError);
+    vi.unstubAllGlobals();
+  });
+
+  it("ÇAĞIRAN İPTAL ETTİYSE zaman aşımı da dolmuş olsa hata üretilmez", async () => {
+    /*
+     * UI-ADR-121'in gerçek yarışı. İKİSİ DE abort olmuş durumda yakalanır:
+     * çağıranın sinyali ZATEN iptal, zaman aşımı da dolmuş. Eski koşul
+     * (`signal.aborted && !timeout.aborted`) burada `false` verip terk
+     * edilmiş ekranın hata kutusunu açıyordu.
+     *
+     * Bu testin ESKİ KODLA DÜŞTÜĞÜ doğrulandı — kapı olduğu ölçüldü.
+     */
+    vi.stubGlobal("fetch", (_url: string, init: { signal: AbortSignal }) =>
+      /* Reddi bir makro-göreve erteler: o ana kadar HER İKİ sinyal de
+         abort olmuş olur. */
+      new Promise((_res, rej) =>
+        setTimeout(() => rej(new DOMException("Aborted", "AbortError")), 5)
+      ).finally(() => void init.signal)
+    );
+
+    const p = httpLoad("/api/state", { signal: AbortSignal.abort(), timeoutMs: 0 });
+    await expect(p).rejects.not.toBeInstanceOf(OdinError);
+    vi.unstubAllGlobals();
+  });
+
   it("çağıran iptal ederse HATA ÜRETİLMEZ — terk edilen ekranın hata kutusu açılmaz", async () => {
     hangingFetch();
     const ac = new AbortController();

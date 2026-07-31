@@ -66,7 +66,14 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
      metnindeki açık istisnadır ("dinamik ölçü — renk asla"). Bu dosyalarda
      inline style YALNIZCA height/transform için kullanılır; renk her zaman
      Tailwind semantic sınıfından gelir. */
-  files: ["src/components/ui/table.tsx", "src/components/ui/chart.tsx"],
+  files: [
+    "src/components/ui/table.tsx",
+    "src/components/ui/chart.tsx",
+    /* Hedef ilerleme çubuğunun genişliği ölçülen değerden gelir —
+       kuralın kendi metnindeki "ilerleme genişliği" istisnası (UI-ADR-124).
+       Renk yine token'dan: bg-accent. */
+    "src/components/screens/goals.tsx",
+  ],
   rules: { "react/forbid-dom-props": "off" },
 }, {
   /* AÇIK BORÇ — sahibin kararı bekleniyor.
@@ -78,6 +85,27 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
      Kalıcı çözüm: 11-design-tokens.md güncellenip kod yenilenmeli. */
   files: ["src/components/layout/theme-provider.tsx"],
   rules: { "react-hooks/set-state-in-effect": "off" },
+}, {
+  /* MOCK ERİŞİMİ TEK KAPIDAN — UI-ADR-123.
+     Bir ekran mock modülünü doğrudan import ederse modül üretim paketine
+     geri girer; `build:release` kapısı bunu yakalar ama derleme sonunda,
+     yani en geç. Kural aynı hatayı düzenleyicide yakalar.
+     Muafiyet: kayıt defterinin kendisi, hikâyeler ve testler (bunlar
+     üretim paketine girmez). */
+  files: ["src/**/*.{ts,tsx}"],
+  ignores: [
+    "src/mocks/**",
+    "src/**/*.stories.tsx",
+    "src/**/*.test.{ts,tsx}",
+  ],
+  rules: {
+    "no-restricted-imports": ["error", {
+      patterns: [{
+        group: ["@/mocks/amazon", "@/mocks/briefing", "@/mocks/feed", "**/mocks/amazon", "**/mocks/briefing", "**/mocks/feed"],
+        message: "Mock modülünü doğrudan import etme (UI-ADR-123): üretim paketine girer. useMockData(\"anahtar\") kullan — anahtarlar src/mocks/registry.ts'te.",
+      }],
+    }],
+  },
 }, globalIgnores([
   // Default ignores of eslint-config-next:
   ".next/**",

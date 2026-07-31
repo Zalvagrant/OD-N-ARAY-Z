@@ -32,16 +32,6 @@ import type { SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
-import {
-  amazonAlertsMock,
-  amazonKpisMock,
-  amazonOpportunitiesMock,
-  campaignsMock,
-  ppcOverviewMock,
-  simulationsMock,
-  skusMock,
-  snapshotMock,
-} from "@/mocks/amazon";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Badge } from "@/components/ui/badge";
@@ -380,14 +370,14 @@ export function AmazonDirector({
     st.selectedEntity?.kind === AMAZON_SKU_KIND ? st.selectedEntity.id : null
   );
 
-  const snapshot = useMockData(snapshotMock);
-  const kpis = useMockData(amazonKpisMock);
-  const skus = useMockData(skusMock);
-  const ppc = useMockData(ppcOverviewMock);
-  const campaigns = useMockData(campaignsMock);
-  const simulations = useMockData(simulationsMock);
-  const alerts = useMockData(amazonAlertsMock);
-  const opportunities = useMockData(amazonOpportunitiesMock);
+  const snapshot = useMockData("amazon.snapshot");
+  const kpis = useMockData("amazon.kpis");
+  const skus = useMockData("amazon.skus");
+  const ppc = useMockData("amazon.ppc");
+  const campaigns = useMockData("amazon.campaigns");
+  const simulations = useMockData("amazon.simulations");
+  const alerts = useMockData("amazon.alerts");
+  const opportunities = useMockData("amazon.opportunities");
 
   const loading = demo === "loading" || snapshot.loading;
   const error = demo === "error" ? DEMO_ERROR : null;

@@ -21,17 +21,6 @@ import type { Decision } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
 import { useNow } from "@/lib/clock/tick";
-import {
-  briefMock,
-  decisionsMock,
-  directorsMock,
-  heroMock,
-  kpisMock,
-  opportunitiesMock,
-  pulseMock,
-  risksMock,
-  timelineMock,
-} from "@/mocks/briefing";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
@@ -164,15 +153,15 @@ export function ExecutiveBriefing({
 }) {
   const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
 
-  const hero = useMockData(heroMock);
-  const decisions = useMockData(decisionsMock);
-  const risks = useMockData(risksMock);
-  const opportunities = useMockData(opportunitiesMock);
-  const kpis = useMockData(kpisMock);
-  const brief = useMockData(briefMock);
-  const directors = useMockData(directorsMock);
-  const timeline = useMockData(timelineMock);
-  const pulse = useMockData(pulseMock);
+  const hero = useMockData("briefing.hero");
+  const decisions = useMockData("briefing.decisions");
+  const risks = useMockData("briefing.risks");
+  const opportunities = useMockData("briefing.opportunities");
+  const kpis = useMockData("briefing.kpis");
+  const brief = useMockData("briefing.brief");
+  const directors = useMockData("briefing.directors");
+  const timeline = useMockData("briefing.timeline");
+  const pulse = useMockData("briefing.pulse");
 
   const loading = demo === "loading" || hero.loading;
   const error = demo === "error" ? DEMO_ERROR : null;

@@ -9,7 +9,7 @@
     "lint": "eslint",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "build:release": "node scripts/assert-release-mode.mjs && next build"
+    "build:release": "node scripts/assert-release-mode.mjs && next build && node scripts/assert-no-mock-in-bundle.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",

@@ -1908,3 +1908,376 @@ başarısız — <sebep>" yazar. Renk tek gösterge değildir, kelime de yazar.
 
 **Etki:** `lib/data/{use-odin-query.ts,client.ts,policy.ts}`,
 `components/executive/trust-signal.tsx` (+ story).
+
+---
+
+## UI-ADR-118 — Arayüz ODIN'in diskini okumaz; eksik veri TALEP olur (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+**Meclis:** gavadolar (terra · luna) — **2/2 oybirliği**
+
+**Ölçüm (iddia değil):** çalışan cockpit'ten `GET /api/state` → 200, 116 KB,
+30 üst düzey anahtar. `sku_stats` `null`; `agents` düz string listesi;
+`risks` ADR-0143'ün `requires_action`/`module`/`evidence` alanlarını
+taşımıyor; `decisions` ve `due_deferrals` boş; `decision_cards` karar kaydı
+değil staging nesnesi; `health_score.score` `null` (coverage 0/6).
+
+**Asıl bulgu — veri VAR, uç nokta SERVİS ETMİYOR.** `sales_snapshot`
+SP-API'den gelmiyor: `cockpit.py::_executive_extras` `staging/`'deki elle
+girilmiş `KO-jarvis-0002` kaydını okuyor, `as_of` **9 gün eski**. Oysa
+`odin-data/core/` içinde BUGÜNÜN tarihiyle promote edilmiş
+`KO-spapi-{orders,sku_sales,inventory}-2026-07-30` ve 94 satırlık
+`KO-ads-ads_report-2026-07-30` duruyor.
+
+**Reddedilen kolay yol:** arayüz `odin-data/core/*.json`'ı doğrudan okusun.
+Ekranı bugün doldururdu. Reddedildi çünkü arayüz ODIN'in `IRenderer`
+portunun adaptörüdür (ADR-0080) — ODIN'in diskini okumak şema/promote/
+governance zincirini (ADR-0050 · R-006) atlayıp iki repo arasındaki sınırı
+silerdi. Bir kez yapılırsa geri alınamaz: ekranlar dosya biçimine bağlanır.
+
+**Karar:** eksikler kanıtlı bir talep listesine yazılır
+(`backend-istekleri.md`, dosya/satır göstererek) ve gelene kadar ekran
+"kaynak bağlı değil" der. Boş bir bölüm dürüsttür; doldurulmuş olanı değil.
+
+---
+
+## UI-ADR-119 — CORS ODIN'den İSTENMEDİ; vekil arayüz tarafında (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+
+**Sorun:** cockpit yanıt başlıkları ölçüldü — yalnız `Content-Type`,
+`Content-Length`, `Cache-Control`. `Access-Control-Allow-Origin` **yok**.
+Tarayıcıdaki arayüz `http://127.0.0.1:8765`'e doğrudan gidemiyor.
+
+**Kolay yol reddedildi:** ODIN'e CORS eklettirmek. Sunucunun 127.0.0.1'e
+bağlı kalması bilinçli bir güvenlik kararıdır (CLAUDE.md: "dışarı açma").
+Köken kısıtını arayüzün rahatlığı için gevşetmek, o kararı arayüz adına
+geçersiz kılmak olurdu.
+
+**Karar:** istek Next'in kendi sunucusundan geçer —
+`rewrites(): /odin/api/:path* → http://127.0.0.1:8765/api/:path*`.
+Tarayıcı için aynı köken, ODIN için hâlâ yerel istemci. Hiçbir başlık
+gevşetilmedi, ODIN'e tek satır dokunulmadı. Yol `/odin/api/*` ile
+daraltıldı: `/odin/:path*` genel geçidi yarın ODIN'e eklenecek her şeyi de
+otomatik açardı.
+
+**⚠️ Vekil bir GÜVENLİK SINIRI DEĞİLDİR** (meclis uyarısı): `/odin/api/*`
+tarayıcıya açıktır ve `127.0.0.1` yalnız Next sürecinin makinesini gösterir.
+Bugün kabul edilebilir çünkü Next de yerelde çalışıyor; dağıtım hâlinde
+vekilin önüne yetkilendirme gerekir — `backend-istekleri.md` §10'da borç.
+
+**SSR TUZAĞI (meclis bulgusu, düzeltildi):** Node'un `fetch`'i göreli URL
+çözemez; `/odin/api/state` sunucu tarafında çağrılsaydı "Failed to parse
+URL" ile ÇÖKERDİ. `ODIN_BASE_URL` artık sunucuda mutlak, tarayıcıda yol
+döndürüyor. Bugün hiçbir sunucu yolu bunu çağırmıyor ama tuzak açıkta
+bırakılmadı.
+
+**Etki:** `next.config.ts`, `lib/data/mode.ts`.
+
+---
+
+## UI-ADR-120 — Kaynak yoksa sayı da yok: `0` bir ölçüm iddiasıdır (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+
+**Nasıl bulundu:** gerçek moda geçilince (`NEXT_PUBLIC_ODIN_DATA_MODE=odin`)
+mock kancası fail-closed olup `null` döndürdü ve Mission Control'ün
+Operational Status kartı **sıfırlarla dolu bir "sağlıklı sistem" tablosu**
+gösterdi. Hiçbir test yakalamadı; ekrana bakılarak görüldü.
+
+**Kök neden:** `(directors?.data ?? []).map(...)` — zarf `null` olduğunda
+boş diziye düşüyor, sayaçlar `0` çıkıyordu. **"0 sağlıksız Director" bir
+ÖLÇÜMDÜR ve yanlıştır**; doğrusu "ölçülmedi". Aradaki fark, sistemin
+sağlıklı mı yoksa hiç izlenmiyor mu olduğudur; sıfırlarla dolu bir tablo
+"her şey yolunda" diye okunur.
+
+**Genel kural:** boş koleksiyona düşen bir `?? []` varsayılanı, "veri
+yok"u sessizce "ölçüm sıfır"a çevirir. Sayaç üreten her yerde `null` ile
+boş liste AYRI ele alınır; ölçülmemiş sayaç `—` gösterir ve notu
+"kaynak bağlı değil" der.
+
+**Etki:** `components/screens/mission-control.tsx`.
+
+---
+
+## UI-ADR-121 — Çağıranın iptali zaman aşımını yener (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 31 Temmuz 2026
+**Meclis:** yazılımcılar (Qwen · terra · Gemini) — üçü de aynı yarışı gösterdi
+
+**Sorun:** `httpLoad` zaman aşımını çağıranın iptalinden
+`signal?.aborted && !timer.aborted` diye ayırıyordu. İkisi AYNI ANDA abort
+olursa (kullanıcı route değiştirirken istek de zaman aşımına uğrarsa) koşul
+`false` çıkar ve **kullanıcının kendi iptali "zaman aşımı" diye
+sınıflanıp terk ettiği ekranın hata kutusunu açar.**
+
+**İLK DÜZELTME YANLIŞTI ve yazılırken yakalandı.** Kendi
+`AbortController`'ımızı kurup yalnız zamanlayıcının set ettiği bir
+`timedOut` bayrağı okumayı denedim. Bayrak doğruydu ama kural hâlâ
+yanlıştı: ikisi birden olduğunda yine zaman aşımı kazanıyordu. Sorun
+hangi sinyalin okunduğu değil, **öncelik sırasıydı.**
+
+**Karar (tek cümle):** çağıran iptal ettiyse — zaman aşımı da dolmuş olsa —
+bu bizim raporlayacağımız bir hata DEĞİLDİR:
+
+```ts
+if (signal?.aborted) throw err;      // kullanıcının niyeti kazanır
+throw classifyError(err, path);
+```
+
+Kullanıcı o ekrandan ayrılmıştır; React Query iptali zaten sessizce düşürür.
+Fazladan `AbortController` ve bayrak da gitti — doğru kural daha az koddu.
+
+**İKİNCİ TUR RAFİNESİ (meclis):** yalnız `signal.aborted` bakmak da eksikti.
+Ağ kopması kullanıcının iptaliyle aynı ana denk gelirse her hata yutulur ve
+**ağ hatası gizlenirdi.** Hata TİPİ de kontrol edilir:
+`if (signal?.aborted && isAbortError(err)) throw err;` — iptal olmayan bir
+hata her zaman sınıflandırılır.
+
+**Kapı ölçüldü:** test önce yazıldı ve ESKİ koşulla DÜŞTÜĞÜ, düzeltmeyle
+GEÇTİĞİ ayrı ayrı çalıştırılarak doğrulandı. İlk yazdığım test her iki
+kodla da geçiyordu — yani kapı değildi; düşemeyen test tiyatrodur. Ağ
+hatası testi de aynı yöntemle kapı olduğu kanıtlanarak eklendi.
+
+**Etki:** `lib/data/client.ts`.
+
+---
+
+## UI-ADR-122 — `IS_MOCK` ölü kod elemesine uygun yazılır (S8) ⚠️ YETERSİZ
+
+**Durum:** ✅ Dondurulmuş (etkisiz kaldı — bkz. 18-s8-worklist §4)
+**Tarih:** 30 Temmuz 2026
+
+`IS_MOCK = DATA_MODE === "mock"` daha okunaklıydı ama paketleyici için ölü
+kod elemesini imkânsız kılıyordu: Next `NEXT_PUBLIC_*` değişkenlerini
+derlemede düz metne çevirir, fakat değer bir doğrulama adımından geçip
+başka bir sabite atanınca o bilgi kaybolur.
+
+**Karar:** `IS_MOCK = process.env.NEXT_PUBLIC_ODIN_DATA_MODE !== "odin"` —
+ifade derlemede `"odin" !== "odin"` → `false` olur.
+
+**DÜRÜSTLÜK NOTU:** bu değişiklik tek başına YETMEDİ. Ölçüldü: mock verisi
+üretim paketinde kaldı; çünkü sorun ifadede değil **import grafiğinde** —
+ekranlar mock'ları doğrudan import ediyor. Kararın etkisiz kaldığını
+yazmak, etkili sanmaktan iyidir.
+
+---
+
+## UI-ADR-123 — Mock ekrana anahtarla girer; üretim paketinde hiç bulunmaz (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 31 Temmuz 2026
+**Meclis şartı:** "sahte ekran verisi üretim paketinde HİÇ bulunmasın"
+
+**Sorun:** ekranlar mock üreticilerini DOĞRUDAN import ediyordu
+(`import { skusMock } from "@/mocks/amazon"`). Fail-closed kanca
+(UI-ADR-115) onların ekrana çıkmasını engelliyordu — ama modüller import
+grafiğinde kaldığı için **mock verisi gerçek-mod üretim paketine
+giriyordu.** Ekranda görünmemek yetmez: paketteki veri indirilebilir.
+
+**Yanlış teşhis önce denendi ve ölçümle çürütüldü.** UI-ADR-122 `IS_MOCK`'u
+ölü kod elemesine uygun yazdı; tek başına HİÇBİR ŞEY değiştirmedi. Sorun
+ifadede değil **import grafiğindeydi**: bir modül statik olarak import
+edildiği sürece paketleyicinin onu elememesi doğru davranıştır.
+
+**Karar — üç katman, her biri ölçüldü:**
+
+1. **Anahtar.** Ekranlar üretici fonksiyon değil, `registry.ts`'teki bir
+   ANAHTAR geçirir: `useMockData("amazon.skus")`. Tüm `import()` çağrıları
+   tek bir modülde toplandı. Tipler `typeof import(...)` ile alınır — tip
+   konumunda olduğu için derlemede tamamen silinir, tip güvenliği kaybolmaz.
+2. **Yerinde koşul.** `registry.ts` `IS_MOCK`'u başka modülden almaz;
+   `process.env.NEXT_PUBLIC_ODIN_DATA_MODE === "odin"` ifadesini YERİNDE
+   yazar. Ölçüm: sunucu paketi temizlendi (6 eşleşme → 0), istemcide dört
+   lazy chunk kaldı.
+3. **Release ikizi.** Paketleyici dinamik import'ları ayrıştırma aşamasında
+   toplar; sabit koşul altında olsalar bile chunk üretir. Gerçek mod
+   derlemesinde `@/mocks/registry` bir stub'a çözülür
+   (`turbopack.resolveAlias` → `registry.release.ts`). Ölçüm: **istemci 0 /
+   sunucu 0.**
+
+**Meclisin "paketleyici hilesi" uyarısı karşılandı:** alias dağınık statik
+import'ları sürdürmek için değil, ÖNCE tek modüle toplanmış erişimin tek
+dikiş yerini değiştirmek için kullanılıyor. `tsc` gerçek dosyayı görür;
+imzalar ayrışırsa derleme düşer.
+
+**Bir tuzak ölçülerek bulundu:** `use-mock.ts` kayıt defterini göreli yolla
+(`./registry`) import ederken alias EŞLEŞMİYORDU ve chunk'lar çıktıda
+kalıyordu. Belirteç mutlak yola çevrildi. Ölçmeseydim "çözüldü" derdim.
+
+**Kalıcı kapı:** `scripts/assert-no-mock-in-bundle.mjs` release çıktısında
+yedi mock imzasını tarar ve `build:release`'in parçasıdır. Kapının
+DÜŞEBİLDİĞİ kanıtlandı: mock modda derlenen çıktıda 22 eşleşme bulup
+çıkış kodu 1 verdi. Şart bir kez sağlandı; ölçülmezse geri gelir.
+
+**Canlı doğrulama (iki mod):**
+- Mock mod: bütün bölümler doluyor, MOCK DATA rozeti görünüyor.
+- Gerçek mod: rozet yok, Director sayaçları `—` + "kaynak bağlı değil —
+  ölçülmedi", bölümler gerekçeli boş durum basıyor, konsolda hata yok.
+
+**İKİNCİ TUR — meclisin bulduğu üç açık kapatıldı:**
+
+1. **Sözleşme kapısı** (`mocks/registry.contract.ts`). Kör noktaydı: alias
+   yalnız paketleyicidedir, `tsc` her zaman gerçek `registry.ts`'i görür —
+   yani stub imzadan sapabilir, derleme yeşil kalır ve kırılma YALNIZ
+   release paketinde çıkardı. Artık release modülü gerçek modülün tipine
+   atanıyor; sapma derlemeyi düşürür. Düştüğü ÖLÇÜLDÜ (imza bozulunca
+   TS2322).
+2. **ESLint kuralı.** `no-restricted-imports` mock modüllerinin doğrudan
+   import'unu yasaklar (registry, hikâyeler ve testler muaf). Paket kapısı
+   aynı hatayı yakalıyordu ama derleme SONUNDA; kural düzenleyicide
+   yakalar. Ateşlediği ÖLÇÜLDÜ.
+3. **Uçuştaki yükleme tekilleştirmesi.** Aynı mock'u iki bölüm kullandığında
+   (decisions hem Briefing'de hem Mission Control'de) iki dinamik import
+   başlıyordu. `INFLIGHT` haritası eklendi.
+   **İlk uygulamam çalışmıyordu ve testi yazınca ortaya çıktı:** `fillStore`
+   `async` olduğu için `return task` sözü YENİ bir sözle sarmalıyordu;
+   uçuştaki sözün kimliği kayboluyor, ikinci çağıran onu tanımıyordu.
+   `async` kaldırıldı. Test referans eşitliğini ölçer — tekilleştirme
+   kaldırılırsa düşer.
+
+Ayrıca her `MockKey`'in gerçekten çözüldüğü test edildi: tipe eklenip
+`switch`'e eklenmeyen bir anahtar sessizce `null` döner ve ekran "veri yok"
+derdi — mock modda teşhisi en zor hata budur.
+
+**RESPONSIVE ÖLÇÜMÜ (sahibin 2. sorusu).** 375px'te ölçüp "kusur var"
+diyecektim; `03-information-architecture.md` §9.4 tablet ve mobili açıkça
+**"(gelecek)"** diyor, hedefler 1366–3840. Yanlış kapıya ölçüyormuşum.
+Desteklenen aralıkta ölçüldü: **1366** → yatay taşma 0, KPI 4 sütun
+(247px), bölümler 2/3 sütun; **1920** → yatay taşma 0, 8 bölüm, hata
+kutusu yok. Mobil kenar çubuğu davranışı (224px sabit, breakpoint sınıfı
+yok) S2'den gelir ve S8 ona dokunmadı — kapsam dışıdır, kusur değil.
+
+**Etki:** `mocks/registry.ts` (yeni), `mocks/registry.release.ts` (yeni),
+`mocks/registry.contract.ts` (yeni), `mocks/registry.test.ts` (yeni),
+`mocks/use-mock.ts`, beş ekran, `next.config.ts`, `eslint.config.mjs`,
+`scripts/assert-no-mock-in-bundle.mjs` (yeni), `package.json`.
+
+---
+
+## UI-ADR-124 — `Goal` ayrı bir ekrandır; ilerleme yalnızca ölçülmüşse çizilir (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 31 Temmuz 2026
+**Sahip:** (b) ve (c) arasında kaldı, meclise havale etti
+**Meclis:** gavadolar (terra · luna) — **2/2 (c) oybirliği**
+
+**Karar:** `Goal` için **ayrı bir ekran**: `/goals`, sol menüde EXECUTIVE
+altında **"Hedefler"**. Mission Control'e hedef bölümü EKLENMEZ.
+
+**Neden Mission Control değil:** o ekranın birincil odağı izlenen kararlar +
+vadesi gelen ertelemelerdir ve `03-information-architecture.md` §5
+"**ondan ağır ikinci bir alan yoktur**" der. Ayrıca ÖLÇÜLDÜ: sekiz hedefin
+üçü `urgent` operasyonel iş, beşi `quarterly` ürün yol haritası — ikisi
+aynı bağlama ait değil.
+
+**⚠️ ADLANDIRMA:** "Mission" kelimesi kullanılmaz. ADR-0143 §4 o kavramı
+reddetti; arayüze geri getirmek kararı sessizce iptal ederdi. Varlığın
+teknik adı `Goal` kalır, kullanıcı arayüzündeki karşılığı **Hedefler**.
+
+**Bu ekran bir ilerleme panosu DEĞİLDİR.** ADR-0143 §4: "ilerleme yüzdesi
+kavramı kendi ölçülmüş kaynağını ister ve burada yaratılmıyor." Ölçüldü:
+3 hedefte `progress_pct` sayı (%25/%0/%0), 5 çeyreklikte `null`. Çubuklar
+etrafında kurulmuş bir ekran çoğunlukla boş kutu gösterirdi. Ekran
+hedeflerin **envanteri ve ufuk görünümüdür**.
+
+**`progress_pct: null` sözleşmesi (meclis 2/2):** çubuk YOK, yüzde YOK,
+**`0` YOK**. `0` "ölçüldü ve sıfır" demektir; ölçülmeyeni öyle göstermek
+uydurma veridir. Yerine "İlerleme ölçülmüyor" YAZILIR — sessizce boş
+bırakmak alanı gözden kaçırtırdı. (terra "etiket de yazma" dedi, luna
+"yaz" dedi; anayasanın "veri yoksa 'veri yok' gösterilir, placeholder
+değil" kuralı luna'yı destekliyor, o uygulandı.)
+
+**Meclis içi ikinci fark:** terra Mission Control'e "en fazla 3 satırlık
+acil hedef özeti + bağlantı" konabileceğini söyledi, luna hiç
+konmamasını. **luna uygulandı** — özet büyüdüğü an fiilen (b) olur ve
+terra'nın kendi uyarısına düşer.
+
+**Bir tuzak ölçülerek bulundu:** cockpit tanımsız hedefi **boş dize**
+yayınlıyor (`goal.get("target","")`), `null` değil. Boş dize için satır
+hiç çizilmez — boş bir satır "hedef var ama yazılmamış" diye okunurdu.
+
+**Kapı:** `odin-state.test.ts` — fixture çalışan cockpit'ten DOĞRUDAN
+alındı (`__fixtures__/api-state-goals.json`, 8 gerçek hedef). Zincirin
+tamamı ölçülür: ham ODIN → `stateSchema` → `adaptGoals` → `goalSchema`.
+Ölçülen/ölçülmeyen ilerlemenin ayrı kaldığı ve `null`'ın `0`'a düşmediği
+ayrıca test edilir.
+
+**✅ TARAYICIDA DOĞRULANDI — arayüzdeki İLK canlı ODIN verisi.**
+
+Önce doğrulayamamıştım: dev sunucusunda istemci hidrasyonu tüm uygulamada
+duruyordu (mock modda da, Mission Control'de de; "Daralt" düğmesi bile
+tepkisiz, chunk düşmüyor, konsol hatasız). "Ortamsal" deyip bırakmak
+yerine ÜRETİM derlemesinde denendi ve **hidrasyon orada sorunsuz çalıştı.**
+
+→ **Teşhis: hidrasyon kırılması dev/Turbopack'e özgüdür, üretimde yoktur.**
+Ayrı bir borç olarak kaydedildi (`18-s8-worklist.md`); bu ekranın kusuru
+değil.
+
+Üretim derlemesinde ölçülen (gerçek mod, cockpit 8765 açık):
+- `hidrasyon: true` · konsolda hata yok · **mock rozeti YOK**
+- Gerçek veri imzası ekranda: "ACIL: 8 urun icin tedarikci siparisi
+  **(stok krizi - momentum -%16 nedeni)**" — bu metin mock'ta YOKTUR,
+  yalnız canlı cockpit yükünde vardır
+- Ölçülen ilerleme çizildi: **%25** · %0 · %0
+- **5 çeyreklik hedef "İlerleme ölçülmüyor"** dedi — `null` hiçbir yerde
+  `0`'a düşmedi
+- "Son senkron: az önce"
+
+**Bir kusur bu ölçümle bulundu:** mock kayıtlar GERÇEK ODIN ID'lerini
+taşıyordu (`GOAL-ACIL-STOK-2026-07`). Paket kapısının imzası belirsiz
+kalıyordu (aynı dize hem mock'ta hem canlı veride) ve bir mock kaydın
+gerçek kimlik taşıması başlı başına yanıltıcıydı. ID'ler `GOAL-MOCK-*`
+oldu, kapı imzası da güncellendi.
+
+---
+
+## UI-ADR-125 — Dev sunucusu `127.0.0.1`'e izin verir; yoksa hidrasyon sessizce ölür (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 31 Temmuz 2026
+
+**Belirti:** `npm run dev` ile açılan arayüz `127.0.0.1:3000` üzerinden
+tamamen ÖLÜYDÜ. Ekran sunucudan geldiği gibi donuyor, hiçbir düğme
+çalışmıyor ("Daralt" tepkisiz), veri kancaları hiç ateşlenmiyor, bölümler
+sonsuza kadar "yükleniyor" gösteriyordu. **Konsolda hata yok. Hiçbir chunk
+düşmüyor. `__reactFiber` anahtarı hiç oluşmuyor.**
+
+**Yanlış teşhisim kayda geçsin:** buna önce "ortamsal bozulma, benim kodum
+değil" dedim ve `18-s8-worklist.md`'ye çözülemez bir borç olarak yazdım.
+Üretim derlemesinde çalıştığını görünce "dev/Turbopack'e özgü" diye
+daralttım — doğruydu ama YETERSİZDİ. Sebep bir gizem değildi:
+
+```
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr
+  from "127.0.0.1".
+```
+
+**Next, çözümü sunucu logunda YAZMIŞTI. Ben logu okuyup geçmiştim.**
+
+**Kök neden:** Next 16 dev sunucusu `/_next/webpack-hmr` gibi dev
+kaynaklarına "cross-origin" istekleri güvenlik gereği engeller ve
+varsayılan olarak yalnız `localhost`a izin verir. `127.0.0.1` ile
+girildiğinde HMR bloklanıyor ve **istemci hidrasyonu hiç tamamlanmıyor.**
+Hata mesajı sunucuda kalıyor, tarayıcıya yansımıyor — teşhisi bu yüzden
+zor.
+
+**Karar:** `next.config.ts` → `allowedDevOrigins: ["127.0.0.1"]`.
+
+`127.0.0.1` LOOPBACK'tir — makinenin kendisidir, ağa açılma DEĞİLDİR.
+Bilerek yalnız o eklendi; `192.168.1.105` (LAN adresi) EKLENMEDİ, o
+gerçekten dışarı açmak olurdu. Yalnız geliştirmeyi etkiler; üretim
+derlemesi zaten sorunsuzdu.
+
+**Doğrulama (dev, gerçek mod):** `hidrasyon: true` · "yükleniyor" yok ·
+canlı ODIN verisi ekranda (`momentum -%16 nedeni` imzası) · 5 çeyreklik
+hedef "İlerleme ölçülmüyor" · mock rozeti yok · **"Daralt" düğmesi artık
+çalışıyor** (etkileşim testi geçti).
+
+**DERS:** "ortamsal" demeden önce sunucu logunu SONUNA KADAR oku. Bir
+oturumu neredeyse çözülemez sayılan bir borçla kapatıyordum; cevap
+başından beri logdaydı.

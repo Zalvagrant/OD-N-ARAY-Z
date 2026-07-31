@@ -126,3 +126,37 @@ type AssertAssignable<A extends B, B> = A;
 
 export type _KpiMatchesType = AssertAssignable<ExecutiveKpiParsed, Partial<ExecutiveKPI>>;
 export type _AlertMatchesType = AssertAssignable<z.infer<typeof alertSchema>, Partial<Alert>>;
+
+/* --------------------------------------------------------------------------
+   Goal — ODIN ADR-0034 Goal Engine v1 (UI-ADR-124)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ⚠️ `Goal` ≠ `Mission`. ADR-0143 §4 arayüzün UYDURDUĞU `Mission` kavramını
+ * reddetti; `Goal` ise ODIN'in kendi varlığıdır — sahip `odin-data/goals.json`
+ * yazar, `cockpit.py` `/api/state.goals` olarak yayınlar.
+ *
+ * Şema, çalışan cockpit ÖLÇÜLEREK yazıldı (31 Tem 2026, 8 kayıt):
+ * `{id, level, label, target, progress_pct}`.
+ */
+export const goalSchema = z.object({
+  id: z.string().min(1),
+  /* Sözlük ODIN'indir. Ölçülen küme: urgent · weekly · quarterly.
+     Yeni bir seviye eklenirse şema REDDEDER — sessizce "diğer" grubuna
+     düşürmek, bilinmeyen bir aciliyeti bilinen gibi göstermek olurdu. */
+  level: z.enum(["urgent", "weekly", "quarterly"]),
+  label: z.string().min(1),
+  /* Cockpit tanımsız hedefi BOŞ DİZE olarak yayınlıyor (`goal.get("target","")`),
+     `null` değil. Boş dize "hedef yok" demektir ve öyle taşınır — ekranda
+     boş bir satır olarak çizilmez. */
+  target: z.string(),
+  /*
+   * SAHİBİN YAZDIĞI DEĞER; UI TÜRETMEZ.
+   *
+   * ADR-0143 §4: "ilerleme yüzdesi kavramı kendi ölçülmüş kaynağını ister ve
+   * burada yaratılmıyor." Ölçüm: 3 hedefte sayı (%25/%0/%0), 5 çeyreklikte
+   * `null`. `null` → çubuk yok, yüzde yok, **`0` YOK** (meclis 2/2):
+   * `0`, "ölçüldü ve sıfır" demektir; doğrusu "ölçülmüyor"dur.
+   */
+  progressPct: z.number().min(0).max(100).nullable(),
+});

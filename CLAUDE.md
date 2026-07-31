@@ -94,15 +94,16 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…117` serisindedir.
+Bu repodaki kararlar `UI-ADR-001…125` serisindedir.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-118`'den**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-126`'dan**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
-ÜÇ kez numara çakıştı (098; 099/100 iki kez) çünkü paralel oturumlar aynı
-anda numara aldı. Karar günlüğü bu repoda geri alınması en zor dosyadır.
+DÖRT kez numara çakıştı (098; 099/100 iki kez; 116/117 — bir oturum
+099/100'ü 116/117'ye taşırken başka bir oturum 116/117'yi S8 için almıştı)
+çünkü paralel oturumlar aynı anda numara alıyor. Karar günlüğü bu repoda geri alınması en zor dosyadır.
 
 ### 7. Karar ODIN çekirdeğini etkiliyorsa
 
@@ -177,21 +178,40 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 ### Sprint sırası
 
 `15-execution-plan.md` — S0…S13.
-Biten: **S1 (Token), S2 (App Shell), S3 (Core Components),
-S4 (Executive Components — 15 bileşen, `10b-executive-components.md`).**
-Üretildi, sahip onayı bekliyor: **S5 — Executive Briefing + Mission Control**
-(`10c-screens.md`). İlk gerçek ekranlar açıldı; veri **mock**, hepsi
-`meta.source === "mock"` ile işaretli (UI-ADR-094) ve S8'de değişecek.
-Biten (sahip onayı bekliyor): **S5.5 — Sözleşme Hizalama** (UI-ADR-098..100).
-Karar modeli ODIN DecisionRecord'a hizalandı (tier/status/alternatifler/10
-zorunlu öneri alanı), kanonik güven bantları + 8 bileşenli döküm, üç verdict
-(Onayla/Reddet/Ertele + A/B/C gerekçe kuralı), kabuk scroll onarımı, durum
-hafızası, contract fixture testi (`contracts/odin/`).
-Sıradaki: **S6 — Amazon Director.** ✅ KAPI AÇIK: FR-0046 **ADR-0143 ile
-karara bağlandı** (30 Tem 2026) — Alert + KPI kanonik zarfları o ADR'de;
-Opportunity = öneri kayıtlarının görünümü, Mission Board = "izlenen
-kararlar + vadesi gelen ertelemeler" görünümü. S6 bu dört karara göre
-tipler/dönüştürür; UI kavram icat etmez.
+
+⚠️ **Bu bölüm 31 Tem 2026'da GERÇEK DURUMLA hizalandı.** Önceki hâli
+"Sıradaki: S6" diyordu — oysa S6 ve S7 çoktan `main`'e inmişti. Paralel
+oturumlar bu panoyu güncellemeyi atladığı için dört kez ADR numarası
+çakıştı. **Sprint bitirince BURAYI da güncelle.**
+
+**`main` = `11dd4c9`** — S1…S7'nin tamamı ve S5.5 içinde. ADR-0143
+hizalıdır (Alert/KPI kanonik zarfları · Opportunity ayrı kayıt DEĞİL ·
+Mission reddedildi, tahta "izlenen kararlar + vadesi gelen ertelemeler"
+görünümü).
+
+| Sprint | Durum |
+|---|---|
+| S1 Token · S2 App Shell · S3 Core · S4 Executive | ✅ `main`'de |
+| S5 Briefing + Mission Control · S5.5 Sözleşme Hizalama | ✅ `main`'de |
+| S6 Amazon Director | ✅ `main`'de (ADR-0143'e hizalandı) |
+| S7 State & Data Layer | ✅ `main`'de (UI-ADR-112…115) |
+| **S8 Amazon Canlı Bağlantı** | ⚠️ **dalda** — `feature/s8-amazon-live-v2`, UI-ADR-118…124. Meclis: **teknik merge ✅**. `/goals` ile **ilk canlı ODIN verisi ekranda** (üretim derlemesinde doğrulandı) |
+| S9 AI Gateway ve sonrası | ⬜ başlanmadı |
+
+**S8 ne teslim etti:** veri borusu + kapılar + canlı vekil + **`/goals`
+ekranı**. Sahip Goal kapsam kararını verdi (gavadolar 2/2 → ayrı ekran,
+UI-ADR-124) ve `Hedefler` arayüzdeki **ilk canlı ODIN verisini**
+gösteriyor — 3 acil hedef ölçülen ilerlemeleriyle, 5 çeyreklik hedef
+"İlerleme ölçülmüyor" ile.
+
+**Kalan sözleşmeler ODIN'de yayınlanmıyor** (KPI §2, Alert §1, karar
+kayıtları, `AgentHealth.verdict`, `sku_stats`, PPC) — kanıtlı 12 maddelik
+liste `backend-istekleri.md`'de. Her yeni uç nokta yayınlandıkça bir
+bölüm üçer satırla canlıya geçer.
+
+✅ **Dev hidrasyon kusuru ÇÖZÜLDÜ (UI-ADR-125).** `127.0.0.1` ile açılan
+dev sunucusunda HMR bloklandığı için hidrasyon hiç tamamlanmıyordu;
+`allowedDevOrigins: ["127.0.0.1"]` eklendi.
 
 ### Her sprint sonunda
 
@@ -203,6 +223,20 @@ sprinte geçilmez:
 3. Hata var mı?
 4. Mimariye uygun mu?
 5. Merge edilmeye hazır mı?
+
+**6. (S8'de eklendi) Bu sprintin adını karşılayan çıktının KAÇ GERÇEK EKRAN
+TÜKETİCİSİ var?**
+
+Sıfırsa sprint "altyapı işi"dir, adının vaat ettiği teslimat DEĞİLDİR — ve
+öyle etiketlenir. S8'de bu tam olarak yaşandı: "Amazon Canlı Veri" sprinti
+boruyu, kapıları ve canlı vekil doğrulamasını teslim etti ama `httpLoad`
+ile `useOdinQuery`'nin **hiçbir ekran çağıranı yoktu**; ekranda tek bir
+canlı ODIN değeri görünmüyordu. Testlerin geçmesi bunu gizlemişti.
+
+Meclis kuralı (gavadolar 2/2): **"test geçti" ile "sprint adı karşılandı"
+AYRI kararlardır.** Teknik merge onayı ürün kapanış onayı değildir; ikisi
+ayrı ayrı verilir. Bir veri borusu için kabul, en az bir gerçek değerin
+gerçek uç noktadan gelip EKRANDA render edilmesidir.
 
 ### Emin değilsen
 

@@ -26,6 +26,11 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { IS_MOCK } from "@/lib/data/mode";
+/* Mutlak yol BİLEREK: gerçek mod derlemesinde paketleyici bu belirteci
+   stub'a çözer (`next.config.ts` → turbopack.resolveAlias). Göreli
+   "./registry" yazılırsa alias EŞLEŞMEZ ve mock chunk'ları çıktıda kalır —
+   ölçülerek görüldü. */
+import { loadMock, type MockKey, type MockMap } from "@/mocks/registry";
 
 export interface MockState<T> {
   /** Sunucuda ve ilk hydration render'ında null — yükleme durumu budur. */
@@ -40,34 +45,64 @@ interface Store {
   listeners: Set<() => void>;
 }
 
-/* ---- React dışı durum: üretici fonksiyon → store ---- */
+/* ---- React dışı durum: ANAHTAR → store ----
+   Anahtar bazlı çünkü ekranlar artık üretici FONKSİYONU import etmiyor;
+   ediyor olsalardı mock modülü üretim paketine geri girerdi (UI-ADR-123). */
 
-const STORES = new WeakMap<() => unknown, Store>();
+const STORES = new Map<MockKey, Store>();
 
-function storeFor(build: () => unknown): Store {
-  let s = STORES.get(build);
+function storeFor(key: MockKey): Store {
+  let s = STORES.get(key);
   if (!s) {
     s = { snapshot: null, listeners: new Set() };
-    STORES.set(build, s);
+    STORES.set(key, s);
   }
   return s;
 }
 
-function subscribeTo(build: () => unknown, listener: () => void): () => void {
-  const s = storeFor(build);
+function subscribeTo(key: MockKey, listener: () => void): () => void {
+  const s = storeFor(key);
   s.listeners.add(listener);
   return () => s.listeners.delete(listener);
 }
 
-function readSnapshot(build: () => unknown): unknown {
-  return storeFor(build).snapshot; // saf okuma — yan etki YOK
+function readSnapshot(key: MockKey): unknown {
+  return storeFor(key).snapshot; // saf okuma — yan etki YOK
 }
 
-function fillStore(build: () => unknown, force: boolean): void {
-  const s = storeFor(build);
-  if (!force && s.snapshot !== null) return;
-  s.snapshot = build();
-  s.listeners.forEach((l) => l());
+/* Uçuştaki yüklemeler: aynı anahtar için ikinci bir istek YENİ bir dinamik
+   import başlatmaz, mevcut sözü bekler (meclis bulgusu). Aynı mock'u iki
+   bölüm kullandığında iki kez yükleme olurdu. */
+const INFLIGHT = new Map<MockKey, Promise<void>>();
+
+/**
+ * Dışa açık YALNIZ tekilleştirme testi için (aşağıdaki INFLIGHT kuralı).
+ *
+ * `async` DEĞİL ve bu kasıtlı: `async` bir fonksiyon `return task` yaparken
+ * sözü YENİ bir sözle sarmalar, uçuştaki sözün kimliği kaybolur ve ikinci
+ * çağıran onu tanıyamaz. Testle yakalandı — tekilleştirme yazılmış ama
+ * çalışmıyordu.
+ */
+export function fillStore(key: MockKey, force: boolean): Promise<void> {
+  const s = storeFor(key);
+  if (!force && s.snapshot !== null) return Promise.resolve();
+
+  const running = INFLIGHT.get(key);
+  if (running && !force) return running;
+
+  const task: Promise<void> = (async () => {
+    /* Gerçek modda `loadMock` daima null döner (fail-closed) ve store hiç
+       dolmaz — bölümler "veri yok" gerekçesini basar. */
+    const value = await loadMock(key);
+    if (value === null) return;
+    s.snapshot = value;
+    s.listeners.forEach((l) => l());
+  })().finally(() => {
+    if (INFLIGHT.get(key) === task) INFLIGHT.delete(key);
+  });
+
+  INFLIGHT.set(key, task);
+  return task;
 }
 
 /**
@@ -91,18 +126,16 @@ export function mockGate<T>(isMock: boolean, data: T | null): MockState<T> {
 }
 
 /**
- * @param build Modül seviyesinde tanımlı, argümansız üretici. Sonuç effect
- *              içinde üretilir ve `reload`a kadar aynı referans döner.
+ * @param key `registry.ts`'teki anahtar. Üretici FONKSİYON geçirilmez —
+ *            geçirilseydi ekran mock modülünü import etmek zorunda kalır
+ *            ve modül üretim paketine geri girerdi (UI-ADR-123).
  */
-export function useMockData<T>(build: () => T): MockState<T> {
-  const subscribe = useCallback(
-    (l: () => void) => subscribeTo(build, l),
-    [build]
-  );
+export function useMockData<K extends MockKey>(key: K): MockState<MockMap[K]> {
+  const subscribe = useCallback((l: () => void) => subscribeTo(key, l), [key]);
 
   const data = useSyncExternalStore(
     subscribe,
-    () => readSnapshot(build) as T | null,
+    () => readSnapshot(key) as MockMap[K] | null,
     () => null
   );
 
@@ -110,10 +143,10 @@ export function useMockData<T>(build: () => T): MockState<T> {
      Gerçek modda hiç üretilmez — fail-closed (UI-ADR-115). */
   useEffect(() => {
     if (!IS_MOCK) return;
-    fillStore(build, false);
-  }, [build]);
+    void fillStore(key, false);
+  }, [key]);
 
-  const reload = useCallback(() => fillStore(build, true), [build]);
+  const reload = useCallback(() => void fillStore(key, true), [key]);
 
   return { ...mockGate(IS_MOCK, data), reload };
 }

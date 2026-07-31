@@ -74,6 +74,24 @@ export function parseEnvelope<T>(
 }
 
 /**
+ * İptal hatası mı? — ŞEKLE bakar, sınıfa değil (meclis üçüncü tur).
+ *
+ * `err instanceof DOMException` güvenilir DEĞİL: Node'un `undici`'si bazı
+ * sürümlerde `AbortError` adında sıradan bir `Error` atar ve jsdom/worker
+ * gibi ayrı realm'lerde `instanceof` zaten `false` döner. O durumda gerçek
+ * bir kullanıcı iptali "ağ hatası" diye sınıflanırdı.
+ *
+ * `signal.reason` ile kimlik karşılaştırması en kesin kanıttır; kalanı ad
+ * ve kod üzerinden şekil kontrolü.
+ */
+function isAbortError(err: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted && err === signal.reason) return true;
+  if (typeof err !== "object" || err === null) return false;
+  const e = err as { name?: unknown; code?: unknown };
+  return e.name === "AbortError" || e.code === "ABORT_ERR";
+}
+
+/**
  * ODIN'e HTTP isteği. S8'de gerçek uç noktalara bağlanacak olan budur;
  * S7'de yazıldı ve testle doğrulandı ama henüz hiçbir ekran çağırmıyor.
  */
@@ -85,11 +103,10 @@ export async function httpLoad(
     throw offlineError();
   }
 
-  /* Zaman aşımı ve çağıranın iptali TEK bir sinyalde birleşir: route
-     değişince eski istek ölmezse, geç gelen yanıt yeni ekranın verisini
-     ezer (race). */
-  const timer = AbortSignal.timeout(timeoutMs);
-  const merged = signal ? AbortSignal.any([signal, timer]) : timer;
+  /* Zaman aşımı ve çağıranın iptali tek sinyalde birleşir: route değişince
+     eski istek ölmezse, geç gelen yanıt yeni ekranın verisini ezer. */
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const merged = signal ? AbortSignal.any([signal, timeout]) : timeout;
 
   let res: Response;
   try {
@@ -98,12 +115,26 @@ export async function httpLoad(
       headers: { Accept: "application/json" },
     });
   } catch (err) {
-    /* ZAMAN AŞIMI mı, ÇAĞIRANIN İPTALİ mi (meclis bulgusu)? `AbortSignal.any`
-       ikisini tek sinyalde birleştirdiği için ayrımı burada yapıyoruz.
-       Çağıran iptal ettiyse (route değişti) bu bir HATA DEĞİLDİR — olduğu
-       gibi yükselir ve React Query'nin iptal yolundan geçer; kullanıcıya
-       terk ettiği ekranın hata kutusu gösterilmez. */
-    if (signal?.aborted && !timer.aborted) throw err;
+    /*
+     * ÇAĞIRANIN İPTALİ HER ZAMAN KAZANIR — UI-ADR-121.
+     *
+     * Önceki koşul `signal?.aborted && !timeout.aborted` idi: ikisi birden
+     * olduğunda (kullanıcı route değiştirirken istek de zaman aşımına
+     * uğradığında) zaman aşımı kazanıyor ve TERK EDİLMİŞ ekranın hata
+     * kutusu açılıyordu. `timedOut` diye bir bayrakla düzeltmeye çalışmak
+     * da aynı hatayı koruyordu — sorun hangi sinyalin okunduğu değil,
+     * ÖNCELİK sırasıydı.
+     *
+     * Doğru kural tek cümle: çağıran iptal ettiyse — zaman aşımı da olsa —
+     * bu bizim raporlayacağımız bir hata değildir. Kullanıcı o ekrandan
+     * ayrıldı; React Query iptali zaten sessizce düşürür.
+     *
+     * AMA yalnız GERÇEK iptal hatası yutulur (meclis ikinci turu): ağ
+     * kopması ile kullanıcının iptali aynı ana denk gelirse, `aborted`
+     * bayrağına bakıp her hatayı yutmak ağ hatasını GİZLERDİ. Hata tipi
+     * de kontrol edilir; iptal olmayan bir hata her zaman sınıflandırılır.
+     */
+    if (signal?.aborted && isAbortError(err, signal)) throw err;
     throw classifyError(err, path);
   }
 
