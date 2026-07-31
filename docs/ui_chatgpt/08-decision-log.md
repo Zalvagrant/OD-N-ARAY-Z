@@ -2886,3 +2886,45 @@ değişse bu sayfa geride kalırdı.
 Lint 0 · `tsc` 0 · 56 dosya / 305 test yeşil.
 `/briefing` `/amazon` `/mission-control` `/goals` → 200 ·
 `/bilinmeyen-ekran` → **404** ve doğru metin + dönüş bağlantısı.
+
+---
+
+## UI-ADR-134 — `amazon-director` dikişlerinden ayrıldı; feature katmanı gerçek kod aldı (S13)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-130 · UI-ADR-131 · gavadolar dikiş önerisi
+
+### Bulgu
+
+`amazon-director.tsx` **802 satırdı** ve tek başına on ayrı sorumluluk
+taşıyordu. Hedef ölçek (`1.iş`): 50–150 ideal · 200+ bölünmeli ·
+400+ **yeniden tasarlanmalı**.
+
+### Karar — dikişlere göre, satır sayısına göre DEĞİL
+
+Meclisin (gavadolar) işaret ettiği iki dikiş alındı:
+
+| Çıkan | Nereye | Neden ayrı |
+|---|---|---|
+| `GlanceView` (196 satır) | `features/amazon/director/glance-view.tsx` | Dışarıdan veri ALMAZ; zarfı props ile alır, sorgu çalıştırmaz. Ekranın kaynağı değişse bu kart değişmez. |
+| `skuColumns()` (103 satır) | `features/amazon/director/sku-columns.tsx` | Sütun tanımı bir VERİ→HÜCRE eşlemesidir, ekran düzeni değildir. Yerleşim değişince bu dosyaya dokunulmaz. |
+
+Ekran 802 → **496 satır**; kalanı kompozisyon ve veri orkestrasyonu.
+
+"Sırf dosya küçülsün diye 20 küçük bileşen" yapılmadı — meclisin açık
+şartıydı. Üçüncü kolon bölümleri yerinde bırakıldı çünkü onlar ekranın
+DÜZENİdir; ayrı dosyaya taşımak okumayı zorlaştırırdı.
+
+### Ölçüm
+
+Lint 0 · `tsc` 0 · 56 dosya / **305 test** yeşil.
+
+⚠️ Test koşumu bir kez 12/56 dosyada düştü: `Failed to connect to the
+browser session ... within the timeout`. **Kod hatası değildi** — dev
+sunucusu aynı anda koşarken Storybook tarayıcı projesi kaynak
+bulamıyor. Dev sunucusu kapatılınca 56/56 geçti. Bir sonraki oturuma
+not: tam paketi çalıştırmadan önce dev sunucusunu kapat.
+
+Tarayıcıda `/amazon`: Executive Glance kartı, AMAZON HEALTH sayacı, SKU
+Health tablosu ve onaylanmamış eşik uyarısı — hepsi çiziliyor.
