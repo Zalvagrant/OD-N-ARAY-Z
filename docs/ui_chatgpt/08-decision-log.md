@@ -2813,3 +2813,76 @@ Yeni üç hikâye görsel değil **sözleşme** testidir: `Tab` ile odaklanır,
 `Enter` ve `Space` ayrı ayrı tetikler, sarılan içerikte iki `<p>` bulunur
 ve kök `DIV`dir — yani `<button>`ın saramayacağı içerik gerçekten
 sarılıyor.
+
+---
+
+## UI-ADR-133 — Rota sınırları: beyaz sayfa yerine beş adımlı hata (S13)
+
+**Durum:** ✅ Dondurulmuş — tarayıcıda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-132 · `10-component-library.md` §11 · §12
+
+### Bulgu
+
+`src/app/` altında **hiçbir** `error.tsx` ya da `not-found.tsx` yoktu.
+
+- Bir ekran render sırasında patladığında React ağacı çöküyor ve
+  kullanıcı **boş beyaz sayfa** görüyordu — kabuk, menü, hatta "bir şey
+  ters gitti" cümlesi bile olmadan.
+- `[[...slug]]/page.tsx` bilinmeyen yol için `notFound()` çağırıyordu ama
+  karşılığı yoktu: Next'in biçimlendirilmemiş dahili sayfası basılıyordu.
+
+Bu, §11'in ("Kullanıcı hiçbir zaman sadece 'Error' görmez") sessizce
+ihlal edildiği tek yerdi: bölüm bazlı hatalar `Section`/`ErrorState` ile
+beş adımı dolduruyordu ama BEKLENMEYEN bir istisnanın yakalayıcısı yoktu.
+
+### `error.tsx` — `(shell)` içinde, ve ÇALIŞIYOR
+
+Tarayıcıda ölçüldü: geçici olarak patlayan bir rota eklendi,
+`/patlat-deneme`. Sonuç: beş adımlı hata kutusu göründü, "Yeniden dene"
+düğmesi geldi ve **kabuk ayakta kaldı** — sidebar ve navigasyon
+çalışmaya devam etti, kullanıcı başka bir workspace'e geçebildi. Sonra
+deneme rotası silindi.
+
+`reset()` React'in kendi kancasıdır: segmenti yeniden render eder,
+sayfayı yenilemekten farkı uygulama durumunun (React Query önbelleği
+dahil) korunmasıdır.
+
+⚠️ `curl` ile İLK istekte dahili hata sayfası görünür — dev SSR'ın
+davranışıdır, sınırın kusuru değildir. Sınır istemcide devreye girer.
+
+### `not-found.tsx` — KÖKTE olmak ZORUNDA (ölçüldü)
+
+Dosya önce `app/(shell)/not-found.tsx`e, sonra doğrudan
+`app/(shell)/[[...slug]]/not-found.tsx`e kondu. **İKİSİ DE ÇALIŞMADI**;
+her ikisinde de Next kendi dahili sayfasını (`id="__next_error__"`)
+basmaya devam etti — dev sunucusu temiz önbellekle yeniden başlatılarak
+doğrulandı. Yalnız `app/not-found.tsx` devreye giriyor.
+
+**Bedeli:** kök layout'un altında olduğu için `(shell)/layout.tsx`
+uygulanmaz — 404 sayfasında sidebar ve komut paleti YOKTUR. Kabuğu orada
+elle kurmak kompozisyonu ikinci bir yerde tekrarlamak olurdu; 404 için
+bu takas kabul edildi ve dönüş yolu açık bir bağlantıyla verildi.
+
+**Bir sonraki oturuma not:** route-group içine `not-found.tsx` koymayı
+TEKRAR DENEME. Denendi, ölçüldü, çalışmıyor. Not dosyanın başına da
+yazıldı.
+
+### `loading.tsx` BİLEREK EKLENMEDİ
+
+Ekranlar yüklemeyi `Section` iskeletleriyle bölüm bazında zaten
+yönetiyor (UI-ADR-131 `screenState`). Rota seviyesinde ikinci bir
+yükleme yüzeyi eklemek, aynı geçişte iki ayrı iskelet gösterip
+titremeye yol açardı.
+
+### Yan düzeltme — yakalayıcı sayfa primitive kullanıyor
+
+`[[...slug]]/page.tsx` ham `<h1 className="text-xl font-semibold">` ve
+ham `<p>` yazıyordu; diğer HER ekran `Heading`/`Label` kullanıyor. Ölçek
+değişse bu sayfa geride kalırdı.
+
+### Ölçüm
+
+Lint 0 · `tsc` 0 · 56 dosya / 305 test yeşil.
+`/briefing` `/amazon` `/mission-control` `/goals` → 200 ·
+`/bilinmeyen-ekran` → **404** ve doğru metin + dönüş bağlantısı.
