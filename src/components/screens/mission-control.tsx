@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
 import type { DataEnvelope } from "@/types/data-envelope";
 import {
+  useOdinAlerts,
   useOdinDirectors,
   type RuntimeDirectorParsed,
 } from "@/lib/data/odin-state";
@@ -165,7 +166,10 @@ export function MissionControl({
      hiç kullanılmadı (`agents` boş), oysa 18 iş heartbeat üstünde
      koşuyor. Sahibin sorusunu ("ODIN yaşıyor mu?") cevaplayan yüzey bu. */
   const directors = useOdinDirectors();
-  const alerts = useMockData("briefing.risks");
+  /* CANLI — ODIN ADR-0151 (UI-ADR-129). Üst üste üç kez patlayan
+     zamanlanmış işler kanonik Alert olarak geliyor. Bugün liste BOŞ ve
+     bu doğru cevap: hiç boşalmayan bir alarm listesi okunmaz. */
+  const alerts = useOdinAlerts();
 
   const loading = demo === "loading" || decisions.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
@@ -174,7 +178,7 @@ export function MissionControl({
   const reloadAll = () => {
     decisions.reload();
     directors.refetch();
-    alerts.reload();
+    alerts.refetch();
   };
 
   const decisionEnv =
@@ -253,7 +257,11 @@ export function MissionControl({
           onRetry={reloadAll}
         >
           <AlertStack
-            env={isEmpty && alerts.data ? { data: [], meta: alerts.data.meta } : alerts.data}
+            env={
+              isEmpty && alerts.envelope
+                ? { data: [], meta: alerts.envelope.meta }
+                : alerts.envelope
+            }
           />
         </Section>
       </div>

@@ -2496,3 +2496,37 @@ etmiyor (ADR-0149 §6). Arayüz de uydurmuyor. Kolon kaldırıldı.
 `/amazon` SKU Health tablosu, 48 satır. Örnekler: `CapDome-Xs-10` →
 Kritik · 3,5 gün · 1 stok · 2 satılan. `CloseSmokeyDome-M-20-pcs` →
 Sağlıklı · 258,9 gün · 37 stok · 1 satılan · ACOS %71,5.
+
+---
+
+## UI-ADR-129 — Runtime alarmları Executive Alerts'e bağlandı (S14)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** ODIN ADR-0151 · ADR-0143 · UI-ADR-127
+
+ODIN üst üste üç kez başarısız olan zamanlanmış işleri kanonik Alert
+olarak yayınlamaya başladı (`module: "runtime"`). Mission Control'ün
+Executive Alerts bölümü mock'tan çıkıp buraya bağlandı.
+
+**Adaptör yok, çeviri var.** ODIN kanonik zarfı yayınlıyor; yalnız
+snake_case alan adları çevriliyor. Eşik (3), gruplama ve
+`requires_action` kararı ODIN'de — arayüz hiçbirini hesaplamıyor.
+`module` alanı serbest metin olduğu için ayrı bir tip gerekmedi;
+`runtime` ile `amazon` aynı listede yaşayabilir ve ayırt edilebilir.
+
+**Boş liste NORMAL ve DOĞRU hâldir.** Ekran bugün "Aksiyon gerektiren
+uyarı yok" gösteriyor çünkü hiçbir iş üst üste üç kez patlamıyor. Hiç
+boşalmayan bir alarm listesi, kimsenin okumadığı bir listedir.
+
+**ODIN `null` yollarsa boş dizi GÖSTERİLMEZ.** Sağlık dosyası okunamazsa
+ODIN `alerts: null` yayınlıyor ve arayüz bunu hataya çeviriyor. Boş liste
+"her şey yolunda" iddiasıdır; okunamayan bir dosya o iddianın kanıtı
+değildir.
+
+### Ölçüm — gerçek modda, üretim derlemesiyle
+
+`/mission-control` → Executive Alerts: **"Aksiyon gerektiren uyarı yok"**.
+Director Coordination aynı ekranda 8 gerçek direktörü göstermeye devam
+ediyor. Alarmın dolu hâli Storybook'ta (`AlertStack`) ve ODIN'in birim
+testlerinde kapsanıyor.

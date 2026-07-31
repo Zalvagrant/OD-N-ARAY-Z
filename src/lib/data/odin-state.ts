@@ -17,7 +17,7 @@ import { z } from "zod";
 import type { DataEnvelope } from "@/types/data-envelope";
 import { httpLoad } from "./client";
 import { IS_MOCK } from "./mode";
-import { goalSchema, runtimeDirectorSchema } from "./schemas";
+import { alertSchema, goalSchema, runtimeDirectorSchema } from "./schemas";
 import { useOdinQuery, type OdinQueryResult } from "./use-odin-query";
 import { loadMock } from "@/mocks/registry";
 
@@ -126,6 +126,79 @@ export function useOdinDirectors(): OdinQueryResult<RuntimeDirectorParsed[]> {
             throw new Error("ODIN direktör sağlığını okuyamadı");
           }
           return envelope(parsed.generated_at, parsed.directors);
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Runtime Alerts — ODIN ADR-0151 (UI-ADR-129)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in `alerts` yayını — üst üste başarısız olan zamanlanmış işler.
+ *
+ * `module: "runtime"` ADR-0151 ile ADR-0143'ün sözlüğüne AÇIKÇA eklendi:
+ * altyapı arızası bir iş sinyalidir. Sessizce ölmüş bir çıkarım işi, dört
+ * günlük verinin kaybolma biçimiydi (BR-0014).
+ *
+ * Adaptör YOK — ODIN kanonik zarfı camelCase'e yakın yayınlıyor; yalnız
+ * snake_case alan adları çevriliyor. Eşik, gruplama ve `requires_action`
+ * kararı ODIN'de; arayüz hiçbirini hesaplamaz.
+ *
+ * BOŞ LİSTE NORMAL VE DOĞRU HÂLDİR. Hiç boşalmayan bir alarm listesi,
+ * kimsenin okumadığı bir listedir.
+ */
+const rawRuntimeAlertSchema = z.object({
+  id: z.string(),
+  severity: z.enum(["critical", "risk", "warning", "info"]),
+  title: z.string(),
+  module: z.string(),
+  requires_action: z.boolean(),
+  evidence: z.array(z.string()),
+  created_at: z.string(),
+  suggested_action: z.string().nullable().optional(),
+  occurrence_count: z.number().optional(),
+  first_seen: z.string().nullable().optional(),
+  last_seen: z.string().nullable().optional(),
+  affected_job: z.string().optional(),
+});
+
+const alertsStateSchema = z.object({
+  generated_at: z.string(),
+  /* ODIN sağlık dosyasını okuyamazsa `null` yayınlar — boş dizi DEĞİL.
+     Boş liste "her şey yolunda" iddiasıdır; okunamayan bir dosya o
+     iddianın kanıtı değildir. */
+  alerts: z.array(rawRuntimeAlertSchema).nullable(),
+});
+
+export function useOdinAlerts(): OdinQueryResult<z.infer<typeof alertSchema>[]> {
+  return useOdinQuery({
+    key: ["odin", "alerts"],
+    module: "default",
+    schema: z.array(alertSchema),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.risks")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = alertsStateSchema.parse(raw);
+          if (parsed.alerts === null) {
+            throw new Error("ODIN çalışma zamanı sağlığını okuyamadı");
+          }
+          return envelope(
+            parsed.generated_at,
+            parsed.alerts.map((a) => ({
+              id: a.id,
+              severity: a.severity,
+              title: a.title,
+              module: a.module,
+              requiresAction: a.requires_action,
+              evidence: a.evidence,
+              createdAt: a.created_at,
+              ...(a.suggested_action
+                ? { suggestedAction: a.suggested_action }
+                : {}),
+            }))
+          );
         },
   });
 }
