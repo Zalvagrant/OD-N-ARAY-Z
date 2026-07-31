@@ -3272,3 +3272,88 @@ değildir, tüketicisinin yalnız hikâyeler olması onun DOĞRU hâlidir.
 ### Ölçüm
 
 `tsc` 0 · `lint` 0 hata · **60 dosya / 354 test** (+1 dosya / +10 test).
+
+---
+
+## UI-ADR-141 — Erişilebilirlik sözleşmesi yorumdan çıkıp KAPIYA bağlandı (S13)
+
+**Durum:** ✅ Dondurulmuş — beşi de testle kilitlendi
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-132 · UI-ADR-140 · gavadolar 2/2
+
+Beş açık ölçülmüştü. Ortak yanları: **hiçbiri fareyle fark edilmez** ve
+üçü zaten bir yorumla "korunuyordu".
+
+### 1 · `table.tsx` — ızgara ilişkisi KOPUKTU
+
+`role="grid"` KAYDIRMA KABINDAYDI ve içinde gerçek bir `<table>` (örtük
+`role=table`) duruyordu. Satırlardaki `aria-rowindex` / `aria-selected`
+ızgaraya değil, **ızgaranın içindeki ayrı bir tabloya** aitti: ekran
+okuyucu "ızgara" diyor ama satır numarasını bulamıyordu. Gerçek tablonun
+hiçbir adı da yoktu.
+
+Izgara `<table>`'a taşındı (`role="grid"` + `aria-rowcount` + `tabIndex`);
+kaydırma kabı yalnızca kaydırıyor. Ad `<caption class="sr-only">`tan
+geliyor — `aria-label` ile ikisini birden yazmak adı çiftlerdi.
+
+### 2 · `button.tsx` — "ZORUNLU" diyen yorum hiçbir şeyi zorlamıyordu
+
+`iconOnly` artık ayrık birlik tipiyle `aria-label` (ya da
+`aria-labelledby`) İSTİYOR. Adsız bir ikon butonu ekran okuyucuda yalnız
+"buton" diye okunur ve ne yaptığı asla anlaşılmaz.
+
+**Denendi ve ateşledi:** `<Button iconOnly icon={…} />` enjekte edildi,
+`tsc` reddetti. Yorumla korunan bir kural, korunmayan bir kuraldır.
+
+### 3 · `modal.tsx` — ad ÇİFTLENMİŞ, açıklama BAĞLANMAMIŞ
+
+`aria-label={title}` görünür `<h2>`yi tekrarlıyordu: iki metin ayrı ayrı
+yaşıyordu, biri değişse diğeri kalırdı. `aria-labelledby` ikisini tek
+kaynağa bağladı. `description` ise hiçbir şeye bağlı değildi — yani
+**yalnız gören kullanıcı için vardı**; `aria-describedby` ile bağlandı,
+açıklama yoksa öznitelik hiç yazılmıyor (var olmayan bir id'ye işaret
+etmek, hiç işaret etmemekten kötüdür).
+
+### 4 · `filter.tsx` — Escape odak listeye girince ölü tuş
+
+`onKeyDown` yalnız tetikleyicideydi. Odak Checkbox'lara geçtiği an klavye
+kullanıcısı açtığı paneli KAPATAMIYORDU. Escape köke taşındı ve kapanınca
+**odak tetikleyiciye geri veriliyor** — aksi halde odak silinen düğümde
+kalır, sonraki Tab belgenin başına atlar. (Bunun için `Button` React 19
+`ref` prop'unu tipinde beyan etmek zorunda kaldı.)
+
+### 5 · `search.tsx` — 120 ms'lik blur zamanlayıcısı bir YARIŞTI
+
+Üç kusur birdeydi: liste `role="listbox"` değildi, ok tuşu yoktu, ve
+kapanma **saate** bağlıydı — odağın nereye gittiğine değil. Yavaş bir
+makinede tıklama zamanlayıcıdan sonra gelir ve seçim kaybolur.
+
+ARIA combobox kalıbına geçildi: `role="combobox"` + `aria-expanded` +
+`aria-controls` + `aria-activedescendant`, öğeler `role="option"`,
+ArrowUp/Down/Home/End sarmalı, ve **iki adımlı Escape** (önce liste,
+sonra metin — tek adımda ikisi, sadece listeyi kapatmak isteyenin
+yazdığını da silerdi). Zamanlayıcı kaldırıldı; kapanma kökün
+`onBlur`unda `relatedTarget` ile ÖLÇÜLÜYOR.
+
+Odak kutuda kalır, imleç `aria-activedescendant` ile taşınır: odağı
+listeye taşımak yazmaya devam etmeyi imkânsız kılardı.
+
+### Tuzak #1'in KÖK NEDENİ bulundu — testler artık tek koşuda
+
+Devir belgesi *"tam test paketinden önce dev sunucusunu kapat"* diyordu.
+Yanlış teşhis: düşüşün olduğu koşuda dev sunucusu BAŞKA bir worktree'ye
+aitti ve sunucu açıkken geçen koşular da vardı.
+
+**Gerçek sebep:** 45 story dosyasının soğuk Vite dönüşümü varsayılan
+30 sn'lik `browser.connectTimeout`u aşıyor; Vitest tarayıcı oturumunu ölü
+sayıyor. `connectTimeout: 180_000` yazıldı ve storybook projesi **tek
+komutta 45/45** geçti (iki kez üst üste, 2s22 ve 3s19).
+
+İkinci koşul ölçüldü: `unit` ile `storybook` AYNI ANDA koşarsa node
+işçileri CPU'yu tutuyor ve bağlantı yine düşüyor (birleşik koşu 62 sn'de
+patladı). İki proje **ayrı** çalıştırılır. Parçalama (`--shard`) artık
+gereksiz.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **60 dosya / 360 test** (+6 test).

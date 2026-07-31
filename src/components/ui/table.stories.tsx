@@ -8,7 +8,7 @@
 import { useMemo, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ColumnDef } from "@tanstack/react-table";
-import { expect, waitFor } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import { DataTable, type TableDensity } from "./table";
 import { Mono, Num } from "./typography";
 import { Badge } from "./badge";
@@ -279,4 +279,41 @@ export const Error: StoryObj = {
       onRetry={() => {}}
     />
   ),
+};
+
+/**
+ * UI-ADR-141 — IZGARA ADI VE YAPISI.
+ *
+ * Önce `role="grid"` KAYDIRMA KABINDAYDI ve içinde gerçek bir `<table>`
+ * (örtük `role=table`) duruyordu: satırlardaki `aria-rowindex` /
+ * `aria-selected` ızgaraya değil, ızgaranın İÇİNDEKİ ayrı bir tabloya
+ * aitti — ekran okuyucu için ilişki kopuktu. Ayrıca `<caption>` yoktu ve
+ * gerçek tablonun hiçbir adı yoktu.
+ */
+export const IzgaraAdlandirilmis: StoryObj = {
+  name: "Izgaranın ADI var ve satırlar ONUN satırları",
+  render: function Render() {
+    const data = useMemo(() => makeRows(20), []);
+    return <DataTable label="SKU sağlığı" data={data} columns={columns} />;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    /* Ad `<caption>`tan gelir; `aria-label` ile ikisini birden yazmak
+       adı çiftlerdi. */
+    const grid = await canvas.findByRole("grid", { name: "SKU sağlığı" });
+    await expect(grid.tagName).toBe("TABLE");
+
+    /* Izgara İÇİNDE ikinci bir tablo OLMAMALI: iç içe geçmiş ızgara+tablo
+       tam olarak düzeltilen kusurdu. */
+    await expect(grid.querySelectorAll("table")).toHaveLength(0);
+
+    /* Satır sayısı ızgarada duyurulur ve satırlar aynı ızgaraya ait. */
+    await expect(grid).toHaveAttribute("aria-rowcount");
+    const rows = within(grid).getAllByRole("row");
+    await expect(rows.length).toBeGreaterThan(1);
+
+    /* Klavye hedefi ızgaranın kendisidir — kaydırma kabı değil. */
+    await expect(grid).toHaveAttribute("tabindex", "0");
+  },
 };

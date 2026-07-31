@@ -1,6 +1,7 @@
 /** S3 · 9 — Modal / Drawer (glass yalnızca overlay katmanında) */
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, userEvent, within } from "storybook/test";
 import { Drawer, Modal } from "./modal";
 import { Button } from "./button";
 import { Text } from "./typography";
@@ -66,5 +67,77 @@ export const DrawerPanel: StoryObj = {
         </Drawer>
       </>
     );
+  },
+};
+
+/**
+ * UI-ADR-141 — AD GÖRÜNÜR BAŞLIKTAN GELİR, TEKRAR EDİLMEZ.
+ *
+ * Önce `aria-label={title}` vardı ve aşağıdaki `<h2>` aynı metni
+ * taşıyordu: ad ile görünen başlık ayrı ayrı yaşıyordu (biri değişse
+ * diğeri kalırdı) ve ekran okuyucu başlığı iki kez okuyordu. Açıklama ise
+ * hiçbir şeye bağlı DEĞİLDİ — yani yalnız GÖREN kullanıcı için vardı.
+ */
+export const AdVeAciklamaBaglidir: StoryObj = {
+  name: "Ad <h2>'ye, açıklama <p>'ye BAĞLIDIR (tekrar değil)",
+  render: function Render() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <Button variant="primary" onClick={() => setOpen(true)}>
+          Aç
+        </Button>
+        <Modal
+          open={open}
+          onClose={() => setOpen(false)}
+          title="Kararı onayla"
+          description="Bu işlem karar kaydına yazılır ve geri alınamaz."
+        >
+          <Text>Gövde.</Text>
+        </Modal>
+      </>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Aç" }));
+
+    /* Portal `document.body`ye basar — canvas değil, body içinde ara. */
+    const body = within(document.body);
+    const dialog = await body.findByRole("dialog", { name: "Kararı onayla" });
+
+    /* Ad LABELLEDBY ile gelir; aria-label ile çiftlenmez. */
+    await expect(dialog).not.toHaveAttribute("aria-label");
+    const labelledBy = dialog.getAttribute("aria-labelledby")!;
+    await expect(document.getElementById(labelledBy)!.tagName).toBe("H2");
+
+    /* Açıklama artık diyaloga BAĞLI. */
+    const describedBy = dialog.getAttribute("aria-describedby")!;
+    await expect(document.getElementById(describedBy)!.textContent).toMatch(
+      /geri alınamaz/i
+    );
+  },
+};
+
+export const AciklamaYoksaBagYok: StoryObj = {
+  name: "Açıklama yoksa aria-describedby de YOK (boş bağ kurulmaz)",
+  render: function Render() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <Button variant="primary" onClick={() => setOpen(true)}>
+          Aç
+        </Button>
+        <Modal open={open} onClose={() => setOpen(false)} title="Kısa">
+          <Text>Gövde.</Text>
+        </Modal>
+      </>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Aç" }));
+    const dialog = await within(document.body).findByRole("dialog", { name: "Kısa" });
+    /* Var olmayan bir id'ye işaret eden aria-describedby, hiç olmamasından
+       kötüdür: ekran okuyucu boş bir açıklama duyurur. */
+    await expect(dialog).not.toHaveAttribute("aria-describedby");
   },
 };

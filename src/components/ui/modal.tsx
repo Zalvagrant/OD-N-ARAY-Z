@@ -20,7 +20,7 @@
  * ReadOnly — bunlar modalın İÇERİĞİNİN durumudur, kabuğun değil.
  */
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion as fm, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
@@ -111,6 +111,8 @@ function DialogShell({
 }) {
   const panelRef = useDialogBehavior(open, onClose);
   const reduced = useReducedMotion();
+  const titleId = useId();
+  const descId = useId();
 
   if (!open || typeof document === "undefined") return null;
 
@@ -126,7 +128,16 @@ function DialogShell({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        /* AD GÖRÜNÜR BAŞLIKTAN GELİR, tekrar EDİLMEZ — UI-ADR-141.
+           Önce `aria-label={title}` vardı ve aşağıdaki `<h2>` aynı metni
+           taşıyordu: ekran okuyucu başlığı iki kez okuyor, dahası ad ile
+           görünen başlık ayrı ayrı yaşıyordu (biri değişse diğeri
+           kalırdı). `aria-labelledby` ikisini TEK kaynağa bağlar. */
+        aria-labelledby={titleId}
+        /* Açıklama hiçbir şeye bağlı DEĞİLDİ: ekranda duruyor ama diyalog
+           açıldığında okunmuyordu — yani yalnız gören kullanıcı için
+           vardı. */
+        aria-describedby={description ? descId : undefined}
         initial={reduced ? false : enter.initial}
         animate={enter.animate}
         transition={motion.normal}
@@ -134,9 +145,13 @@ function DialogShell({
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-6 py-4">
           <div className="min-w-0">
-            <h2 className="truncate text-md font-medium text-content">{title}</h2>
+            <h2 id={titleId} className="truncate text-md font-medium text-content">
+              {title}
+            </h2>
             {description && (
-              <p className="mt-1 text-sm text-content-secondary">{description}</p>
+              <p id={descId} className="mt-1 text-sm text-content-secondary">
+                {description}
+              </p>
             )}
           </div>
           <button

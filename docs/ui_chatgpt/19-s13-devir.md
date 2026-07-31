@@ -37,15 +37,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **138** | Yüzde gösterimi tek bileşende (`Pct`) | 10 çağrı yeri → 0; `format="percent" fractionDigits={1}` artık tek yerde |
 | **139** | 8 saf fonksiyon nihayet test altında | 25 iddia; `decision-queue.tsx` başlığının kodla çeliştiği ortaya çıktı |
 | **140** | **SAHİP KARARI:** 9 tüketicisiz modül envanter olarak kalır | `inventory.test.ts` kapısı: çağıranı yoksa hikâyesi olacak — enjekte ihlalle denendi |
+| **141** | Erişilebilirlik: 5 açık kapandı + tuzak #1'in KÖK NEDENİ | ızgara adı · iconOnly derleme kapısı · modal labelledby · Escape kökte · search combobox; `connectTimeout` ile testler tek koşuda |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **60 dosya/354 test**
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **60 dosya/360 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
-+4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan),
++4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…140**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…141**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -163,32 +164,29 @@ ilk davranış testi) · `executive/confidence-breakdown.tsx` ·
 (179 satır, `/mission-control`'ün ANA odak alanı) ·
 `executive/threshold-note.tsx`.
 
-### 2.4 · Kalan erişilebilirlik (task #8 içinde açık bırakıldı)
+### 2.4 · ~~Kalan erişilebilirlik~~ ✅ KAPANDI
 
-- `table.tsx`: `<caption>` yok; `aria-label` sarmalayıcı `div[role=grid]`
-  üzerinde, içteki gerçek `<table>` **adsız**.
-- `button.tsx:78` "`aria-label` ZORUNLU" diyor ama **hiçbir şey zorlamıyor**.
-- `modal.tsx:129` `aria-label` görünür `<h2>`yi tekrarlıyor —
-  `aria-labelledby` olmalı; `description` `aria-describedby`ye bağlı değil.
-- `filter.tsx`: Escape yalnız tetikleyicide bağlı; odak listeye girince
-  klavyeyle kapatılamıyor.
-- `search.tsx`: geçmiş listesi `role="listbox"` değil, ok tuşu yok,
-  **120 ms blur zamanlayıcısıyla** kapanıyor (klavye için yarışlı).
+**UI-ADR-141.** Beşi de düzeltildi ve her biri `play` testiyle kilitlendi:
+ızgara `<table>`'a taşındı + `<caption>` adı · `iconOnly` → `aria-label`
+DERLEMEDE zorunlu (enjekte ihlalle denendi) · modal `aria-labelledby` +
+`aria-describedby` · filter Escape kökte + odak geri veriliyor · search
+tam ARIA combobox (120 ms zamanlayıcı kalktı).
 
 ---
 
 ## 3. TUZAKLAR — bunları tekrar keşfetme
 
-1. ~~**Tam test paketinden önce dev sunucusunu KAPAT.**~~ **♻️ YANLIŞ
-   TEŞHİS — UI-ADR-136'da ölçüldü ve düzeltildi.** Sebep dev sunucusu
-   değil: Playwright tarayıcı oturumu, aynı anda toplanan dosya sayısı
-   arttıkça bağlantı zaman aşımına uğruyor. Dev sunucusu açıkken
-   `--shard=1/3` ve `2/3` sorunsuz geçti; `3/3` bir kez düştü ve
-   **hiçbir şey değiştirmeden tekrar çalıştırılınca geçti**.
-   **Doğru işlem:** `npx vitest run --project=unit`, sonra
-   `npx vitest run --project=storybook --shard=i/3` (i=1,2,3); düşen
-   parçayı tekrarla. Dev sunucusunu kapatma — başkasının worktree'sine
-   ait olabilir (ölçümde port 3000 `ODIN-UI-s8`'e aitti).
+1. ~~**Tam test paketinden önce dev sunucusunu KAPAT.**~~ **♻️ KÖK NEDEN
+   BULUNDU — UI-ADR-141'de düzeltildi.** Dev sunucusuyla ilgisi yoktu.
+   Sebep: 45 story dosyasının soğuk Vite dönüşümü varsayılan 30 sn'lik
+   `browser.connectTimeout`u aşıyordu. `vitest.config.ts`'te 180 sn'ye
+   çıkarıldı; storybook projesi artık **tek komutta 45/45** geçiyor,
+   parçalamaya (`--shard`) gerek yok.
+   ⚠️ **AMA iki projeyi AYNI ANDA çalıştırma:** `unit` (node) ile
+   `storybook` (tarayıcı) birlikte koşarsa node işçileri CPU'yu tutuyor ve
+   bağlantı yine düşüyor (ölçüldü, 62 sn'de patladı). `--project=unit` ve
+   `--project=storybook` AYRI çalıştırılır.
+
 2. **`not-found.tsx` route-group içinde ÇALIŞMIYOR.** `(shell)/` ve
    `(shell)/[[...slug]]/` altına kondu, ikisi de yok sayıldı (temiz
    önbellekle doğrulandı). Yalnız kök `app/not-found.tsx` devreye giriyor.
@@ -228,11 +226,10 @@ npm run lint              # 0 hata olmalı
 # Tam paketi TEK SEFERDE çalıştırma — tarayıcı bağlantısı zaman aşımına
 # uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
 # de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
-npx vitest run --project=unit                                   # 15 / 206
-npx vitest run --project=storybook src/components/ui            # 18 /  57
-npx vitest run --project=storybook src/components/executive       src/components/layout src/features src/app                # 22 /  73
-npx vitest run --project=storybook src/styles src/components/screens  # 5 / 17
-#                                                        TOPLAM: 60 / 354
+npx vitest run --project=unit        # 15 dosya / 206 test
+npx vitest run --project=storybook   # 45 dosya / 154 test  (TEK komut)
+#                            TOPLAM: 60 dosya / 360 test
+# ⚠️ `npx vitest run` (ikisi birden) KULLANMA — tuzak #1'e bak.
 
 # ÜRETİM DERLEMESİ + EKRAN DOĞRULAMASI (31 Tem'de yapıldı)
 npx next build            # 7 sayfa, 0 hata

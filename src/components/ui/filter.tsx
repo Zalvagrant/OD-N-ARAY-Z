@@ -39,6 +39,23 @@ function FilterDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  /**
+   * Escape KÖKTE yakalanır, tetikleyicide değil — UI-ADR-141.
+   *
+   * `onKeyDown` yalnız `<Button>`daydı: odak listeye (Checkbox'lara)
+   * geçtiği anda Escape ölü tuşa dönüyordu ve klavye kullanıcısı açtığı
+   * paneli KAPATAMIYORDU. Fareyle bakan bunu asla fark etmez — dışarı
+   * tıklama zaten çalışıyor.
+   *
+   * Kapanınca odak tetikleyiciye GERİ VERİLİR: aksi halde odak silinen
+   * bir düğümde kalır ve sonraki Tab belgenin başına atlar.
+   */
+  const close = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -59,14 +76,23 @@ function FilterDropdown({
     );
 
   return (
-    <div ref={ref} className="relative">
+    <div
+      ref={ref}
+      className="relative"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          close();
+        }
+      }}
+    >
       <Button
+        ref={triggerRef}
         variant={selected.length ? "primary" : "secondary"}
         size="sm"
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
       >
         {def.label}
         {selected.length > 0 && (
