@@ -2281,3 +2281,94 @@ hedef "İlerleme ölçülmüyor" · mock rozeti yok · **"Daralt" düğmesi art�
 **DERS:** "ortamsal" demeden önce sunucu logunu SONUNA KADAR oku. Bir
 oturumu neredeyse çözülemez sayılan bir borçla kapatıyordum; cevap
 başından beri logdaydı.
+
+---
+
+## UI-ADR-126 — Amazon KPI ve Alert canlıya bağlandı; onaylanmamış eşik görünür oldu (S10)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** ODIN ADR-0147 (FR-0049) · ODIN ADR-0146 · ADR-0143 · UI-ADR-123
+
+ODIN `GET /api/amazon` ile promote edilmiş Amazon verisini yayınlamaya
+başladı (`backend-istekleri.md` #1). `src/lib/data/odin-amazon.ts` onu
+ekrana bağlar.
+
+### 1. Adaptör İNCE, çünkü sözleşme ORTAK
+
+ODIN'in yayını ile arayüzün kanonik tipi **aynı sözleşmedir** (ADR-0143
+§1–§2): zarf düz, alanlar birebir. Geriye yalnız snake_case → camelCase
+kalıyor. Değer dönüştürülmez, alan türetilmez, oran hesaplanmaz.
+
+Bu, `odin-state.ts`'in `adaptGoals`'ıyla aynı kural. `meta.source =
+"internal"`: yayın ODIN'in kendi projeksiyonudur — altındaki kayıtlar
+SP-API ve Ads'ten gelse de tek zarf ikisini birden etiketleyemez.
+
+### 2. Onaylanmamış eşik GÖRÜNÜR — yeni bileşen `ThresholdNote`
+
+ODIN ADR-0146 stok bandının sahibi tarafından **hiç onaylanmadığını**
+tespit etti ve meclis eşiği gerçek veriden türetmeyi REDDETTİ (bir
+haftalık 18 SKU bir dağılım özetidir, politika değil). Sonuç
+`threshold_provenance: "unapproved_default"` ile işaretleniyor.
+
+Arayüz bunu göstermeseydi ekran "Kritik" rozetini **yetkili bir hüküm**
+gibi sunardı. Bu, sahte veri yasağının daha sinsi biçimidir: uydurulmuş
+bir sayı değil, uydurulmuş bir **OTORİTE**. Sayı ölçülmüştür; hüküm
+değildir.
+
+`owner_policy` için hiçbir şey çizilmez — onaylanmış eşik normal
+durumdur ve her karta "bu onaylı" yazmak gürültüden başka bir şey
+üretmez.
+
+### 3. Sözlük dışı severity SESSİZCE geçmez
+
+Sahip 31 Temmuz'da ODIN'in `critical|risk|warning|info` sözlüğünü kanonik
+ilan etti ve `main` zaten ona hizalıydı. Arayüz eşleme icat etmez;
+sözlük dışı bir değer gelirse kayıt şemadan **geçmez** ve bölüm gerekçeli
+hata basar. Rozetsiz göstermek, ODIN'in sözleşmeyi genişlettiğini
+gizlerdi.
+
+### 4. Bölümün hatası artık ekrana ULAŞIYOR
+
+KPI ve Alert bölümlerinin `loading`/`error` proplar ı demo durumuna
+bağlıydı; canlı uç nokta düşse ekran sessiz kalırdı. `sectionError()`
+demo hatasını önceler ama canlı hatayı **susturmaz** — S8'in dersi
+(CLAUDE.md kural 6) buydu.
+
+**Yan düzeltme:** başlıktaki "Son senkron" yalnız `snapshot`a bakıyordu
+ve ekran canlı sayılarla doluyken "—" diyordu.
+
+### Ölçüm — gerçek modda, üretim derlemesiyle, `/amazon` ekranında
+
+| Gösterge | Değer |
+|---|---|
+| Satılan adet | 38 |
+| Satış değişimi | **—** (önceki pencerede satış yok; paydası yok) |
+| Kritik stoktaki SKU | 3 **+ eşik uyarısı** |
+| Hızı ölçülemeyen SKU | 29 |
+| Gerçekleşen net kâr | $653,36 |
+| Envanter kâr potansiyeli | $16.568,66 |
+| Reklam harcaması · satışı · net | $676,82 · $8.399,10 · $1.802,63 |
+| ACOS · ROAS | %8,1 · 12 |
+| Alert | "Kritik stok" — kanıt, önerilen aksiyon **ve eşik uyarısı** |
+
+Yayını olmayan altı bölüm gerekçeli boş durumda kaldı.
+
+### 5. Mock kapısı güçlendirildi (UI-ADR-123'ün üstüne)
+
+Elle tutulan 9 imza korunuyor — kanıtlanmış yakalayıcılar. Üstüne
+fixture dosyalarından **otomatik çıkarım** eklendi: elle liste yeni
+fixture eklendiğinde sessizce eskir ve kapı yanlış yeşil yanar.
+
+`src/` kesişimi zorunlu bir eleme (`"Gross Profit (ücretler hariç)"` iki
+tarafta da meşru) ama artık **sessiz değil**: düşen imzalar yazdırılıyor.
+
+**Bu görünürlük hemen bir hata yakaladı:** yol ayracı normalleştirilmediği
+için Windows'ta `src\mocks\...` "üretim kodu" sayılıyordu ve **166 imza**
+sessizce düşüyordu. Düzeltildi.
+
+| Ölçüm | Önce | Sonra |
+|---|---|---|
+| Taranan imza | 9 | **183** (9 elle + 174 otomatik) |
+| Sessizce düşen | — | 1 (yazdırılıyor) |
+| Mock derlemesinde | — | 364 eşleşme, kapı KIRMIZI |

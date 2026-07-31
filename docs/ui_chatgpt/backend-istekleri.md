@@ -22,7 +22,14 @@ eski, elle girilmiş bir bilgi kaydını yayınlıyor.
 
 ---
 
-## 1. EN ÖNCELİKLİ — promote edilmiş Amazon verisi yayınlanmıyor
+## 1. ✅ KAPANDI — promote edilmiş Amazon verisi yayınlanıyor
+
+**ODIN ADR-0147 / FR-0049 (31 Temmuz 2026).** `GET /api/amazon` canlı:
+11 KPI + Director'ın kritik sinyalleri Alert olarak, her sayı kendi kayıt
+kimliği ve kendi bildirdiği dönemiyle. Arayüz S10'da bağlandı
+(UI-ADR-126). Aşağıdaki ölçüm tarihsel kayıttır.
+
+### Tarihsel — talep edildiği günkü ölçüm
 
 ### Ölçüm
 
@@ -62,7 +69,14 @@ gösteremez** (Trust Signals kuralı).
 
 ---
 
-## 2. `ExecutiveKPI` — ADR-0143 §2 zarfı yayınlanmıyor
+## 2. ✅ KAPANDI (Amazon modülü) — `ExecutiveKPI`
+
+ADR-0147 ADR-0143 §2 zarfını **birebir** yayınlıyor; arayüzün tipi zaten
+o zarfın kendisi olduğu için adaptör saf yeniden adlandırmaya indi.
+Executive Briefing'in KPI'ları hâlâ mock: onların üreticisi Amazon
+Director değil.
+
+### Tarihsel
 
 ADR-0143 KPI sınır zarfını **düz** olarak dondurdu:
 
@@ -85,7 +99,13 @@ istenmiyor — gerçek kaynakları olmadan eklenirlerse kalıcı `null` üretirl
 
 ---
 
-## 3. `Alert` — ADR-0143 §1 zarfı yayınlanmıyor
+## 3. ✅ KAPANDI (Amazon modülü) — `Alert`
+
+ADR-0147 yayınlıyor ve `requires_action`a varsayılan ATAMIYOR: üreticinin
+belirleyemediği bulgu kanonik Alert olarak hiç yayınlanmıyor. Severity
+sözlüğü de ortak — sahip 31 Temmuz'da ODIN'inkini kanonik ilan etti.
+
+### Tarihsel
 
 Kanonik zarf:
 
@@ -282,3 +302,19 @@ tarayıcıda bu KULLANICININ makinesidir." Artık tarayıcı 127.0.0.1'i hiç
 görmüyor — aynı kökende `/odin` yolunu kullanıyor; mutlak adres yalnız
 sunucu tarafında ve `NEXT_PUBLIC_` olmayan `ODIN_ORIGIN`'den geliyor
 (UI-ADR-119).
+
+---
+
+## 13. AÇIK — `report_period` yayınlanıyor ama arayüz OKUMUYOR
+
+ODIN ADR-0147, ADR-0143'ün dondurduğu zarfa bir **genişletme** ekledi: her
+KPI kendi kaydının bildirdiği `report_period`'u taşıyor. Pencereler
+gerçekten farklı — siparişler 7 günlük kayan, envanter anlık, Ads raporu
+2026-07-01→30.
+
+Arayüz bugün yalnız `asOf`u okuyor; yaş sorusu cevaplanıyor ama **pencere
+sorusu cevaplanmıyor**. "38 adet satıldı" ile "hangi 38 gün" ayrı
+bilgilerdir ve ikincisi ekranda yok.
+
+**Bu bir ODIN talebi DEĞİL** — yayın zaten var. Arayüz tarafında bir
+sözleşme genişletmesi ve kendi kararını hak ediyor.
