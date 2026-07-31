@@ -94,16 +94,18 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…128` serisindedir.
+Bu repodaki kararlar `UI-ADR-001…136` serisindedir.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-129`'dan**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-137`'den**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
-DÖRT kez numara çakıştı (098; 099/100 iki kez; 116/117 — bir oturum
+BEŞ kez numara çakıştı (098; 099/100 iki kez; 116/117 — bir oturum
 099/100'ü 116/117'ye taşırken başka bir oturum 116/117'yi S8 için almıştı)
-çünkü paralel oturumlar aynı anda numara alıyor. Karar günlüğü bu repoda geri alınması en zor dosyadır.
+çünkü paralel oturumlar aynı anda numara alıyor; BEŞİNCİSİ 129 idi
+(S13 dalı lokal 129'u aldı, main aynı gün S14 için 129'u DONDURDU —
+lokal olan 135'e taşındı). Karar günlüğü bu repoda geri alınması en zor dosyadır.
 
 ### 7. Karar ODIN çekirdeğini etkiliyorsa
 
@@ -198,7 +200,7 @@ görünümü).
 | **S8 Amazon Canlı Bağlantı** | ⚠️ **dalda** — `feature/s8-amazon-live-v2`, UI-ADR-118…124. Meclis: **teknik merge ✅**. `/goals` ile **ilk canlı ODIN verisi ekranda** (üretim derlemesinde doğrulandı) |
 | **S10 Amazon canlı KPI + Alert** | ⚠️ **dalda** — `feature/s10-amazon-live`, UI-ADR-126. ODIN ADR-0147'nin `GET /api/amazon` yayınına bağlandı; Amazon Director şeridi ve alarmları **gerçek veri** gösteriyor |
 | S9 AI Gateway | ⬜ başlanmadı — ölçüldü ve ERTELENDİ: `telemetry.jsonl`'de 0 model çağrısı kaydı, router modülü yok. Bugün yapılsa AI Runtime sekmesi boş bir panel olurdu (kural 2 ihlali) |
-| **S13 Kurumsal Ön Yüz Mimarisi** | ⚠️ **dalda** — `feature/s13-frontend-architecture`, UI-ADR-129…134. **7 commit lokal, push/merge YOK, sahip onayı YOK.** ➜ **`19-s13-devir.md` oku** |
+| **S13 Kurumsal Ön Yüz Mimarisi** | ⚠️ **dalda** — `feature/s13-frontend-architecture`, UI-ADR-130…136. **lokal, push/merge YOK, sahip onayı YOK.** main (S14) dala merge edildi. ➜ **`19-s13-devir.md` oku** |
 
 ⚠️ **S13 devam ediyor.** Yeni oturum açan: önce
 `docs/ui_chatgpt/19-s13-devir.md`. Orada ne bittiği, sıradaki iş ve

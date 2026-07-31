@@ -1,7 +1,7 @@
 /**
  * MOCK DATA rozeti — UI-ADR-094.
  *
- * KONUM: `components/ui/` (UI-ADR-129). Önceden `src/mocks/` altındaydı ve
+ * KONUM: `components/ui/` (UI-ADR-135). Önceden `src/mocks/` altındaydı ve
  * her ekran onu oradan import ediyordu; bu, ekran katmanından mock
  * katmanına doğru 4 ayrı sınır ihlali demekti. Rozet mock ÜRETMEZ, yalnız
  * `IS_MOCK` bayrağını okuyup bir etiket çizer — yeri UI katmanıdır.

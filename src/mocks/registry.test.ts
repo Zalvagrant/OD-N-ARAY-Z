@@ -37,7 +37,7 @@ describe("kayıt defteri", () => {
 });
 
 /*
- * EŞZAMANLI YÜKLEME TEKİLLEŞTİRMESİ buradan KALDIRILDI — UI-ADR-129.
+ * EŞZAMANLI YÜKLEME TEKİLLEŞTİRMESİ buradan KALDIRILDI — UI-ADR-135.
  *
  * Eskiden `use-mock.ts` içindeki `INFLIGHT` haritası test ediliyordu. O
  * harita, React Query'ye PARALEL ikinci bir önbellek uygulamasıydı; fixture

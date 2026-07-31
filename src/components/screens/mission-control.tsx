@@ -21,6 +21,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
 import {
+  useOdinAlerts,
   useOdinDirectors,
   type RuntimeDirectorParsed,
 } from "@/lib/data/odin-state";
@@ -185,7 +186,10 @@ export function MissionControl({
      hiç kullanılmadı (`agents` boş), oysa 18 iş heartbeat üstünde
      koşuyor. Sahibin sorusunu ("ODIN yaşıyor mu?") cevaplayan yüzey bu. */
   const directors = useOdinDirectors();
-  const alerts = useOdinFixture("briefing.risks");
+  /* CANLI — ODIN ADR-0151 (UI-ADR-136, main'de S14). Üst üste üç kez
+     patlayan zamanlanmış işler kanonik Alert olarak geliyor. Bugün liste
+     BOŞ ve bu doğru cevap: hiç boşalmayan bir alarm listesi okunmaz. */
+  const alerts = useOdinAlerts();
 
   const { loading, error, isEmpty, reloadAll } = screenState({
     demo,
@@ -194,6 +198,11 @@ export function MissionControl({
     error: DEMO_ERROR,
   });
 
+  /* `reloadAll` ve boşaltma ARTIK ELDE YAZILMIYOR: ikisi de `screenState`
+     / `emptied`ten geliyor (UI-ADR-131). main'in S14'teki elle yazılmış
+     kopyası `decisions.data` okuyordu — `useOdinFixture` ile
+     `useOdinQuery`nin iki ayrı alan adı vermesi UI-ADR-135'te
+     birleştirildiği için artık ikisi de `.envelope`dır. */
   const decisionEnv = isEmpty ? emptied(decisions.envelope) : decisions.envelope;
 
   return (

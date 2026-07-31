@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Fixture kaynağı — TEK boruya bağlanır (UI-ADR-129).
+ * Fixture kaynağı — TEK boruya bağlanır (UI-ADR-135).
  *
  * NEDEN VAR: bu repoda İKİ paralel veri zinciri vardı.
  *
