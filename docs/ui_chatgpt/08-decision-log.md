@@ -3515,3 +3515,85 @@ sayının birebir aynısı. Üretim derlemesi 7 sayfa; dört rota 200,
 bilinmeyen 404. Tarayıcıda `/mission-control` canlı ODIN sayaçlarını,
 `/amazon` 16 yüzdeyi `Pct` ile ve `<table role="grid">` + `<caption>`
 "SKU sağlık tablosu" (iç içe tablo: 0) çiziyor. Konsol hatasız.
+
+---
+
+## UI-ADR-144 — Bölme ölçütü: dört koşul; yalnız `VerdictForm` geçti (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-134 · UI-ADR-143 · ODIN ADR-0131 · ADR-0085 · gavadolar 2/2
+
+### Ölçüt — bu kararın asıl çıktısı
+
+UI-ADR-134 *"dikişe göre böl, satır sayısına göre DEĞİL"* demişti ama
+"dikiş" tanımsızdı. gavadolar'ın iki üyesi bağımsız olarak neredeyse aynı
+testi verdi (terra dördünü de şart koştu, luna üçte iki dedi); sıkı olan
+alındı. **Bir parça ancak DÖRDÜ birden sağlanıyorsa ayrılır:**
+
+1. Tek cümlelik BAĞIMSIZ sorumluluğu vardır.
+2. Kendi giriş/çıkış sözleşmesi ve DOĞRUDAN testi yazılabilir.
+3. Kendi state'i, doğrulaması, yan etkisi ya da erişilebilirlik davranışı vardır.
+4. Ayrılınca ebeveyn yalnızca ORKESTRASYON yapar; prop aktarma karmaşıklığı ARTMAZ.
+
+Biri eksikse bölme **zarardır** — yeni dosya, yeni import ve bozulan
+hikâye maliyeti, taşınan satırın kazancını aşar.
+
+### Uygulama — altı dosya ölçüldü, BİRİ bölündü
+
+| Dosya | Satır | Karar |
+|---|---|---|
+| `features/amazon/director/screen.tsx` | 490 | **Bölünmedi** — ekranın DÜZENİ o dosyanın işi |
+| `components/ui/table.tsx` | 385 | **Bölünmedi** — sanallaştırma + klavye + sıralama TEK davranış kümesi; ayırmak prop/olay zinciri üretir |
+| `features/amazon/sku/screen.tsx` | 380 | **Bölünmedi** — `Group` ekran-içi düzen, `periodLabel` küçük saf yardımcı |
+| `features/briefing/screen.tsx` | 374 | **Bölünmedi** — `HeroView` briefing'in düzen parçası |
+| `components/executive/ai-recommendation-card.tsx` | 297 | **Bölünmedi** — eksik olan bölme değil TESTTİ (aşağıya bak) |
+| `components/executive/decision-card.tsx` | 419 → **307** | **`VerdictForm` ayrıldı** |
+
+**490 satırlık bir ekran neden bölünmüyor:** ekranın dizilimi o dosyanın
+sorumluluğudur. Bloklara ayırmak, tek bir yerde okunan bir akışı beş
+dosyaya dağıtıp aralarına prop köprüleri kurar — dosya küçülür, SİSTEM
+büyür.
+
+### `VerdictForm` dördünü de geçiyor
+
+"Kararı GÖSTERMEK" ile "karar VERMEK" ayrı sözleşmelerdir. Form kendi
+durumunu tutar, ADR-0131'in iki kuralını kendi doğrular, ve ayrıldıktan
+sonra `decision-card` yalnızca orkestrasyon yapıyor.
+
+Bölmenin asıl kazancı satır değil: kurallar artık **doğrudan test
+edilebiliyor.** Öncesinde 419 satırlık bir kartın içinde yaşıyorlardı ve
+yalnız elle tıklayarak doğrulanabiliyorlardı. Yeni `verdict-form.stories.tsx`
+dördünü kilitliyor — gerekçe eşiği (8 karakter, ODIN'in kendi sabiti) ·
+gerekçe isteğe bağlıyken boş gerekçenin `""` değil `undefined` gitmesi ·
+**geçmiş tarihli ertelemenin de reddedilmesi** ("dün yeniden bakılsın"
+demek ertelemeyi hiç yapmamakla aynıdır) · vazgeçmenin hiçbir kayıt
+bırakmaması.
+
+### `ai-recommendation-card`: eksik olan bölme değil TESTTİ
+
+gavadolar 2/2 *"önce iki saf fonksiyonun testi var mı ölç; yoksa bu bölme
+değil test ekleme işidir"* dedi. Ölçüldü: `missingExplainabilityFields` ve
+`canRenderRecommendation` **üç dosyadan çağrılıyor** (`ai-brief`,
+`campaign-intelligence`, `decision-card`) ve **hiçbir testi yoktu.**
+
+Oysa korudukları kural reponun en sertlerinden: ODIN ADR-0085
+Explainability Envelope — bir AI önerisi zorunlu ON alanından biri eksikse
+arayüzde GÖSTERİLMEZ. Kapı sessizce gevşerse ekran, gerekçesi olmayan bir
+öneriyi gerekçeliymiş gibi sunar.
+
+Beş iddia yazıldı; ikisi sınır durum ve ikisi de kasıtlı asimetriyi
+koruyor:
+- **On alanın HER BİRİ tek başına denendi** — biri gevşerse hangisinin
+  kaybolduğu ADIYLA görünür.
+- **Boş azınlık görüşü GEÇERLİDİR, eksik alan değil**: `[]` "kurul
+  hemfikirdi" demektir, alanın hiç olmaması "kurul toplandı mı belli
+  değil" demektir.
+- **SIFIR geçerli bir skordur.** `!rec.confidence` yazılsaydı 0 güven
+  "eksik alan" sayılır ve ODIN'in ölçtüğü EN KÖTÜ durum ekrandan tamamen
+  kaybolurdu.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **66 dosya / 411 test**
+(unit 15/220 · storybook 51/191). `decision-card` 419 → 307 satır.

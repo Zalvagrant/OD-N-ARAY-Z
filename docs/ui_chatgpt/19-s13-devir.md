@@ -40,15 +40,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **141** | Erişilebilirlik: 5 açık kapandı + tuzak #1'in KÖK NEDENİ | ızgara adı · iconOnly derleme kapısı · modal labelledby · Escape kökte · search combobox; `connectTimeout` ile testler tek koşuda |
 | **142** | Story bir DAVRANIŞ kanıtlar; §2.7 kapandı | 7 yeni story + envanterdeki 7 bileşene `play`; kapıya ikinci kol; 141'in kök-neden iddiası düzeltildi |
 | **143** | Ekranlar `features/<alan>/screen.tsx`e taşındı | `components/screens/` KALKTI; kapı dosya adına bağlandı, 4 ihlalle denendi (biri ilk denemede kaçtı) |
+| **144** | Bölme ÖLÇÜTÜ (4 koşul); yalnız `VerdictForm` geçti | 6 dosya ölçüldü 1'i bölündü (419→307); ADR-0085 açıklanabilirlik kapısı ilk kez test altına alındı |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **65 dosya/402 test**
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **66 dosya/411 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
-+4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den, +5 dosya/+42 test UI-ADR-142'den),
++4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den, +5 dosya/+42 test UI-ADR-142'den, +1 dosya/+9 test UI-ADR-144'ten),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…143**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…144**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -222,9 +223,9 @@ npm run lint              # 0 hata olmalı
 # Tam paketi TEK SEFERDE çalıştırma — tarayıcı bağlantısı zaman aşımına
 # uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
 # de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
-npx vitest run --project=unit        # 15 dosya / 215 test
-npx vitest run --project=storybook   # 50 dosya / 187 test  (TEK komut)
-#                            TOPLAM: 65 dosya / 402 test
+npx vitest run --project=unit        # 15 dosya / 220 test
+npx vitest run --project=storybook   # 51 dosya / 191 test  (TEK komut)
+#                            TOPLAM: 66 dosya / 411 test
 # ⚠️ `npx vitest run` (ikisi birden) KULLANMA — tuzak #1'e bak.
 
 # ÜRETİM DERLEMESİ + EKRAN DOĞRULAMASI (31 Tem'de yapıldı)

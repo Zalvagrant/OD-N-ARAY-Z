@@ -23,6 +23,11 @@ import { sortDecisions } from "./decision-queue";
 import { dueDeferrals, monitoredDecisions } from "./monitored-decisions-board";
 import { rotationSeconds } from "./ai-pulse";
 import { canRenderSimulation } from "./simulation-panel";
+import {
+  canRenderRecommendation,
+  missingExplainabilityFields,
+} from "./ai-recommendation-card";
+import { recommendation } from "./stories.fixtures";
 
 /* Testler yalnız okudukları alanlara bakar; gövdeyi tam kurmak sözleşme
    değişince testi kırardı, oysa test edilen şey SIRALAMA kuralıdır. */
@@ -254,5 +259,72 @@ describe("canRenderSimulation — varsayımsız sonuç GÖSTERİLMEZ", () => {
   it("kayıt hiç yoksa ya da result yoksa çizilmez", () => {
     expect(canRenderSimulation(undefined)).toBe(false);
     expect(canRenderSimulation({} as never)).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ 9 */
+
+/**
+ * AÇIKLANABİLİRLİK KAPISI — ODIN ADR-0085. UI-ADR-144'te test altına alındı.
+ *
+ * Bu iki fonksiyonun ÜÇ gerçek tüketicisi vardı (`ai-brief`,
+ * `campaign-intelligence`, `decision-card`) ve **hiçbir testi yoktu.**
+ * Oysa korudukları kural reponun en sertidir: ODIN "kara kutu sayı yok"
+ * der ve bir AI önerisi zorunlu on alanından biri eksikse arayüzde
+ * GÖSTERİLMEZ. Kapı sessizce gevşerse ekran, gerekçesi olmayan bir öneriyi
+ * gerekçeliymiş gibi sunar.
+ */
+describe("açıklanabilirlik kapısı — eksik alanlı öneri GÖSTERİLMEZ", () => {
+  it("tam öneri geçer", () => {
+    expect(missingExplainabilityFields(recommendation)).toEqual([]);
+    expect(canRenderRecommendation(recommendation)).toBe(true);
+  });
+
+  it("öneri hiç yoksa reddeder", () => {
+    expect(canRenderRecommendation(null)).toBe(false);
+    expect(canRenderRecommendation(undefined)).toBe(false);
+    expect(missingExplainabilityFields(null)).toEqual(["öneri"]);
+  });
+
+  it("ON zorunlu alanın HER BİRİ tek başına kapıyı kapatır", () => {
+    /* Alan alan denenir: biri gevşerse yalnız o satır düşer ve hangisinin
+       kaybolduğu ADIYLA görünür. Tek bir "eksik alan var mı" testi bunu
+       gizlerdi. */
+    const bos: Record<string, unknown> = {
+      recommendation: "",
+      confidence: Number.NaN,
+      confidenceBreakdown: undefined,
+      evidence: [],
+      potentialRisks: [],
+      assumptions: [],
+      flipConditions: [],
+      consensusScore: Number.NaN,
+      disagreementScore: Number.NaN,
+      minorityOpinions: undefined,
+    };
+    for (const [alan, bozukDeger] of Object.entries(bos)) {
+      const rec = { ...recommendation, [alan]: bozukDeger } as never;
+      expect(canRenderRecommendation(rec), `${alan} eksikken geçmemeli`).toBe(false);
+      expect(missingExplainabilityFields(rec)).toHaveLength(1);
+    }
+  });
+
+  it("BOŞ azınlık görüşü geçerlidir — 'yok' ile 'ölçülmedi' AYRIDIR", () => {
+    /* SINIR DURUM ve kasıtlı asimetri: `minorityOpinions` BOŞ DİZİ olabilir
+       (kurul hemfikirdi), ama alan HİÇ YOKSA geçmez (kurul hiç toplanmadı
+       mı, hemfikir mi belli değil). Diğer listelerde boş dizi reddedilir
+       çünkü kanıtsız/risksiz/varsayımsız bir öneri açıklanabilir değildir. */
+    expect(canRenderRecommendation({ ...recommendation, minorityOpinions: [] })).toBe(true);
+    expect(
+      canRenderRecommendation({ ...recommendation, minorityOpinions: undefined } as never)
+    ).toBe(false);
+  });
+
+  it("SIFIR geçerli bir skordur, eksik değil", () => {
+    /* `!rec.confidence` yazılsaydı 0 güven "eksik alan" sayılırdı ve
+       ODIN'in ölçtüğü en kötü durum ekrandan tamamen kaybolurdu. */
+    expect(
+      canRenderRecommendation({ ...recommendation, confidence: 0, consensusScore: 0, disagreementScore: 0 })
+    ).toBe(true);
   });
 });
