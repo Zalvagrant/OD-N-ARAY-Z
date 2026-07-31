@@ -4018,3 +4018,78 @@ gereksiz.
 `tsc` 0 · `lint` 0 hata · **60 dosya / 360 test** (+6 test).
 
 ---
+
+---
+
+## UI-ADR-151 — Ekran seviyesi durum matrisi: üç durum artık bir şey İDDİA EDİYOR (S13)
+
+**Durum:** ✅ Dondurulmuş — kapı enjekte ihlalle denendi
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-131 · UI-ADR-146 · UI-ADR-150
+
+### Bulgu — testler vardı, iddia yoktu
+
+Üç ekranın (`briefing` · `mission-control` · `amazon/director`) her birinde
+`Yukleniyor` · `Bos` · `Hata` story'leri ZATEN vardı. **Hiçbiri bir şey
+iddia etmiyordu** — yalnız render ediyorlardı. Yazılımcılar meclisinin
+işaret ettiği eksik test sınıfı buydu: bileşen testleri PARÇALARI
+kanıtlıyor, `veri durumu → ekran` zincirini kimse kanıtlamıyordu.
+
+Test SAYISI değişmedi (193 → 193). Değişen şey, o 9 testin artık bir şey
+söylüyor olması.
+
+### Kilitlenen ayrım
+
+    "yükleniyor"  ≠  "ölçüldü, sonuç boş"  ≠  "ÖLÇÜLMEDİ"
+
+Üçü de birbirine benzeyen bir ekran üretebilir ve üçü de farklı bir şey
+söyler. Ortadaki bir CEVAPTIR; sonuncusu cevapsızlıktır. En keskin
+iddia `mission-control`de:
+
+> `demo="empty"` hâlinde Director sayacı **`"0"` değil `"—"`** gösterir,
+> notu da "kaynak bağlı değil — ölçülmedi" olur.
+
+"0 sağlıksız Director" bir ÖLÇÜMDÜR ve o an elimizde ölçüm yoktur.
+Aradaki fark, sistemin sağlıklı mı yoksa hiç izlenmiyor mu olduğudur —
+sıfırlarla dolu bir tablo "her şey yolunda" diye okunur. (Bu hata S8'de
+gerçekten yaşandı ve hiçbir test yakalamamıştı; artık yakalar.)
+
+Her ekranda ayrıca: yükleniyor/hata hâlinde **SAYI ÇİZİLMEZ**, boş hâl
+**HATA DEĞİLDİR** (`role="alert"` çıkmaz). `amazon/director`de bu bir
+görsel incelik değil: hata metni "bütçe kararı verilmemeli" diyor, yani
+durum ayrımı bir PARA kararının önündeki son uyarıdır.
+
+### Neden ilk denemede kararsızdı (UI-ADR-146'da geri alınmıştı)
+
+İki ayrı hata, ikisi de testte — ekranda değil:
+
+1. **Eşzamanlı sorgu.** `getByText` kullanılmıştı; `useOdinFixture`
+   asenkron çözülüyor ve `play` çalıştığında zarf henüz `null` olabiliyor.
+   Çözüm fixture'ı değiştirmek değil, `findBy*` ile BEKLEMEK.
+2. **Yetersiz bekleme payı.** `findBy*`in varsayılan 1 sn'si tek koşuda
+   yetiyor, 51 dosyalık tam pakette yetmiyordu. Bu ekranlarda `loading`
+   bayrağı fixture'a bağlı olduğu için hata/boş durum ancak fixture
+   çözüldükten SONRA çiziliyor. Pay 15 sn'ye çıkarıldı ve GEREKÇESİ
+   yazıldı.
+
+Ayrıca `getByRole("status", { name })` çalışmıyor: `status` "name from
+content" rolü DEĞİLDİR, içindeki `sr-only` etiket ona ad vermez. Doğru
+çapa rolün varlığı + etiketin metnidir.
+
+**Kural olarak:** YOKLUK iddiası her zaman bir VARLIK iddiasından SONRA
+gelir. Aksi halde ekran daha çizilmeden "yok" diye geçer ve test yeşil
+yalan söyler.
+
+### Kapı
+
+`src/features/state-matrix.test.ts` — `demo?: DemoState` alan her ekranın
+üç durum story'si OLACAK ve **üçü de bir `play` taşıyacak.** Kapı kendi
+körleşmesini de kontrol ediyor: ekran listesi boşalırsa düşer.
+
+**Denendi ve ateşledi:** bir `play` silindi, kapı *"durum story'lerinde 2
+adet play var, en az 3 olmalı"* diyerek düştü. İhlal geri alındı.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **67 dosya / 421 test**; S17'nin fail-closed
+kapısı AÇIK (51 dosya / 193 test, atlanan 0, düşen 0).
