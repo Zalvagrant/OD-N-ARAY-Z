@@ -85,11 +85,10 @@ export async function httpLoad(
     throw offlineError();
   }
 
-  /* Zaman aşımı ve çağıranın iptali TEK bir sinyalde birleşir: route
-     değişince eski istek ölmezse, geç gelen yanıt yeni ekranın verisini
-     ezer (race). */
-  const timer = AbortSignal.timeout(timeoutMs);
-  const merged = signal ? AbortSignal.any([signal, timer]) : timer;
+  /* Zaman aşımı ve çağıranın iptali tek sinyalde birleşir: route değişince
+     eski istek ölmezse, geç gelen yanıt yeni ekranın verisini ezer. */
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const merged = signal ? AbortSignal.any([signal, timeout]) : timeout;
 
   let res: Response;
   try {
@@ -98,12 +97,21 @@ export async function httpLoad(
       headers: { Accept: "application/json" },
     });
   } catch (err) {
-    /* ZAMAN AŞIMI mı, ÇAĞIRANIN İPTALİ mi (meclis bulgusu)? `AbortSignal.any`
-       ikisini tek sinyalde birleştirdiği için ayrımı burada yapıyoruz.
-       Çağıran iptal ettiyse (route değişti) bu bir HATA DEĞİLDİR — olduğu
-       gibi yükselir ve React Query'nin iptal yolundan geçer; kullanıcıya
-       terk ettiği ekranın hata kutusu gösterilmez. */
-    if (signal?.aborted && !timer.aborted) throw err;
+    /*
+     * ÇAĞIRANIN İPTALİ HER ZAMAN KAZANIR — UI-ADR-121.
+     *
+     * Önceki koşul `signal?.aborted && !timeout.aborted` idi: ikisi birden
+     * olduğunda (kullanıcı route değiştirirken istek de zaman aşımına
+     * uğradığında) zaman aşımı kazanıyor ve TERK EDİLMİŞ ekranın hata
+     * kutusu açılıyordu. `timedOut` diye bir bayrakla düzeltmeye çalışmak
+     * da aynı hatayı koruyordu — sorun hangi sinyalin okunduğu değil,
+     * ÖNCELİK sırasıydı.
+     *
+     * Doğru kural tek cümle: çağıran iptal ettiyse — zaman aşımı da olsa —
+     * bu bizim raporlayacağımız bir hata değildir. Kullanıcı o ekrandan
+     * ayrıldı; React Query iptali zaten sessizce düşürür.
+     */
+    if (signal?.aborted) throw err;
     throw classifyError(err, path);
   }
 

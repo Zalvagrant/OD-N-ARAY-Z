@@ -94,15 +94,16 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…117` serisindedir.
+Bu repodaki kararlar `UI-ADR-001…122` serisindedir.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-118`'den**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-123`'ten**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
-ÜÇ kez numara çakıştı (098; 099/100 iki kez) çünkü paralel oturumlar aynı
-anda numara aldı. Karar günlüğü bu repoda geri alınması en zor dosyadır.
+DÖRT kez numara çakıştı (098; 099/100 iki kez; 116/117 — bir oturum
+099/100'ü 116/117'ye taşırken başka bir oturum 116/117'yi S8 için almıştı)
+çünkü paralel oturumlar aynı anda numara alıyor. Karar günlüğü bu repoda geri alınması en zor dosyadır.
 
 ### 7. Karar ODIN çekirdeğini etkiliyorsa
 

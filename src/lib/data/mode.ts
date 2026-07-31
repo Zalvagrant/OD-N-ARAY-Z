@@ -23,9 +23,23 @@ export const DATA_MODE: DataMode = RAW;
 export const IS_MOCK = DATA_MODE === "mock";
 
 /**
- * ODIN sunucusunun kökü. 127.0.0.1'e bağlıdır ve DIŞARI AÇILMAZ
- * (ODIN güvenlik kararı) — bu yüzden varsayılan sabittir, konfigüre
- * edilebilir olması bir özellik değil bir sızıntı yüzeyi olurdu.
+ * ODIN isteklerinin ön eki — S8 (UI-ADR-119).
+ *
+ * TARAYICIDA aynı kökende bir YOL: istek Next'in `rewrites()` vekilinden
+ * geçip `http://127.0.0.1:8765`'e ulaşır (`next.config.ts`). Neden vekil:
+ * cockpit CORS başlığı yayınlamıyor (ölçüldü — yanıt başlıkları yalnız
+ * Content-Type/Length/Cache-Control) ve yayınlaması da İSTENMİYOR;
+ * 127.0.0.1'e bağlı kalması bilinçli bir güvenlik kararıdır.
+ *
+ * SUNUCUDA mutlak adres: Node'un `fetch`'i göreli URL çözemez ve
+ * `/odin/api/state` ile çağrılırsa "Failed to parse URL" diye ÇÖKER
+ * (meclis bulgusu). Bugün hiçbir sunucu yolu bunu çağırmıyor — ön yükleme
+ * yapılmıyor — ama tuzağı açıkta bırakmanın anlamı yok.
+ *
+ * `ODIN_ORIGIN` bilerek `NEXT_PUBLIC_*` DEĞİL: ODIN'in gerçek adresi
+ * tarayıcı paketine gömülmez.
  */
 export const ODIN_BASE_URL =
-  process.env.NEXT_PUBLIC_ODIN_BASE_URL ?? "http://127.0.0.1:8765";
+  typeof window === "undefined"
+    ? (process.env.ODIN_ORIGIN ?? "http://127.0.0.1:8765")
+    : "/odin";

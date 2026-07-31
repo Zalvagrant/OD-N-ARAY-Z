@@ -71,10 +71,25 @@ function OperationalStatus({
 
   /* Sayım ODIN'in verdict'ine dayanır — UI canlılık eşiği TÜRETMEZ
      (UI-ADR-111; eski beatIntervalMs×3 kuralı UI icadıydı). */
-  const verdicts = (directors?.data ?? []).map((d) => d.verdict);
-  const healthy = verdicts.filter((v) => v === "healthy").length;
-  const unhealthy = verdicts.filter((v) => v === "unhealthy").length;
-  const unknown = verdicts.filter((v) => v === "unknown").length;
+
+  /*
+   * KAYNAK YOKSA SAYI DA YOK — S8 (UI-ADR-120).
+   *
+   * Burada `directors?.data ?? []` vardı: zarf `null` olduğunda boş diziye
+   * düşüyor ve üç sayaç da `0` çıkıyordu. Ekranda "0 sağlıksız Director"
+   * bir ÖLÇÜMDÜR ve yanlıştır — doğrusu "ölçülmedi". Aradaki fark, sistemin
+   * sağlıklı mı yoksa hiç izlenmiyor mu olduğudur; sıfırlarla dolu bir
+   * tablo "her şey yolunda" diye okunur.
+   *
+   * Gerçek moda geçilince (mock kancası fail-closed olduğu için) tam olarak
+   * bu görüldü. Hiçbir test yakalamadı, ekrana bakılarak bulundu.
+   */
+  const measured = directors?.data ?? null;
+  const verdicts = (measured ?? []).map((d) => d.verdict);
+  const count = (v: AgentHealth["verdict"]) =>
+    measured === null ? "—" : verdicts.filter((x) => x === v).length;
+  const note = (measuredNote: string) =>
+    measured === null ? "kaynak bağlı değil — ölçülmedi" : measuredNote;
 
   return (
     <Card density="compact">
@@ -83,12 +98,22 @@ function OperationalStatus({
           {/* `odin-num` blok elemana verilmez: sınıf sayıları SAĞA hizalar
               (03-...md §11) ve etiketinden koparır. */}
           <Stat label="Telemetri kanalı" value={`${open} / ${total}`} note="açık / tanımlı" />
-          <Stat label="Sağlıklı Director" value={healthy} note="ODIN verdict: healthy" tone="text-success" />
-          <Stat label="Sağlıksız" value={unhealthy} note="ODIN verdict: unhealthy" tone="text-warning" />
+          <Stat
+            label="Sağlıklı Director"
+            value={count("healthy")}
+            note={note("ODIN verdict: healthy")}
+            tone="text-success"
+          />
+          <Stat
+            label="Sağlıksız"
+            value={count("unhealthy")}
+            note={note("ODIN verdict: unhealthy")}
+            tone="text-warning"
+          />
           <Stat
             label="Bilinmiyor"
-            value={unknown}
-            note="hiç gözlem yok — ölmüş demek değildir"
+            value={count("unknown")}
+            note={note("hiç gözlem yok — ölmüş demek değildir")}
             tone="text-content-tertiary"
           />
         </dl>

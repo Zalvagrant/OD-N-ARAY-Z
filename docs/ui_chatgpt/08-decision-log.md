@@ -1908,3 +1908,152 @@ başarısız — <sebep>" yazar. Renk tek gösterge değildir, kelime de yazar.
 
 **Etki:** `lib/data/{use-odin-query.ts,client.ts,policy.ts}`,
 `components/executive/trust-signal.tsx` (+ story).
+
+---
+
+## UI-ADR-118 — Arayüz ODIN'in diskini okumaz; eksik veri TALEP olur (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+**Meclis:** gavadolar (terra · luna) — **2/2 oybirliği**
+
+**Ölçüm (iddia değil):** çalışan cockpit'ten `GET /api/state` → 200, 116 KB,
+30 üst düzey anahtar. `sku_stats` `null`; `agents` düz string listesi;
+`risks` ADR-0143'ün `requires_action`/`module`/`evidence` alanlarını
+taşımıyor; `decisions` ve `due_deferrals` boş; `decision_cards` karar kaydı
+değil staging nesnesi; `health_score.score` `null` (coverage 0/6).
+
+**Asıl bulgu — veri VAR, uç nokta SERVİS ETMİYOR.** `sales_snapshot`
+SP-API'den gelmiyor: `cockpit.py::_executive_extras` `staging/`'deki elle
+girilmiş `KO-jarvis-0002` kaydını okuyor, `as_of` **9 gün eski**. Oysa
+`odin-data/core/` içinde BUGÜNÜN tarihiyle promote edilmiş
+`KO-spapi-{orders,sku_sales,inventory}-2026-07-30` ve 94 satırlık
+`KO-ads-ads_report-2026-07-30` duruyor.
+
+**Reddedilen kolay yol:** arayüz `odin-data/core/*.json`'ı doğrudan okusun.
+Ekranı bugün doldururdu. Reddedildi çünkü arayüz ODIN'in `IRenderer`
+portunun adaptörüdür (ADR-0080) — ODIN'in diskini okumak şema/promote/
+governance zincirini (ADR-0050 · R-006) atlayıp iki repo arasındaki sınırı
+silerdi. Bir kez yapılırsa geri alınamaz: ekranlar dosya biçimine bağlanır.
+
+**Karar:** eksikler kanıtlı bir talep listesine yazılır
+(`backend-istekleri.md`, dosya/satır göstererek) ve gelene kadar ekran
+"kaynak bağlı değil" der. Boş bir bölüm dürüsttür; doldurulmuş olanı değil.
+
+---
+
+## UI-ADR-119 — CORS ODIN'den İSTENMEDİ; vekil arayüz tarafında (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+
+**Sorun:** cockpit yanıt başlıkları ölçüldü — yalnız `Content-Type`,
+`Content-Length`, `Cache-Control`. `Access-Control-Allow-Origin` **yok**.
+Tarayıcıdaki arayüz `http://127.0.0.1:8765`'e doğrudan gidemiyor.
+
+**Kolay yol reddedildi:** ODIN'e CORS eklettirmek. Sunucunun 127.0.0.1'e
+bağlı kalması bilinçli bir güvenlik kararıdır (CLAUDE.md: "dışarı açma").
+Köken kısıtını arayüzün rahatlığı için gevşetmek, o kararı arayüz adına
+geçersiz kılmak olurdu.
+
+**Karar:** istek Next'in kendi sunucusundan geçer —
+`rewrites(): /odin/api/:path* → http://127.0.0.1:8765/api/:path*`.
+Tarayıcı için aynı köken, ODIN için hâlâ yerel istemci. Hiçbir başlık
+gevşetilmedi, ODIN'e tek satır dokunulmadı. Yol `/odin/api/*` ile
+daraltıldı: `/odin/:path*` genel geçidi yarın ODIN'e eklenecek her şeyi de
+otomatik açardı.
+
+**⚠️ Vekil bir GÜVENLİK SINIRI DEĞİLDİR** (meclis uyarısı): `/odin/api/*`
+tarayıcıya açıktır ve `127.0.0.1` yalnız Next sürecinin makinesini gösterir.
+Bugün kabul edilebilir çünkü Next de yerelde çalışıyor; dağıtım hâlinde
+vekilin önüne yetkilendirme gerekir — `backend-istekleri.md` §10'da borç.
+
+**SSR TUZAĞI (meclis bulgusu, düzeltildi):** Node'un `fetch`'i göreli URL
+çözemez; `/odin/api/state` sunucu tarafında çağrılsaydı "Failed to parse
+URL" ile ÇÖKERDİ. `ODIN_BASE_URL` artık sunucuda mutlak, tarayıcıda yol
+döndürüyor. Bugün hiçbir sunucu yolu bunu çağırmıyor ama tuzak açıkta
+bırakılmadı.
+
+**Etki:** `next.config.ts`, `lib/data/mode.ts`.
+
+---
+
+## UI-ADR-120 — Kaynak yoksa sayı da yok: `0` bir ölçüm iddiasıdır (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 30 Temmuz 2026
+
+**Nasıl bulundu:** gerçek moda geçilince (`NEXT_PUBLIC_ODIN_DATA_MODE=odin`)
+mock kancası fail-closed olup `null` döndürdü ve Mission Control'ün
+Operational Status kartı **sıfırlarla dolu bir "sağlıklı sistem" tablosu**
+gösterdi. Hiçbir test yakalamadı; ekrana bakılarak görüldü.
+
+**Kök neden:** `(directors?.data ?? []).map(...)` — zarf `null` olduğunda
+boş diziye düşüyor, sayaçlar `0` çıkıyordu. **"0 sağlıksız Director" bir
+ÖLÇÜMDÜR ve yanlıştır**; doğrusu "ölçülmedi". Aradaki fark, sistemin
+sağlıklı mı yoksa hiç izlenmiyor mu olduğudur; sıfırlarla dolu bir tablo
+"her şey yolunda" diye okunur.
+
+**Genel kural:** boş koleksiyona düşen bir `?? []` varsayılanı, "veri
+yok"u sessizce "ölçüm sıfır"a çevirir. Sayaç üreten her yerde `null` ile
+boş liste AYRI ele alınır; ölçülmemiş sayaç `—` gösterir ve notu
+"kaynak bağlı değil" der.
+
+**Etki:** `components/screens/mission-control.tsx`.
+
+---
+
+## UI-ADR-121 — İptal sebebi bayrakla tutulur, sinyalden okunmaz (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 31 Temmuz 2026
+**Meclis:** yazılımcılar (Qwen · terra · Gemini) — üçü de aynı yarışı gösterdi
+
+**Sorun:** `httpLoad` zaman aşımını çağıranın iptalinden
+`signal?.aborted && !timer.aborted` diye ayırıyordu. İkisi AYNI ANDA abort
+olursa (kullanıcı route değiştirirken istek de zaman aşımına uğrarsa) koşul
+`false` çıkar ve **kullanıcının kendi iptali "zaman aşımı" diye
+sınıflanıp terk ettiği ekranın hata kutusunu açar.**
+
+**İLK DÜZELTME YANLIŞTI ve yazılırken yakalandı.** Kendi
+`AbortController`'ımızı kurup yalnız zamanlayıcının set ettiği bir
+`timedOut` bayrağı okumayı denedim. Bayrak doğruydu ama kural hâlâ
+yanlıştı: ikisi birden olduğunda yine zaman aşımı kazanıyordu. Sorun
+hangi sinyalin okunduğu değil, **öncelik sırasıydı.**
+
+**Karar (tek cümle):** çağıran iptal ettiyse — zaman aşımı da dolmuş olsa —
+bu bizim raporlayacağımız bir hata DEĞİLDİR:
+
+```ts
+if (signal?.aborted) throw err;      // kullanıcının niyeti kazanır
+throw classifyError(err, path);
+```
+
+Kullanıcı o ekrandan ayrılmıştır; React Query iptali zaten sessizce düşürür.
+Fazladan `AbortController` ve bayrak da gitti — doğru kural daha az koddu.
+
+**Kapı ölçüldü:** test önce yazıldı ve ESKİ koşulla DÜŞTÜĞÜ, düzeltmeyle
+GEÇTİĞİ ayrı ayrı çalıştırılarak doğrulandı. İlk yazdığım test her iki
+kodla da geçiyordu — yani kapı değildi; düşemeyen test tiyatrodur.
+
+**Etki:** `lib/data/client.ts`.
+
+---
+
+## UI-ADR-122 — `IS_MOCK` ölü kod elemesine uygun yazılır (S8) ⚠️ YETERSİZ
+
+**Durum:** ✅ Dondurulmuş (etkisiz kaldı — bkz. 18-s8-worklist §4)
+**Tarih:** 30 Temmuz 2026
+
+`IS_MOCK = DATA_MODE === "mock"` daha okunaklıydı ama paketleyici için ölü
+kod elemesini imkânsız kılıyordu: Next `NEXT_PUBLIC_*` değişkenlerini
+derlemede düz metne çevirir, fakat değer bir doğrulama adımından geçip
+başka bir sabite atanınca o bilgi kaybolur.
+
+**Karar:** `IS_MOCK = process.env.NEXT_PUBLIC_ODIN_DATA_MODE !== "odin"` —
+ifade derlemede `"odin" !== "odin"` → `false` olur.
+
+**DÜRÜSTLÜK NOTU:** bu değişiklik tek başına YETMEDİ. Ölçüldü: mock verisi
+üretim paketinde kaldı; çünkü sorun ifadede değil **import grafiğinde** —
+ekranlar mock'ları doğrudan import ediyor. Kararın etkisiz kaldığını
+yazmak, etkili sanmaktan iyidir.
