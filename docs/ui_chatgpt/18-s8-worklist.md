@@ -29,14 +29,16 @@ kanıtlı liste `backend-istekleri.md`'de, 12 madde. Yani S8 canlı veriyi
 AÇTI; ODIN her yeni uç noktayı yayınladıkça bir bölüm daha üçer satırla
 canlıya geçer.
 
-⚠️ **AYRI BORÇ — dev modda hidrasyon durdu.** Ekranı önce
+✅ **DEV HİDRASYON KUSURU ÇÖZÜLDÜ (UI-ADR-125).** Ekranı önce
 doğrulayamadım: dev sunucusunda istemci hidrasyonu TÜM uygulamada
-çalışmıyordu (mock modda da, Mission Control'de de; "Daralt" düğmesi
-tepkisiz, hiçbir chunk düşmüyor, konsolda hata yok). "Ortamsal" deyip
-bırakmak yerine üretim derlemesinde denendi ve **orada sorunsuz
-hidrasyon oldu**. Teşhis: sorun dev/Turbopack'e özgü. Üretimi
-etkilemiyor ama geliştirme deneyimini bozuyor — ayrı bir iş olarak
-kayıtlı.
+çalışmıyordu. Buna sırayla "ortamsal bozulma" ve "dev/Turbopack'e özgü"
+dedim; ikisi de yetersizdi. Gerçek sebep sunucu logunda YAZILIYDI ve ben
+okuyup geçmiştim: Next 16, `127.0.0.1`'den gelen `/_next/webpack-hmr`
+isteğini güvenlik gereği ENGELLİYOR (varsayılan yalnız `localhost`).
+HMR bloklanınca hidrasyon hiç tamamlanmıyor ve **tarayıcıya hiçbir hata
+yansımıyor.** Çözüm: `allowedDevOrigins: ["127.0.0.1"]` — loopback'tir,
+ağa açılma değildir; LAN adresi bilerek eklenmedi.
+**Ders: "ortamsal" demeden önce sunucu logunu sonuna kadar oku.**
 
 ## 1. Neden dal yeniden kuruldu
 

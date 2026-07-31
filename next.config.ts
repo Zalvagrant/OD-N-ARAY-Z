@@ -40,6 +40,24 @@ const ODIN_ORIGIN = process.env.ODIN_ORIGIN ?? "http://127.0.0.1:8765";
 const REAL_MODE = process.env.NEXT_PUBLIC_ODIN_DATA_MODE === "odin";
 
 const nextConfig: NextConfig = {
+  /*
+   * DEV'DE HİDRASYONU AÇAN AYAR — UI-ADR-125.
+   *
+   * Next 16 dev sunucusu, `/_next/webpack-hmr` gibi dev kaynaklarına
+   * "cross-origin" istekleri varsayılan olarak ENGELLER ve yalnız
+   * `localhost`a izin verir. Arayüz `127.0.0.1:3000` üzerinden açılınca
+   * HMR isteği bloklanıyor ve **istemci hidrasyonu hiç tamamlanmıyordu**:
+   * ekran sunucudan geldiği gibi donuyor, hiçbir düğme çalışmıyor, veri
+   * kancaları hiç ateşlenmiyor. Konsolda hata YOK — teşhisi bu yüzden zor.
+   *
+   * `127.0.0.1` LOOPBACK'tir; makinenin kendisidir, ağa açılma değildir.
+   * Bilerek yalnız o eklendi — `192.168.1.105` (LAN adresi) eklenmedi,
+   * o gerçekten dışarı açmak olurdu.
+   *
+   * Yalnız geliştirmeyi etkiler; üretim derlemesi zaten sorunsuzdu.
+   */
+  allowedDevOrigins: ["127.0.0.1"],
+
   turbopack: REAL_MODE
     ? { resolveAlias: { "@/mocks/registry": "./src/mocks/registry.release.ts" } }
     : {},

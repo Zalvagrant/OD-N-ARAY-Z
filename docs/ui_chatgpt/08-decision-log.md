@@ -2233,3 +2233,51 @@ taşıyordu (`GOAL-ACIL-STOK-2026-07`). Paket kapısının imzası belirsiz
 kalıyordu (aynı dize hem mock'ta hem canlı veride) ve bir mock kaydın
 gerçek kimlik taşıması başlı başına yanıltıcıydı. ID'ler `GOAL-MOCK-*`
 oldu, kapı imzası da güncellendi.
+
+---
+
+## UI-ADR-125 — Dev sunucusu `127.0.0.1`'e izin verir; yoksa hidrasyon sessizce ölür (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 31 Temmuz 2026
+
+**Belirti:** `npm run dev` ile açılan arayüz `127.0.0.1:3000` üzerinden
+tamamen ÖLÜYDÜ. Ekran sunucudan geldiği gibi donuyor, hiçbir düğme
+çalışmıyor ("Daralt" tepkisiz), veri kancaları hiç ateşlenmiyor, bölümler
+sonsuza kadar "yükleniyor" gösteriyordu. **Konsolda hata yok. Hiçbir chunk
+düşmüyor. `__reactFiber` anahtarı hiç oluşmuyor.**
+
+**Yanlış teşhisim kayda geçsin:** buna önce "ortamsal bozulma, benim kodum
+değil" dedim ve `18-s8-worklist.md`'ye çözülemez bir borç olarak yazdım.
+Üretim derlemesinde çalıştığını görünce "dev/Turbopack'e özgü" diye
+daralttım — doğruydu ama YETERSİZDİ. Sebep bir gizem değildi:
+
+```
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr
+  from "127.0.0.1".
+```
+
+**Next, çözümü sunucu logunda YAZMIŞTI. Ben logu okuyup geçmiştim.**
+
+**Kök neden:** Next 16 dev sunucusu `/_next/webpack-hmr` gibi dev
+kaynaklarına "cross-origin" istekleri güvenlik gereği engeller ve
+varsayılan olarak yalnız `localhost`a izin verir. `127.0.0.1` ile
+girildiğinde HMR bloklanıyor ve **istemci hidrasyonu hiç tamamlanmıyor.**
+Hata mesajı sunucuda kalıyor, tarayıcıya yansımıyor — teşhisi bu yüzden
+zor.
+
+**Karar:** `next.config.ts` → `allowedDevOrigins: ["127.0.0.1"]`.
+
+`127.0.0.1` LOOPBACK'tir — makinenin kendisidir, ağa açılma DEĞİLDİR.
+Bilerek yalnız o eklendi; `192.168.1.105` (LAN adresi) EKLENMEDİ, o
+gerçekten dışarı açmak olurdu. Yalnız geliştirmeyi etkiler; üretim
+derlemesi zaten sorunsuzdu.
+
+**Doğrulama (dev, gerçek mod):** `hidrasyon: true` · "yükleniyor" yok ·
+canlı ODIN verisi ekranda (`momentum -%16 nedeni` imzası) · 5 çeyreklik
+hedef "İlerleme ölçülmüyor" · mock rozeti yok · **"Daralt" düğmesi artık
+çalışıyor** (etkileşim testi geçti).
+
+**DERS:** "ortamsal" demeden önce sunucu logunu SONUNA KADAR oku. Bir
+oturumu neredeyse çözülemez sayılan bir borçla kapatıyordum; cevap
+başından beri logdaydı.

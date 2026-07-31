@@ -94,10 +94,10 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…124` serisindedir.
+Bu repodaki kararlar `UI-ADR-001…125` serisindedir.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-125`'ten**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-126`'dan**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
@@ -209,8 +209,9 @@ kayıtları, `AgentHealth.verdict`, `sku_stats`, PPC) — kanıtlı 12 maddelik
 liste `backend-istekleri.md`'de. Her yeni uç nokta yayınlandıkça bir
 bölüm üçer satırla canlıya geçer.
 
-⚠️ **Dev modda hidrasyon durdu — ayrı borç.** Üretim derlemesi sorunsuz;
-sorun dev/Turbopack'e özgü. Ayrıntı `18-s8-worklist.md`.
+✅ **Dev hidrasyon kusuru ÇÖZÜLDÜ (UI-ADR-125).** `127.0.0.1` ile açılan
+dev sunucusunda HMR bloklandığı için hidrasyon hiç tamamlanmıyordu;
+`allowedDevOrigins: ["127.0.0.1"]` eklendi.
 
 ### Her sprint sonunda
 
