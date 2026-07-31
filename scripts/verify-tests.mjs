@@ -1,5 +1,5 @@
 /**
- * Storybook test kapısı — fail-closed.
+ * Test kapısı — fail-closed. HER İKİ proje için (UI-ADR-153).
  *
  * NEDEN VAR: 31 Temmuz 2026'da ölçüldü — `npx vitest run` şunu bastı:
  *   Test Files  12 passed (55)      ← 55 dosyanın 43'ü HİÇ KOŞMADI
@@ -18,7 +18,15 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 
-const REPORT = ".artifacts/storybook-vitest.json";
+/* PROJE VE ALT SINIR DIŞARIDAN — UI-ADR-153.
+   Kapı önce yalnız `storybook`u koruyordu ve `unit` projesi çıplaktı:
+   `state-matrix.test.ts`i `state-matrix.spec.ts` diye yeniden adlandırmak
+   (ya da silmek) kapıyı SESSİZCE buharlaştırıyordu — `include` onu görmez,
+   geriye 15 dosya kaldığı için "no test files" hatası da çıkmaz ve
+   `test:ci` YEŞİL kalırdı. Bağımsız denetimde bulundu. Aynı `evaluate()`
+   mantığı iki projeye de uygulanıyor. */
+const PROJECT = process.argv[2] ?? "storybook";
+const REPORT = `.artifacts/${PROJECT}-vitest.json`;
 
 /* Alt sınır — sabit sayı değil, DÜŞÜŞ dedektörü. Sabit sayı her yeni
    story'de kapıyı kırar; alt sınır yalnız kaybı yakalar. Yükseltmek
@@ -30,7 +38,7 @@ const REPORT = ".artifacts/storybook-vitest.json";
    görünürken kapsamın üçte biri buharlaşabilirdi. Sınır ölçümün hemen
    altında durmalı ki gerçekten bir şey korusun; 190 küçük dalgalanmaya
    pay bırakır, kayba bırakmaz. */
-const FLOOR = 190;
+const FLOOR = Number(process.argv[3] ?? 190);
 
 /* ponytail: kapı testlerin SAYISINI doğruluyor, KİMLİKLERİNİ değil. Meclis
    (gavadolar 2/2) daha güçlüsünü önerdi: `vitest list` ile keşfedilen test
@@ -101,7 +109,7 @@ let runFailed = false;
 try {
   execFileSync(
     "npx",
-    ["vitest", "run", "--project", "storybook",
+    ["vitest", "run", "--project", PROJECT,
      "--reporter=json", `--outputFile=${REPORT}`],
     { stdio: "inherit", shell: process.platform === "win32" },
   );
@@ -113,9 +121,9 @@ try {
 
 if (!existsSync(REPORT)) {
   throw new Error(
-    `Storybook kapısı KAPALI: rapor yazılmadı (${REPORT}). ` +
+    `${PROJECT} kapısı KAPALI: rapor yazılmadı (${REPORT}). ` +
     "Testler koşmadı — tarayıcı oturumu kurulamamış olabilir. " +
-    `Teşhis: npx vitest run --project storybook  (abs: ${abs})`,
+    `Teşhis: npx vitest run --project ${PROJECT}  (abs: ${abs})`,
   );
 }
 
@@ -123,14 +131,14 @@ let report;
 try {
   report = JSON.parse(readFileSync(REPORT, "utf8"));
 } catch (e) {
-  throw new Error(`Storybook kapısı KAPALI: rapor bozuk JSON — ${e.message}`);
+  throw new Error(`${PROJECT} kapısı KAPALI: rapor bozuk JSON — ${e.message}`);
 }
 
 const { problems, files, passed } = evaluate(report, { runFailed });
 
 if (problems.length > 0) {
-  throw new Error(`Storybook kapısı KAPALI: ${problems.join(" · ")}`);
+  throw new Error(`${PROJECT} kapısı KAPALI: ${problems.join(" · ")}`);
 }
 
-console.log(`Storybook kapısı AÇIK: ${files} dosya / ${passed} test geçti ` +
+console.log(`${PROJECT} kapısı AÇIK: ${files} dosya / ${passed} test geçti ` +
             `(alt sınır ${FLOOR}, atlanan 0, düşen 0)`);

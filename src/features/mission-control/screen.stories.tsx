@@ -1,6 +1,6 @@
 /** S5 · 2 — Mission Control (tam ekran) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import { MissionControl } from "./screen";
 
 const meta: Meta = {
@@ -14,6 +14,19 @@ export default meta;
 
 /** Primary Focus: Mission Board. Sözleşmesi olmayan üç bölüm boş görünür. */
 export const Operasyon: StoryObj = {
+  /* POZİTİF KONTROL — `directorSayisi` helper'ının gerçekten SAYI
+     dönebildiğini kanıtlar. `Bos` story'si onun "—" döndüğünü, `Yukleniyor`
+     ve `Hata` `null` döndüğünü iddia ediyor; hiçbiri helper'ın ÇALIŞTIĞINI
+     kanıtlamıyordu. Etiket metni ya da `Stat`ın dt/dd yapısı değişse üçü
+     birden kalıcı yeşile düşerdi. */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByText("Operational Status", {}, { timeout: 15_000 });
+    await waitFor(
+      () => expect(directorSayisi(canvasElement)).not.toBeNull(),
+      { timeout: 15_000 }
+    );
+  },
   render: () => (
     <div className="bg-bg p-6">
       <MissionControl />

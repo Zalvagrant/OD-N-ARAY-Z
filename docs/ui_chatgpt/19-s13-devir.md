@@ -341,7 +341,15 @@ kırılabiliyordu.
 | S17'nin `FLOOR`u 140'ta, ölçüm 193 → 53 test kaybolabilirdi | ✅ 190 |
 | self-check `FLOOR`a bağlıydı | ✅ ayrıldı |
 
-### 6.6 KABUL EDİLDİ, YAPILMADI — yeni oturumun işi
+### 6.6 ~~KABUL EDİLDİ, YAPILMADI~~ ✅ ÜÇÜ DE KAPANDI (UI-ADR-153)
+
+Gerekçem *"yeni iş, kapanış düzeltmesi değil"*ti ve **zayıftı** — üçü de
+doğrudan yapılabilir işlerdi. Kapatıldılar; muafiyet kaldırılınca **altı
+ihlal** döküldü (iki eksik hikâye, dört iddiasız story) ve kapı bir
+GERÇEK HATA buldu: `OlcumsuzSku` story'si fixture'da olmayan bir SKU
+seçiyor, yani adının vaat ettiği durumu hiç göstermiyordu.
+
+Aşağısı tarihsel kayıt:
 
 1. **`features/*/screen.tsx` muafiyeti.** Durum matrisi kapısı
    `demo?: DemoState` beyanına kilitli. `amazon/sku`, `goals`,

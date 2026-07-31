@@ -108,18 +108,51 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-148)
    *
    * Asgari koşul: en az bir `play` — yani bileşenin kamu davranışına dair
    * en az bir iddia.
+   *
+   * ⚠️ İLK HÂLİ DOSYA SEVİYESİNDEYDİ (UI-ADR-153'te daraltıldı):
+   * `/\bplay\s*:/.test(dosya)` diye soruyordu. Çok bileşenli bir hikâye
+   * dosyasında (`display.stories.tsx` beş bileşen kapsıyor) BAŞKA bir
+   * bileşenin `play`i yeni bir yetimi kapatıyordu — yani yeni bileşen
+   * hakkında sıfır iddiayla "davranış kanıtlandı" testi geçiyordu.
+   * Bağımsız denetimde bulundu. Artık `play`, O BİLEŞENİ render eden
+   * `export const` bloğunun İÇİNDE aranıyor.
    */
   it.each(orphans.map((f) => moduleId(f)))(
-    "%s — hikâyesi bir DAVRANIŞ kanıtlamalı (en az bir `play`)",
+    "%s — kendi story bloğunda bir DAVRANIŞ kanıtlanmalı",
     (id) => {
-      const withPlay = storiesFor(id).filter((f) =>
-        /\bplay\s*:/.test(readFileSync(f, "utf8"))
-      );
+      /** `components/ui/badge` → `Badge` · `executive/telemetry-bar` → `TelemetryBar` */
+      const adlar = (src: string) => {
+        const kisa = id.split("/").pop()!;
+        const m = src.match(
+          new RegExp(`import\\s*{([^}]*)}\\s*from\\s*"(?:\\./)?${kisa}"`)
+        );
+        return (m?.[1] ?? "")
+          .split(",")
+          .map((n) => n.trim().replace(/^type\s+/, ""))
+          .filter(Boolean);
+      };
+
+      const kanit = storiesFor(id).some((f) => {
+        const src = readFileSync(f, "utf8");
+        const isimler = adlar(src);
+        if (isimler.length === 0) return false;
+        /* Bloğa ayır ve YALNIZ bu bileşeni render eden bloklara bak. */
+        return src
+          .split(/^export const /m)
+          .slice(1)
+          .filter((b) => isimler.some((n) => new RegExp(`<${n}[\\s/>]`).test(b)))
+          .some((b) => {
+            const i = b.search(/^\s*play:/m);
+            return i >= 0 && b.slice(i).includes("expect(");
+          });
+      });
+
       expect(
-        withPlay.length > 0,
-        `${id} için hikâye var ama hiçbirinde \`play\` yok — yalnız render ` +
-          `ediyor. Envanter kararı (UI-ADR-148) DAVRANIŞI kanıtlanmış ` +
-          `bileşenler içindir; bir sözleşme iddiası yaz ya da dosyayı sil.`
+        kanit,
+        `${id}: kendi story bloğunda bir iddia YOK — yalnız render ediyor ` +
+          `(ya da iddia BAŞKA bir bileşenin bloğunda). Envanter kararı ` +
+          `(UI-ADR-148) DAVRANIŞI kanıtlanmış bileşenler içindir; bu ` +
+          `bileşeni render eden story'ye bir sözleşme iddiası yaz.`
       ).toBe(true);
     }
   );

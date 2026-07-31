@@ -29,7 +29,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const FEATURES = join(process.cwd(), "src", "features");
@@ -40,9 +40,28 @@ function walk(dir: string): string[] {
   );
 }
 
-const screens = walk(FEATURES)
-  .filter((f) => f.endsWith("screen.tsx"))
-  .filter((f) => /demo\?:\s*DemoState/.test(readFileSync(f, "utf8")));
+/** HER ekran — muafiyet yok (UI-ADR-153). */
+const screens = walk(FEATURES).filter((f) => f.endsWith("screen.tsx"));
+
+/** Bunların üstüne AYRICA üç durumluk matris istenir. */
+const demoScreens = screens.filter((f) =>
+  /demo\?:\s*DemoState/.test(readFileSync(f, "utf8"))
+);
+
+const rel = (f: string) =>
+  f.slice(process.cwd().length + 1).split("\\").join("/");
+const storyPathOf = (f: string) =>
+  f.replace(/screen\.tsx$/, "screen.stories.tsx");
+
+/** `export const X` bloklarına ayır — `play`in DOĞRU story'de olduğunu
+ *  ancak böyle sorabiliriz. */
+const bloklarOf = (src: string) => src.split(/^export const /m).slice(1);
+
+/** Bir bloğun bir şey İDDİA ettiğini doğrular. */
+function iddiaVarMi(blok: string): boolean {
+  if (!/^\s*play:/m.test(blok)) return false;
+  return blok.slice(blok.search(/^\s*play:/m)).includes("expect(");
+}
 
 /** Her durum için story adında aranan iz — Türkçe adlar kullanılıyor. */
 const STATES = [
@@ -51,20 +70,52 @@ const STATES = [
   { key: "error", demo: /demo="error"/ },
 ] as const;
 
-describe("ekran durum matrisi kapısı (UI-ADR-151)", () => {
-  it("demo durumu olan en az bir ekran var (kapı boşa çalışmıyor)", () => {
+describe("ekran kapısı — HER ekran (UI-ADR-151 → 153)", () => {
+  it("kapı boşa çalışmıyor: iki liste de dolu", () => {
     /* Kapının kendisi de körleşebilir: `screen.tsx` adlandırması değişirse
        liste sessizce boşalır ve test hep yeşil kalır. */
     expect(screens.length).toBeGreaterThan(0);
+    expect(demoScreens.length).toBeGreaterThan(0);
   });
 
-  it.each(screens.map((f) => f.slice(process.cwd().length + 1).replace(/\\/g, "/")))(
-    "%s — üç durumun ÜÇÜ de story'li ve her biri bir şey İDDİA EDİYOR",
+  /**
+   * MUAFİYET KALDIRILDI — UI-ADR-153. Kapı önce `demo?: DemoState`
+   * beyanına kilitliydi; o prop'u ALMAYAN üç ekran (`amazon/sku`,
+   * `goals`, `intelligence-feed`) matristen sessizce muaftı ve muafiyet
+   * gerçek bir boşluktu: `amazon/sku`ın DÖRT durum story'si vardı,
+   * hiçbiri bir şey iddia etmiyordu; diğer ikisinin hiç hikâyesi yoktu.
+   *
+   * Ekranın durumları `demo` prop'undan gelmek ZORUNDA değil —
+   * `AmazonSkuPanel` hiç prop almaz, durumları store ve sorgudan gelir.
+   * Bu yüzden kural durum ADLARINA değil ŞUNA bağlandı: her ekranın
+   * hikâyesi olacak ve HER story bir şey iddia edecek.
+   */
+  it.each(screens.map(rel))(
+    "%s — hikâyesi var ve HER story bir şey İDDİA EDİYOR",
+    (r) => {
+      const storyPath = storyPathOf(join(process.cwd(), r));
+      expect(
+        existsSync(storyPath),
+        `${r}: hikâyesi YOK. Bir ekranın ne çizdiğini kanıtlayan tek yer ` +
+          `hikâyesidir; hikâyesiz ekran yalnız gözle doğrulanabilir.`
+      ).toBe(true);
+
+      for (const blok of bloklarOf(readFileSync(storyPath, "utf8"))) {
+        const ad = blok.slice(0, Math.max(blok.indexOf(":"), 0));
+        expect(
+          iddiaVarMi(blok),
+          `${r} → "${ad}" story'si hiçbir şey İDDİA ETMİYOR (play yok ya ` +
+            `da play'inde expect yok). Yalnız render eden bir story, ` +
+            `bileşenin patlamadığını kanıtlar — DOĞRU çizdiğini değil.`
+        ).toBe(true);
+      }
+    }
+  );
+
+  it.each(demoScreens.map(rel))(
+    "%s — AYRICA üç durumun ÜÇÜ de ayrı story",
     (rel) => {
-      const storyPath = join(process.cwd(), rel).replace(
-        /screen\.tsx$/,
-        "screen.stories.tsx"
-      );
+      const storyPath = storyPathOf(join(process.cwd(), rel));
       const src = readFileSync(storyPath, "utf8");
 
       /* Dosyayı `export const` sınırlarından bloklara ayır — `play`in

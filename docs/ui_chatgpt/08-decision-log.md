@@ -4223,3 +4223,76 @@ değişince kırılan bir test, kalibrasyonu değiştirmemek için bahane olur.*
 `tsc` 0 · `lint` 0 hata · **67 dosya / 421 test** · `npm run test:ci`
 artık **lint + unit + storybook** koşuyor; Storybook kapısı AÇIK
 (51 dosya / 193 test, alt sınır 190).
+
+---
+
+## UI-ADR-153 — Muafiyetler kaldırıldı: kapılar artık boşluk bırakmıyor (S13 kapanış)
+
+**Durum:** ✅ Dondurulmuş — üçü de enjekte ihlalle denendi
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-148 · 151 · 152
+
+UI-ADR-152'nin bağımsız denetimi üç bulguyu "kabul edildi ama yapılmadı"
+diye devretmişti. Gerekçe *"yeni iş, kapanış düzeltmesi değil"*ti ve
+**zayıftı**: üçü de doğrudan yapılabilir işlerdi. Üçü de kapatıldı.
+
+### 1 · Ekran kapısının MUAFİYETİ kaldırıldı
+
+Kapı `demo?: DemoState` beyanına kilitliydi; o prop'u ALMAYAN üç ekran
+(`amazon/sku`, `goals`, `intelligence-feed`) matristen sessizce muaftı.
+Muafiyet gerçek bir boşluktu:
+
+- `amazon/sku`ın **dört durum story'si vardı, hiçbiri bir şey iddia
+  etmiyordu**;
+- `goals` ile `intelligence-feed`in **hiç hikâyesi yoktu** — `/goals`
+  arayüzdeki İLK canlı ODIN verisini gösteren ekran olduğu hâlde.
+
+Ekranın durumları `demo` prop'undan gelmek ZORUNDA değil:
+`AmazonSkuPanel` hiç prop almaz, durumları store ve sorgudan gelir. Bu
+yüzden kural durum ADLARINA değil şuna bağlandı: **her ekranın hikâyesi
+olacak ve HER story bir şey iddia edecek.** `demo` alan ekranlar için üç
+durumluk matris AYRICA isteniyor.
+
+Kapı açılınca **altı ihlal** döküldü: iki eksik hikâye ve dört iddiasız
+story. Hepsi yazıldı.
+
+**Ve kapı bir GERÇEK HATA buldu:** `amazon/sku`ın `OlcumsuzSku` story'si
+`SKU-3050` seçiyordu — o kimlik fixture'da **hiç yok**. Story sessizce
+"kayıt bulunamadı" dalını çiziyor, yani adının vaat ettiği "ölçümsüz SKU"
+durumunu hiç göstermiyordu. `SKU-3310`e (fixture'ın en çok null'lu kaydı)
+çevrildi. *İddiasız bir story, yanlış şeyi çizdiğini bile söyleyemez.*
+
+### 2 · `inventory` kapısı BLOK bazlı oldu
+
+`play` DOSYA seviyesinde aranıyordu. Çok bileşenli bir hikâye dosyasında
+(`display.stories.tsx` beş bileşen kapsıyor) BAŞKA bir bileşenin `play`i
+yeni bir yetimi kapatıyordu — yeni bileşen hakkında sıfır iddiayla
+"davranış kanıtlandı" testi geçiyordu. Artık `play`, o bileşeni RENDER
+EDEN `export const` bloğunun içinde aranıyor.
+
+**Denendi:** iddiası `Badge` bloğunda olan bir yetim enjekte edildi; eski
+kapı geçirirdi, yeni kapı düştü.
+
+### 3 · `unit` projesi de kapı altına alındı
+
+Fail-closed kapı yalnız `storybook`u koruyordu. `state-matrix.test.ts`i
+`.spec.ts` diye yeniden adlandırmak kapıyı SESSİZCE buharlaştırıyordu:
+`include` onu görmez, geriye 15 dosya kaldığı için "no test files" hatası
+da çıkmaz ve `test:ci` YEŞİL kalırdı.
+
+`verify-storybook-tests.mjs` → `verify-tests.mjs`; proje adı ve alt sınır
+argümandan geliyor. `test:unit` = `unit 230` · `test:storybook` =
+`storybook 190`. **Denendi:** dosya yeniden adlandırıldı, kapı
+*"geçen test 224 < alt sınır 230"* diyerek düştü.
+
+### Bu turda testin kendisi DÖRT kez daha yanlış çıktı
+
+`SKU-3050` yok · `getByText(/mock/i)` çoklu eşleşme · `listitem` yükleme
+bitmeden arandı · `goals`ta üç iskelet açıkken ölçüm yapıldı. Dördü de
+"yokluk iddiası VARLIKTAN sonra gelir" kuralının ihlaliydi.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · `npm run test:ci`:
+**unit 16 dosya / 234 test** (alt sınır 230) ·
+**storybook 53 dosya / 195 test** (alt sınır 190) · atlanan 0, düşen 0.

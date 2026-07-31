@@ -18,6 +18,16 @@ export default meta;
  * Orders bölümlerinin sözleşmesi yoktur (UI-ADR-096).
  */
 export const Amazon: StoryObj = {
+  /* POZİTİF KONTROL — `izgaraVar` helper'ının gerçekten TRUE
+     dönebildiğini kanıtlar. Olmasaydı: SKU tablosu `role="grid"`i
+     kaybettiği an helper sonsuza kadar `false` döner ve `Yukleniyor` ile
+     `Hata`daki iki `toBe(false)` iddiası KALICI YEŞİL olurdu — hiçbir şeyi
+     korumayan iki test. Yokluk iddiasının yanına varlık iddiası. */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("grid", {}, { timeout: 15_000 });
+    await expect(izgaraVar(canvasElement)).toBe(true);
+  },
   render: () => (
     <div className="bg-bg p-6">
       <AmazonDirector />
