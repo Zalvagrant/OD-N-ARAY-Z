@@ -2432,3 +2432,67 @@ atışını, beklenen ritmini ve alt işlerinin rozetlerini gösteriyor.
 kendi glyph'ini basıyor; kart da glyph yazınca ekranda "✓ ● Sağlıklı"
 çıkıyordu. Testler geçiyordu. `DirectorCard`ın sözleşmesine uyuldu —
 yalnız label geçiliyor.
+
+---
+
+## UI-ADR-128 — SKU tablosu canlı; status sözlüğü ODIN'e genişledi (S12)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** ODIN ADR-0149 · ADR-0146 · UI-ADR-104 · `backend-istekleri.md` #7
+
+ODIN `/api/amazon`'a 48 satırlık per-SKU projeksiyon ekledi. Arayüz bağlandı.
+
+### 1. `status` enum'u BEŞ değere genişledi
+
+Eskiden `healthy | watch | at_risk | critical`. ODIN'in stockout motoru
+`ok | warn | critical | no_movement | unknown` üretiyor ve bugün
+**48 SKU'nun 29'u `unknown`** — dört değerli enum'da bunun karşılığı YOK.
+
+Sıkıştırmak kataloğun çoğunluğunu "ölçüldü" diye etiketlemek olurdu.
+`no_movement` da ayrı bir bulgudur (stok VAR, satış YOK); `ok` saymak da
+`critical` saymak da ayrı birer yalan. Sahip kararı (31 Tem): ODIN'in
+sözlüğü kanonik.
+
+Ekran karşılıkları: `ok`→Sağlıklı · `warn`→İzlemede · `critical`→Kritik ·
+`no_movement`→Hareketsiz · `unknown`→**Ölçülmedi** (bir sağlık durumu
+değil, ölçüm boşluğu).
+
+### 2. Skor TÜRETİLMEZ
+
+ODIN `healthScore`, açıklaması, tükenme tarihi ve reorder adedini
+kararla `null` yayınlıyor (ADR-0149). Arayüz hiçbirini hesaplamıyor.
+`statusBasis: "rule_set"` ve `thresholdProvenance: "unapproved_default"`
+taşınıyor — "Kritik" etiketi sahibin onaylamadığı bir eşikten geliyor ve
+bunu saklamıyoruz.
+
+### 3. Sürekli boş kolon KALDIRILDI — canlı ekranda görüldü
+
+Tablo `SKU · Durum · Sağlık · Tükenme · BuyBox` idi. ADR-0149'dan sonra
+**beş kolonun üçü her satırda "—"** oldu. Sürekli boş bir kolon veri
+yokluğunu bildirmez; tabloyu okunmaz yapar ve gerçekten ölçülmüş olanı
+gizler.
+
+Yerlerine ODIN'in yayınladıkları kondu: **Kalan gün · Stok · Satılan ·
+ACOS**. Skor/tükenme/BuyBox bir üretici kazandığı gün geri gelir; o güne
+kadar yer işgal etmezler.
+
+### 4. Dönemler ayrı taşınır, biri hesaplanır
+
+`sales.period` ve `advertising.period` ayrı ayrı geliyor. Kayan pencerenin
+başlangıcı `end - window_days` ile **hesaplanıyor** ve bu tahmin değil:
+kayıt "30 Temmuz'da biten 7 günlük pencere" diye beyan ediyor, başlangıç o
+beyanın aritmetiği. Dönem beyan edilmemişse `period: null` — uydurulmaz.
+
+`MetricPeriod` bu yüzden nullable yapıldı.
+
+### 5. `buyBoxRate` gelmedi ve bu bir eksiklik DEĞİL
+
+ODIN yayınlamıyor çünkü tek kaynağı olan katalog export'u dönemini beyan
+etmiyor (ADR-0149 §6). Arayüz de uydurmuyor. Kolon kaldırıldı.
+
+### Ölçüm — gerçek modda, üretim derlemesiyle
+
+`/amazon` SKU Health tablosu, 48 satır. Örnekler: `CapDome-Xs-10` →
+Kritik · 3,5 gün · 1 stok · 2 satılan. `CloseSmokeyDome-M-20-pcs` →
+Sağlıklı · 258,9 gün · 37 stok · 1 satılan · ACOS %71,5.

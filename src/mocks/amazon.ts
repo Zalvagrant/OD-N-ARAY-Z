@@ -550,10 +550,15 @@ export function simulationsMock(): DataEnvelope<SimulationCase[]> {
  * skoru 55 iken "İzlemede", SKU-1188 skoru 64 iken "Riskli" idi — daha kötü
  * skorlu SKU daha iyi etiketliydi (S6 kapanışında yakalandı, UI-ADR-104).
  */
+/* ODIN'in sözlüğü (UI-ADR-128). Bantlar MOCK'a özgüdür: gerçek ODIN
+   durumu bir SKORDAN değil, days_of_cover kural setinden gelir ve skor
+   hiç yayınlanmaz (ADR-0149). Bu fixture sözleşmenin `statusBasis:
+   "health_score"` dalını canlı tutuyor — o dalın bir üreticisi çıkarsa
+   ekran hazır olsun diye. */
 export const SKU_STATUS_BANDS = [
-  { min: 80, status: "healthy" as const },
-  { min: 65, status: "watch" as const },
-  { min: 45, status: "at_risk" as const },
+  { min: 80, status: "ok" as const },
+  { min: 65, status: "warn" as const },
+  { min: 45, status: "warn" as const },
   { min: 0, status: "critical" as const },
 ];
 
@@ -586,7 +591,7 @@ function sku(
   return {
     healthScore: null,
     healthScoreExplanation: null,
-    status: "healthy",
+    status: "ok",
     statusBasis: "health_score",
     inventoryAsOf: ago(4 * 60 * 60_000),
     unitsAvailable: null,
@@ -649,7 +654,7 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
         f("BUYBOX_PRESSURE", "BuyBox payı %71,3 — fiyat rekabeti sürüyor.", -20),
         f("LOW_CONVERSION", "Dönüşüm %8,9, kategori ortalamasının altında.", -16),
       ],
-      status: "at_risk",
+      status: "warn",
       unitsAvailable: 1_240,
       daysOfSupply: 31,
       estimatedStockoutAt: inDays(31),
@@ -678,7 +683,7 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
         f("BUYBOX_PRESSURE", "BuyBox payı %78,4 — ara ara kaybediliyor.", -16),
         f("VELOCITY_SLOWING", "Satış hızı üç haftada %9 yavaşladı.", -12),
       ],
-      status: "watch",
+      status: "warn",
       unitsAvailable: 2_310,
       daysOfSupply: 58,
       estimatedStockoutAt: inDays(58),
@@ -706,7 +711,7 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
         f("BUYBOX_STRONG", "BuyBox payı %98,2 — rekabet baskısı yok.", 6),
         f("LOW_CONVERSION", "Dönüşüm %9,6, kategori ortalamasının altında.", -18),
       ],
-      status: "healthy",
+      status: "ok",
       unitsAvailable: 890,
       daysOfSupply: 74,
       estimatedStockoutAt: inDays(74),
@@ -734,7 +739,7 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
         f("HIGH_CONVERSION", "Dönüşüm %14,2 — kategori ortalamasının üstünde.", 5),
         f("OVERSTOCK", "96 günlük envanter; sermaye bağlıyor.", -14),
       ],
-      status: "healthy",
+      status: "ok",
       unitsAvailable: 3_120,
       daysOfSupply: 96,
       estimatedStockoutAt: inDays(96),
@@ -765,7 +770,7 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
         f("LISTING_ERROR", "Listeleme hatası nedeniyle ölçüm penceresi eksik.", null),
       ],
       /* Durum skordan DEĞİL, kuraldan geliyor — skor zaten yok. */
-      status: "at_risk",
+      status: "warn",
       statusBasis: "rule_set",
       /* Envanter anlık görüntüsü de gelmedi: tazelik bilinmiyor, uydurulmaz. */
       inventoryAsOf: null,
@@ -792,7 +797,7 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       ],
       /* Eskiden "watch" idi ve 64 puanlı SKU-1188 "at_risk"ti — daha kötü
          skorlu SKU daha iyi etiketliydi. Eşik tablosuna uyduruldu. */
-      status: "at_risk",
+      status: "warn",
       unitsAvailable: 128,
       daysOfSupply: 17,
       estimatedStockoutAt: inDays(17),
@@ -824,7 +829,7 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
       ],
       /* 79 puan `healthy` eşiğinin (80) bir puan altında — eskiden "healthy"
          yazıyordu. Eşik tablosu bunu da düzeltti. */
-      status: "watch",
+      status: "warn",
       unitsAvailable: 640,
       daysOfSupply: 44,
       estimatedStockoutAt: inDays(44),

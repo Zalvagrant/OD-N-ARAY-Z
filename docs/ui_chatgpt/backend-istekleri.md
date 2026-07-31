@@ -185,7 +185,27 @@ sağlıksız Director" ile "ölçülmedi" aynı şey değildir (UI-ADR-120).
 
 ---
 
-## 7. `SkuHealth` · PPC — karşılığı yok
+## 7. 🟡 KISMEN KAPANDI — `SkuHealth` geldi, iki parçası bilerek gelmedi
+
+**ODIN ADR-0149 / FR-0051 (31 Temmuz 2026).** 48 satırlık per-SKU
+projeksiyon canlı; arayüz S12'de bağlandı (UI-ADR-128).
+
+**Bilerek GELMEYEN iki parça:**
+
+1. **`healthScore`** — ODIN'de skorlama politikası yok. Uydurmak
+   ADR-0144'ün (Listing) ve ADR-0146'nın (stok bandı) iki kez reddettiği
+   şeydi. Sözleşme `null` skoru zaten meşru sayıyor.
+2. **`buyBoxRate` + `conversionRate`** — tek kaynakları sahibin katalog
+   export'u ve o kayıt `report_period` BEYAN ETMİYOR. Dönemi
+   söylenemeyen bir oran yayınlanmıyor. **Bu kod işi değil, veri işi:**
+   ya export dönemini beyan etmeli ya da dönemsel bir kaynak gelmeli.
+
+**`PPCOverview` sözleşmesi YAZILMADI** (meclis 2/2): toplam ACOS/ROAS/
+harcama zaten KPI, per-SKU reklam zaten `SkuHealth.advertising` içinde.
+İkinci bir sözleşme aynı toplamları yeni bir adla tekrarlardı. Kampanya
+düzeyi / bütçe pacing gibi yeni bir karar yüzeyi çıkarsa açılır.
+
+### Tarihsel
 
 `sku_stats` bugün `null`. PPC için hiçbir alan yok — oysa
 `KO-ads-ads_report-2026-07-30` içinde 94 satır kampanya verisi var ve

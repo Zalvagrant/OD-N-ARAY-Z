@@ -23,10 +23,11 @@
 import { z } from "zod";
 
 import type { DataEnvelope } from "@/types/data-envelope";
-import type { ThresholdProvenance } from "@/types/executive";
+import type { Money, ThresholdProvenance } from "@/types/executive";
+import type { MetricPeriod, SkuHealth } from "@/types/screens";
 import { httpLoad } from "./client";
 import { IS_MOCK } from "./mode";
-import { alertSchema, executiveKpiSchema } from "./schemas";
+import { alertSchema, executiveKpiSchema, skuHealthSchema } from "./schemas";
 import { useOdinQuery, type OdinQueryResult } from "./use-odin-query";
 import { loadMock } from "@/mocks/registry";
 
@@ -164,6 +165,136 @@ export function useAmazonAlerts(): OdinQueryResult<AmazonAlert[]> {
       : async (signal) => {
           const raw = amazonSchema.parse(await httpLoad(AMAZON_PATH, { signal }));
           return envelope(raw.generated_at, adaptAlerts(raw));
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Per-SKU — ODIN ADR-0149 (UI-ADR-128)
+   -------------------------------------------------------------------------- */
+
+const rawPeriodSchema = z
+  .object({
+    basis: z.string().optional(),
+    window_days: z.number().optional(),
+    start: z.string().optional(),
+    end: z.string().optional(),
+    as_of: z.string().optional(),
+  })
+  .nullable();
+
+const rawSkuSchema = z.object({
+  sku: z.string(),
+  asin: z.string().nullable(),
+  title: z.string().nullable(),
+  health_score: z.number().nullable(),
+  health_score_explanation: z.array(z.unknown()).nullable(),
+  status: z.enum(["ok", "warn", "critical", "no_movement", "unknown"]).nullable(),
+  status_basis: z.string(),
+  threshold_provenance: z.string().nullable().optional(),
+  inventory_as_of: z.string().nullable(),
+  units_available: z.number().nullable(),
+  days_of_supply: z.number().nullable(),
+  estimated_stockout_at: z.string().nullable(),
+  reorder_units: z.number().nullable(),
+  sales: z.object({
+    period: rawPeriodSchema,
+    units_sold: z.number().nullable(),
+    revenue: z.number().nullable(),
+    conversion_rate: z.number().nullable(),
+    buy_box_rate: z.number().nullable(),
+  }),
+  advertising: z.object({
+    period: rawPeriodSchema,
+    currency: z.string().nullable(),
+    spend: z.number().nullable(),
+    sales: z.number().nullable(),
+    acos: z.number().nullable(),
+  }),
+  price: z.number().nullable(),
+  currency: z.string().nullable(),
+});
+
+export const amazonSkusSchema = z.object({
+  generated_at: z.string(),
+  skus: z.array(rawSkuSchema),
+});
+
+/**
+ * ODIN'in dönem nesnesi → arayüzün `{from, to}`su.
+ *
+ * `rolling_window` için başlangıç `end - window_days` ile HESAPLANIR ve bu
+ * bir tahmin DEĞİLDİR: kayıt "30 Temmuz'da biten 7 günlük pencere" diye
+ * beyan ediyor, başlangıç o beyanın aritmetik sonucudur.
+ *
+ * Dönem beyan edilmemişse `null` döner — arayüz uydurmaz.
+ */
+function toPeriod(raw: z.infer<typeof rawPeriodSchema>): MetricPeriod | null {
+  if (!raw) return null;
+  if (raw.start && raw.end) return { from: raw.start, to: raw.end };
+  if (raw.end && typeof raw.window_days === "number") {
+    const to = new Date(raw.end);
+    const from = new Date(to.getTime() - (raw.window_days - 1) * 86_400_000);
+    return { from: from.toISOString().slice(0, 10), to: raw.end };
+  }
+  return null;
+}
+
+const money = (v: number | null, currency: string | null): Money | null =>
+  v === null || !currency ? null : { amount: v, currency };
+
+export function adaptSkus(raw: z.infer<typeof amazonSkusSchema>): SkuHealth[] {
+  return raw.skus
+    /* Kimliği olmayan satır GÖSTERİLMEZ: `asin`/`title` sözleşmede
+       zorunlu ve ODIN envanter kaydı yoksa null gönderiyor. Boş string
+       koymak, olmayan bir ürünü varmış gibi listelemek olurdu. */
+    .filter((s) => s.asin && s.title && s.status)
+    .map((s) => ({
+      sku: s.sku,
+      asin: s.asin!,
+      title: s.title!,
+      /* ODIN skor YAYINLAMIYOR ve arayüz TÜRETMEZ (ADR-0149). */
+      healthScore: null,
+      healthScoreExplanation: null,
+      status: s.status!,
+      statusBasis: s.status_basis === "health_score" ? "health_score" : "rule_set",
+      ...(s.threshold_provenance === "unapproved_default" ||
+      s.threshold_provenance === "owner_policy"
+        ? { thresholdProvenance: s.threshold_provenance }
+        : {}),
+      inventoryAsOf: s.inventory_as_of,
+      unitsAvailable: s.units_available,
+      daysOfSupply: s.days_of_supply,
+      estimatedStockoutAt: s.estimated_stockout_at,
+      reorderUnits: s.reorder_units,
+      sales: {
+        period: toPeriod(s.sales.period),
+        unitsSold: s.sales.units_sold,
+        revenue: money(s.sales.revenue, s.currency),
+        conversionRate: s.sales.conversion_rate,
+        buyBoxRate: s.sales.buy_box_rate,
+      },
+      advertising: {
+        period: toPeriod(s.advertising.period),
+        spend: money(s.advertising.spend, s.advertising.currency),
+        sales: money(s.advertising.sales, s.advertising.currency),
+        /* ODIN ACOS'u 0-1 oranı olarak veriyor; ekran 0-100 bekliyor. */
+        acos: s.advertising.acos === null ? null : s.advertising.acos * 100,
+      },
+      price: money(s.price, s.currency),
+    }));
+}
+
+export function useAmazonSkus(): OdinQueryResult<SkuHealth[]> {
+  return useOdinQuery({
+    key: ["odin", "amazon", "skus"],
+    module: "amazon",
+    schema: z.array(skuHealthSchema),
+    load: IS_MOCK
+      ? async () => loadMock("amazon.skus")
+      : async (signal) => {
+          const raw = amazonSkusSchema.parse(await httpLoad(AMAZON_PATH, { signal }));
+          return envelope(raw.generated_at, adaptSkus(raw));
         },
   });
 }
