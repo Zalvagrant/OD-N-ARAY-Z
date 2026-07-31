@@ -17,7 +17,7 @@
  *   ReadOnly  — N/A. Salt okunur bir eylem yoktur; karşılığı `disabled`.
  */
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import { Loader2, WifiOff } from "lucide-react";
 
 const VARIANT = {
@@ -65,7 +65,7 @@ const ICON_ONLY_PAD: Record<ButtonSize, string> = {
   xl: "!px-4",
 };
 
-export interface ButtonProps
+interface ButtonBase
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -75,10 +75,33 @@ export interface ButtonProps
   offline?: boolean;
   /** Metnin solundaki ikon. Lucide bileşeni verilir. */
   icon?: ReactNode;
-  /** Yalnız ikon — `aria-label` ZORUNLU. */
-  iconOnly?: boolean;
   children?: ReactNode;
+  /**
+   * React 19'da `ref` sıradan bir prop'tur, ama TİPİ beyan edilmezse
+   * çağıran onu geçiremez. Gerekli: bir açılır paneli kapatan kod odağı
+   * tetikleyiciye GERİ VERMEK zorundadır (`filter.tsx`, UI-ADR-149) —
+   * yoksa odak silinen düğümde kalır ve sonraki Tab belgenin başına atlar.
+   */
+  ref?: Ref<HTMLButtonElement>;
 }
+
+/**
+ * `iconOnly` → `aria-label` DERLEMEDE zorunlu (UI-ADR-149).
+ *
+ * Burada bir yorum vardı: *"Yalnız ikon — `aria-label` ZORUNLU."* — ve
+ * hiçbir şey onu zorlamıyordu. Yorumla korunan bir kural, korunmayan bir
+ * kuraldır: adsız bir ikon butonu ekran okuyucuda yalnızca "buton" diye
+ * okunur ve ne yaptığı ASLA anlaşılmaz. Görerek fark edilmez; bu yüzden
+ * derleyiciye verildi (eslint.config.mjs'in "mimari derleyicide yaşar"
+ * ilkesiyle aynı).
+ *
+ * `aria-labelledby` de kabul edilir: ad görünür bir başlıktan geliyorsa
+ * onu tekrar etmek yerine ona bağlanmak DOĞRUSUDUR (bkz. `modal.tsx`).
+ */
+export type ButtonProps =
+  | (ButtonBase & { iconOnly?: false })
+  | (ButtonBase & { iconOnly: true; "aria-label": string })
+  | (ButtonBase & { iconOnly: true; "aria-labelledby": string });
 
 export function Button({
   variant = "secondary",

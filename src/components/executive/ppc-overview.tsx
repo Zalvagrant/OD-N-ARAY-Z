@@ -19,10 +19,9 @@
 
 import type { PPCOverview } from "@/types/executive";
 import type { DataEnvelope } from "@/types/data-envelope";
-import { toPercentUnit } from "@/lib/format/percent";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
-import { Num, Text } from "@/components/ui/typography";
+import { Num, Pct, Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
 import { Meter } from "./meter";
 import { TrustSignal } from "./trust-signal";
@@ -99,10 +98,9 @@ export function PPCOverviewCard({
               <Stat
                 label="ACOS"
                 value={
-                  <Num
-                    value={toPercentUnit(ppc.acos, ppc.percentScale)}
-                    format="percent"
-                    fractionDigits={1}
+                  <Pct
+                    value={ppc.acos}
+                    scale={ppc.percentScale}
                     size="lg"
                     noDataReason="ACOS ölçeği bildirilmedi (UI-ADR-093)"
                   />

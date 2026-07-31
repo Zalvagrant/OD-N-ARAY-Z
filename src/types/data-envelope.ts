@@ -37,6 +37,32 @@ export interface DataEnvelope<T> {
 }
 
 /**
+ * ODIN'in KENDİ projeksiyonundan gelen ham yükü zarfa sarar — UI-ADR-137.
+ *
+ * `odin-state.ts:49` ve `odin-amazon.ts:82`'de BİREBİR AYNI gövdeyle iki
+ * kez yazılıydı ve gerekçesi yalnız birinin başında duruyordu. İkiye
+ * bölünmüş bir kural, yarısı okunmayan bir kuraldır.
+ *
+ * `source: "internal"` çünkü veri SP-API'den DEĞİL, ODIN'in kendi
+ * projeksiyonundan geliyor: altındaki kayıtlar SP-API ve Ads'ten gelse de
+ * tek zarf ikisini birden etiketleyemez, zarfı "sp-api" damgalamak reklam
+ * sayıları için yalan olurdu.
+ *
+ * `freshness` BURADA YAZILMAZ, `parseEnvelope` onu `lastUpdated`tan modül
+ * eşiğine göre İSTEMCİDE yeniden hesaplar (UI-ADR-115) — adaptörün "live"
+ * damgalaması yanıltıcı olurdu. Buradaki değer yalnızca yer tutucudur.
+ */
+export function internalEnvelope<T>(
+  generatedAt: string,
+  data: T
+): DataEnvelope<T> {
+  return {
+    data,
+    meta: { source: "internal", lastUpdated: generatedAt, freshness: "live" },
+  };
+}
+
+/**
  * Freshness eşikleri — modüle göre değişir, konfigüre edilebilir.
  * 09-data-contracts.md §0
  */

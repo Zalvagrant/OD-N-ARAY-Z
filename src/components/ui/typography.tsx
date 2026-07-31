@@ -12,6 +12,8 @@
  */
 
 import type { ElementType, ReactNode } from "react";
+import type { PercentScale } from "@/types/executive";
+import { toPercentUnit } from "@/lib/format/percent";
 import { NoData } from "@/components/ui/no-data";
 
 /* --------------------------------------------------------------------------
@@ -57,7 +59,16 @@ const TEXT_SIZE = {
   md: "text-md",
 } as const;
 
-const TONE = {
+/**
+ * METİN TONU — TEK SÖZLÜK (UI-ADR-136).
+ *
+ * Aynı yedi giriş `ui/stat.tsx`te ikinci kez, `StatTone` adıyla yazılıydı.
+ * İki sözlük demek, birine ton eklendiğinde diğerinin sessizce geride
+ * kalması demektir. `ui/icon.tsx` ve `ui/timeline.tsx` BİRLEŞTİRİLMEDİ:
+ * onlar `text-icon*` / `bg-*` token kümelerine bakar, aynı isimler farklı
+ * değerlerdir — benzer görünmek aynı olmak değildir.
+ */
+export const TONE = {
   default: "text-content",
   secondary: "text-content-secondary",
   tertiary: "text-content-tertiary",
@@ -67,7 +78,7 @@ const TONE = {
   success: "text-success",
 } as const;
 
-export type TextTone = keyof typeof TONE;
+export type Tone = keyof typeof TONE;
 
 export function Text({
   size = "base",
@@ -77,7 +88,7 @@ export function Text({
   children,
 }: {
   size?: keyof typeof TEXT_SIZE;
-  tone?: TextTone;
+  tone?: Tone;
   as?: ElementType;
   className?: string;
   children: ReactNode;
@@ -210,7 +221,7 @@ export function Num({
   fractionDigits?: number;
   locale?: string;
   size?: keyof typeof NUM_SIZE;
-  tone?: TextTone;
+  tone?: Tone;
   noDataReason?: string;
   className?: string;
 }) {
@@ -229,6 +240,48 @@ export function Num({
 }
 
 /* --------------------------------------------------------------------------
+   Pct — YÜZDE. `Num`un üstünde ince bir katman, UI-ADR-138.
+   -------------------------------------------------------------------------- */
+
+/**
+ * NEDEN AYRI BİLEŞEN: aşağıdaki beş satır ALTI yerde kelimesi kelimesine
+ * yazılıydı (ppc-overview · amazon-director · amazon-sku-panel ×3 ·
+ * glance-view):
+ *
+ *     <Num value={toPercentUnit(x, scale)} format="percent" fractionDigits={1} … />
+ *
+ * `lib/format/percent.ts` ölçek DÖNÜŞÜMÜNÜ zaten tekilleştirmişti; ama
+ * ölçekten sonra gelen iki SUNUM KARARI — `format="percent"` ve
+ * **bir ondalık** — altı kopyada yaşamaya devam ediyordu. Ondalık sayısı
+ * bir gün değişirse altı yerin altısı da bulunmak zorunda; beşi bulunup
+ * biri unutulduğunda ekranda %71,5 ile %71 yan yana durur ve hangisinin
+ * doğru olduğu anlaşılmaz.
+ *
+ * Anti-fake KORUNUR: ölçek bildirilmemişse `toPercentUnit` null döner ve
+ * `Num` NoData basar — 0 ya da tahmin ASLA basılmaz (UI-ADR-093).
+ */
+export function Pct({
+  value,
+  scale,
+  fractionDigits = 1,
+  ...rest
+}: {
+  /** HAM değer — ölçek dönüşümü burada yapılır, çağıranda değil. */
+  value: number | null | undefined;
+  scale: PercentScale | undefined;
+  fractionDigits?: number;
+} & Omit<Parameters<typeof Num>[0], "value" | "format" | "fractionDigits">) {
+  return (
+    <Num
+      value={toPercentUnit(value, scale)}
+      format="percent"
+      fractionDigits={fractionDigits}
+      {...rest}
+    />
+  );
+}
+
+/* --------------------------------------------------------------------------
    Mono — SKU, ID, kod. Asla gövde metni için kullanılmaz.
    -------------------------------------------------------------------------- */
 
@@ -239,7 +292,7 @@ export function Mono({
   children,
 }: {
   size?: keyof typeof TEXT_SIZE;
-  tone?: TextTone;
+  tone?: Tone;
   className?: string;
   children: ReactNode;
 }) {

@@ -1,6 +1,6 @@
 /** S5 · 1 — Executive Briefing (tam ekran) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { ExecutiveBriefing } from "./executive-briefing";
+import { ExecutiveBriefing } from "./screen";
 
 const meta: Meta = {
   title: "Screens/1 · Executive Briefing",

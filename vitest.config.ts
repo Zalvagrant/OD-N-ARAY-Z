@@ -20,18 +20,22 @@ export default defineConfig({
     alias: { '@': path.join(dirname, 'src') },
   },
   test: {
-    /* Ölçüm: soğuk `node_modules/.vite` ile Storybook projesi HİÇ koşmuyordu —
-       43 dosya, "no tests", 61.86 sn, "Failed to connect to the browser
-       session". Chromium'un kendisi sağlam (1.3 sn'de açılıyor, localhost'a
-       ulaşıyor); süreyi yiyen Vite'ın ilk `optimizeDeps` geçişi ve orkestratör
-       sayfası 60 sn'lik varsayılan sınırdan sonra hazır oluyor.
-       ⚠️ Bu ayar KÖKTE olmak zorunda: vitest onu
-       `project.vitest.config.browser.connectTimeout ?? 6e4` diye okuyor
-       (`dist/chunks/cli-api.*.js`), yani proje içine yazılırsa SESSİZCE
-       yok sayılır — bir kez öyle yazıldı ve yeşil sonuç sıcak önbellekten
-       geldi, ayardan değil. Kalibrasyon değeridir; düşürmeden önce
-       `rm -rf node_modules/.vite` ile SOĞUK ölç. */
-    browser: { connectTimeout: 300_000 },
+    /* TARAYICI BAĞLANTI ZAMAN AŞIMI — KÖKTE OLMAK ZORUNDA (UI-ADR-142).
+     *
+     * Vitest bu değeri `project.vitest.config.browser.connectTimeout ?? 6e4`
+     * ile okur: `vitest.config`, yani KÖK config. Proje içindeki
+     * `browser.connectTimeout` OKUNMAZ — oraya yazıldığında sessizce yok
+     * sayılır ve varsayılan 60 sn yürürlükte kalır.
+     *
+     * Nasıl anlaşıldı: proje seviyesine `connectTimeout: 1_000` konup
+     * koşuldu ve test 25 saniyede GEÇTİ. Ayar uygulansaydı 1 sn'de
+     * düşmesi gerekirdi. Kaynak okundu, `?? 6e4` bulundu — gözlenen tüm
+     * düşüşlerin ~61 sn'de olması da bunu doğruluyor.
+     *
+     * (UI-ADR-149 bu ayarı proje içine yazmış ve "kök neden bulundu"
+     * demişti; YANLIŞTI, UI-ADR-142'de düzeltildi. Bu oturumda dördüncü
+     * kez bir iddia ölçülmeden doğru sanıldı.) */
+    browser: { connectTimeout: 180_000 },
     projects: [
       {
         // Saf mantık testleri (chart ölçekleme gibi) — tarayıcı gerekmez.
@@ -73,6 +77,8 @@ export default defineConfig({
             headless: true,
             provider: playwright({}),
             instances: [{ browser: 'chromium' }],
+            /* `connectTimeout` BURAYA YAZILMAZ — kökte olmak zorunda,
+               yukarıdaki nota bak (UI-ADR-142). */
           },
         },
       },

@@ -26,19 +26,12 @@
 import { useId, useState } from "react";
 import { useDisclosureMemory } from "@/lib/store/navigation";
 import type { Decision } from "@/types/executive";
-import {
-  ODIN_MIN_REASON_CHARS,
-  ODIN_REASON_REQUIRED_CLASSES,
-  type OdinVerdict,
-} from "@/types/odin";
+import { type OdinVerdict } from "@/types/odin";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Heading, Text } from "@/components/ui/typography";
-import { useNow } from "@/lib/clock/tick";
+import { Caption, Heading, Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
 import { ConfidenceBadge } from "./confidence-badge";
 import { TrustSignal } from "./trust-signal";
@@ -46,6 +39,11 @@ import { Disclosure } from "./disclosure";
 import { CouncilView } from "./council-view";
 import { MinorityOpinionBanner } from "./minority-opinion-banner";
 import { AIRecommendationView, canRenderRecommendation } from "./ai-recommendation-card";
+import { VerdictForm, type VerdictInput } from "./verdict-form";
+
+/* `VerdictInput` sözleşmesi formla birlikte taşındı; çağıranlar bu
+   dosyadan almaya devam edebilsin diye yeniden yayınlanıyor. */
+export type { VerdictInput };
 
 /** D1 geri alınabilir · D2 geri alması maliyetli · D3 stratejik (glossary). */
 const TIER = {
@@ -71,123 +69,6 @@ const ALT_RISK = {
   medium: { variant: "warning", label: "orta" },
   high: { variant: "danger", label: "yüksek" },
 } as const;
-
-export interface VerdictInput {
-  verdict: OdinVerdict;
-  reason?: string;
-  /** deferred için zorunlu, YYYY-MM-DD */
-  revisitAt?: string;
-}
-
-/* --------------------------------------------------------------------------
-   Verdict formu — ADR-0131 kurallarının yüzeyi. Modal değil: karar kartın
-   üzerinde verilir, bağlam kaybolmaz.
-   -------------------------------------------------------------------------- */
-
-function VerdictForm({
-  decision,
-  pending,
-  onSubmit,
-  onCancel,
-}: {
-  decision: Decision;
-  pending: OdinVerdict;
-  onSubmit: (v: VerdictInput) => void;
-  onCancel: () => void;
-}) {
-  const [reason, setReason] = useState("");
-  const [revisitAt, setRevisitAt] = useState("");
-  const now = useNow(); // merkezi saat (UI-ADR-089) — render'da Date.now() yok
-
-  const recClass = decision.recommendation.recClass;
-  const reasonRequired =
-    recClass !== undefined && ODIN_REASON_REQUIRED_CLASSES.includes(recClass);
-  const reasonOk = !reasonRequired || reason.trim().length >= ODIN_MIN_REASON_CHARS;
-
-  /* "Tarihsiz erteleme sessiz bir hayırdır" — gelecek tarih şart.
-     Saat henüz gelmediyse (now === null) karar verilmez: tahmin yok. */
-  const dateOk =
-    pending !== "deferred" ||
-    (revisitAt !== "" && now !== null && new Date(revisitAt).getTime() > now);
-
-  const LABEL: Record<OdinVerdict, string> = {
-    approved: "Onayı kaydet",
-    rejected: "Reddi kaydet",
-    deferred: "Ertelemeyi kaydet",
-  };
-
-  return (
-    <div className="flex w-full flex-col gap-3 rounded-sm border border-line p-3">
-      <Field
-        label={
-          reasonRequired
-            ? `Gerekçe (sınıf ${recClass} — zorunlu, en az ${ODIN_MIN_REASON_CHARS} karakter)`
-            : "Gerekçe (isteğe bağlı)"
-        }
-        description={
-          reasonRequired
-            ? "ODIN'in geri besleme döngüsü (ADR-0046) bu gerekçeden öğrenir."
-            : undefined
-        }
-      >
-        {(props) => (
-          <Input
-            {...props}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Bu kararı neden böyle veriyorsun?"
-          />
-        )}
-      </Field>
-
-      {pending === "deferred" && (
-        <Field
-          label="Yeniden ele alma tarihi (zorunlu)"
-          description="Tarihsiz erteleme sessiz bir hayırdır — ODIN o gün geri getirir."
-        >
-          {(props) => (
-            <Input
-              {...props}
-              type="date"
-              value={revisitAt}
-              onChange={(e) => setRevisitAt(e.target.value)}
-            />
-          )}
-        </Field>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant={pending === "rejected" ? "danger" : "primary"}
-          size="sm"
-          disabled={!reasonOk || !dateOk}
-          onClick={() =>
-            onSubmit({
-              verdict: pending,
-              reason: reason.trim() || undefined,
-              revisitAt: pending === "deferred" ? revisitAt : undefined,
-            })
-          }
-        >
-          {LABEL[pending]}
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onCancel}>
-          Vazgeç
-        </Button>
-        {!reasonOk && (
-          <Text size="sm" tone="tertiary">
-            Sınıf {recClass} kararı gerekçesiz kapanamaz.
-          </Text>
-        )}
-        {pending === "deferred" && !dateOk && (
-          <Text size="sm" tone="tertiary">
-            Gelecek bir tarih seç.
-          </Text>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* --------------------------------------------------------------------------
    View
@@ -231,7 +112,7 @@ function DecisionView({
                 {decided ? OUTCOME[decided.outcome].label : STATUS_LABEL[decision.status]}
               </Badge>
               {decision.domain && (
-                <span className="text-xs text-content-tertiary">{decision.domain}</span>
+                <Caption>{decision.domain}</Caption>
               )}
             </span>
             <Heading level={3} size={3}>

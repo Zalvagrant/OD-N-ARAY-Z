@@ -19,7 +19,6 @@ import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from "lucide
 import { NAV_GROUPS, type NavItem } from "@/lib/navigation/registry";
 import { useNavigationStore } from "@/lib/store/navigation";
 import { useUiStore } from "@/lib/store/ui";
-import { DirectorStatusDot } from "./director-status-dot";
 
 function SidebarItem({
   item,
@@ -63,8 +62,6 @@ function SidebarItem({
           {!collapsed && (
             <span className="min-w-0 flex-1 truncate text-base">{item.label}</span>
           )}
-          {/* Director durum noktası: veri yokken hiçbir şey çizmez. */}
-          {!collapsed && <DirectorStatusDot beat={null} />}
         </Link>
 
         {hasChildren && !collapsed && (

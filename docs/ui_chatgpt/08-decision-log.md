@@ -2533,6 +2533,688 @@ testlerinde kapsanıyor.
 
 ---
 
+## UI-ADR-130 — Katman sınırları kurala bağlandı; eşik meşrulaştırılmadı, görünür yapıldı (S13)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde
+**İlgili:** UI-ADR-111 · UI-ADR-123 · UI-ADR-126 · UI-ADR-129 ·
+`backend-istekleri.md` §14
+
+### 1. Sınırlar artık DERLEYİCİDE yaşıyor
+
+S13'te sınır ihlalleri elle onarıldı. Onarım kalıcı DEĞİLDİR: kural
+yazılmazsa bir sonraki oturum `import { skusMock } from "@/mocks/amazon"`
+yazar ve hiçbir şey itiraz etmez.
+
+`eslint.config.mjs`'e dört kapı eklendi. **Üçü de enjekte edilmiş ihlalle
+denendi ve üçü de ateşledi** — ateşlemeyen bir kural, kural olmamasından
+kötüdür çünkü güvence hissi verir.
+
+İzinli yön: `app → features → components → lib → types`.
+
+Denerken bir kural HATASI da bulundu: `@/components/*` deseni
+`@/components/ui/badge`'i YAKALAMAZ — tek `*` asla `/` geçmez. Desenler
+`**` yapıldı; yoksa kural yalnızca tek seviyeli yolları görürdü.
+
+Eskimiş bir blok da kaldırıldı: mesajı silinmiş `useMockData`'yı işaret
+ediyordu.
+
+### 2. `director-status-dot.tsx` SİLİNDİ
+
+Ölçülen sebepler, hepsi doğrulandı:
+
+- Tek çağıranı `beat={null}` geçiyordu → bileşen **sıfır piksel** çiziyordu.
+- İçindeki `isStale()` kuralı (`beatIntervalMs * 3`) UI-ADR-111'in
+  **açıkça emekliye ayırdığı** UI icadıydı.
+- Dayandığı `09-data-contracts.md` UI-ADR-098 ile kanonik olmaktan çıkmıştı.
+- `export type DirectorStatus` tanımlıyordu — `types/executive.ts:500` de
+  **aynı adla** başka bir tip tanımlıyor. İki farklı değer kümesi, tek ad.
+- Kanonik karşılığı zaten canlı: `RuntimeDirector` + `runtime-director-card`.
+
+Bu feature silmek değil; emekli bir politikayı taşıyan ölü kodu
+temizlemektir.
+
+### 3. Eşikler MEŞRULAŞTIRILMADI — tek yere alındı ve İŞARETLENDİ
+
+Meclisin en önemli düzeltmesi: eşiği JSX'ten alıp bir `domain/` klasörüne
+koymak onu **temizlemez, meşrulaştırır**. Uydurulmuş bir politika resmî
+bir katman adı kazanır ve zamanla gerçek sanılır.
+
+Bu yüzden iki gruba ayrıldı:
+
+**Grup A — gerçekten sunum (feature katmanına taşındı):**
+`SKU_STATUS` · `DIRECTION` · `SKU_SCALE` · `AMAZON_SKU_KIND` ·
+`greeting()`. Bunlar kanonik kodu görsele çevirir, eşik hesaplamaz.
+`SKU_SCALE` iki ekranda AYRI tanımlıydı — ölçek değişse birinin
+unutulması ekranda yüz kat sapmış bir yüzde demekti.
+
+**Grup B — ODIN'in işi, arayüzde duran borç:** `healthScore >= 80` ve
+`buyBoxRate < 90`. Tek dosyada toplandılar
+(`features/amazon/presentation/thresholds.ts`), `unapproved_default`
+damgalandılar ve BuyBox bölümü artık ekranda `ThresholdNote` basıyor.
+Talep `backend-istekleri.md` §14'e yazıldı; ODIN yayınladığı gün dosya
+**silinir**.
+
+`90` sayısı ayrıca İKİ YERDE düz metin olarak da yazılıydı ("%90'ın
+altına inen SKU'lar"). Metin artık sabitten üretiliyor — sayıyı
+değiştirenin metni de değiştirmesi gerektiğini hiçbir şey söylemiyordu.
+
+### 4. İki ters bağımlılık düzeltildi
+
+- **`layout → screens`:** kabuk sağ paneli doldurmak için iki EKRANI
+  import ediyordu. Kabuk her feature'ı tanırsa hiçbir feature tek başına
+  taşınamaz. Kabuk artık bir **slot** tanımlıyor (`ContextPanelSlot`),
+  içeriği kompozisyon kökü veriyor (`app/(shell)/context-panel.tsx`).
+  `03-information-architecture.md` §7 zaten böyle diyordu; kural doğruydu,
+  uygulaması kabuğun içine sızmıştı.
+- **`mocks → components/ui`:** `TimelineItem` bir bileşen dosyasında
+  tanımlıydı ve mock onu oradan alıyordu — veri üreten katman, kendisini
+  çizen bileşene bağımlıydı. Tip `types/screens.ts`'e taşındı.
+
+### 5. Kohort kuralları test edilebilir oldu
+
+`atRiskSkus` ve `losingBuyBoxSkus` JSX'in içindeydi, okunamıyordu,
+dolayısıyla test de edilemiyordu. Testler iki DAVRANIŞI kilitliyor:
+ölçülmemiş SKU risk sayılmaz, ve ölçülmemiş bir oran "en kötü" gibi
+sıralanmaz — eski kod `?? 0` ile sıralıyordu ve ölçülmemiş bir SKU
+listenin başında %0 gibi görünürdü.
+
+### Ölçüm
+
+Lint 0 hata · `tsc` 0 hata · 54 dosya / **295 test** yeşil (129'dan +3).
+Kenarlar: `screens → mocks` 0 · `layout → screens` 0 ·
+`mocks → components` 0.
+
+Dev sunucusunda `/amazon`: BuyBox listesi en kötüden sıralı
+(%62,0 · %71,3 · %78,4 · %88,0) ve altında onaylanmamış eşik uyarısı
+görünüyor.
+
+---
+
+## UI-ADR-131 — Ekran iskelesi tek yerde; "sözleşme yok" metninin iki şekli birleşti (S13)
+
+**Durum:** ✅ Dondurulmuş — dört ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-096 · UI-ADR-129 · UI-ADR-130
+
+### Bulgu
+
+Üç ekran (`executive-briefing` · `mission-control` · `amazon-director`)
+beş şeyi kelimesi kelimesine tekrar yazıyordu:
+
+| Tekrar | Kaç kopya |
+|---|---|
+| `DEMO_ERROR` nesnesi (`why`/`fix` ÜÇÜNDE DE AYNI) | 3 |
+| `demo` → `loading`/`error`/`isEmpty` türetmesi | 3 |
+| `reloadAll` yelpazesi | 3 |
+| `empty<T>()` zarf boşaltıcı | 2 + 2 satır-içi |
+| "sözleşme yok" metni | 2 **AYRI ŞEKİL** |
+
+Sonuncusu tekrarın nasıl SAPMAYA döndüğünün örneğiydi: `amazon-director`
+`emptyTitle/emptyDescription/emptySuggestion` üretiyordu, `mission-control`
+`title/description/suggestion` üretiyor ve arada `emptyProps` diye bir
+**adaptör fonksiyonu** taşıyordu. Aynı UI-ADR-096 deseninin iki şekli ve
+onları birbirine bağlayan üçüncü bir parça.
+
+Bu tekrarların çoğu UI-ADR-129'dan ÖNCE toplanamazdı: iki veri zinciri
+varken ekranların durum şekilleri de farklıydı. Boru birleşince
+soyutlama mümkün ve doğru hâle geldi.
+
+### Karar
+
+`src/features/shell/screen-state.ts` — `demoError` · `screenState` ·
+`emptied` · `noContract`.
+
+**Hiçbiri hook DEĞİL** ve bu bilinçli: saf fonksiyonlar renderer olmadan
+test edilebilir. Repo bu dersi `mockGate`te bir kez öğrenmişti — kritik
+dal, doğrulanması için tarayıcı gerektirmemeli.
+
+`emptyProps` adaptörü SİLİNDİ: `noContract` artık `Section`'ın beklediği
+adları doğrudan üretiyor, çevrilecek bir şey kalmadı.
+
+### Korunan davranışlar
+
+- `loading` hâlâ TEK bir birincil kaynağa bağlı, "herhangi biri
+  yükleniyor" değil. Hepsini OR'lamak en yavaş uç noktanın tüm ekranı
+  iskelette tutması demek olurdu — üç ekranda da bugünkü davranış budur.
+- `emptied` zarfı boşaltır ama **meta'yı korur**: `null` "veri yok"
+  demektir, boş dizi + meta "ölçüldü, sonuç boş" demektir. İkisi ayrı
+  ifadelerdir.
+
+### Ölçüm
+
+Lint 0 · `tsc` 0 · 55 dosya / **302 test** yeşil (295'ten +7).
+`amazon-director` 815 → 802 satır; `executive-briefing` 376 → 368.
+
+Dev sunucusu temiz derlemeyle yeniden başlatıldı; dört rotanın dördü de
+derleme hatasız. `/amazon` BuyBox listesi sıralı (%62,0 · %71,3 · %78,4 ·
+%88,0) ve onaylanmamış eşik uyarısı altında görünüyor.
+`/mission-control` üç "sözleşme yok" bölümü tek şekilden basılıyor.
+
+---
+
+## UI-ADR-132 — Blok içerik saran tıklama tek primitive'de; sahte affordance kaldırıldı (S13)
+
+**Durum:** ✅ Dondurulmuş — klavye yolu Storybook etkileşim testiyle ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-131 · `02-design-principles.md` §13 · `tokens.css` §FOCUS
+
+### Bulgu — üç yerde aynı sözleşme, üçünde de yanlış
+
+**A. Geçersiz iç içelik (2 yer).** `alert-stack.tsx` ve `timeline.tsx`
+bir `<button>`ın İÇİNE blok içerik koyuyordu (`<p>`, `<div>`).
+`<button>`ın içerik modeli *phrasing content*'tir; `<div>`/`<p>` *flow
+content*'tir. Ekran okuyucu düğmenin erişilebilir adını bütün alt
+metinleri birleştirerek üretir ve tek nefeslik bir cümle okur.
+
+**B. Sahte affordance (1 yer).** `Card interactive` TAM TERSİ hatayı
+yapıyordu: düz bir `<div>`e `cursor-pointer` ve
+`focus-visible:border-line-focus` veriyordu ama `tabIndex`, `role` ve
+klavye işleyicisi YOKTU. `<div>` odaklanabilir olmadığı için
+`:focus-visible` **hiçbir zaman eşleşmiyordu**; `tokens.css:359`
+genel odak kuralı da `[tabindex]` aradığı için uygulanmıyordu. Fare
+kullanıcısı el imleci görüyor, klavye kullanıcısı öğeye hiç
+**ULAŞAMIYORDU**.
+
+### DÜRÜSTLÜK NOTU — üç kusur da GİZİLDİ, canlı değil
+
+Ölçüldü: `AlertStack`e ve `Timeline`a bugün hiçbir ekran `onSelect`
+geçmiyor, `Card interactive`in ise **sıfır tüketicisi** var. Yani bugün
+kullanıcı bu kusurların hiçbirine çarpmıyor. Düzeltmenin değeri, biri
+`onSelect` yazdığı gün kusurun sessizce doğmayacak olmasıdır — ve
+klavye yolu, fareyle bakan hiç kimsenin fark etmediği türden bir
+özelliktir.
+
+### Karar
+
+`src/components/ui/pressable.tsx` — `role="button"` + `tabIndex={0}` +
+Enter/Space + zorunlu `label`.
+
+- Blok içerik serbest kalır (native `<button>` saramazdı).
+- `label` ZORUNLU: verilmezse ad bütün alt metinlerden üretilir.
+- Space `preventDefault` eder; yoksa tuş sayfayı kaydırır ve kullanıcı
+  öğeyi seçerken ekran altına kayar.
+- `Card interactive` artık yalnız hover görünümü açar; tıklama ve klavye
+  yolu `Pressable` ile SARARAK verilir. Card bir düğme değildir, ona
+  `tabIndex` uydurulmaz.
+
+### `Stat.tone` birlik tipine bağlandı
+
+`mission-control` `tone`u serbest `string` alıp doğrudan `className`e
+enterpole ediyordu: **herhangi** bir sınıf (token dışı bir renk dahil)
+tip denetiminden geçerdi ve ESLint'in token kuralı template içindeki
+değişkeni göremezdi. `STAT_TONE` birliği izin verilen tonu derlemede
+kilitler. Ekranda ölçüldü: beş sayaç birebir aynı sınıfları basıyor.
+
+### Ölçüm
+
+Lint 0 · `tsc` 0 · 56 dosya / **305 test** yeşil (302'den +3).
+
+Yeni üç hikâye görsel değil **sözleşme** testidir: `Tab` ile odaklanır,
+`Enter` ve `Space` ayrı ayrı tetikler, sarılan içerikte iki `<p>` bulunur
+ve kök `DIV`dir — yani `<button>`ın saramayacağı içerik gerçekten
+sarılıyor.
+
+---
+
+## UI-ADR-133 — Rota sınırları: beyaz sayfa yerine beş adımlı hata (S13)
+
+**Durum:** ✅ Dondurulmuş — tarayıcıda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-132 · `10-component-library.md` §11 · §12
+
+### Bulgu
+
+`src/app/` altında **hiçbir** `error.tsx` ya da `not-found.tsx` yoktu.
+
+- Bir ekran render sırasında patladığında React ağacı çöküyor ve
+  kullanıcı **boş beyaz sayfa** görüyordu — kabuk, menü, hatta "bir şey
+  ters gitti" cümlesi bile olmadan.
+- `[[...slug]]/page.tsx` bilinmeyen yol için `notFound()` çağırıyordu ama
+  karşılığı yoktu: Next'in biçimlendirilmemiş dahili sayfası basılıyordu.
+
+Bu, §11'in ("Kullanıcı hiçbir zaman sadece 'Error' görmez") sessizce
+ihlal edildiği tek yerdi: bölüm bazlı hatalar `Section`/`ErrorState` ile
+beş adımı dolduruyordu ama BEKLENMEYEN bir istisnanın yakalayıcısı yoktu.
+
+### `error.tsx` — `(shell)` içinde, ve ÇALIŞIYOR
+
+Tarayıcıda ölçüldü: geçici olarak patlayan bir rota eklendi,
+`/patlat-deneme`. Sonuç: beş adımlı hata kutusu göründü, "Yeniden dene"
+düğmesi geldi ve **kabuk ayakta kaldı** — sidebar ve navigasyon
+çalışmaya devam etti, kullanıcı başka bir workspace'e geçebildi. Sonra
+deneme rotası silindi.
+
+`reset()` React'in kendi kancasıdır: segmenti yeniden render eder,
+sayfayı yenilemekten farkı uygulama durumunun (React Query önbelleği
+dahil) korunmasıdır.
+
+⚠️ `curl` ile İLK istekte dahili hata sayfası görünür — dev SSR'ın
+davranışıdır, sınırın kusuru değildir. Sınır istemcide devreye girer.
+
+### `not-found.tsx` — KÖKTE olmak ZORUNDA (ölçüldü)
+
+Dosya önce `app/(shell)/not-found.tsx`e, sonra doğrudan
+`app/(shell)/[[...slug]]/not-found.tsx`e kondu. **İKİSİ DE ÇALIŞMADI**;
+her ikisinde de Next kendi dahili sayfasını (`id="__next_error__"`)
+basmaya devam etti — dev sunucusu temiz önbellekle yeniden başlatılarak
+doğrulandı. Yalnız `app/not-found.tsx` devreye giriyor.
+
+**Bedeli:** kök layout'un altında olduğu için `(shell)/layout.tsx`
+uygulanmaz — 404 sayfasında sidebar ve komut paleti YOKTUR. Kabuğu orada
+elle kurmak kompozisyonu ikinci bir yerde tekrarlamak olurdu; 404 için
+bu takas kabul edildi ve dönüş yolu açık bir bağlantıyla verildi.
+
+**Bir sonraki oturuma not:** route-group içine `not-found.tsx` koymayı
+TEKRAR DENEME. Denendi, ölçüldü, çalışmıyor. Not dosyanın başına da
+yazıldı.
+
+### `loading.tsx` BİLEREK EKLENMEDİ
+
+Ekranlar yüklemeyi `Section` iskeletleriyle bölüm bazında zaten
+yönetiyor (UI-ADR-131 `screenState`). Rota seviyesinde ikinci bir
+yükleme yüzeyi eklemek, aynı geçişte iki ayrı iskelet gösterip
+titremeye yol açardı.
+
+### Yan düzeltme — yakalayıcı sayfa primitive kullanıyor
+
+`[[...slug]]/page.tsx` ham `<h1 className="text-xl font-semibold">` ve
+ham `<p>` yazıyordu; diğer HER ekran `Heading`/`Label` kullanıyor. Ölçek
+değişse bu sayfa geride kalırdı.
+
+### Ölçüm
+
+Lint 0 · `tsc` 0 · 56 dosya / 305 test yeşil.
+`/briefing` `/amazon` `/mission-control` `/goals` → 200 ·
+`/bilinmeyen-ekran` → **404** ve doğru metin + dönüş bağlantısı.
+
+---
+
+## UI-ADR-134 — `amazon-director` dikişlerinden ayrıldı; feature katmanı gerçek kod aldı (S13)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-130 · UI-ADR-131 · gavadolar dikiş önerisi
+
+### Bulgu
+
+`amazon-director.tsx` **802 satırdı** ve tek başına on ayrı sorumluluk
+taşıyordu. Hedef ölçek (`1.iş`): 50–150 ideal · 200+ bölünmeli ·
+400+ **yeniden tasarlanmalı**.
+
+### Karar — dikişlere göre, satır sayısına göre DEĞİL
+
+Meclisin (gavadolar) işaret ettiği iki dikiş alındı:
+
+| Çıkan | Nereye | Neden ayrı |
+|---|---|---|
+| `GlanceView` (196 satır) | `features/amazon/director/glance-view.tsx` | Dışarıdan veri ALMAZ; zarfı props ile alır, sorgu çalıştırmaz. Ekranın kaynağı değişse bu kart değişmez. |
+| `skuColumns()` (103 satır) | `features/amazon/director/sku-columns.tsx` | Sütun tanımı bir VERİ→HÜCRE eşlemesidir, ekran düzeni değildir. Yerleşim değişince bu dosyaya dokunulmaz. |
+
+Ekran 802 → **496 satır**; kalanı kompozisyon ve veri orkestrasyonu.
+
+"Sırf dosya küçülsün diye 20 küçük bileşen" yapılmadı — meclisin açık
+şartıydı. Üçüncü kolon bölümleri yerinde bırakıldı çünkü onlar ekranın
+DÜZENİdir; ayrı dosyaya taşımak okumayı zorlaştırırdı.
+
+### Ölçüm
+
+Lint 0 · `tsc` 0 · 56 dosya / **305 test** yeşil.
+
+⚠️ Test koşumu bir kez 12/56 dosyada düştü: `Failed to connect to the
+browser session ... within the timeout`. **Kod hatası değildi** — dev
+sunucusu aynı anda koşarken Storybook tarayıcı projesi kaynak
+bulamıyor. Dev sunucusu kapatılınca 56/56 geçti. Bir sonraki oturuma
+not: tam paketi çalıştırmadan önce dev sunucusunu kapat.
+
+Tarayıcıda `/amazon`: Executive Glance kartı, AMAZON HEALTH sayacı, SKU
+Health tablosu ve onaylanmamış eşik uyarısı — hepsi çiziliyor.
+
+---
+
+> ⚠️ **Numara çakışması — beşincisi.** Bu blok `feature/s13-frontend-architecture`
+> dalında **UI-ADR-129** olarak yazılmıştı. Dal `9e7904a`'dan çıktıktan sonra
+> `main` S14'ü aldı ve aynı numarayı DONDURDU. Merge edilmiş ve dondurulmuş
+> olan kazanır; lokal olan taşınır. Kod yorumlarındaki üç referans da güncellendi.
+
+## UI-ADR-135 — Tek veri borusu: fixture ayrı bir zincir değil, bir taşıyıcıdır (S13)
+
+**Durum:** ✅ Dondurulmuş — dört ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-113 · UI-ADR-115 · UI-ADR-123 · S7 veri katmanı
+
+### Bulgu — repoda İKİ paralel veri zinciri vardı
+
+Sayıldı, tahmin edilmedi:
+
+| | Zincir A | Zincir B |
+|---|---|---|
+| Giriş | `useOdinQuery` | `useMockData` |
+| Önbellek | React Query | `use-mock.ts` içinde modül-global `Map` |
+| Şema | zod | **yok** |
+| Tazelik yeniden hesabı | var | **yok** |
+| Evren anahtarı | var | **yok** |
+| Çöp toplama | var | **yok** |
+| Hata kanalı | `OdinError` | **`MockState` tipinde `error` alanı HİÇ YOKTU** |
+| Ekran yuvası | 6 | **15** |
+
+Yani ekranların çoğunluğu, S7'de kurulan bütün kapıların DIŞINDAN
+besleniyordu. En ağır sonuç hata kanalıydı: o 15 bölüm için bir hata
+oluşsa bile ekrana çıkacak yol yoktu — sessizce boş kalırdı.
+
+Bu yalnız tekrar değil, **güven** sorunudur: aynı ekranda yan yana duran
+iki sayıdan biri doğrulanmış borudan, diğeri doğrulanmamış borudan
+geliyordu ve bakan kişi hangisinin hangisi olduğunu ayırt edemiyordu.
+
+### Karar
+
+Zincir B kaldırıldı. `src/lib/data/odin-fixture.ts` → `useOdinFixture(key)`
+fixture'ı aynı borunun bir **taşıyıcısı** yapar. `use-mock.ts` ve
+`mock-gate.test.ts` silindi.
+
+Desen zaten vardı: `odin-state.ts` canlı direktörler için
+`IS_MOCK ? loadMock(...) : httpLoad(...)` yazıyordu. Yeni bir mimari
+icat edilmedi, var olan doğru desen 15 yuvaya genişletildi.
+
+### Şema kapsamı — UI-ADR-113 KORUNDU
+
+"Mock-only" şema yine YAZILMADI. Ayrım şöyle netleşti:
+
+- **Telden gelen veri** → payload şeması ZORUNLU.
+- **Süreç içi fixture** → payload'ı biz yazdık, `satisfies` ile derlemede
+  zaten kilitli; tekrar doğrulamak kendi yazdığımızı kendimize
+  kanıtlamaktır.
+
+Her iki durumda da **zarf doğrulanır** (`meta.source` · `lastUpdated` ·
+`freshness` · AI-confidence kuralı) — atlanmaz.
+
+### Gerçek modda sorgu HİÇ koşmaz
+
+`enabled: IS_MOCK`. Bilinçli ve davranışı birebir korur: `loadMock`
+gerçek modda `null` döner; `null` `parseEnvelope`'a girseydi sözleşme
+hatası fırlatırdı ve ODIN'in henüz **yayınlamadığı** bir bölüm ekranda
+kırmızı bir hata gibi görünürdü. Doğru anlatım "sözleşme yok" boş
+durumudur (UI-ADR-096). Kapalı sorgu
+`envelope: null · error: null · loading: false` döner ve `Section`
+bugünkü boş metnini aynen basar.
+
+Yan fayda: kapalı sorgu `loadMock`'u çağırmaz — UI-ADR-123'ün üretim
+paketi kapısı bozulmadan kalır.
+
+### `MockBadge` yer değiştirdi
+
+`src/mocks/` → `src/components/ui/`. Rozet mock ÜRETMEZ, yalnız `IS_MOCK`
+okuyup etiket çizer; `src/mocks/` altında durması dört ekranın mock
+katmanına import atmasına sebep oluyordu.
+
+### Ölçülen sonuç
+
+`screens → mocks` kenarı **8 → 0**. Fixture erişimi tek kapıya
+(`lib/data/odin-fixture.ts`) indi.
+
+Testler: 54 dosya/292 test → 53 dosya/290 test. Fark hesaplanmıştır:
+emekli `mockGate` testleri (−4), React Query'nin devraldığı tekilleştirme
+testi (−1), yeni gerçek-mod fail-closed testi (+1), yeni hata
+sınıflandırma testleri (+2).
+
+Fail-closed güvencesi (UI-ADR-115) kaybolmadı, **taşındı**: artık emekli
+uygulamada değil, hayatta kalan yolda ölçülüyor —
+`registry.test.ts` her anahtarın gerçek modda `null` döndüğünü doğrular.
+
+### Ölçüm — mock modda, dev sunucusunda
+
+`/briefing` dokuz bölümüyle, `/amazon` Executive Glance + KPI şeridi +
+48 satırlık SKU tablosuyla, `/mission-control` Operational Status
+sayaçlarıyla render edildi. Konsolda hata yok.
+
+---
+
+---
+
+## UI-ADR-136 — Etiket-değer gösterimi tek bileşende; metin tonu tek sözlükte (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-131 · UI-ADR-132 · CLAUDE.md §5 (bileşen tekrarı yasak)
+
+### Bulgu — sayıldı, tahmin edilmedi
+
+`19-s13-devir.md` §2.3 "20 ayrı status→stil haritası" diyordu. Kaynaktan
+doğrulanınca tablo şu çıktı:
+
+| İddia | Ölçüm | Karar |
+|---|---|---|
+| `ui/stat.tsx:20` ≡ `ui/typography.tsx:60` | **Birebir aynı** yedi giriş, iki adla (`StatTone` / `TextTone`) | Birleştirildi |
+| `ui/icon.tsx:22` "aynı küme + info" | `text-icon` / `text-icon-active` / `text-icon-muted` — **farklı token kümesi** | Birleştirilmedi |
+| `ui/timeline.tsx:29` | `bg-*` nokta + glyph — **farklı şey** | Birleştirilmedi |
+| `mission-control.tsx:69` yerel `Stat` | `ui/stat.tsx`in satır satır kopyası; yalnız ton adları farklı (`neutral`≡`default`, `muted`≡`tertiary`) | Silindi |
+| `executive-briefing.tsx:78-119` | Dört elle yazılmış `<dt>/<dd>` çifti, `Stat` ile AYNI sınıf dizesi | `Stat`a çevrildi |
+| `StatTone` dışarıdan kullanılıyor mu | **Hiçbir yerde.** `TextTone` da yalnız kendi dosyasında | İkisi `Tone` oldu |
+
+**Benzer görünmek aynı olmak değildir.** Devir belgesindeki "20 harita"
+sayısı yüzeysel biçim benzerliğine dayanıyordu; `icon` ve `timeline`
+haritaları aynı ANAHTAR adlarını taşıyor ama farklı DEĞER uzaylarına
+bakıyor. Onları birleştirmek, tek bir sözlüğü üç ayrı token ailesine
+hizmet etmeye zorlardı — tekrarı silmek yerine yanlış bir soyutlama
+üretirdi. Yalnız birebir aynı olan iki tanesi birleşti.
+
+### Kaybolan kural — asıl bulgu bu
+
+Elle yazılan `<dt>/<dd>` kopyaları `Stat`ın SINIF dizesini taşıyordu ama
+DAVRANIŞINI taşımıyordu: `Stat`, düz sayıyı satır içi bir `span`e sarar
+çünkü `.odin-num` sayıları SAĞA hizalar ve blok bir elemana verilirse sayı
+etiketinden kopar (03-...md §11, S5'te görsel incelemede yakalanmıştı).
+Kopyalar bu tek satırlık kuralı düşürmüştü. Tekrarın maliyeti hacim değil,
+**kuralın sessizce kaybolmasıdır.**
+
+### Kapı
+
+`ui/stat.stories.tsx` — reponun `components/ui` altındaki ilk davranış
+testi (devir §2.7'de "hiç hikâyesi yok" diye listelenmişti). Dört story,
+üçü `play` ile: düz sayı satır içi sarılır · düğüm değer OLDUĞU GİBİ geçer
+(`Stat` etrafına kendi span'ini sarmaz, sarsaydı `size="lg"` "veri yok"
+tiresini sayı boyutunda büyütürdü) · ton sözlüğü `typography` ile ortaktır.
+
+İlk yazımda iki iddia düştü ve **bileşen değil test yanlıştı**: `NoData`
+zaten `odin-num` taşıyor (tire sayı sütununda hizalansın diye, kasıtlı).
+Ayırt eden şey sınıfın varlığı değil, `Stat`ın boyut sınıfının YOKLUĞU.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **58 dosya / 314 test**. Dağılım: 56/305 (S13'ün
+136 öncesi hâli) + 1 dosya/5 test (main'in S14'ü, merge ile geldi) +
+**1 dosya/4 test (bu ADR'nin kapısı)**.
+
+### Tuzak #1 YANLIŞ TEŞHİS EDİLMİŞ — devir belgesi düzeltildi
+
+Devir §3.1 "tam test paketinden önce dev sunucusunu KAPAT, yoksa Storybook
+12/56'da düşer" diyordu. Ölçüm: dev sunucusu (port 3000, üstelik BAŞKA bir
+worktree'nin) açıkken de `--shard=1/3` ve `2/3` sorunsuz geçti; `3/3` bir
+kez düştü, **hiçbir şey değiştirmeden tekrar çalıştırılınca geçti**.
+
+Sebep dev sunucusu değil: Playwright tarayıcı oturumu, aynı anda toplanan
+dosya sayısı arttıkça bağlantı zaman aşımına uğruyor — **kararsız (flaky)
+bir bağlantı**, kod hatası da değil, sunucu çakışması da değil.
+
+**Doğru işlem:** DİZİN bazında parçala (`--shard` de işe yarar ama dizin
+bölmesi ölçümde daha kararlı çıktı — `--shard=1/3` üst üste iki kez düştü,
+AYNI dosyalar `src/components/ui` olarak koşunca 18/18 geçti). Dev
+sunucusunu kapatmaya gerek yok — ve başkasının worktree'sine ait olabilir.
+
+---
+
+## UI-ADR-137 — Zarf ve kayıt fabrikaları birer kez yazılır (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-094 · UI-ADR-115 · UI-ADR-136
+
+### Bulgu
+
+İki fabrika, iki dosyada, **birebir aynı gövdeyle**:
+
+| Fabrika | Kopyalar | Yeni yeri |
+|---|---|---|
+| `kpi(over)` | `mocks/briefing.ts:404` · `mocks/amazon.ts:338` | `mocks/envelope.ts` → `mockKpi` |
+| `envelope(generatedAt, data)` | `lib/data/odin-state.ts:49` · `lib/data/odin-amazon.ts:82` | `types/data-envelope.ts` → `internalEnvelope` |
+
+**Gerekçe yalnız BİR kopyanın başında duruyordu.** `envelope()`in neden
+`source: "internal"` yazdığı ve `freshness`in neden yer tutucu olduğu
+(UI-ADR-115: `parseEnvelope` onu istemcide yeniden hesaplar) `odin-state.ts`te
+yazılıydı; `odin-amazon.ts`teki ikiz çıplaktı. İkiye bölünmüş bir kural,
+yarısı okunmayan bir kuraldır.
+
+Tekrarın maliyeti dört satır değil, üç varsayılanın **sessizce
+ayrılabilmesidir**: `status: "available"` · `value: null` (anti-fake) ·
+`asOf`. Birine dokunulup diğerine dokunulmadığı gün, iki ekran aynı
+sözleşmeyi farklı yorumlar ve fark hiçbir testte görünmez.
+
+### `mockEnvelope` ile `internalEnvelope` NEDEN AYRI KALDI
+
+Bunlar da zarf üretir ama birleştirilmemelidir: `mockEnvelope`
+`source: "mock"` damgalar ve `src/mocks/` altında yaşaması UI-ADR-094'ün
+kuralıdır — tek bir `source: "mock"` araması tüm mock'ları bulabilmelidir.
+Ortak bir fabrikaya çekmek o aramayı kör ederdi.
+
+### YAPILMAYAN — `toISOString().slice(0, 10)`
+
+Devir §2.3 bunu da tekrar olarak listeliyordu (`odin-amazon.ts:238`,
+`mocks/amazon.ts:575`, `mocks/briefing.ts:36`). **Çıkarılmadı.** Üç ayrı
+katmanda üç kez geçen bir JS deyimi bu; ortak bir yardımcıya çekmek iki
+katman arasında yeni bir bağımlılık kurar ve karşılığında hiçbir POLİTİKA
+merkezileşmez. Tekrar her zaman kusur değildir — merkezileşmesi gereken
+şey bir KARARDIR, bir deyim değil.
+
+### Kapı
+
+`data-layer.test.ts` §8 — dört iddia. Kritik olanı: `internalEnvelope`in
+`freshness`i 48 saat eski bir damgada bile `"live"` döner, ama
+`parseEnvelope`ten geçince `"stale"` olur. Adaptörün damgası yer
+tutucudur; tek doğru kaynak istemcideki yeniden hesaptır.
+
+Bu iki fabrikanın varsayılanlarını **hiçbir test okumuyordu** —
+kopyaların sessizce ayrılabilmesinin asıl sebebi buydu.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **58 dosya / 318 test** (+4 test, bu ADR'nin kapısı).
+
+---
+
+## UI-ADR-138 — Yüzde gösteriminin tek yolu: `Pct` (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-093 · UI-ADR-136 · UI-ADR-137
+
+### Bulgu
+
+Aşağıdaki beş satır **ON yerde** kelimesi kelimesine yazılıydı (devir
+belgesi "9 kez" diyordu; sayıldı, onuncusu `sku-columns.tsx:114`'te):
+
+```tsx
+<Num value={toPercentUnit(x, scale)} format="percent" fractionDigits={1} … />
+```
+
+`ppc-overview` · `amazon-director` · `amazon-sku-panel` ×3 ·
+`glance-view` ×4 · `sku-columns`.
+
+### Neden `percent.ts` yetmedi
+
+`lib/format/percent.ts` zaten vardı ve ölçek DÖNÜŞÜMÜNÜ tekilleştirmişti —
+kendi başlığında gerekçesi de yazılıydı: *"Dört kopya, bir gün üçünün
+düzeltilip birinin unutulması demektir."*
+
+Ama dönüşümden sonra gelen iki **SUNUM KARARI** — `format="percent"` ve
+**bir ondalık** — on kopyada yaşamaya devam ediyordu. Yarısı
+merkezileştirilmiş bir kural, tam olarak merkezileştirilmemiş demektir.
+Ondalık sayısı bir gün değişirse onun onu da bulunmak zorunda; dokuzu
+bulunup biri unutulduğunda ekranda %71,5 ile %71 yan yana durur ve
+hangisinin doğru olduğu anlaşılmaz.
+
+### Anti-fake KORUNDU
+
+`Pct` ham değeri alır, dönüşümü kendi yapar. Ölçek bildirilmemişse
+`toPercentUnit` `null` döner ve `Num` `NoData` basar — 0 ya da tahmin
+ASLA basılmaz (UI-ADR-093). Bu davranış bileşenin içine taşındı, çağıranın
+hatırlamasına bırakılmadı.
+
+### Kapı
+
+`typography.stories.tsx` → `Percentages`. Üç iddia: ölçek `0-100` ile
+`0-1` **AYNI** çıktıyı verir (dönüşüm çağıranda değil burada) · çıktı
+`%71,5`tir · ölçek yoksa `—` + erişilebilir gerekçe.
+
+İlk yazımda ikinci iddia düştü: `/71,5\s*%/` bekliyordum, **tr-TR yüzde
+işaretini BAŞA yazıyor** (`%71,5`). Yine bileşen değil test yanlıştı.
+Biçimlendirme yerelden gelir, elle kurulmaz.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **58 dosya / 319 test** (+1 test, bu ADR'nin kapısı).
+Çağrı yeri: **10 → 0**.
+
+---
+
+## UI-ADR-139 — "Test edilebilir" diye export edilen sekiz fonksiyon nihayet test edildi (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-130 · UI-ADR-100 · CLAUDE.md §2
+
+### Bulgu
+
+Sekiz saf fonksiyon JSX'ten çıkarılıp export edilmişti, üçünün başında
+kelimesi kelimesine *"kural tek yerde, test edilebilir"* yazıyordu.
+Sayıldı: **hiçbirinin testi yoktu ve hiçbiri kendi dosyası dışından
+import edilmiyordu** — dış referans sayısı sekizinde de **0**.
+
+`sortIntelligence` · `actionableAlerts` · `sortCampaigns` ·
+`sortDecisions` · `dueDeferrals` · `monitoredDecisions` ·
+`rotationSeconds` · `canRenderSimulation`.
+
+Test edilmeyen bir export iki dünyanın da kötüsüdür: API yüzeyini
+genişletir, karşılığında hiçbir davranış kilitlemez. "Test edilebilir"
+bir niyet beyanıdır, bir kapı değil.
+
+### Kilitlenen şey biçim değil KARAR
+
+Bu sekiz fonksiyon **ekranda görünen sıranın ve görünmeyenin tamamıdır**;
+bugüne kadar yalnız gözle doğrulanabiliyordu. 25 iddia, `src/lib` dışında
+yazılan ilk saf-mantık test dosyası (`components/executive/helpers.test.ts`,
+tarayıcı gerekmez).
+
+Öne çıkan üçü:
+
+- **`dueDeferrals(x, null)` BOŞ döner.** İstemci saati yokken "vadesi
+  geldi" demek doğrulanmamış bir iddiadır — anti-fake'in zaman hâli.
+- **Bilinmeyen `severity`/`status` LİSTEDE KALIR, sona düşer.** ODIN
+  sözlüğü genişlerse yeni bir kayıt sessizce kaybolmamalı: görünmeyen bir
+  uyarı, olmayan bir uyarıdan tehlikelidir.
+- **`rotationSeconds(null)` = en YAVAŞ.** Halka gerçekten dönüyor, hızı
+  bir ölçüme bağlı. Ölçüm yokken hızlı dönmek "sistem yoğun çalışıyor"
+  diye okunur ve sahte göstergedir.
+
+### Testin yakaladığı iki gerçek hata
+
+**1 — `decision-queue.tsx` başlığı KODLA ÇELİŞİYORDU.** Dosyanın tepesi
+*"`priority` artan, eşitlikte finansal etki büyük olan önce"* diyordu;
+oysa `priority` ve `financialImpact` UYDURMAYDI ve **UI-ADR-100 ile
+silinmişti**. Kod katmana + güvene göre sıralıyordu. Başlık kaldı ve
+dosyayı okuyan herkese yanlış kuralı öğretiyordu. Düzeltildi.
+
+**2 — İlk yazımda testin kendisi yanlıştı.** `sortCampaigns`e
+`"critical"` verdim; o bir `CampaignStatus` DEĞİL, yani iki kayıt da
+bilinmiyordu ve sıralama haklı olarak girdi sırasını korudu. Bileşen
+doğru, test yanlıştı — bu oturumda üçüncü kez.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **59 dosya / 344 test** (+1 dosya / +25 test).
+
+---
+
 ## UI-ADR-140 — Her metrik kendi ölçüm penceresini söyler (S15)
 
 **Durum:** ✅ Dondurulmuş — ekranda ölçüldü
@@ -2649,79 +3331,606 @@ ADR-0154 17:48'de commit edilmişti. Bu ders üçüncü kez tekrarlandı.
 
 ---
 
-## UI-ADR-142 — 140 Storybook testi bir yıldır koşmuyordu; kapı fail-closed yapıldı (S17)
+## UI-ADR-142 — Story bir DAVRANIŞ kanıtlar; envanter kapısı bunu ister (S13)
 
-**Durum:** ✅ Dondurulmuş — soğuk önbellekte ölçüldü
+**Durum:** ✅ Dondurulmuş — ölçüldü
 **Tarih:** 31 Temmuz 2026
-**İlgili:** UI-ADR-121 eki (kapı sessizce körleşiyordu) · ODIN ADR-0156
+**İlgili:** UI-ADR-148 · UI-ADR-149 · gavadolar 2/2
 
-⚠️ **NUMARA:** `main`'den alındı. 129–134 hâlâ
-`feature/s13-frontend-architecture` dalında REZERVE.
+### Bulgu — kendi kapımdaki açık
 
-### Ölçüm — iddia değil
+UI-ADR-148 "çağıranı yoksa hikâyesi olacak" kapısını kurmuştu. gavadolar
+sordu: *"Ama şimdi o kapıyı doldurmak için story yazıyorsun — bu kapıyı
+anlamsızlaştırmaz mı?"* Cevap **evet**: yalnız render eden bir story kapıyı
+BİÇİMSEL olarak geçer, hiçbir davranış kanıtlamaz ve etiket yine tek başına
+ölü kodu meşrulaştırır.
 
-```
-npx vitest run
-  Test Files  12 passed (55)      ← 55 dosyanın 43'ü HİÇ KOŞMADI
-  Tests      161 passed (161)
-  Errors       1 error  "Failed to connect to the browser session"
-```
+Ölçüldü: envanterdeki **dokuz bileşenin YEDİSİNİN** hikâyesinde hiç `play`
+yoktu (`chart` · `tabs` · `tooltip` · `icon` · `avatar` · `sparkline` ·
+`telemetry-bar`).
 
-Bir üstteki UI-ADR-141 dahil son beş karar kaydı **"301 test yeşil
-(161 birim + 140 storybook)"** yazıyordu. 161'i doğruydu. **140'ı hiç
-koşmamıştı.** `package.json`'da bunu koşturacak bir `test` script'i de
-yoktu — yalnız `build:release` vardı.
+Kapıya ikinci kol eklendi: **hikâye en az bir `play` içerecek.** Yedisine
+de gerçek sözleşme testi yazıldı — hepsi bir YOKLUK iddiası taşıyor:
+rastgele avatar üretilmez · dekoratif ikon okunmaz · içeriksiz tooltip bağ
+kurmaz · iki noktadan az veri çizgi çizmez · **ölçülemeyen nokta 0 olarak
+çizilmez** (yol `d`sinde ikinci bir `M`) · kapalı telemetri kanalı ekranda
+hiç yoktur · açık ama değersiz kanal "0" değil "—" yazar.
 
-### Kök neden — iki katmanlı, ikisi de ölçüldü
+### §2.7 kapandı — yedi yeni story
 
-**1. Soğuk `node_modules/.vite` ile tarayıcı oturumu kurulamıyor.**
-Chromium'un kendisi sağlam: doğrudan Playwright ile **1.3 sn**'de açılıyor
-ve yerel bir HTTP sunucusuna ulaşabiliyor. Süreyi yiyen, Vite'ın ilk
-`optimizeDeps` geçişi. Orkestratör sayfası vitest'in **60 sn**'lik
-varsayılan `browser.connectTimeout`'undan sonra hazır oluyor; koşu
-61.86 sn'de "no tests" ile bitiyor.
+`no-data` · `data-guard` · `threshold-note` · `meter` · `disclosure` ·
+`confidence-breakdown` · `monitored-decisions-board`.
 
-**2. Ayar proje bloğunda SESSİZCE yok sayılıyor.** vitest bu değeri
-`project.vitest.config.browser.connectTimeout ?? 6e4` diye okuyor
-(`node_modules/vitest/dist/chunks/cli-api.*.js`), yani **kök**
-yapılandırmadan. İlk düzeltme `projects[1].test.browser` içine yazıldı ve
-yeşil sonuç verdi — ama o yeşil **sıcak önbellekten** geliyordu, ayardan
-değil. `rm -rf node_modules/.vite` ile ölçünce aynı 61.86 sn'ye çarptı.
-Kök seviyeye taşındı: `test.browser.connectTimeout = 300_000`.
+**En kritik olanı `data-guard`.** gavadolar 2/2 kuralı: *"görünmüyor"
+yetmez, RENDER EDİLMEDİĞİ kanıtlanmalı* — görünmez bir çocuk yine de hesap
+yapar, istek atar, patlar. Test bir `fn()` casusu kullanıyor ve `null`,
+`undefined`, **meta'sız zarf** durumlarında çocuğun HİÇ ÇAĞRILMADIĞINI
+gösteriyor. (Meta'sız zarf sınır durumu ayrıca anlamlı: gerçek ama
+KAYNAKSIZ veri, uydurulmuş veriden daha sinsidir.)
+
+`threshold-note`ta üçüncü bir durum ortaya çıktı ve teste girdi:
+`provenance` YOKSA hiçbir iddia üretilmez — *"bilmiyorum"* ile
+*"onaylanmadı"* ayrı şeylerdir; ikincisini yazmak olmayan bir yönetişim
+bulgusu uydurmak olurdu.
+
+### Dosya düzeni — gavadolar'ın TEK çelişkisi
+
+terra "yedi ayrı dosya" (her sözleşme bağımsız), luna "dosya sınırı
+bileşen sayısına değil DAVRANIŞ ve RİSK sınırına konur" dedi. Sentez:
+anti-fake KAPISI olan üçü ayrı dosyada (`data-guard`, `threshold-note`,
+`monitored-decisions-board`); gösterim primitive'i olan üçü tek dosyada
+(`primitives.stories.tsx`) — reponun kendi emsali (`display.stories.tsx`
+dört primitive'i kapsar) bunu zaten kabul etmişti. Başarısızlık çıktısı
+yine ayrışıyor: her story'nin kendi adı var.
+
+### ♻️ UI-ADR-149'in "kök neden" iddiası YANLIŞTI
+
+141 `connectTimeout: 180_000`'i **proje** seviyesine yazmış ve tuzak #1'in
+kök nedeni bulundu demişti. Ölçüldü, yanlıştı: Vitest bu değeri
+`project.vitest.config.browser.connectTimeout ?? 6e4` ile **KÖK**
+config'ten okuyor; proje içindekini sessizce yok sayıyor.
+
+**Nasıl anlaşıldı:** proje seviyesine `connectTimeout: 1_000` konup
+koşuldu — test 25 saniyede GEÇTİ. Ayar uygulansaydı 1 sn'de düşmeliydi.
+Kaynak okundu, `?? 6e4` bulundu; gözlenen tüm düşüşlerin ~61 sn'de olması
+da bunu doğruladı. Değer köke taşındı ve **deneyle** doğrulandı (kökte
+1 sn ile anında düştü, 180 sn ile 50/50 geçti).
+
+Ders, bu oturumda beşinci kez aynı: **bir düzeltmenin işe yaradığını
+ölçmeden ilan etme.** Testin yeşil olması, düzeltmenin sebep olduğu
+anlamına gelmez.
+
+### Testin kendisi BEŞİNCİ kez yanlış çıktı
+
+`chart` testi `<circle>` sayısına bakıyordu; nokta işaretçisi yalnız
+klavye imleci için çiziliyor. Asıl değişmez yolun `d` niteliğindeydi.
+Bileşen doğru, test yanlıştı.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **65 dosya / 402 test** (unit 15/215 ·
+storybook 50/187). `ChartProps` de export edildi (§2.3 kalemi).
+
+---
+
+## UI-ADR-143 — Ekranlar `features/<alan>/screen.tsx`e taşındı; kapı dosya adına bağlandı (S13)
+
+**Durum:** ✅ Dondurulmuş — davranışsız taşıma, ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-130 · gavadolar 2/2
 
 ### Karar
 
-`scripts/verify-storybook-tests.mjs` + `test:unit` / `test:storybook` /
-`test:ci` script'leri. Kapı komutun **çıkış koduna güvenmez** — `vitest
-list` aynı çöküşte exit 0 döndürdü. Rapor dosyasını önce siler, sonra
-VARLIĞINI, JSON'luğunu ve içindeki sayıları denetler: 0 düşen, 0 atlanan,
-0 todo, ≥ alt sınır.
+`components/screens/` klasörü KALKTI. Altı ekranın hepsi kendi feature
+alanına indi:
 
-**Alt sınır, sabit sayı değil — sahip kararı.** Sabit 140 her yeni
-story'de kapıyı kırardı. Alt sınır yalnız DÜŞÜŞÜ yakalar.
+| Eski | Yeni |
+|---|---|
+| `components/screens/executive-briefing.tsx` | `features/briefing/screen.tsx` |
+| `components/screens/mission-control.tsx` | `features/mission-control/screen.tsx` |
+| `components/screens/goals.tsx` | `features/goals/screen.tsx` |
+| `components/screens/intelligence-feed.tsx` | `features/intelligence-feed/screen.tsx` |
+| `components/screens/amazon-director.tsx` | `features/amazon/director/screen.tsx` |
+| `components/screens/amazon-sku-panel.tsx` | `features/amazon/sku/screen.tsx` |
 
-**Meclis (gavadolar 2/2) daha güçlüsünü önerdi ve alınmadı:** keşfedilen
-test KİMLİKLERİNİN tamamının koştuğunu doğrulamak — böylece sayı korunurken
-içeriğin bozulması da yakalanırdı. Ölçüm engelledi: `vitest list --json`
-çıktısını gürültüyle karıştırıyor, `--outputFile` bu sürümde dosya
-yazmıyor, ve ayrı bir tarayıcı açılışı kapı süresini ikiye katlıyor.
-Tavan `ponytail:` yorumuyla scriptte adıyla işaretlendi; yükseltme yolu
-orada yazılı.
+`components/{ui,executive,layout}` **paylaşılan katman olarak kaldı** —
+taşınan yalnızca ekranlar.
 
-### Kapının kendisi doğrulandı — üç koşu
+**Neden `screen.tsx`, neden `screens/` alt klasörü değil** (gavadolar 2/2):
+`director` zaten Amazon'un gerçek alt alanı; ekran, `glance-view.tsx` ile
+aynı alanın kompozisyon köküdür. Paralel ikinci bir sınıflandırma katmanı
+(`features/amazon/screens/director.tsx`) aynı şeyi iki kez adlandırırdı.
 
-| Koşul | Beklenen | Ölçülen |
+**Neden D'den (büyük bileşenleri bölme) ÖNCE** (gavadolar 2/2): ekranlar
+önce bölünüp sonra taşınsaydı, taşıma diff'i ve çakışma yüzeyi kat kat
+büyürdü. Önce sahiplik sınırı, sonra bölme.
+
+### Kapı: ayırıcı KLASÖR değil DOSYA ADI
+
+`features/` altında ekran olmayan çok şey var (`selectors`,
+`presentation`, `shell`, `director/glance-view`); `@/features/**` gibi bir
+desen mimariyi kilitlerdi. Kural yalnız giriş dosyasını hedefliyor.
+
+**Denendi — ve ilk deneme EKSİK ÇIKTI.** Dört ihlal enjekte edildi:
+
+| İhlal | İlk desen |
+|---|---|
+| `@/features/briefing/screen` | ✅ yakalandı |
+| `@/features/amazon/director/screen` | ✅ yakalandı |
+| `../director/screen` (yukarı göreli) | ✅ yakalandı |
+| `./director/screen` (**aşağı göreli**) | ❌ **KAÇTI** |
+
+Desen tamamlandı, dördü de yakalanıyor. Bu repoda `@/components/*`
+deseninin tek `*` yüzünden sessizce boş çıkması aynı hataydı: **kapı,
+denenmeden kapı sayılmaz.**
+
+Bir yan etki kapının çalıştığını ayrıca kanıtladı: `goals.tsx` için
+yazılmış `react/forbid-dom-props` istisna YOLU bayatladı ve lint hemen
+patladı — yol güncellendi.
+
+### gavadolar'a verdiğim bir ölçüm YANLIŞTI
+
+Danışırken *"`intelligence-feed`in hiçbir app/ rotası onu import etmiyor,
+yalnız story'si var"* demiştim. Yanlıştı: `app/(shell)/context-panel.tsx`
+onu da `amazon-sku-panel`i de import ediyor — ikisi **bağlam paneli
+yuvalarıdır**, rota sayfası değil ama app-katmanı tüketicileri var.
+Bu yüzden gavadolar'ın *"ekran değil, kendi klasörünü açma"* tavsiyesi
+uygulanmadı: yanlış öncüle dayanıyordu ve altısı da aynı sözleşmeye girdi.
+
+Ders yine aynı: **meclis cevabı, verilen ölçüm kadar doğrudur.**
+
+### Ölçüm — "davranış değişmedi" iddiasının kanıtı
+
+`tsc` 0 · `lint` 0 hata · **65 dosya / 402 test** — taşımadan ÖNCEKİ
+sayının birebir aynısı. Üretim derlemesi 7 sayfa; dört rota 200,
+bilinmeyen 404. Tarayıcıda `/mission-control` canlı ODIN sayaçlarını,
+`/amazon` 16 yüzdeyi `Pct` ile ve `<table role="grid">` + `<caption>`
+"SKU sağlık tablosu" (iç içe tablo: 0) çiziyor. Konsol hatasız.
+
+---
+
+## UI-ADR-144 — Bölme ölçütü: dört koşul; yalnız `VerdictForm` geçti (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-134 · UI-ADR-143 · ODIN ADR-0131 · ADR-0085 · gavadolar 2/2
+
+### Ölçüt — bu kararın asıl çıktısı
+
+UI-ADR-134 *"dikişe göre böl, satır sayısına göre DEĞİL"* demişti ama
+"dikiş" tanımsızdı. gavadolar'ın iki üyesi bağımsız olarak neredeyse aynı
+testi verdi (terra dördünü de şart koştu, luna üçte iki dedi); sıkı olan
+alındı. **Bir parça ancak DÖRDÜ birden sağlanıyorsa ayrılır:**
+
+1. Tek cümlelik BAĞIMSIZ sorumluluğu vardır.
+2. Kendi giriş/çıkış sözleşmesi ve DOĞRUDAN testi yazılabilir.
+3. Kendi state'i, doğrulaması, yan etkisi ya da erişilebilirlik davranışı vardır.
+4. Ayrılınca ebeveyn yalnızca ORKESTRASYON yapar; prop aktarma karmaşıklığı ARTMAZ.
+
+Biri eksikse bölme **zarardır** — yeni dosya, yeni import ve bozulan
+hikâye maliyeti, taşınan satırın kazancını aşar.
+
+### Uygulama — altı dosya ölçüldü, BİRİ bölündü
+
+| Dosya | Satır | Karar |
 |---|---|---|
-| `--self-check` (8 senaryo: 139 test · 0 test · düşen · skip · todo · temiz rapor + hatalı çıkış kodu) | kırmızı | ✅ hepsi |
-| Soğuk önbellek + `connectTimeout: 1_000` | **kırmızı** | ✅ `KAPALI: geçen test 0 < alt sınır 140`, exit 1 |
-| Soğuk önbellek + kökte `300_000` | yeşil | ✅ `AÇIK: 43 dosya / 140 test`, exit 0 |
+| `features/amazon/director/screen.tsx` | 490 | **Bölünmedi** — ekranın DÜZENİ o dosyanın işi |
+| `components/ui/table.tsx` | 385 | **Bölünmedi** — sanallaştırma + klavye + sıralama TEK davranış kümesi; ayırmak prop/olay zinciri üretir |
+| `features/amazon/sku/screen.tsx` | 380 | **Bölünmedi** — `Group` ekran-içi düzen, `periodLabel` küçük saf yardımcı |
+| `features/briefing/screen.tsx` | 374 | **Bölünmedi** — `HeroView` briefing'in düzen parçası |
+| `components/executive/ai-recommendation-card.tsx` | 297 | **Bölünmedi** — eksik olan bölme değil TESTTİ (aşağıya bak) |
+| `components/executive/decision-card.tsx` | 419 → **307** | **`VerdictForm` ayrıldı** |
 
-Sıcak önbellekle yapılan ilk körleştirme denemesi yeşil kalmıştı —
-tarayıcı 1 sn'de bağlandığı için. Kapıyı kör etmenin tek dürüst yolu
-önbelleği de silmekti; bu, "kapıyı kasten kır" kuralının kendisinin de
-ölçülmesi gerektiğini gösterdi.
+**490 satırlık bir ekran neden bölünmüyor:** ekranın dizilimi o dosyanın
+sorumluluğudur. Bloklara ayırmak, tek bir yerde okunan bir akışı beş
+dosyaya dağıtıp aralarına prop köprüleri kurar — dosya küçülür, SİSTEM
+büyür.
 
-### Sonuç
+### `VerdictForm` dördünü de geçiyor
 
-**301 test artık gerçekten koşuyor:** 161 birim + 140 storybook (43 dosya).
-Bundan önceki her "301 yeşil" iddiası yarısı ölçülmemiş bir iddiaydı.
+"Kararı GÖSTERMEK" ile "karar VERMEK" ayrı sözleşmelerdir. Form kendi
+durumunu tutar, ADR-0131'in iki kuralını kendi doğrular, ve ayrıldıktan
+sonra `decision-card` yalnızca orkestrasyon yapıyor.
+
+Bölmenin asıl kazancı satır değil: kurallar artık **doğrudan test
+edilebiliyor.** Öncesinde 419 satırlık bir kartın içinde yaşıyorlardı ve
+yalnız elle tıklayarak doğrulanabiliyorlardı. Yeni `verdict-form.stories.tsx`
+dördünü kilitliyor — gerekçe eşiği (8 karakter, ODIN'in kendi sabiti) ·
+gerekçe isteğe bağlıyken boş gerekçenin `""` değil `undefined` gitmesi ·
+**geçmiş tarihli ertelemenin de reddedilmesi** ("dün yeniden bakılsın"
+demek ertelemeyi hiç yapmamakla aynıdır) · vazgeçmenin hiçbir kayıt
+bırakmaması.
+
+### `ai-recommendation-card`: eksik olan bölme değil TESTTİ
+
+gavadolar 2/2 *"önce iki saf fonksiyonun testi var mı ölç; yoksa bu bölme
+değil test ekleme işidir"* dedi. Ölçüldü: `missingExplainabilityFields` ve
+`canRenderRecommendation` **üç dosyadan çağrılıyor** (`ai-brief`,
+`campaign-intelligence`, `decision-card`) ve **hiçbir testi yoktu.**
+
+Oysa korudukları kural reponun en sertlerinden: ODIN ADR-0085
+Explainability Envelope — bir AI önerisi zorunlu ON alanından biri eksikse
+arayüzde GÖSTERİLMEZ. Kapı sessizce gevşerse ekran, gerekçesi olmayan bir
+öneriyi gerekçeliymiş gibi sunar.
+
+Beş iddia yazıldı; ikisi sınır durum ve ikisi de kasıtlı asimetriyi
+koruyor:
+- **On alanın HER BİRİ tek başına denendi** — biri gevşerse hangisinin
+  kaybolduğu ADIYLA görünür.
+- **Boş azınlık görüşü GEÇERLİDİR, eksik alan değil**: `[]` "kurul
+  hemfikirdi" demektir, alanın hiç olmaması "kurul toplandı mı belli
+  değil" demektir.
+- **SIFIR geçerli bir skordur.** `!rec.confidence` yazılsaydı 0 güven
+  "eksik alan" sayılır ve ODIN'in ölçtüğü EN KÖTÜ durum ekrandan tamamen
+  kaybolurdu.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **66 dosya / 411 test**
+(unit 15/220 · storybook 51/191). `decision-card` 419 → 307 satır.
+
+---
+
+## UI-ADR-145 — §2.3'ün kalanı: üç iddia ÖLÇÜLDÜ, ikisi çürüdü (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-136 · UI-ADR-137 · UI-ADR-144 · gavadolar 2/2
+
+Devir belgesi §2.3'te dört tekrar kalemi listeliyordu. Dördü de kaynaktan
+ölçüldü; **ikisi çürüdü, biri düzeltildi, biri sahibe kaldı.**
+
+### 1 · "`DataGuard > Card > … > TrustSignal` 9 dosyada kelimesi kelimesine" → ÇÜRÜDÜ
+
+Varyasyon matrisi çıkarıldı (gavadolar'ın istediği ölçüm):
+
+| | |
+|---|---|
+| `DataGuard` kullanan | 15 dosya |
+| **View-çıkarma** kalıbı (`{(x, meta) => <XView …/>}`) | 6 |
+| **satır içi** kompozisyon | 9 |
+| `CardHeader` propları | üç ayrı şekil: yok · `title` · `title`+`description` |
+| `CardFooter`/`TrustSignal` | 11'de var, 4'ünde yok |
+
+Ortak bir `GuardedCard` yazmak `title?` · `description?` · `actions?` ·
+`footer?` · `trust?` proplarını gerektirirdi — yani `Card`ın kendisini bir
+kapıyla sarmalayıp aynı esnekliği yeniden üretmek. Bu **merkezileştirme
+değil prop taşımacılığıdır** ve UI-ADR-144'ün dördüncü koşulunu
+(ebeveyn yalnızca orkestrasyon yapar, prop karmaşıklığı ARTMAZ) doğrudan
+ihlal eder. **Yazılmadı.**
+
+gavadolar 2/2 zaten bunu söylemişti: *"kelimesi kelimesine aynı JSX
+kanıttır, ama aynı iş kavramı kanıtı değildir."*
+
+### 2 · "`text-xs text-content-tertiary` 48 kez, `Caption` kullanılmıyor" → KISMEN
+
+Sayıldı: 48 geçişin yalnız **9'u** birebir `<span className="text-xs
+text-content-tertiary">` — yani gerçekten `Caption`. Kalan 37'si farklı
+etikette (`<p>`, `<dt>`), ek sınıflarla ya da farklı bir bağlamda.
+
+Toplu değiştirme **yapılmadı** (gavadolar 2/2: *"aynı Tailwind dizesi aynı
+mimari karar değildir"*). Birebir olan 9 site `Caption`a çevrildi —
+yedi dosya, 22 satır.
+
+### 3 · "Export edilmemiş sihirli-dize birlikleri, çağıran elle yeniden yazıyor" → BİR TANE GERÇEK
+
+İddia yedi dosyayı sayıyordu. Ölçüldü: bir birliği elle yeniden yazan
+**tek bir çağıran** var — `director-card.tsx:42`, `NumFormat`ı
+(`"percent" | "currency" | "plain" | "compact"`) kopyalamış. Düzeltildi;
+artık `typography.tsx`ten import ediliyor.
+
+Diğerleri (`avatar` SIZE/STATUS · `tooltip` SIDE · `modal` MODAL_SIZE ·
+`stat` SIZE · `badge` SIZE) hiçbir çağıran tarafından değişkende
+tutulmuyor; export etmek **kullanılmayan API yüzeyi** üretirdi.
+`BadgeVariant` zaten export ve gerçekten kullanılıyor (`campaign-
+intelligence` bir `Record` kuruyor) — kanıtı olan tek durum buydu.
+(`ChartProps` UI-ADR-142'de export edilmişti; onun üç gerçek tüketicisi
+vardı.)
+
+### 4 · `director-card`in yerel `Metric`i → **SAHİP KARARI** bekliyor
+
+Ölçüldü: `Metric` **tek** dosyada tanımlı; `runtime-director-card` aynı
+şekli iki kez satır içi yazıyor. Yani tekrar gerçek ama küçük (2 site).
+
+Asıl mesele mühendislik değil: `Metric` etiketi **truncate + normal harf**,
+`Stat` ise **BÜYÜK HARF + geniş aralık** çiziyor. Birleştirmek ya
+`director-card`in görünümünü sessizce değiştirir ya da tek çağıran için
+bir görünüm prop'u ekler. Hangi etiket muamelesinin kanonik olduğu bir
+**tasarım dili kararıdır** ve sahibinindir; kendiliğinden verilmedi.
+
+UI-ADR-137'nin kuralı burada da geçerli: **merkezileşmesi gereken şey bir
+KARARDIR** — ve o karar henüz verilmemiş.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **66 dosya / 411 test** (değişmedi — bu tur
+davranış değiştirmedi, yalnız tekrar sildi).
+
+---
+
+## UI-ADR-146 — Yazılımcılar denetimi: iki kapı eklendi, üç bulgu ölçülüp elendi (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-148…145 · yazılımcılar meclisi
+
+S13 kapanmadan önce yazılımcılara nihai denetim yaptırıldı. Beş bulgu
+geldi; **hepsi kaynaktan doğrulandı** (meclis-önce-doğrula kuralı) ve
+sonuç ikiye ayrıldı.
+
+### ✅ 1 · SAHTE VERİ KAÇAĞI — gerçek açık, kapı kuruldu
+
+En güçlü bulgu. `Num` · `Pct` · `Meter` · `Stat` hepsi `null`ı NoData'ya
+çevirir; bu, **"ölçülmedi" ile "sıfır"ı ayıran tek mekanizmadır.** Ama
+çağıran değeri bileşene ULAŞMADAN ezerse mekanizma hiç devreye girmez:
+
+```tsx
+<Num value={metrics?.confidence ?? 0} />   // ← %0 UYDURUR
+```
+
+Bu kod tip-güvenlidir, render edilir, axe'tan geçer ve **mevcut kapıların
+hiçbiri onu görmez.** Sahte veri yasağının en sessiz ihlali budur.
+
+Ölçüldü: repoda şu an bu kalıptan **yok** — ama kapı da yoktu. ESLint
+`no-restricted-syntax` ile kapatıldı; kapsam **kasıtlı olarak dar**
+(yalnız `value=` prop'unun içi), çünkü sıralama epoch'u
+(`new Date(x ?? 0)`) ve uzunluk kontrolü (`x?.length ?? 0`) meşrudur ve
+repoda üç yerde geçer. Meclisin önerdiği geniş desen onları da vururdu.
+
+**Denendi:** iki ihlal (`?? 0`, `|| 0`) yakalandı, üç meşru kullanım
+vurulmadı.
+
+### ✅ 2 · MODAL ODAK TUZAĞI — yazılmış ama TEST EDİLMEMİŞ
+
+`useDialogBehavior` odağı diyaloga alıyor, Tab'ı içeride döndürüyor ve
+kapanınca açana geri veriyor. Üçü de vardı; **hiçbirinin testi yoktu.**
+
+Meclisin isabetli tespiti: **axe bunu göremez** — axe o andaki DOM'un
+semantiğine bakar, klavyenin nereye gittiğine değil. Odak tuzağı
+çalışmayan bir modal klavye kullanıcısını arkadaki sayfaya kaçırır;
+kullanıcı hâlâ diyalogda sanır ama tıkladığı şey altındaki ekrandadır.
+Görerek fark edilmez. Üç iddia yazıldı.
+
+### ❌ 3 · React Query anahtarı eksik parametre → UYGULANMIYOR
+
+Meclis `queryKey: ["recommendation"]` gibi parametresiz bir anahtarın
+önceki varlığın verisini göstereceğini söyledi. Ölçüldü: bu repodaki
+**yedi sorgunun hiçbiri parametre almıyor** (`["odin","amazon","kpis"]`
+gibi sabit uç noktalar; tek parametreli olan `["fixture", key]` zaten
+doğru kurulmuş). Bulgu geçerli bir kalıp uyarısıdır ama burada karşılığı
+yok.
+
+### ❌ 4 · Geniş Zustand seçimi → UYGULANMIYOR
+
+Ölçüldü: `useNavigationStore` her çağrıda TEK alan seçiyor
+(`(s) => s.expandedId` gibi). Meclisin uyardığı `useStore()` biçimi
+repoda hiç yok.
+
+### ⚠️ 5 · EKRAN SEVİYESİ DURUM MATRİSİ — açık kaldı, gerekçesiyle
+
+Meclisin en değerli test-sınıfı bulgusu: bileşen testleri parçaları
+kanıtlıyor ama `veri durumu → ekran` zincirini kimse kanıtlamıyor.
+Doğrulandı: dört ekranın `loading` / `empty` / `error` story'si **var ama
+hiçbiri bir şey İDDİA ETMİYOR**, yalnız render ediyorlar.
+
+Yazıldı ve **geri alındı.** Sebep dürüstçe kayda geçiyor: `demo` prop'u
+`useOdinFixture`in asenkron yüklemesine bağlı; `play` çalıştığında zarf
+henüz `null` olabiliyor ve tahta "Karar verisi yok" ile "İzlenen karar
+yok" arasında zamanlamaya göre değişiyor. Bu haliyle yazılan test
+**kararsız** olurdu — ve kararsız bir test, testsizlikten kötüdür.
+
+Doğru çözümü ayrı bir iştir: ekran seviyesinde deterministik zarf
+enjeksiyonu (fixture'ı `play` öncesi çözülmüş hâle getirmek). `19-s13-devir.md`
+§2.8'e açık madde olarak yazıldı.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **66 dosya / 412 test** (+1 test).
+
+---
+
+## UI-ADR-147 — `Metric` `Stat`a bağlandı; `truncate` bir yerleşim güvencesidir (SAHİP KARARI)
+
+**Durum:** ✅ Dondurulmuş — **sahip kararı**, ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-136 · UI-ADR-145 · CLAUDE.md §5
+
+### Soru ve karar
+
+UI-ADR-145 bunu açık bırakmıştı: `director-card`in yerel `Metric`i
+`Stat`ın satır satır kopyasıydı ama etiket muamelesi farklıydı —
+`Metric` **truncate + normal harf**, `Stat` **BÜYÜK HARF + geniş aralık**.
+Hangisinin kanonik olduğu bir tasarım dili kararıydı.
+
+**Sahip: `Stat` ile birleşsin.** `Stat`ın muamelesi kanoniktir.
+
+### `truncate` neden prop oldu, neden varsayılan KAPALI
+
+Birleşmede kaybedilmemesi gereken tek şey `Metric`in `min-w-0` +
+`truncate` çiftiydi. **Bu bir görünüm tercihi değil, yerleşim
+güvencesidir:** `min-w-0` olmadan bir grid hücresi içeriğinin altına
+inemez; uzun bir etiket sütunu şişirir ve komşusunun üstüne taşar (aynı
+hata S4'te görsel incelemede yakalanmıştı). İkisi birlikte çalışır —
+`truncate` tek başına yetmez, çünkü kırpma hiç devreye girmez.
+
+Varsayılan **kapalı**: `truncate` `white-space: nowrap` demektir ve iki
+satıra sarabilen bir etiketi tek satıra kırpar. Açık gelseydi mevcut on
+küsur `Stat` çağıranının hepsinin görünümü sessizce değişirdi. Açan,
+hücrenin dar olduğunu BİLDİĞİ için açar.
+
+### Uygulama
+
+- `director-card`in yerel `Metric`i artık bir bileşen değil, `Num`un altı
+  kez tekrarlanan biçimlendirme argümanlarını (USD · yüzde bir ondalık)
+  tek yerde tutan ince bir sarmalayıcı; gövdesi `Stat`.
+- `runtime-director-card`in elle yazılmış İKİ `<dt>/<dd>` çifti de `Stat`a
+  bağlandı — aynı şekli tekrarlıyorlardı.
+- Repoda `truncate text-xs text-content-tertiary` elle yazan **sıfır**
+  yer kaldı.
+
+### Kapı
+
+`stat.stories.tsx` → `truncate` varsayılan kapalı · açıkken `min-w-0` ve
+`truncate` İKİSİ BİRDEN · kırpılan etiketin metni DOM'da tam kalır
+(ekran okuyucu tamamını okur, yalnız göz kırpılmışını görür).
+
+### Ölçüm — görsel değişim ekranda doğrulandı
+
+`tsc` 0 · `lint` 0 hata · **66 dosya / 413 test**. Üretim derlemesiyle
+`/mission-control` tarayıcıda okundu: sekiz metrik hücresinin sekizinde de
+`text-transform: uppercase` uygulanmış, `truncate` ve `min-w-0` yerinde,
+"veri yok" tireleri korunmuş, konsol hatasız.
+
+---
+
+> ⚠️ **Numara çakışması — altıncı ve yedinci.** Bu iki blok S13 dalında
+> **UI-ADR-140 ve 141** olarak yazılmıştı. Dal açıkken `main` S15 ve S16'yı
+> aldı ve aynı iki numarayı DONDURDU (140 = ölçüm penceresi, 141 = fırsat
+> görünümü). Merge edilmiş ve yayında olan kazanır; lokal olan taşınır —
+> aynı kural 129 → 135 için de uygulanmıştı. Kod yorumlarındaki 14
+> dosyalık referans da güncellendi.
+
+## UI-ADR-148 — Tüketicisi olmayan dokuz bileşen tasarım sistemi envanteridir (SAHİP KARARI)
+
+**Durum:** ✅ Dondurulmuş — **sahip kararı**, 31 Temmuz 2026
+**İlgili:** UI-ADR-139 · CLAUDE.md §5 · `10-component-library.md` §10
+
+### Soru
+
+Dokuz modülün hiçbir ekran tüketicisi yoktu (hikâyeler hariç):
+`ui/chart` (357 satır) · `ui/modal` (195, reponun tek focus-trap
+uygulaması) · `ui/tabs` · `ui/tooltip` · `ui/filter` · `ui/icon` ·
+`ui/avatar` · `ui/sparkline` · `executive/telemetry-bar`.
+
+**Tasarım sistemi envanteri mi, ölü kod mu?** Bu bir mimari değil bir
+ÜRÜN sorusudur — arayüzün hangi bileşenlere sahip olmayı taahhüt ettiği
+sorusu — ve cevabı sahibindir.
+
+### Karar
+
+**Envanter olarak KALIRLAR. Silinmiyorlar.**
+
+Karar `10-component-library.md` §10 ile tutarlıdır: dokuzunun dokuzu da
+o envanterde adı geçen kalemlerdir (`Tabs` · `Tooltip` · `Modal` ·
+`Avatar` · `Icon` · `Chart` · `Sparkline` · `Filter` · `TelemetryBar`).
+Kararın temeli ölçüldü: **dokuzunun dokuzunun da hikâyesi var**, yani
+Storybook'ta render ediliyor, `addon-a11y` ile taranıyor ve test
+paketinde koşuyor. Görünmeyen kod değiller.
+
+### Kararın bedeli — ve onu ödeten kapı
+
+"Envanter" bir ETİKETTİR ve etiket tek başına ölü kodu meşrulaştırır.
+Bugün doğru olan bir karar, altı ay sonra çağıranı olmayan her dosyanın
+arkasına saklandığı bir gerekçeye dönüşebilir.
+
+`src/components/inventory.test.ts` bunu engeller. Kural **kasıtlı olarak
+dar**:
+
+> **Bir bileşenin ekran tüketicisi yoksa, hikâyesi OLACAK.**
+> İkisi birden yoksa test düşer.
+
+Çağıranı OLAN bileşen için hikâye zorunlu değildir (§2.7'de hâlâ yedi
+eksik var; o ayrı bir iş). Burada kilitlenen tek şey envanter kararının
+bedelidir: envanter, GÖRÜLEBİLİR bileşenler içindir.
+
+İkinci kol bir satır içi anlık görüntüdür: liste dokuz kalemden
+BÜYÜRSE test düşer. Sahibin kararı bu dokuz kalem içindi, çağıranı
+olmayan her yeni dosya için açık uçlu bir izin değil.
+
+**Denendi ve ateşledi:** `ui/olu-kod-denemesi.tsx` enjekte edildi; iki
+kol da düştü, mesaj *"hikâye yaz ya da dosyayı sil"* dedi. İhlal geri
+alındı, 10/10 yeşil.
+
+`stories.fixtures.ts` taramadan hariç: hikâye verisi bir bileşen
+değildir, tüketicisinin yalnız hikâyeler olması onun DOĞRU hâlidir.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **60 dosya / 354 test** (+1 dosya / +10 test).
+
+---
+
+## UI-ADR-149 — Erişilebilirlik sözleşmesi yorumdan çıkıp KAPIYA bağlandı (S13)
+
+**Durum:** ✅ Dondurulmuş — beşi de testle kilitlendi
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-132 · UI-ADR-148 · gavadolar 2/2
+
+Beş açık ölçülmüştü. Ortak yanları: **hiçbiri fareyle fark edilmez** ve
+üçü zaten bir yorumla "korunuyordu".
+
+### 1 · `table.tsx` — ızgara ilişkisi KOPUKTU
+
+`role="grid"` KAYDIRMA KABINDAYDI ve içinde gerçek bir `<table>` (örtük
+`role=table`) duruyordu. Satırlardaki `aria-rowindex` / `aria-selected`
+ızgaraya değil, **ızgaranın içindeki ayrı bir tabloya** aitti: ekran
+okuyucu "ızgara" diyor ama satır numarasını bulamıyordu. Gerçek tablonun
+hiçbir adı da yoktu.
+
+Izgara `<table>`'a taşındı (`role="grid"` + `aria-rowcount` + `tabIndex`);
+kaydırma kabı yalnızca kaydırıyor. Ad `<caption class="sr-only">`tan
+geliyor — `aria-label` ile ikisini birden yazmak adı çiftlerdi.
+
+### 2 · `button.tsx` — "ZORUNLU" diyen yorum hiçbir şeyi zorlamıyordu
+
+`iconOnly` artık ayrık birlik tipiyle `aria-label` (ya da
+`aria-labelledby`) İSTİYOR. Adsız bir ikon butonu ekran okuyucuda yalnız
+"buton" diye okunur ve ne yaptığı asla anlaşılmaz.
+
+**Denendi ve ateşledi:** `<Button iconOnly icon={…} />` enjekte edildi,
+`tsc` reddetti. Yorumla korunan bir kural, korunmayan bir kuraldır.
+
+### 3 · `modal.tsx` — ad ÇİFTLENMİŞ, açıklama BAĞLANMAMIŞ
+
+`aria-label={title}` görünür `<h2>`yi tekrarlıyordu: iki metin ayrı ayrı
+yaşıyordu, biri değişse diğeri kalırdı. `aria-labelledby` ikisini tek
+kaynağa bağladı. `description` ise hiçbir şeye bağlı değildi — yani
+**yalnız gören kullanıcı için vardı**; `aria-describedby` ile bağlandı,
+açıklama yoksa öznitelik hiç yazılmıyor (var olmayan bir id'ye işaret
+etmek, hiç işaret etmemekten kötüdür).
+
+### 4 · `filter.tsx` — Escape odak listeye girince ölü tuş
+
+`onKeyDown` yalnız tetikleyicideydi. Odak Checkbox'lara geçtiği an klavye
+kullanıcısı açtığı paneli KAPATAMIYORDU. Escape köke taşındı ve kapanınca
+**odak tetikleyiciye geri veriliyor** — aksi halde odak silinen düğümde
+kalır, sonraki Tab belgenin başına atlar. (Bunun için `Button` React 19
+`ref` prop'unu tipinde beyan etmek zorunda kaldı.)
+
+### 5 · `search.tsx` — 120 ms'lik blur zamanlayıcısı bir YARIŞTI
+
+Üç kusur birdeydi: liste `role="listbox"` değildi, ok tuşu yoktu, ve
+kapanma **saate** bağlıydı — odağın nereye gittiğine değil. Yavaş bir
+makinede tıklama zamanlayıcıdan sonra gelir ve seçim kaybolur.
+
+ARIA combobox kalıbına geçildi: `role="combobox"` + `aria-expanded` +
+`aria-controls` + `aria-activedescendant`, öğeler `role="option"`,
+ArrowUp/Down/Home/End sarmalı, ve **iki adımlı Escape** (önce liste,
+sonra metin — tek adımda ikisi, sadece listeyi kapatmak isteyenin
+yazdığını da silerdi). Zamanlayıcı kaldırıldı; kapanma kökün
+`onBlur`unda `relatedTarget` ile ÖLÇÜLÜYOR.
+
+Odak kutuda kalır, imleç `aria-activedescendant` ile taşınır: odağı
+listeye taşımak yazmaya devam etmeyi imkânsız kılardı.
+
+### Tuzak #1'in KÖK NEDENİ bulundu — testler artık tek koşuda
+
+Devir belgesi *"tam test paketinden önce dev sunucusunu kapat"* diyordu.
+Yanlış teşhis: düşüşün olduğu koşuda dev sunucusu BAŞKA bir worktree'ye
+aitti ve sunucu açıkken geçen koşular da vardı.
+
+**Gerçek sebep:** 45 story dosyasının soğuk Vite dönüşümü varsayılan
+30 sn'lik `browser.connectTimeout`u aşıyor; Vitest tarayıcı oturumunu ölü
+sayıyor. `connectTimeout: 180_000` yazıldı ve storybook projesi **tek
+komutta 45/45** geçti (iki kez üst üste, 2s22 ve 3s19).
+
+İkinci koşul ölçüldü: `unit` ile `storybook` AYNI ANDA koşarsa node
+işçileri CPU'yu tutuyor ve bağlantı yine düşüyor (birleşik koşu 62 sn'de
+patladı). İki proje **ayrı** çalıştırılır. Parçalama (`--shard`) artık
+gereksiz.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **60 dosya / 360 test** (+6 test).
+
+---

@@ -25,373 +25,70 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ColumnDef } from "@tanstack/react-table";
-import type { AmazonSnapshot } from "@/types/executive";
-import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
-import type { SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
-import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
-import { MockBadge } from "@/mocks/mock-badge";
+import { MockBadge } from "@/components/ui/mock-badge";
+import {
+  demoError,
+  emptied,
+  noContract,
+  screenState,
+  type DemoState,
+} from "@/features/shell/screen-state";
 import {
   useAmazonAlerts,
   useAmazonKpis,
   useAmazonSkus,
 } from "@/lib/data/odin-amazon";
-import { useMockData } from "@/mocks/use-mock";
+import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/table";
 import { NoData } from "@/components/ui/no-data";
 import { Search } from "@/components/ui/search";
-import { Stat } from "@/components/ui/stat";
-import { Mono, Num, Text } from "@/components/ui/typography";
+import { Mono, Num, Pct, Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
 import { AIRecommendationView } from "@/components/executive/ai-recommendation-card";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { CampaignIntelligenceList } from "@/components/executive/campaign-intelligence";
-import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
-import { Meter } from "@/components/executive/meter";
-import { PPCOverviewCard, PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
+import { PPCOverviewCard } from "@/components/executive/ppc-overview";
 import { SimulationPanel } from "@/components/executive/simulation-panel";
-import { TrustSignal } from "@/components/executive/trust-signal";
-import { AMAZON_SKU_KIND, SKU_STATUS } from "./amazon-sku-panel";
+import { ThresholdNote } from "@/components/executive/threshold-note";
+import {
+  AMAZON_SKU_KIND,
+  SKU_SCALE,
+  SKU_STATUS,
+} from "@/features/amazon/presentation/sku";
+import {
+  BUY_BOX_RISK_BELOW,
+  BUY_BOX_RISK_DESCRIPTION,
+  UI_THRESHOLD_PROVENANCE,
+} from "@/features/amazon/presentation/thresholds";
+import { atRiskSkus, losingBuyBoxSkus } from "@/features/amazon/selectors";
+import { GlanceView } from "@/features/amazon/director/glance-view";
+import { skuColumns } from "@/features/amazon/director/sku-columns";
 
 /* --------------------------------------------------------------------------
-   Layer 1 — Executive Glance. §1.3: "Grafik karmaşası yok, sadece:"
-   -------------------------------------------------------------------------- */
-
-function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
-  const scale = s.percentScale;
-
-  return (
-    <Card tone="ai">
-      <CardBody className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs uppercase tracking-wide text-ai-text">
-            Executive Glance · 10–15 saniye
-          </span>
-          <ConfidenceBadge meta={meta} label="Anlık görüntü güveni" />
-        </div>
-
-        <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Stat
-            label="Amazon Health"
-            note="0–100"
-            value={
-              <>
-                <Meter
-                  value={s.healthScore}
-                  label="Amazon sağlık skoru"
-                  tone={s.healthScore >= 80 ? "success" : "warning"}
-                  noDataReason="Sağlık skoru hesaplanmadı"
-                />
-                <Num value={s.healthScore} size="lg" noDataReason="Skor yok" />
-              </>
-            }
-          />
-
-          <Stat
-            label="Revenue"
-            value={
-              <Num
-                value={s.revenue?.amount ?? null}
-                format="currency"
-                currency={s.revenue?.currency}
-                size="lg"
-                noDataReason="Ciro gelmedi"
-              />
-            }
-          />
-
-          {/* NET KÂR: hesaplanamıyorsa GÖSTERİLMEZ — UI-ADR-116.
-              Yerine gross profit + neyin hariç tutulduğu. */}
-          {s.netProfit ? (
-            <Stat
-              label="Net Profit"
-              value={
-                <Num
-                  value={s.netProfit.amount}
-                  format="currency"
-                  currency={s.netProfit.currency}
-                  size="lg"
-                />
-              }
-            />
-          ) : (
-            <Stat
-              label="Gross Profit (ücretler hariç)"
-              note="Net kâr DEĞİL — hariç tutulanlar aşağıda"
-              value={
-                <Num
-                  value={s.grossProfit?.amount ?? null}
-                  format="currency"
-                  currency={s.grossProfit?.currency}
-                  size="lg"
-                  noDataReason={PROFIT_NEEDS_COGS}
-                />
-              }
-            />
-          )}
-
-          <Stat
-            label="Orders"
-            value={<Num value={s.orders} size="lg" noDataReason="Sipariş sayısı gelmedi" />}
-          />
-
-          <Stat
-            label="ACOS"
-            value={
-              <Num
-                value={toPercentUnit(s.acos, scale)}
-                format="percent"
-                fractionDigits={1}
-                size="lg"
-                noDataReason="ACOS ölçeği bildirilmedi"
-              />
-            }
-          />
-
-          <Stat
-            label="TACOS"
-            value={
-              <Num
-                value={toPercentUnit(s.tacos, scale)}
-                format="percent"
-                fractionDigits={1}
-                size="lg"
-                noDataReason="TACOS ölçeği bildirilmedi"
-              />
-            }
-          />
-
-          <Stat
-            label="Buy Box"
-            value={
-              <Num
-                value={toPercentUnit(s.buyBoxRate, scale)}
-                format="percent"
-                fractionDigits={1}
-                size="lg"
-                noDataReason="BuyBox oranı gelmedi"
-              />
-            }
-          />
-
-          <Stat
-            label="Inventory Health"
-            value={
-              <Num
-                value={toPercentUnit(s.inventoryHealth, scale)}
-                format="percent"
-                fractionDigits={1}
-                size="lg"
-                noDataReason="Stok sağlığı hesaplanmadı"
-              />
-            }
-          />
-        </dl>
-
-        {/* Net kârın neden yazılmadığı — 13-...md §4'ün somut karşılığı. */}
-        {!s.netProfit && (
-          <div className="rounded-sm border border-line-subtle p-3">
-            <p className="text-xs uppercase tracking-wide text-content-tertiary">
-              Net kâr neden yazılmıyor
-            </p>
-            <Text size="sm" tone="secondary" className="mt-1">
-              Net kâr = satış − Amazon ücretleri − reklam − iade − COGS −
-              nakliye. Aşağıdaki kalemler hesaba GİRMEDİĞİ için net kâr
-              gösterilmiyor; yanlış bir kâr rakamı, eksik bir kâr rakamından
-              tehlikelidir.
-            </Text>
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {(s.profitBasis?.excluded ?? []).map((x) => (
-                <li key={x}>
-                  <Badge variant="tertiary" size="xs">
-                    {x}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Top Risk · Top Opportunity · Mission Progress */}
-        <dl className="grid gap-4 border-t border-line-subtle pt-4 sm:grid-cols-3">
-          <Stat
-            label="Top Risk"
-            value={
-              s.topRisk ? (
-                <span className="text-sm text-content">{s.topRisk.title}</span>
-              ) : (
-                <NoData reason="Açık kritik risk yok" />
-              )
-            }
-          />
-          <Stat
-            label="Top Opportunity"
-            value={
-              s.topOpportunity ? (
-                <span className="text-sm text-content">
-                  {s.topOpportunity.recommendation}
-                </span>
-              ) : (
-                <NoData reason="Ölçülmüş fırsat yok" />
-              )
-            }
-          />
-          {/* "Goal/Mission Progress" kartı KALDIRILDI — ADR-0143 §4: ilerleme
-              yüzdesi kavramının ölçülmüş kaynağı yok ve ADR onu yaratmıyor.
-              İzlenen kararlar Mission Control'ün tahtasındadır. */}
-        </dl>
-      </CardBody>
-
-      <CardFooter>
-        <TrustSignal meta={meta} />
-      </CardFooter>
-    </Card>
-  );
-}
-
-/* --------------------------------------------------------------------------
-   SKU Health tablosu — sütunlar dar kolona sığacak kadar; gerisi sağ panelde
-   -------------------------------------------------------------------------- */
-
-const SKU_SCALE = "0-100" as const;
-
-/* `now` PARAMETRESİ DÜŞTÜ: tabloda artık geri sayım yok — tükenme
-   tarihi ODIN tarafından üretilmiyor (ADR-0149). Envanter bölümü
-   kendi `now`unu kullanmaya devam ediyor. */
-function skuColumns(): ColumnDef<SkuHealth, unknown>[] {
-  return [
-    {
-      id: "sku",
-      accessorKey: "sku",
-      header: "SKU",
-      cell: (c) => <Mono size="sm">{c.getValue() as string}</Mono>,
-    },
-    {
-      id: "status",
-      accessorKey: "status",
-      header: "Durum",
-      cell: (c) => {
-        const s = SKU_STATUS[c.getValue() as SkuHealth["status"]];
-        return s ? (
-          <Badge variant={s.variant} size="xs">
-            {s.label}
-          </Badge>
-        ) : (
-          <NoData reason="Durum bilinmiyor" />
-        );
-      },
-    },
-    /*
-     * ÖLÇÜLENİ GÖSTER — S12 düzeltmesi (UI-ADR-128).
-     *
-     * Burada üç kolon vardı: Sağlık skoru · Tükenme tarihi · BuyBox. ODIN
-     * ADR-0149 ile üçünün de KARARLA null olduğu kesinleşti (skorlama
-     * politikası yok, tükenme tarihi bir tahmin politikasının çıktısı,
-     * BuyBox'ın kaynağı dönemini beyan etmiyor). Canlı ekranda görüldü:
-     * beş kolonun üçü her satırda "—" idi.
-     *
-     * Sürekli boş bir kolon, veri yokluğunu bildirmez — tabloyu okunmaz
-     * yapar ve gerçekten ölçülmüş olanı gizler. Yerlerine ODIN'in
-     * yayınladığı gerçek alanlar kondu. Skor/tükenme/BuyBox bir üretici
-     * kazandığı gün geri gelir; o güne kadar yerlerini işgal etmezler.
-     */
-    {
-      id: "daysOfSupply",
-      accessorKey: "daysOfSupply",
-      header: "Kalan gün",
-      meta: { numeric: true },
-      cell: (c) => (
-        <Num
-          value={c.getValue() as number | null}
-          fractionDigits={1}
-          size="sm"
-          noDataReason="Satış hızı ölçülmedi"
-        />
-      ),
-    },
-    {
-      id: "unitsAvailable",
-      accessorKey: "unitsAvailable",
-      header: "Stok",
-      meta: { numeric: true },
-      cell: (c) => (
-        <Num
-          value={c.getValue() as number | null}
-          size="sm"
-          noDataReason="Envanter kaydı yok"
-        />
-      ),
-    },
-    {
-      id: "unitsSold",
-      accessorFn: (r) => r.sales.unitsSold,
-      header: "Satılan",
-      meta: { numeric: true },
-      cell: (c) => (
-        <Num
-          value={c.getValue() as number | null}
-          size="sm"
-          noDataReason="Bu SKU satış penceresinde yok"
-        />
-      ),
-    },
-    {
-      id: "acos",
-      accessorFn: (r) => r.advertising.acos,
-      header: "ACOS",
-      meta: { numeric: true },
-      cell: (c) => (
-        <Num
-          value={toPercentUnit(c.getValue() as number | null, SKU_SCALE)}
-          format="percent"
-          fractionDigits={1}
-          size="sm"
-          noDataReason="Reklam verisi yok"
-        />
-      ),
-    },
-  ];
-}
-
 /* --------------------------------------------------------------------------
    Ekran
    -------------------------------------------------------------------------- */
 
-const DEMO_ERROR: SectionError = {
-  what: "Amazon verisi yüklenemedi",
-  why: "ODIN yerel sunucusu (127.0.0.1) yanıt vermedi.",
-  impact: "KPI'lar, SKU sağlığı ve PPC verisi güncel değil; bütçe kararı verilmemeli.",
-  fix: "ODIN sunucusunu başlat, sonra yeniden dene.",
-};
+const DEMO_ERROR = demoError(
+  "Amazon verisi yüklenemedi",
+  "KPI'lar, SKU sağlığı ve PPC verisi güncel değil; bütçe kararı verilmemeli."
+);
 
-/** Sözleşmesi olmayan bölümlerin ortak metni — UI-ADR-096. */
-function noContract(name: string, why: string) {
-  return {
-    emptyTitle: `${name} sözleşmesi tanımlı değil`,
-    emptyDescription: why,
-    emptySuggestion:
-      "Soru 13-backend-recommendations.md §16.4'e düşüldü; sözleşme geldiğinde bölüm aynı yere oturur.",
-  };
-}
 
-function empty<T>(env: DataEnvelope<T[]> | null): DataEnvelope<T[]> | null {
-  return env ? { data: [], meta: env.meta } : null;
-}
 
 export function AmazonDirector({
   demo,
 }: {
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
-  demo?: "loading" | "empty" | "error";
+  demo?: DemoState;
 }) {
   const router = useRouter();
   const now = useNow();
@@ -410,15 +107,15 @@ export function AmazonDirector({
   const kpis = useAmazonKpis();
   const alerts = useAmazonAlerts();
 
-  const snapshot = useMockData("amazon.snapshot");
+  const snapshot = useOdinFixture("amazon.snapshot");
   /* CANLI — ODIN ADR-0149 (UI-ADR-128). 48 SKU: kimlik, stok,
      gün-kapsamı, satılan adet, reklam, fiyat. Skor YOK ve
      türetilmiyor; durum kendi eşik provenance'ıyla geliyor. */
   const skus = useAmazonSkus();
-  const ppc = useMockData("amazon.ppc");
-  const campaigns = useMockData("amazon.campaigns");
-  const simulations = useMockData("amazon.simulations");
-  const opportunities = useMockData("amazon.opportunities");
+  const ppc = useOdinFixture("amazon.ppc");
+  const campaigns = useOdinFixture("amazon.campaigns");
+  const simulations = useOdinFixture("amazon.simulations");
+  const opportunities = useOdinFixture("amazon.opportunities");
 
   /* Canlı bölümün hatası SUSTURULMAZ (S8 dersi, main CLAUDE.md kural 6):
      bir bölüm gerçek uç noktadan besleniyorsa, o uç nokta düştüğünde
@@ -427,20 +124,12 @@ export function AmazonDirector({
   const sectionError = (live: { toErrorState: () => SectionError } | null) =>
     demo === "error" ? DEMO_ERROR : (live?.toErrorState() ?? null);
 
-  const loading = demo === "loading" || snapshot.loading;
-  const error = demo === "error" ? DEMO_ERROR : null;
-  const isEmpty = demo === "empty";
-
-  const reloadAll = () => {
-    snapshot.reload();
-    kpis.refetch();
-    skus.refetch();
-    ppc.reload();
-    campaigns.reload();
-    simulations.reload();
-    alerts.refetch();
-    opportunities.reload();
-  };
+  const { loading, error, isEmpty, reloadAll } = screenState({
+    demo,
+    primary: snapshot,
+    sources: [snapshot, kpis, skus, ppc, campaigns, simulations, alerts, opportunities],
+    error: DEMO_ERROR,
+  });
 
   const skuRows = isEmpty ? [] : (skus.envelope?.data ?? []);
   /* FR-0046 v1 Opportunity'de `category` YOK — reklam/genel ayrımını sürecek
@@ -448,18 +137,14 @@ export function AmazonDirector({
      §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
      domain alanı sorusu 13-...md §17'de (FR-0042 fingerprint'i zaten
      (domain, recommendation_type, …) kullanıyor — alan gelirse ayrım döner). */
-  const feedOpportunities = isEmpty ? [] : (opportunities.data?.data ?? []);
+  const feedOpportunities = isEmpty ? [] : (opportunities.envelope?.data ?? []);
 
   /* ODIN sözlüğü (UI-ADR-128). `unknown` BU LİSTEYE GİRMEZ: hızı
      ölçülemeyen bir SKU riskli değildir, ÖLÇÜLMEMİŞTİR — ikisini
      karıştırmak 48'in 29'unu risk listesine doldurur ve liste anlamını
      yitirir. `no_movement` da ayrı bir bulgudur, stok riski değil. */
-  const atRisk = skuRows.filter(
-    (s) => s.status === "critical" || s.status === "warn"
-  );
-  const losingBuyBox = skuRows
-    .filter((s) => s.sales.buyBoxRate !== null && s.sales.buyBoxRate < 90)
-    .sort((a, b) => (a.sales.buyBoxRate ?? 0) - (b.sales.buyBoxRate ?? 0));
+  const atRisk = atRiskSkus(skuRows);
+  const losingBuyBox = losingBuyBoxSkus(skuRows);
 
   return (
     <div className="flex max-w-screen-2xl flex-col gap-8">
@@ -471,7 +156,7 @@ export function AmazonDirector({
            "senkron yok" diyordu. Önce gerçekten bağlı olan kaynağın zamanı
            yazılır; ikisi de yoksa `—` kalır ve bu dürüsttür. */
         lastSync={
-          kpis.envelope?.meta.lastUpdated ?? snapshot.data?.meta.lastUpdated ?? null
+          kpis.envelope?.meta.lastUpdated ?? snapshot.envelope?.meta.lastUpdated ?? null
         }
         actions={
           <>
@@ -497,7 +182,7 @@ export function AmazonDirector({
       ) : error ? (
         <Section title="Executive Glance" error={error} onRetry={reloadAll} />
       ) : (
-        <DataGuard env={isEmpty ? null : snapshot.data} reason="Amazon anlık görüntüsü üretilmedi">
+        <DataGuard env={isEmpty ? null : snapshot.envelope} reason="Amazon anlık görüntüsü üretilmedi">
           {(s, meta) => <GlanceView s={s} meta={meta} />}
         </DataGuard>
       )}
@@ -628,7 +313,8 @@ export function AmazonDirector({
           empty
           {...noContract(
             "Order",
-            "09-data-contracts.md sipariş seviyesinde bir sözleşme içermiyor; `AmazonSnapshot.orders` yalnızca bir SAYIDIR. Akış ve anomali listesi bu sayıdan türetilemez."
+            "09-data-contracts.md sipariş seviyesinde bir sözleşme içermiyor; `AmazonSnapshot.orders` yalnızca bir SAYIDIR. Akış ve anomali listesi bu sayıdan türetilemez.",
+            "13-backend-recommendations.md §16.4"
           )}
         />
         </div>
@@ -642,7 +328,8 @@ export function AmazonDirector({
           empty
           {...noContract(
             "Zaman serisi",
-            "09-data-contracts.md hiçbir yerde etiketli zaman serisi tanımlamıyor; `ExecutiveKPI.sparkline` yalnızca YÖN gösterir, tarihli seri değildir. Eksen etiketlerini uydurmak, olmayan bir ölçümü varmış gibi göstermek olurdu."
+            "09-data-contracts.md hiçbir yerde etiketli zaman serisi tanımlamıyor; `ExecutiveKPI.sparkline` yalnızca YÖN gösterir, tarihli seri değildir. Eksen etiketlerini uydurmak, olmayan bir ölçümü varmış gibi göstermek olurdu.",
+            "13-backend-recommendations.md §16.4"
           )}
         />
 
@@ -656,7 +343,7 @@ export function AmazonDirector({
           error={error}
           onRetry={reloadAll}
         >
-          <PPCOverviewCard env={isEmpty ? null : ppc.data} />
+          <PPCOverviewCard env={isEmpty ? null : ppc.envelope} />
         </Section>
 
         <Section
@@ -701,9 +388,9 @@ export function AmazonDirector({
         >
           <AIBrief
             env={
-              isEmpty || !snapshot.data
+              isEmpty || !snapshot.envelope
                 ? null
-                : { data: snapshot.data.data.intelligence, meta: snapshot.data.meta }
+                : { data: snapshot.envelope.data.intelligence, meta: snapshot.envelope.meta }
             }
             title="Amazon Executive Intelligence"
           />
@@ -711,7 +398,7 @@ export function AmazonDirector({
 
         <Section
           title="BuyBox"
-          description="BuyBox oranı %90'ın altına inen SKU'lar."
+          description={BUY_BOX_RISK_DESCRIPTION}
           loading={loading}
           loadingLayout="list"
           loadingCount={3}
@@ -719,7 +406,7 @@ export function AmazonDirector({
           onRetry={reloadAll}
           empty={losingBuyBox.length === 0}
           emptyTitle="BuyBox kaybı yok"
-          emptyDescription="Oranı raporlanan SKU'ların hepsi %90 üzerinde."
+          emptyDescription={`Oranı raporlanan SKU'ların hepsi %${BUY_BOX_RISK_BELOW} üzerinde.`}
           emptySuggestion="Oranı hiç raporlanmayan SKU'lar bu listeye giremez — kaynağı doğrulanmalı (13-...md §4)."
         >
           <ul className="flex flex-col gap-2">
@@ -729,15 +416,13 @@ export function AmazonDirector({
                 className="flex items-baseline justify-between gap-3 border-b border-line-subtle pb-2 last:border-b-0"
               >
                 <Mono size="sm">{s.sku}</Mono>
-                <Num
-                  value={toPercentUnit(s.sales.buyBoxRate, SKU_SCALE)}
-                  format="percent"
-                  fractionDigits={1}
-                  size="sm"
-                />
+                <Pct value={s.sales.buyBoxRate} scale={SKU_SCALE} size="sm" />
               </li>
             ))}
           </ul>
+          {/* Eşik ODIN'den gelmiyor, arayüzde duruyor — bunu saklamak
+              uydurulmuş bir OTORİTE sunmak olurdu (UI-ADR-126 deseni). */}
+          <ThresholdNote provenance={UI_THRESHOLD_PROVENANCE} className="mt-3" />
         </Section>
 
         <Section
@@ -750,7 +435,7 @@ export function AmazonDirector({
           onRetry={reloadAll}
         >
           <AlertStack
-            env={isEmpty ? empty(alerts.envelope) : alerts.envelope}
+            env={isEmpty ? emptied(alerts.envelope) : alerts.envelope}
             title="Aksiyon gerektirenler"
           />
         </Section>
@@ -768,7 +453,7 @@ export function AmazonDirector({
         onRetry={reloadAll}
       >
         <div className="grid gap-8 xl:grid-cols-3 [&>*]:min-w-0">
-          <CampaignIntelligenceList env={isEmpty ? empty(campaigns.data) : campaigns.data} />
+          <CampaignIntelligenceList env={isEmpty ? emptied(campaigns.envelope) : campaigns.envelope} />
 
           <div className="flex flex-col gap-4">
             <Text size="sm" tone="secondary">
@@ -785,7 +470,7 @@ export function AmazonDirector({
             </Text>
           </div>
 
-          <SimulationPanel env={isEmpty ? empty(simulations.data) : simulations.data} />
+          <SimulationPanel env={isEmpty ? emptied(simulations.envelope) : simulations.envelope} />
         </div>
       </Section>
 

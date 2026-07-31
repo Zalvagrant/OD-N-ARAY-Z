@@ -14,7 +14,15 @@ import type { z } from "zod";
 import type { DataEnvelope } from "@/types/data-envelope";
 import { computeFreshness } from "@/types/data-envelope";
 import { envelopeSchema } from "./schemas";
-import { classifyError, contractError, httpError, offlineError, OdinError } from "./errors";
+import {
+  classifyError,
+  contractError,
+  formatIssues,
+  httpError,
+  isAbortError,
+  offlineError,
+  OdinError,
+} from "./errors";
 import { IS_MOCK, ODIN_BASE_URL } from "./mode";
 import type { OdinModule } from "./policy";
 
@@ -39,10 +47,7 @@ export function parseEnvelope<T>(
   const parsed = envelopeSchema(schema).safeParse(raw);
 
   if (!parsed.success) {
-    const detail = parsed.error.issues
-      .map((i) => `${i.path.join(".") || "(kök)"}: ${i.message}`)
-      .join("\n");
-    throw contractError(where, detail);
+    throw contractError(where, formatIssues(parsed.error.issues));
   }
 
   const env = parsed.data as DataEnvelope<T>;
@@ -71,24 +76,6 @@ export function parseEnvelope<T>(
     ...env,
     meta: { ...env.meta, freshness: computeFreshness(env.meta.lastUpdated, module) },
   };
-}
-
-/**
- * İptal hatası mı? — ŞEKLE bakar, sınıfa değil (meclis üçüncü tur).
- *
- * `err instanceof DOMException` güvenilir DEĞİL: Node'un `undici`'si bazı
- * sürümlerde `AbortError` adında sıradan bir `Error` atar ve jsdom/worker
- * gibi ayrı realm'lerde `instanceof` zaten `false` döner. O durumda gerçek
- * bir kullanıcı iptali "ağ hatası" diye sınıflanırdı.
- *
- * `signal.reason` ile kimlik karşılaştırması en kesin kanıttır; kalanı ad
- * ve kod üzerinden şekil kontrolü.
- */
-function isAbortError(err: unknown, signal?: AbortSignal): boolean {
-  if (signal?.aborted && err === signal.reason) return true;
-  if (typeof err !== "object" || err === null) return false;
-  const e = err as { name?: unknown; code?: unknown };
-  return e.name === "AbortError" || e.code === "ABORT_ERR";
 }
 
 /**

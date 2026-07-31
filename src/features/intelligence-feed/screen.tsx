@@ -8,13 +8,13 @@
  * yalnızca içerik sağlayıcısı değişir. Bu dosya o sağlayıcıdır.
  */
 
-import { MockBadge } from "@/mocks/mock-badge";
-import { useMockData } from "@/mocks/use-mock";
+import { MockBadge } from "@/components/ui/mock-badge";
+import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ActivityFeed } from "@/components/executive/activity-feed";
 
 export function IntelligenceFeed() {
-  const feed = useMockData("feed.items");
+  const feed = useOdinFixture("feed.items");
 
   return (
     <div className="flex flex-col gap-3">
@@ -28,7 +28,7 @@ export function IntelligenceFeed() {
       {feed.loading ? (
         <LoadingState layout="list" count={6} label="İstihbarat akışı yükleniyor" />
       ) : (
-        <ActivityFeed env={feed.data} maxVisible={6} />
+        <ActivityFeed env={feed.envelope} maxVisible={6} />
       )}
     </div>
   );

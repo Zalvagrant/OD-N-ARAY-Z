@@ -1,9 +1,9 @@
 /**
  * Hedefler rotası — UI-ADR-124.
- * Ekran gövdesi `components/screens/goals.tsx`.
+ * Ekran gövdesi `features/goals/screen.tsx`.
  */
 
-import { Goals } from "@/components/screens/goals";
+import { Goals } from "@/features/goals/screen";
 
 export default function GoalsPage() {
   return <Goals />;

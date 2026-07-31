@@ -25,6 +25,7 @@ import type { RuntimeDirector } from "@/types/executive";
 import { relativeTime, useNow } from "@/lib/clock/tick";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Stat } from "@/components/ui/stat";
 import { Heading, Text } from "@/components/ui/typography";
 import { NoData } from "@/components/ui/no-data";
 import { DataGuard } from "./data-guard";
@@ -79,28 +80,33 @@ function DirectorView({
       />
 
       <CardBody>
+        {/* UI-ADR-147: bu iki hücre elle yazılmış `<dt>/<dd>` çiftiydi ve
+            `director-card`in yerel `Metric`iyle aynı şekli tekrarlıyordu.
+            Sahip kararıyla ikisi de `Stat`a bağlandı. */}
         <dl className="grid gap-3 sm:grid-cols-2">
-          <div className="min-w-0">
-            <dt className="truncate text-xs text-content-tertiary">Son atış</dt>
-            <dd className="mt-1">
-              {age ? (
+          <Stat
+            label="Son atış"
+            truncate
+            value={
+              age ? (
                 <Text size="sm">{age}</Text>
               ) : (
                 /* Hiç atmamış bir kalp "0 saniye önce" DEĞİLDİR. */
                 <NoData reason="Bu direktör hiç çalışmadı" />
-              )}
-            </dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="truncate text-xs text-content-tertiary">Beklenen ritim</dt>
-            <dd className="mt-1">
-              {cadence ? (
+              )
+            }
+          />
+          <Stat
+            label="Beklenen ritim"
+            truncate
+            value={
+              cadence ? (
                 <Text size="sm">{cadence}</Text>
               ) : (
                 <NoData reason="Cadence bildirilmedi" />
-              )}
-            </dd>
-          </div>
+              )
+            }
+          />
         </dl>
 
         {/* Toplam, ardışık DEĞİL — alan adı bunu söylüyor (ADR-0148 §6). */}

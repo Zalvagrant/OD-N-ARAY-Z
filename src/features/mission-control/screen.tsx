@@ -20,19 +20,27 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
-import type { DataEnvelope } from "@/types/data-envelope";
 import {
   useOdinAlerts,
   useOdinDirectors,
   type RuntimeDirectorParsed,
 } from "@/lib/data/odin-state";
-import { MockBadge } from "@/mocks/mock-badge";
-import { useMockData } from "@/mocks/use-mock";
+import { MockBadge } from "@/components/ui/mock-badge";
+import {
+  demoError,
+  emptied,
+  noContract,
+  screenState,
+  type DemoState,
+} from "@/features/shell/screen-state";
+import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
 import { Text } from "@/components/ui/typography";
-import { Section, type SectionError } from "@/components/layout/section";
+import { Stat } from "@/components/ui/stat";
+import { Section } from "@/components/layout/section";
+import type { DataEnvelope } from "@/types/data-envelope";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { RuntimeDirectorCard } from "@/components/executive/runtime-director-card";
@@ -42,27 +50,18 @@ import { MonitoredDecisionsBoard } from "@/components/executive/monitored-decisi
    Operational Status — ölçüme dayalı, uydurmasız
    -------------------------------------------------------------------------- */
 
-function Stat({
-  label,
-  value,
-  note,
-  tone = "text-content",
-}: {
-  label: string;
-  value: number | string;
-  note: string;
-  tone?: string;
-}) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-content-tertiary">{label}</dt>
-      <dd className="mt-1">
-        <span className={`odin-num text-lg ${tone}`}>{value}</span>
-      </dd>
-      <p className="text-xs text-content-tertiary">{note}</p>
-    </div>
-  );
-}
+/*
+ * Sayaç tonu — UI-ADR-132 → UI-ADR-136.
+ *
+ * `tone` serbest `string` idi ve doğrudan `className`e enterpole
+ * ediliyordu: HERHANGİ bir sınıf (token dışı bir renk dahil) tip
+ * denetiminden geçerdi ve ESLint'in token kuralı da template içindeki
+ * değişkeni göremezdi. Birlik tipi, izin verilen tonu derlemede kilitler.
+ *
+ * ♻️ 136: buradaki yerel `Stat` `ui/stat.tsx`in satır satır kopyasıydı,
+ * yalnız ton adları farklıydı (`neutral`/`muted` ≡ `default`/`tertiary`).
+ * Aynı üçlüyü ikinci kez yazmak CLAUDE.md §5'in ihlaliydi; kopya silindi.
+ */
 
 function OperationalStatus({
   directors,
@@ -108,25 +107,25 @@ function OperationalStatus({
             label="Sağlıklı Director"
             value={count("healthy")}
             note={note("ODIN status: healthy")}
-            tone="text-success"
+            tone="success"
           />
           <Stat
             label="Hatalı"
             value={count("failed")}
             note={note("ODIN status: failed")}
-            tone="text-danger"
+            tone="danger"
           />
           <Stat
             label="Gecikmiş"
             value={count("stale")}
             note={note("beklenen ritmi kaçırdı — hata vermiş değil")}
-            tone="text-warning"
+            tone="warning"
           />
           <Stat
             label="Bilinmiyor"
             value={count("unknown")}
             note={note("hiç gözlem yok — ölmüş demek değildir")}
-            tone="text-content-tertiary"
+            tone="tertiary"
           />
         </dl>
       </CardBody>
@@ -138,58 +137,54 @@ function OperationalStatus({
    Ekran
    -------------------------------------------------------------------------- */
 
-const DEMO_ERROR: SectionError = {
-  what: "Operasyon verisi yüklenemedi",
-  why: "ODIN yerel sunucusu (127.0.0.1) yanıt vermedi.",
-  impact: "Görev tahtası ve Director koordinasyonu güncel değil.",
-  fix: "ODIN sunucusunu başlat, sonra yeniden dene.",
-};
+const NO_CONTRACT_WHY =
+  "09-data-contracts.md bu bölüm için bir veri sözleşmesi içermiyor. Uydurulmuş bir liste göstermek yerine boş bırakıldı.";
 
-/** Sözleşmesi olmayan bölümlerin ortak metni — UI-ADR-096. */
-const NO_CONTRACT = (name: string, ref: string) => ({
-  title: `${name} sözleşmesi tanımlı değil`,
-  description: `09-data-contracts.md bu bölüm için bir veri sözleşmesi içermiyor. Uydurulmuş bir liste göstermek yerine boş bırakıldı.`,
-  suggestion: `Soru ${ref}'e düşüldü; sözleşme geldiğinde bölüm aynı yere oturur.`,
-});
+const DEMO_ERROR = demoError(
+  "Operasyon verisi yüklenemedi",
+  "Görev tahtası ve Director koordinasyonu güncel değil."
+);
+
 
 export function MissionControl({
   demo,
 }: {
-  demo?: "loading" | "empty" | "error";
+  demo?: DemoState;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
 
-  const decisions = useMockData("briefing.decisions");
+  const decisions = useOdinFixture("briefing.decisions");
   /* CANLI — ODIN ADR-0148 (UI-ADR-127). Bu bölüm artık ZAMANLANMIŞ
      runtime işlerini gösteriyor, görev-kuyruğu ajanlarını değil: kuyruk
      hiç kullanılmadı (`agents` boş), oysa 18 iş heartbeat üstünde
      koşuyor. Sahibin sorusunu ("ODIN yaşıyor mu?") cevaplayan yüzey bu. */
   const directors = useOdinDirectors();
-  /* CANLI — ODIN ADR-0151 (UI-ADR-129). Üst üste üç kez patlayan
-     zamanlanmış işler kanonik Alert olarak geliyor. Bugün liste BOŞ ve
-     bu doğru cevap: hiç boşalmayan bir alarm listesi okunmaz. */
+  /* CANLI — ODIN ADR-0151 (UI-ADR-129, main'de S14). Üst üste üç kez
+     patlayan zamanlanmış işler kanonik Alert olarak geliyor. Bugün liste
+     BOŞ ve bu doğru cevap: hiç boşalmayan bir alarm listesi okunmaz. */
   const alerts = useOdinAlerts();
 
-  const loading = demo === "loading" || decisions.loading;
-  const error = demo === "error" ? DEMO_ERROR : null;
-  const isEmpty = demo === "empty";
+  const { loading, error, isEmpty, reloadAll } = screenState({
+    demo,
+    primary: decisions,
+    sources: [decisions, directors, alerts],
+    error: DEMO_ERROR,
+  });
 
-  const reloadAll = () => {
-    decisions.reload();
-    directors.refetch();
-    alerts.refetch();
-  };
-
-  const decisionEnv =
-    isEmpty && decisions.data ? { data: [], meta: decisions.data.meta } : decisions.data;
+  /* `reloadAll` ve boşaltma ARTIK ELDE YAZILMIYOR: ikisi de `screenState`
+     / `emptied`ten geliyor (UI-ADR-131). main'in S14'teki elle yazılmış
+     kopyası `decisions.data` okuyordu — `useOdinFixture` ile
+     `useOdinQuery`nin iki ayrı alan adı vermesi UI-ADR-135'te
+     birleştirildiği için artık ikisi de `.envelope`dır. */
+  const decisionEnv = isEmpty ? emptied(decisions.envelope) : decisions.envelope;
 
   return (
     <div className="flex max-w-screen-2xl flex-col gap-8">
       <WorkspaceHeader
         title="Mission Control"
         context="Şu anda ne oluyor?"
-        lastSync={decisions.data?.meta.lastUpdated ?? null}
+        lastSync={decisions.envelope?.meta.lastUpdated ?? null}
         actions={
           <>
             <MockBadge />
@@ -257,11 +252,7 @@ export function MissionControl({
           onRetry={reloadAll}
         >
           <AlertStack
-            env={
-              isEmpty && alerts.envelope
-                ? { data: [], meta: alerts.envelope.meta }
-                : alerts.envelope
-            }
+            env={isEmpty ? emptied(alerts.envelope) : alerts.envelope}
           />
         </Section>
       </div>
@@ -293,17 +284,29 @@ export function MissionControl({
         <Section
           title="Active Projects"
           empty
-          {...emptyProps(NO_CONTRACT("Project", "13-backend-recommendations.md §14.2"))}
+          {...noContract(
+            "Project",
+            NO_CONTRACT_WHY,
+            "13-backend-recommendations.md §14.2"
+          )}
         />
         <Section
           title="Resource Allocation"
           empty
-          {...emptyProps(NO_CONTRACT("ResourceAllocation", "13-backend-recommendations.md §14.2"))}
+          {...noContract(
+            "ResourceAllocation",
+            NO_CONTRACT_WHY,
+            "13-backend-recommendations.md §14.2"
+          )}
         />
         <Section
           title="Automation Queue"
           empty
-          {...emptyProps(NO_CONTRACT("AutomationQueue", "13-backend-recommendations.md §14.2"))}
+          {...noContract(
+            "AutomationQueue",
+            NO_CONTRACT_WHY,
+            "13-backend-recommendations.md §14.2"
+          )}
         />
       </div>
 
@@ -322,10 +325,3 @@ export function MissionControl({
   );
 }
 
-function emptyProps(v: { title: string; description: string; suggestion: string }) {
-  return {
-    emptyTitle: v.title,
-    emptyDescription: v.description,
-    emptySuggestion: v.suggestion,
-  };
-}

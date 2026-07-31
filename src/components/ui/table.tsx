@@ -201,14 +201,21 @@ export function DataTable<T>({
 
   return (
     <div className="overflow-hidden rounded-md border border-line">
-      <div
-        ref={scrollRef}
-        className={`overflow-auto ${maxHeightClass}`}
-        tabIndex={0}
-        role="grid"
-        aria-label={label}
-        aria-rowcount={rows.length}
-        onKeyDown={(e) => {
+      {/* Kaydırma kabı — SADECE kaydırır. Izgara değildir (UI-ADR-149). */}
+      <div ref={scrollRef} className={`overflow-auto ${maxHeightClass}`}>
+        <table
+          className="w-full border-collapse text-base"
+          /* IZGARA BURADADIR, dışarıdaki div'de DEĞİL.
+             Önce `role="grid"` sarmalayıcı div'deydi ve içinde gerçek bir
+             `<table>` (örtük `role=table`) duruyordu: satırlardaki
+             `aria-rowindex` / `aria-selected` ızgaraya değil, ızgaranın
+             İÇİNDEKİ ayrı bir tabloya aitti. Ekran okuyucu için ilişki
+             kopuktu — "10.000 satırlık ızgara" diyip satır numarasını
+             bulamıyordu. */
+          role="grid"
+          aria-rowcount={rows.length}
+          tabIndex={0}
+          onKeyDown={(e) => {
           if (e.key === "ArrowDown") {
             e.preventDefault();
             move(cursor + 1);
@@ -228,9 +235,16 @@ export function DataTable<T>({
             setSelected(null);
             onSelect?.(null);
           }
-        }}
-      >
-        <table className="w-full border-collapse text-base">
+          }}
+        >
+          {/* Tablonun ADI. `<caption>` HTML-AAM'e göre erişilebilir adı
+              VERİR ve §9'un istediği başlığı da karşılar; `aria-label` ile
+              ikisini birden yazmak adı çiftler. Görsel olarak gizli çünkü
+              başlık zaten `Section`/`WorkspaceHeader`ta yazılı — ekran
+              okuyucu kullanıcısı ise tabloya doğrudan atlayabilir ve orada
+              hiçbir ad duymuyordu. */}
+          <caption className="sr-only">{label}</caption>
+
           <thead className="sticky top-0 z-10 bg-surface">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-line">

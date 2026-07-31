@@ -102,11 +102,74 @@ export function contractError(where: string, detail: string): OdinError {
   });
 }
 
+/**
+ * İptal hatası mı? — ŞEKLE bakar, sınıfa değil.
+ *
+ * `err instanceof DOMException` güvenilir DEĞİL: Node'un `undici`'si bazı
+ * sürümlerde `AbortError` adında sıradan bir `Error` atar ve jsdom/worker
+ * gibi ayrı realm'lerde `instanceof` zaten `false` döner. O durumda gerçek
+ * bir kullanıcı iptali "bilinmeyen hata" diye sınıflanırdı.
+ *
+ * `signal.reason` ile kimlik karşılaştırması en kesin kanıttır; kalanı ad
+ * ve kod üzerinden şekil kontrolü.
+ *
+ * TEK KOPYA: `client.ts` de bunu kullanır. Daha önce iki ayrı uygulama
+ * vardı ve `errors.ts`'teki olan, `client.ts`'in kendi yorumunda
+ * "güvenilir değil" diye işaretlediği `instanceof DOMException` desenini
+ * kullanıyordu — yani bilinen kusurun kopyası yaşıyordu.
+ */
+export function isAbortError(err: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted && err === signal.reason) return true;
+  if (typeof err !== "object" || err === null) return false;
+  const e = err as { name?: unknown; code?: unknown };
+  return e.name === "AbortError" || e.code === "ABORT_ERR";
+}
+
+/**
+ * Zod hatası mı? — yine ŞEKLE bakar.
+ *
+ * `instanceof ZodError` aynı realm sorununa açıktır; ayrıca iki farklı zod
+ * kopyası (bağımlılık ağacında çoğaltılmış) birbirinin sınıfını tanımaz.
+ */
+function zodIssues(err: unknown): { path: PropertyKey[]; message: string }[] | null {
+  if (typeof err !== "object" || err === null) return null;
+  const e = err as { name?: unknown; issues?: unknown };
+  if (e.name !== "ZodError" || !Array.isArray(e.issues)) return null;
+  return e.issues as { path: PropertyKey[]; message: string }[];
+}
+
+/**
+ * Zod sorunlarını `technical` alanının beklediği tek satırlık forma çevirir.
+ * `parseEnvelope` de bunu kullanır — biçim iki yerde ayrışmasın.
+ */
+export function formatIssues(issues: { path: PropertyKey[]; message: string }[]): string {
+  return issues
+    .map((i) => `${i.path.map(String).join(".") || "(kök)"}: ${i.message}`)
+    .join("\n");
+}
+
 /** Bilinmeyeni de dahil, HER hatayı beş adımlı bir `OdinError`'a çevirir. */
 export function classifyError(err: unknown, where: string): OdinError {
   if (err instanceof OdinError) return err;
 
-  if (err instanceof DOMException && err.name === "AbortError") {
+  /*
+   * HAM YÜK SÖZLEŞME İHLALİ — eskiden buraya bir dal YOKTU.
+   *
+   * `amazonSchema.parse` / `stateSchema.parse` / `directorsStateSchema.parse`
+   * gibi ham yük doğrulamaları `ZodError` atar. `ZodError` ne `OdinError`,
+   * ne `DOMException`, ne de `TypeError` olduğu için doğrudan en alttaki
+   * "unknown" dalına düşüyordu: kullanıcı, sebebi TAM OLARAK bilinen bir
+   * sözleşme farkı için "Beklenmeyen bir hata oluştu — kaynağı
+   * sınıflandırılamadı" görüyordu. Oysa bu dosyanın kendi başlığı
+   * "Zod'un ham mesajı `technical` alanına gider" diyor; dal yazılmamıştı.
+   *
+   * Sözleşme hatası ayrıca YENİDEN DENENMEZ (`retryable` false) — aynı
+   * sunucu aynı yanlış veriyi üretecektir.
+   */
+  const issues = zodIssues(err);
+  if (issues) return contractError(where, formatIssues(issues));
+
+  if (isAbortError(err)) {
     return new OdinError({
       kind: "timeout",
       what: "İstek zaman aşımına uğradı",
