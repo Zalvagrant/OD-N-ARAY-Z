@@ -178,21 +178,36 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 ### Sprint sırası
 
 `15-execution-plan.md` — S0…S13.
-Biten: **S1 (Token), S2 (App Shell), S3 (Core Components),
-S4 (Executive Components — 15 bileşen, `10b-executive-components.md`).**
-Üretildi, sahip onayı bekliyor: **S5 — Executive Briefing + Mission Control**
-(`10c-screens.md`). İlk gerçek ekranlar açıldı; veri **mock**, hepsi
-`meta.source === "mock"` ile işaretli (UI-ADR-094) ve S8'de değişecek.
-Biten (sahip onayı bekliyor): **S5.5 — Sözleşme Hizalama** (UI-ADR-098..100).
-Karar modeli ODIN DecisionRecord'a hizalandı (tier/status/alternatifler/10
-zorunlu öneri alanı), kanonik güven bantları + 8 bileşenli döküm, üç verdict
-(Onayla/Reddet/Ertele + A/B/C gerekçe kuralı), kabuk scroll onarımı, durum
-hafızası, contract fixture testi (`contracts/odin/`).
-Sıradaki: **S6 — Amazon Director.** ✅ KAPI AÇIK: FR-0046 **ADR-0143 ile
-karara bağlandı** (30 Tem 2026) — Alert + KPI kanonik zarfları o ADR'de;
-Opportunity = öneri kayıtlarının görünümü, Mission Board = "izlenen
-kararlar + vadesi gelen ertelemeler" görünümü. S6 bu dört karara göre
-tipler/dönüştürür; UI kavram icat etmez.
+
+⚠️ **Bu bölüm 31 Tem 2026'da GERÇEK DURUMLA hizalandı.** Önceki hâli
+"Sıradaki: S6" diyordu — oysa S6 ve S7 çoktan `main`'e inmişti. Paralel
+oturumlar bu panoyu güncellemeyi atladığı için dört kez ADR numarası
+çakıştı. **Sprint bitirince BURAYI da güncelle.**
+
+**`main` = `11dd4c9`** — S1…S7'nin tamamı ve S5.5 içinde. ADR-0143
+hizalıdır (Alert/KPI kanonik zarfları · Opportunity ayrı kayıt DEĞİL ·
+Mission reddedildi, tahta "izlenen kararlar + vadesi gelen ertelemeler"
+görünümü).
+
+| Sprint | Durum |
+|---|---|
+| S1 Token · S2 App Shell · S3 Core · S4 Executive | ✅ `main`'de |
+| S5 Briefing + Mission Control · S5.5 Sözleşme Hizalama | ✅ `main`'de |
+| S6 Amazon Director | ✅ `main`'de (ADR-0143'e hizalandı) |
+| S7 State & Data Layer | ✅ `main`'de (UI-ADR-112…115) |
+| **S8 Amazon Canlı Bağlantı** | ⚠️ **dalda** — `feature/s8-amazon-live-v2`, UI-ADR-118…123. Meclis hükmü İKİYE AYRILDI: **teknik merge ✅**, **ürün kapanışı ❌** |
+| S9 AI Gateway ve sonrası | ⬜ başlanmadı |
+
+**S8 neden "ürün kapanışı ❌":** boru, kapılar ve canlı vekil doğrulaması
+teslim edildi ama **ekranda tek bir canlı ODIN değeri yok** — `httpLoad`
+ve `useOdinQuery`'nin hiçbir ekran çağıranı yok. Sebebi kod eksikliği
+değil: ODIN gerekli sözleşmeleri henüz yayınlamıyor
+(`backend-istekleri.md`, 12 madde) ve bağlanabilir tek sözleşme olan
+`Goal`'ün arayüzdeki yeri **sahip kapsam kararı** bekliyor. Ayrıntı:
+`18-s8-worklist.md`.
+
+**S9'a geçmeden önce** o kararın verilmesi gerekir; yoksa "canlı veri"
+katmanı hiç tüketilmeden AI katmanı onun üstüne kurulur.
 
 ### Her sprint sonunda
 
