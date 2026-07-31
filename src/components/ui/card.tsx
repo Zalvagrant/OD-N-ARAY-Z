@@ -55,8 +55,14 @@ export function Card({
       className={[
         "rounded-md",
         TONE[tone],
+        /* SAHTE AFFORDANCE DEĞİL — UI-ADR-132.
+           `interactive` yalnızca hover/geçiş görünümünü açar. Tıklama ve
+           klavye yolu `Pressable` ile SARARAK verilir; burada `tabIndex`
+           uydurmayız çünkü Card'ın kendisi bir düğme değildir.
+           Önceden buraya `focus-visible:` sınıfı yazılıydı ve düz bir
+           `<div>` odaklanamadığı için HİÇ eşleşmiyordu. */
         interactive
-          ? "cursor-pointer transition-colors duration-fast ease-standard hover:border-line-active focus-visible:border-line-focus"
+          ? "cursor-pointer transition-colors duration-fast ease-standard hover:border-line-active"
           : "",
         className,
       ].join(" ")}

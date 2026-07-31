@@ -11,14 +11,17 @@
  * Renkten bağımsızlık: her tonun kendi glyph'i vardır.
  *
  * Desteklenmeyen durumlar: Hover / Pressed / Focus — öğeler tıklanabilir
- * DEĞİLDİR (`onSelect` verilmedikçe). Verildiğinde satır bir butona döner
- * ve odak halkası native gelir.
+ * DEĞİLDİR (`onSelect` verilmedikçe). Verildiğinde satır `Pressable`a
+ * sarılır: `role="button"` + `tabIndex` + Enter/Space. Native `<button>`
+ * KULLANILMAZ çünkü satır gövdesi blok içeriktir ve `<button>`ın içerik
+ * modeli phrasing content'tir (UI-ADR-132).
  */
 
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { NoData } from "@/components/ui/no-data";
+import { Pressable } from "@/components/ui/pressable";
 import type { TimelineItem } from "@/types/screens";
 
 export type { TimelineItem };
@@ -126,13 +129,13 @@ export function Timeline({
         return (
           <li key={item.id}>
             {onSelect ? (
-              <button
-                type="button"
-                onClick={() => onSelect(item)}
-                className="w-full rounded-sm text-left hover:bg-surface"
+              <Pressable
+                onPress={() => onSelect(item)}
+                label={item.actor ? `${item.actor}: ${item.id}` : item.id}
+                className="w-full hover:bg-surface"
               >
                 {body}
-              </button>
+              </Pressable>
             ) : (
               body
             )}

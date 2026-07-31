@@ -2749,3 +2749,67 @@ Dev sunucusu temiz derlemeyle yeniden başlatıldı; dört rotanın dördü de
 derleme hatasız. `/amazon` BuyBox listesi sıralı (%62,0 · %71,3 · %78,4 ·
 %88,0) ve onaylanmamış eşik uyarısı altında görünüyor.
 `/mission-control` üç "sözleşme yok" bölümü tek şekilden basılıyor.
+
+---
+
+## UI-ADR-132 — Blok içerik saran tıklama tek primitive'de; sahte affordance kaldırıldı (S13)
+
+**Durum:** ✅ Dondurulmuş — klavye yolu Storybook etkileşim testiyle ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-131 · `02-design-principles.md` §13 · `tokens.css` §FOCUS
+
+### Bulgu — üç yerde aynı sözleşme, üçünde de yanlış
+
+**A. Geçersiz iç içelik (2 yer).** `alert-stack.tsx` ve `timeline.tsx`
+bir `<button>`ın İÇİNE blok içerik koyuyordu (`<p>`, `<div>`).
+`<button>`ın içerik modeli *phrasing content*'tir; `<div>`/`<p>` *flow
+content*'tir. Ekran okuyucu düğmenin erişilebilir adını bütün alt
+metinleri birleştirerek üretir ve tek nefeslik bir cümle okur.
+
+**B. Sahte affordance (1 yer).** `Card interactive` TAM TERSİ hatayı
+yapıyordu: düz bir `<div>`e `cursor-pointer` ve
+`focus-visible:border-line-focus` veriyordu ama `tabIndex`, `role` ve
+klavye işleyicisi YOKTU. `<div>` odaklanabilir olmadığı için
+`:focus-visible` **hiçbir zaman eşleşmiyordu**; `tokens.css:359`
+genel odak kuralı da `[tabindex]` aradığı için uygulanmıyordu. Fare
+kullanıcısı el imleci görüyor, klavye kullanıcısı öğeye hiç
+**ULAŞAMIYORDU**.
+
+### DÜRÜSTLÜK NOTU — üç kusur da GİZİLDİ, canlı değil
+
+Ölçüldü: `AlertStack`e ve `Timeline`a bugün hiçbir ekran `onSelect`
+geçmiyor, `Card interactive`in ise **sıfır tüketicisi** var. Yani bugün
+kullanıcı bu kusurların hiçbirine çarpmıyor. Düzeltmenin değeri, biri
+`onSelect` yazdığı gün kusurun sessizce doğmayacak olmasıdır — ve
+klavye yolu, fareyle bakan hiç kimsenin fark etmediği türden bir
+özelliktir.
+
+### Karar
+
+`src/components/ui/pressable.tsx` — `role="button"` + `tabIndex={0}` +
+Enter/Space + zorunlu `label`.
+
+- Blok içerik serbest kalır (native `<button>` saramazdı).
+- `label` ZORUNLU: verilmezse ad bütün alt metinlerden üretilir.
+- Space `preventDefault` eder; yoksa tuş sayfayı kaydırır ve kullanıcı
+  öğeyi seçerken ekran altına kayar.
+- `Card interactive` artık yalnız hover görünümü açar; tıklama ve klavye
+  yolu `Pressable` ile SARARAK verilir. Card bir düğme değildir, ona
+  `tabIndex` uydurulmaz.
+
+### `Stat.tone` birlik tipine bağlandı
+
+`mission-control` `tone`u serbest `string` alıp doğrudan `className`e
+enterpole ediyordu: **herhangi** bir sınıf (token dışı bir renk dahil)
+tip denetiminden geçerdi ve ESLint'in token kuralı template içindeki
+değişkeni göremezdi. `STAT_TONE` birliği izin verilen tonu derlemede
+kilitler. Ekranda ölçüldü: beş sayaç birebir aynı sınıfları basıyor.
+
+### Ölçüm
+
+Lint 0 · `tsc` 0 · 56 dosya / **305 test** yeşil (302'den +3).
+
+Yeni üç hikâye görsel değil **sözleşme** testidir: `Tab` ile odaklanır,
+`Enter` ve `Space` ayrı ayrı tetikler, sarılan içerikte iki `<p>` bulunur
+ve kök `DIV`dir — yani `<button>`ın saramayacağı içerik gerçekten
+sarılıyor.

@@ -48,22 +48,40 @@ import { MonitoredDecisionsBoard } from "@/components/executive/monitored-decisi
    Operational Status — ölçüme dayalı, uydurmasız
    -------------------------------------------------------------------------- */
 
+/*
+ * Sayaç tonu — UI-ADR-132.
+ *
+ * `tone` serbest `string` idi ve doğrudan `className`e enterpole
+ * ediliyordu: HERHANGİ bir sınıf (token dışı bir renk dahil) tip
+ * denetiminden geçerdi ve ESLint'in token kuralı da template içindeki
+ * değişkeni göremezdi. Birlik tipi, izin verilen tonu derlemede kilitler.
+ */
+const STAT_TONE = {
+  neutral: "text-content",
+  success: "text-success",
+  danger: "text-danger",
+  warning: "text-warning",
+  muted: "text-content-tertiary",
+} as const;
+
+type StatTone = keyof typeof STAT_TONE;
+
 function Stat({
   label,
   value,
   note,
-  tone = "text-content",
+  tone = "neutral",
 }: {
   label: string;
   value: number | string;
   note: string;
-  tone?: string;
+  tone?: StatTone;
 }) {
   return (
     <div>
       <dt className="text-xs uppercase tracking-wide text-content-tertiary">{label}</dt>
       <dd className="mt-1">
-        <span className={`odin-num text-lg ${tone}`}>{value}</span>
+        <span className={`odin-num text-lg ${STAT_TONE[tone]}`}>{value}</span>
       </dd>
       <p className="text-xs text-content-tertiary">{note}</p>
     </div>
@@ -114,25 +132,25 @@ function OperationalStatus({
             label="Sağlıklı Director"
             value={count("healthy")}
             note={note("ODIN status: healthy")}
-            tone="text-success"
+            tone="success"
           />
           <Stat
             label="Hatalı"
             value={count("failed")}
             note={note("ODIN status: failed")}
-            tone="text-danger"
+            tone="danger"
           />
           <Stat
             label="Gecikmiş"
             value={count("stale")}
             note={note("beklenen ritmi kaçırdı — hata vermiş değil")}
-            tone="text-warning"
+            tone="warning"
           />
           <Stat
             label="Bilinmiyor"
             value={count("unknown")}
             note={note("hiç gözlem yok — ölmüş demek değildir")}
-            tone="text-content-tertiary"
+            tone="muted"
           />
         </dl>
       </CardBody>
