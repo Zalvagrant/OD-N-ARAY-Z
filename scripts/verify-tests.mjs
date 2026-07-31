@@ -51,7 +51,17 @@ const FLOOR = Number(process.argv[3] ?? 190);
 
 /** Raporu değerlendirir. Saf — dosya sistemi ve ağ yok, bu yüzden aşağıdaki
  *  `--self-check` kapının KENDİSİNİ tarayıcı açmadan sınayabiliyor. */
-export function evaluate(report, { runFailed = false, floor = FLOOR } = {}) {
+/* KOŞMASI ZORUNLU DOSYALAR — UI-ADR-154.
+   Alt sınır TOPLAMA bakar, KİMLİĞE bakmaz: commit A'da bir yere 15 önemsiz
+   test ekleyip commit B'de kapı dosyasını silmek toplamı koruyordu ve kapı
+   YEŞİL kalıyordu. Bağımsız denetimde ölçüldü. Kapıların kendisi artık
+   adlarıyla aranıyor — iki satır, kimlik kontrolünün büyük kısmını verir. */
+const ZORUNLU = {
+  unit: ["state-matrix.test", "inventory.test"],
+  storybook: [],
+};
+
+export function evaluate(report, { runFailed = false, floor = FLOOR, zorunlu = [] } = {}) {
   const passed = report.numPassedTests ?? 0;
   const failed = report.numFailedTests ?? 0;
   const pending = report.numPendingTests ?? 0;
@@ -65,6 +75,12 @@ export function evaluate(report, { runFailed = false, floor = FLOOR } = {}) {
   if (pending > 0) problems.push(`${pending} test atlandı (skip)`);
   if (todo > 0) problems.push(`${todo} test todo`);
   if (passed < floor) problems.push(`geçen test ${passed} < alt sınır ${floor}`);
+  const adlar = (report.testResults ?? []).map((r) => String(r.name ?? ""));
+  for (const z of zorunlu) {
+    if (!adlar.some((a) => a.includes(z))) {
+      problems.push(`KAPI DOSYASI KOŞMADI: ${z} — silinmiş ya da yeniden adlandırılmış olabilir`);
+    }
+  }
   if (runFailed && problems.length === 0) {
     problems.push("vitest sıfırdan farklı çıkış kodu döndürdü ama rapor temiz — " +
                   "raporlanmayan bir hata var, kapı kapalı");
@@ -97,7 +113,12 @@ if (process.argv.includes("--self-check")) {
   assert.equal(evaluate({ ...ok, numPassedTests: 400 }, F).problems.length, 0);
   // Yürürlükteki FLOOR gerçekten koruyor mu: bugünkü ölçümün altı kırmızı.
   assert.ok(evaluate({ ...ok, numPassedTests: FLOOR - 1 }).problems.length > 0);
-  console.log(`self-check: 9 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
+  // Kimlik kontrolü: zorunlu dosya raporda yoksa kırmızı.
+  red({ ...ok, testResults: [{ name: "baska.test.ts" }] }, { zorunlu: ["kapi.test"] });
+  assert.equal(
+    evaluate({ ...ok, testResults: [{ name: "x/kapi.test.ts" }] },
+             { ...F, zorunlu: ["kapi.test"] }).problems.length, 0);
+  console.log(`self-check: 11 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 
@@ -134,7 +155,10 @@ try {
   throw new Error(`${PROJECT} kapısı KAPALI: rapor bozuk JSON — ${e.message}`);
 }
 
-const { problems, files, passed } = evaluate(report, { runFailed });
+const { problems, files, passed } = evaluate(report, {
+  runFailed,
+  zorunlu: ZORUNLU[PROJECT] ?? [],
+});
 
 if (problems.length > 0) {
   throw new Error(`${PROJECT} kapısı KAPALI: ${problems.join(" · ")}`);

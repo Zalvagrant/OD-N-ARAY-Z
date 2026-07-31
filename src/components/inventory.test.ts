@@ -9,7 +9,9 @@
  * Bu kapı o kararı YAŞATIR. "Envanter" bir etikettir; etiket tek başına
  * ölü kodu meşrulaştırır. Onu dürüst tutan tek şey, bileşenin GÖRÜLEBİLİR
  * ve ÇALIŞTIRILABİLİR olmasıdır: hikâyesi olan bir bileşen Storybook'ta
- * render edilir, addon-a11y ile taranır ve test paketinde koşar.
+ * render edilir ve test paketinde koşar.
+ * (addon-a11y taraması `todo` modunda — GÖSTERİR ama CI'ı DÜŞÜRMEZ;
+ * yanlış bir güven vermemek için bu satırdan çıkarıldı, UI-ADR-154.)
  * Hikâyesi olmayan ve çağıranı da olmayan bir dosya envanter değildir —
  * hiç kimsenin bakmadığı koddur.
  *

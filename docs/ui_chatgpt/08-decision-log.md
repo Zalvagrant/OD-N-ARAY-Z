@@ -4296,3 +4296,97 @@ bitmeden arandı · `goals`ta üç iskelet açıkken ölçüm yapıldı. Dördü
 `tsc` 0 · `lint` 0 hata · `npm run test:ci`:
 **unit 16 dosya / 234 test** (alt sınır 230) ·
 **storybook 53 dosya / 195 test** (alt sınır 190) · atlanan 0, düşen 0.
+
+---
+
+## UI-ADR-154 - Ikinci denetim: kapilar kosuyordu ama ustlerinden atlanabiliyordu (S13 kapanis)
+
+**Durum:** DONDURULDU - her duzeltme enjekte ihlalle denendi
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-146 - 148 - 151 - 152 - 153
+
+Bagimsiz denetimin IKINCI turu: **12 bulgu, 2 kritik.** Birincisi aciydi -
+UI-ADR-152'de "derleyiciye verdim" dedigim kapi, **derleyici kosulmadigi
+icin** aslinda kosmuyordu.
+
+### KRITIK 1 - `test:ci` `tsc` KOSMUYORDU
+
+`Button`in erisilebilirlik kapisi bir TIP kapisidir. Ama `test:ci` =
+`lint + unit + storybook`; ESLint tip hatasi raporlamaz, vitest/esbuild
+tipleri **kontrol etmeden siler**. `tsc` yalniz `build` icindeydi.
+
+Olculdu: adsiz `<Button icon={...} />` icin `tsc` hata verdi, `eslint`
+**cikis 0**. Yani kapi vardi, `test:ci` yesilken ihlal commit edilirdi.
+`typecheck` script'i eklendi ve `test:ci`nin BASINA kondu.
+
+**Ders (152'nin dersinin devami):** "kapi yazdim" -> "kapi koruyor" ->
+**"kapi KOSUYOR"**. Ucu ayri iddiadir ve ucu de ayri ayri dogrulanir.
+
+### KRITIK 2 - tek satirlik `eslint-disable` HER SEYI susturuyordu
+
+Bir dosyanin basina yazilan tek bir satir token kuralini, **sahte veri
+kuralini (146)** ve **katman sinirlarini (130)** ayni anda kapatiyordu;
+`npx eslint` sifir bulguyla cikis 0 veriyordu. Bu reponun butun mimari
+kapilari ESLint'te yasiyor - tek satirla kapatilabilir birakmak, kapi
+olmadiklarini soylemektir.
+
+`noInlineConfig: true` + `reportUnusedDisableDirectives: "error"` +
+`--max-warnings 0`. Dort gerekceli istisna (`avatar` img, `search`
+exhaustive-deps, `table` unused-vars ve incompatible-library) silinmedi,
+`eslint.config.mjs`e DOSYA BAZINDA tasindi: ayni muafiyet, ama merkezi ve
+gorulerek. Ayrica `--max-warnings 0` gizli **9 uyariyi** ortaya cikardi.
+
+### Kapilardan atlama yollari - hepsi kapatildi
+
+| Kacis | Duzeltme |
+|---|---|
+| `<Button>{gizli && <span/>}</Button>` -> false olunca ADSIZ buton | calisma zamani dev uyarisi (tip `ReactNode`u daraltamaz) |
+| story dosyasi `export default meta` bicimine cevrilir -> 0 blok -> dongu donmez -> yesil | blok sayisi 0 ise kirmizi |
+| `play` govdesinde yalniz YORUM icinde `expect(` | yorumlar dusurulup araniyor |
+| `expect(true).toBe(true)` | sabit-degerli iddialar dusurulup GERCEK iddia araniyor |
+| Commit A'da 15 onemsiz test ekle, commit B'de kapi dosyasini sil -> toplam korunur -> yesil | kapi dosyalari **adlariyla** araniyor (`ZORUNLU`) |
+| `value={x === null ? 0 : x}` - `??` yasaklaninca yazilacak bicim | ternary ve mantiksal-veya da yasaklandi |
+
+Ucu de enjekte ihlalle denendi: `state-matrix.test.ts` yeniden
+adlandirildi -> *"KAPI DOSYASI KOSMADI"*; satir ici disable yazildi ->
+3 hata yakalandi; ternary + mantiksal-veya -> 2 hata.
+
+### Iki zayif iddia guclendirildi
+
+`goals`ta `expect(govde.length).toBeGreaterThan(0)` bir satir yukaridaki
+`findByRole` gectiyse KOSULSUZ dogruydu - silindi. `intelligence-feed`de
+`findAllByRole` ILK ogede cozuluyordu, yani `maxVisible` siniri sanildigi
+kadar kilitli degildi - liste durgunlasana kadar beklenip yeniden
+sayiliyor.
+
+### SAHIP KARARI BEKLIYOR - erisilebilirlik taramasi baglayici degil
+
+`.storybook/preview.tsx`te `a11y.test: "todo"` - axe ihlalleri
+**gosteriliyor ama CI'i dusurmuyor.** `error`e cevrildi ve OLCULDU:
+
+> **107 story dusuyor, 609 ihlal.**
+> `color-contrast` **582** (%96), `definition-list` 12, `dlitem` 10,
+> `landmark-unique` 2, `label` 2, `aria-valid-attr-value` 1
+
+582'nin neredeyse tamami **TEK TOKEN**: `#64748b`
+(`text-content-tertiary`). Bes zemine karsi olculen en kotu oran
+**3.73:1**; WCAG AA kucuk metin icin 4.5:1 istiyor.
+
+Yani bu "yuzlerce hata" degil, **bir tasarim dili karari**: tek token
+acilirsa ihlallerin ~%96'si kapanir. Olculmus adaylar (en kotu zemine
+gore): `#7c8899` -> 4.93, `#8593a5` -> 5.67, `#94a3b8` -> 6.92.
+
+Token degistirmek arayuzun TAMAMININ gorunumunu etkiler; sessizce
+yapilmaz. Karar verilip sifirlanana kadar `todo`da kaliyor ve **sayi
+kodda yazili** - bir sonraki oturum tahmin etmeyecek.
+
+Ayrica `inventory.test.ts`in basligindaki *"addon-a11y ile taranir"*
+ifadesi CI'da dogru DEGILDI (taraniyor ama baglayici degil) - yanlis
+guven vermemek icin duzeltildi.
+
+### Olcum
+
+`npm run test:ci` = **typecheck + lint + unit + storybook**:
+`tsc` 0, `lint` 0 hata **0 uyari**,
+**unit 16 dosya / 234 test** (alt sinir 230, kapi dosyalari adla araniyor),
+**storybook 53 dosya / 195 test** (alt sinir 190), atlanan 0, dusen 0.

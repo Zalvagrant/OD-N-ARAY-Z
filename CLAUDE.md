@@ -94,11 +94,11 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…153` serisindedir — **boşluk yok.**
+Bu repodaki kararlar `UI-ADR-001…154` serisindedir — **boşluk yok.**
 S13 merge edildiğinde `main`'in S15 için açtığı 130–139 aralığı doldu.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-154`'ten**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-155`'ten**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
@@ -229,7 +229,8 @@ tahta "izlenen kararlar + vadesi gelen ertelemeler" görünümü).
 ✅ **S13 kapandı ve `main`'e indi.** Geçmişi ve tuzakları
 `docs/ui_chatgpt/19-s13-devir.md`'de.
 
-⚠️ **TESTİ NASIL KOŞACAKSIN:** `npm run test:ci` (S17'nin fail-closed
+⚠️ **TESTİ NASIL KOŞACAKSIN:** `npm run test:ci` — **typecheck + lint +
+unit + storybook**, dördü de fail-closed (S17 + UI-ADR-154 kapıları
 kapısı). Çıplak `npx vitest run` KULLANMA — `unit` ile `storybook` aynı
 anda koşarsa node işçileri CPU'yu tutuyor, tarayıcı bağlantısı düşüyor ve
 özet satırı yine "passed" yazıyor. Eski devir belgelerindeki *"dev

@@ -367,3 +367,16 @@ Aşağısı tarihsel kayıt:
    tests.mjs`in `evaluate()` mantığı `--project unit` raporuna da
    uygulanabilir.
 4. ⬜ **Meclis denetimi hâlâ ALINMADI** — `ask_yazilimcilar` yeni oturumda.
+
+### 6.7 SAHIP KARARI BEKLEYEN TEK MADDE
+
+**Erisilebilirlik taramasi CI'da baglayici DEGIL** (`a11y.test: "todo"`).
+Olculdu: `error`e cevrilince **107 story dusuyor, 609 ihlal** - ve
+**582'si (%96) TEK TOKEN'dan**: `#64748b` (`text-content-tertiary`),
+en kotu kontrast **3.73:1**, WCAG AA 4.5:1 istiyor.
+
+Bu bir "yuzlerce hata" degil, bir tasarim dili karari. Olculmus adaylar:
+`#7c8899` -> 4.93, `#8593a5` -> 5.67, `#94a3b8` -> 6.92.
+
+Sahip tonu secerse: token degistir -> tekrar olc -> kalan ~27 ihlali kapat
+-> `test: "error"`. Sayilar `.storybook/preview.tsx`te yazili; tahmin etme.

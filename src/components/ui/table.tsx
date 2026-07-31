@@ -52,7 +52,6 @@ const ROW: Record<TableDensity, { px: number; cls: string }> = {
  * merging kuralı); bu yüzden kullanılmayan tip parametreleri var.
  */
 declare module "@tanstack/react-table" {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends RowData, TValue> {
     /** true → sağa hizalı + tabular-nums. Verilmezse veriden anlaşılır. */
     numeric?: boolean;
@@ -101,7 +100,6 @@ export function DataTable<T>({
   /* React Compiler TanStack Table'ı memoize edemiyor (döndürdüğü fonksiyonlar
      her render'da değişir). Bilinen ve kabul edilen durum: tablo zaten
      sanallaştırılmış, memoizasyon kazancı ölçülebilir değil. */
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

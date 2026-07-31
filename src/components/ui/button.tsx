@@ -137,6 +137,36 @@ export function Button({
 }: ButtonProps) {
   const locked = disabled || loading || offline;
 
+  /**
+   * TİP KAPISI YETMEZ — çalışma zamanı kontrolü (UI-ADR-154).
+   *
+   * `children: ReactNode` `null | undefined | false | " "` hepsini KABUL
+   * eder, yani union'ın ilk kolu tatmin edilir ve `aria-label` istenmez.
+   * En sık yazılan biçim tam olarak riskli olanıdır:
+   *     <Button>{gizli && <span>Kaydet</span>}</Button>
+   * `gizli` false olduğunda çalışma anında ADSIZ bir `<button>` çıkar ve
+   * ekran okuyucu yalnız "buton" der. Tip bunu göremez çünkü tip
+   * çalışma zamanı değerini bilmez.
+   *
+   * Yalnız geliştirmede uyarır: üretimde bir `console.error` kullanıcıya
+   * fayda sağlamaz, gürültü üretir.
+   */
+  if (process.env.NODE_ENV !== "production") {
+    const bosMu =
+      children === null ||
+      children === undefined ||
+      children === false ||
+      (typeof children === "string" && children.trim() === "");
+    const adVar = rest["aria-label"] ?? rest["aria-labelledby"];
+    if (bosMu && !adVar) {
+      console.error(
+        "Button: metin YOK ve aria-label/aria-labelledby de yok — " +
+          "ekran okuyucuda yalnız 'buton' diye okunur. " +
+          "Koşullu içerik kullanıyorsan (`{x && <span/>}`) ad AÇIKÇA ver."
+      );
+    }
+  }
+
   return (
     <button
       type="button"

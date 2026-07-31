@@ -63,6 +63,23 @@ const tokenRules = {
       selector:
         "JSXAttribute[name.name='value'] LogicalExpression[operator='||'][right.value=0]",
       message:
+        "SAHTE VERİ: `value={x || 0}` ölçülmemiş bir metriği SIFIR gösterir (CLAUDE.md §2). Ham değeri geçir.",
+    },
+    /* ÜÇLÜ OPERATÖR — bağımsız denetimde ölçüldü ve KAÇIYORDU.
+       `??` yasaklanınca geliştiricinin yazacağı bir sonraki biçim tam
+       olarak budur: `value={x === null ? 0 : x}`. Aynı yalanı söyler,
+       aynı mekanizmayı atlar. Bir kaçış yolunu kapatıp komşusunu açık
+       bırakmak, kuralı yalnız yazım biçimine karşı korur. */
+    {
+      selector:
+        "JSXAttribute[name.name='value'] ConditionalExpression > Literal[value=0]",
+      message:
+        "SAHTE VERİ: `value={... ? 0 : ...}` ölçülmemiş bir metriği SIFIR gösterir (CLAUDE.md §2). Ham değeri geçir — Num/Pct/Meter null'ı NoData'ya çevirir.",
+    },
+    {
+      selector:
+        "JSXAttribute[name.name='value'] LogicalExpression[operator='||'][right.value=0]",
+      message:
         "SAHTE VERİ: `value={x || 0}` ölçülmemiş bir metriği SIFIR gösterir — üstelik GERÇEK 0'ı da ezer (CLAUDE.md §2). Ham değeri geçir.",
     },
   ],
@@ -81,6 +98,63 @@ const tokenRules = {
 };
 
 const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
+  /**
+   * SATIR İÇİ KAPATMA YASAK — UI-ADR-154.
+   *
+   * Bağımsız denetimde ölçüldü: bir dosyanın başına tek satırlık bir
+   * `eslint-disable` yorumu yazmak token kuralını, SAHTE VERİ kuralını
+   * (UI-ADR-146) ve katman sınırlarını (UI-ADR-130) AYNI ANDA
+   * susturuyordu — `npx eslint` sıfır bulguyla çıkış 0 veriyordu.
+   *
+   * Bu reponun bütün mimari kapıları ESLint'te yaşıyor. Onları tek
+   * satırla kapatılabilir bırakmak, kapı olmadıklarını söylemektir.
+   * Gerçekten gerekli bir istisna çıkarsa kural BU DOSYADA, dosya
+   * bazında ve gerekçesiyle gevşetilir — sessizce değil, görülerek.
+   *
+   * `reportUnusedDisableDirectives`: ölü kalmış bir disable yorumu,
+   * artık ateşlemeyen bir kuralın mezar taşıdır; temizlenmezse bir
+   * sonraki gerçek ihlali sessizce yutar.
+   */
+  linterOptions: {
+    noInlineConfig: true,
+    reportUnusedDisableDirectives: "error",
+  },
+}, {
+  /**
+   * SATIR İÇİ KAPATMANIN YERİNE GEÇEN DOSYA BAZLI İSTİSNALAR — UI-ADR-154.
+   *
+   * `noInlineConfig` açılınca bu dört gerekçeli `eslint-disable-next-line`
+   * de öldü. Silmek yerine BURAYA taşındılar: aynı muafiyet, ama artık
+   * merkezî bir dosyada ve görülerek veriliyor. Yeni bir istisna eklemek
+   * için bu listeye satır yazmak gerekir — dosyanın başına bir yorum
+   * yazmak yetmez.
+   */
+  files: ["src/components/ui/avatar.tsx"],
+  rules: {
+    /* Avatar görseli KULLANICIDAN gelen bir URL; `next/image` uzak alan
+       adı yapılandırması ister ve kaynak listesi çalışma zamanında
+       bilinmiyor. */
+    "@next/next/no-img-element": "off",
+  },
+}, {
+  files: ["src/components/ui/search.tsx"],
+  rules: {
+    /* `onSearch` KASITLI olarak bağımlılıkta değil: çağıran memoize
+       etmezse her render'da sayaç sıfırlanır ve debounce hiç çalışmaz. */
+    "react-hooks/exhaustive-deps": "off",
+  },
+}, {
+  files: ["src/components/ui/table.tsx"],
+  rules: {
+    /* TanStack `ColumnMeta` declaration merging'i jenerik imzanın BİREBİR
+       aynı olmasını ister; kullanılmayan tip parametreleri zorunludur. */
+    "@typescript-eslint/no-unused-vars": "off",
+    /* TanStack Table döndürdüğü fonksiyonlar her render'da değiştiği için
+       React Compiler memoize edemiyor. Tablo zaten sanallaştırılmış;
+       ölçülebilir bir kazanç yok. */
+    "react-hooks/incompatible-library": "off",
+  },
+}, {
   files: ["src/**/*.{ts,tsx}", "*.{ts,tsx}"],
   rules: tokenRules,
 }, {

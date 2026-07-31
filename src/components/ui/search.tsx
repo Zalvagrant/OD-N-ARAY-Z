@@ -91,7 +91,6 @@ export function Search({
   useEffect(() => {
     const t = setTimeout(() => onSearch(query), debounceMs);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, debounceMs]);
 
   const commit = (value: string) => {

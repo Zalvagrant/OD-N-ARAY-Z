@@ -60,7 +60,18 @@ const bloklarOf = (src: string) => src.split(/^export const /m).slice(1);
 /** Bir bloğun bir şey İDDİA ettiğini doğrular. */
 function iddiaVarMi(blok: string): boolean {
   if (!/^\s*play:/m.test(blok)) return false;
-  return blok.slice(blok.search(/^\s*play:/m)).includes("expect(");
+  /* YORUMLAR DÜŞÜRÜLÜR — UI-ADR-154. `expect(` düz alt dize olarak
+     aranıyordu ve `/* bir gün expect( yazacağım *\/` bile kapıyı
+     geçiriyordu; gövde tamamen boş olabilirdi. */
+  const govde = blok
+    .slice(blok.search(/^\s*play:/m))
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+  /* `expect(true).toBe(true)` biçimsel olarak geçer ama sıfır şey kanıtlar:
+     sabit bir değerle kurulan iddia, ekran hiç render edilmese de doğrudur.
+     Sayılmayan bu tür çağrılar düşürülüp GERÇEK bir iddia aranıyor. */
+  const anlamli = govde.replace(/expect\(\s*(true|false|-?\d+)\s*\)/g, "");
+  return anlamli.includes("expect(");
 }
 
 /** Her durum için story adında aranan iz — Türkçe adlar kullanılıyor. */
@@ -100,7 +111,17 @@ describe("ekran kapısı — HER ekran (UI-ADR-151 → 153)", () => {
           `hikâyesidir; hikâyesiz ekran yalnız gözle doğrulanabilir.`
       ).toBe(true);
 
-      for (const blok of bloklarOf(readFileSync(storyPath, "utf8"))) {
+      const bloklar = bloklarOf(readFileSync(storyPath, "utf8"));
+      /* SIFIR BLOK = SIFIR İDDİA ve döngü hiç dönmez → test yeşil kalırdı.
+         `export default meta` ya da `export { X }` biçimine çevrilmiş bir
+         story dosyası kapıyı böyle geçiyordu (UI-ADR-154). */
+      expect(
+        bloklar.length,
+        `${r}: hikâye dosyasında hiç \`export const\` story YOK — kapı ` +
+          `hiçbir şey denetleyemiyor. Story'ler \`export const\` ile yazılır.`
+      ).toBeGreaterThan(0);
+
+      for (const blok of bloklar) {
         const ad = blok.slice(0, Math.max(blok.indexOf(":"), 0));
         expect(
           iddiaVarMi(blok),

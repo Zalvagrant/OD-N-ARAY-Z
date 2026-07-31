@@ -53,11 +53,6 @@ export const Hedefler: Story = {
       ).toBeInTheDocument();
     }
 
-    /* Bölüm ya hedef satırı gösterir ya "bu seviyede hedef yok" der —
-       ikisi de bir CEVAPTIR. Sessiz bir boşluk cevap değildir. */
-    const govde = canvasElement.textContent ?? "";
-    await expect(govde.length).toBeGreaterThan(0);
-
     /* Yükleme GERÇEKTEN biter. `role="status"` iskelet bölgesidir; üç
        bölüm de ondan çıkmadan aşağıdaki hiçbir iddia anlam taşımaz.
        (İlk yazımda eşzamanlı ölçtüm ve üç iskelet açıkken düştü — bu

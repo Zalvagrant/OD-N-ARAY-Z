@@ -6,13 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "test:unit": "node scripts/verify-tests.mjs unit 230",
     "test:storybook": "node scripts/verify-tests.mjs storybook 190",
-    "test:ci": "npm run lint && npm run test:unit && npm run test:storybook",
+    "test:ci": "npm run typecheck && npm run lint && npm run test:unit && npm run test:storybook",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "build:release": "node scripts/assert-release-mode.mjs && next build && node scripts/assert-no-mock-in-bundle.mjs"
+    "build:release": "node scripts/assert-release-mode.mjs && next build && node scripts/assert-no-mock-in-bundle.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",

@@ -55,8 +55,10 @@ export function Avatar({
         title={label}
       >
         {src ? (
-          /* eslint-disable-next-line @next/next/no-img-element -- avatar kaynağı
-             harici olabilir; next/image optimizasyonu localhost dışına çıkar. */
+          /* `<img>` KASITLI: avatar kaynağı kullanıcıdan gelen bir URL ve
+             `next/image` uzak alan adı yapılandırması ister; kaynak listesi
+             çalışma zamanında bilinmiyor. Muafiyet eslint.config.mjs'te
+             dosya bazında verildi (UI-ADR-154). */
           <img src={src} alt={label} className="h-full w-full object-cover" />
         ) : name ? (
           <span aria-hidden>{initials(name)}</span>

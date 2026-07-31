@@ -13,7 +13,7 @@
  * katmanın bastırmasını ister.
  */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 
 import { IntelligenceFeed } from "./screen";
 
@@ -45,11 +45,23 @@ export const Akis: Story = {
     /* AKIŞIN GELMESİNİ BEKLE. Fixture asenkron çözülüyor; eşzamanlı sorgu
        iskelet üstünde koşar ve hiçbir şey kanıtlamaz. (Bu oturumda aynı
        hataya üç kez düşüldü — kural: yokluk iddiası VARLIKTAN sonra.) */
-    const satirlar = await canvas.findAllByRole(
-      "listitem",
-      {},
-      { timeout: 15_000 }
+    await canvas.findAllByRole("listitem", {}, { timeout: 15_000 });
+
+    /* STABİLİZE OL, SONRA SAY. `findAllByRole` İLK öğe göründüğü an
+       çözülür; oradaki sayıya bakmak sınırın uygulandığını kanıtlamaz —
+       liste büyümeye devam ediyor olabilir. İki ardışık ölçüm aynı
+       gelene kadar bekleyip ondan sonra sayıyoruz. */
+    let onceki = -1;
+    await waitFor(
+      () => {
+        const n = canvas.queryAllByRole("listitem").length;
+        const durgun = n === onceki;
+        onceki = n;
+        expect(durgun).toBe(true);
+      },
+      { timeout: 15_000, interval: 120 }
     );
+    const satirlar = canvas.queryAllByRole("listitem");
 
     /* Veri MOCK olduğu sürece bunu SÖYLEMEK zorunda: `MockBadge` bu
        ekranın tek dürüstlük işareti. Kaybolursa mock veri gerçek sanılır
