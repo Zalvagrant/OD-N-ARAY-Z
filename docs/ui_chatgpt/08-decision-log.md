@@ -3213,6 +3213,124 @@ doğru, test yanlıştı — bu oturumda üçüncü kez.
 
 `tsc` 0 · `lint` 0 hata · **59 dosya / 344 test** (+1 dosya / +25 test).
 
+---
+
+## UI-ADR-140 — Her metrik kendi ölçüm penceresini söyler (S15)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** ODIN ADR-0138 · ADR-0147 · ADR-0149 · `backend-istekleri.md` #13
+
+⚠️ **NUMARA NEDEN 140?** `main`'de UI-ADR-129 var (S14, benim) ve
+`feature/s13-frontend-architecture` dalında **129–134** bekliyor — beşinci
+numara çakışması. Aralık bırakıldı ki S13 merge olurken çarpışma
+büyümesin. Bu bir tercih değil, paralel oturum gerçeğine karşı bir
+önlem; kalıcı çözüm numaraların `main`'den alınması.
+
+### Karar
+
+ODIN her KPI'a kendi `report_period`'unu koyuyordu (ADR-0138); arayüz
+yalnız `asOf`u okuyordu. Yaş sorusu cevaplanıyor, **pencere sorusu
+cevaplanmıyordu**: "38 adet satıldı" ile "hangi 38 gün" ayrı bilgilerdir.
+
+**1. Sözleşme genişledi.** `ExecutiveKPI.reportPeriod` eklendi
+(opsiyonel, `null` kabul). Meclis 2/2: bu bir sözleşme işidir, yalnız
+görsel değil — arayüz pencereyi türetemez.
+
+**2. Pencere NORMALLEŞTİRİLMEZ.** Kayıt "30 Temmuz'da biten 7 günlük
+pencere" diyorsa ekran da onu der. Sabit bir tarih aralığına çevirmek,
+kaydın söylemediği bir kesinlik iddia etmek olurdu. (SkuHealth'teki
+başlangıç hesabı AYRI bir durumdur ve orada beyanın aritmetiğidir.)
+
+**3. HER kartta gösterilir, yalnız farklı olanlarda değil.** Meclis
+burada ayrıştı: terra "hepsi aynıysa kartı kirletme, başlıkta göster",
+luna "her kartta kompakt göster — dönemi karttan koparmak bağlamı da
+koparır ve ekran okuyucuda metrik penceresiz kalır". luna'nınki alındı:
+kart kendi kendini anlatmalı. Bugün zaten üç farklı pencere yan yana.
+
+**4. Beyan yoksa `null` — uydurulmaz.** Alan opsiyonel: pencere
+yayınlamayan bir üretici için de sözleşme geçerli kalır.
+
+### Ölçüm — gerçek modda, üretim derlemesiyle
+
+`/amazon` KPI şeridi: "Satılan adet 38 · **son 7 gün · 30 Tem'e kadar**",
+"Kritik stoktaki SKU 3 · **anlık**", reklam metrikleri kendi
+1–30 Temmuz aralığıyla.
+
+## UI-ADR-141 — Fırsat bir GÖRÜNÜM olarak bağlandı; iki bayat yorum ölçüme dönüştü (S16)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** ODIN ADR-0143 §3 · ADR-0154 · ADR-0150 · UI-ADR-113
+
+⚠️ **NUMARA:** UI-ADR-140'ın bıraktığı aralık sürüyor —
+`feature/s13-frontend-architecture` hâlâ 129–134'ü tutuyor.
+
+### Karar
+
+**1. `Opportunity` tipi ve şeması GERİ GELDİ — gerekçesi tersine döndüğü
+için.** Arayüz onları bilerek yazmamıştı ve o zaman haklıydı: ADR-0143 §3
+fırsatı AYRI KAYIT olarak reddetmişti, karşılığı olmayan bir kavrama şema
+yazmak UI-ADR-113'ün yasağıydı. ODIN ADR-0154 ikinci bir kayıt türü
+yaratmadan, mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM yayınladı.
+Yasak "karşılığı olmayana şema yazmak"tı; karşılığı olana yazmamak da
+aynı ailenin hatası olurdu. Eski gerekçe silinmedi, yerine bu yazıldı.
+
+**2. `AIRecommendationView` KULLANILMADI.** ADR-0143 §3'ün "fırsat öneri
+kaydının görünümüdür" cümlesi ekranı o bileşene yönlendirmişti; ölçünce
+uymadığı görüldü: o tip yedi zorunlu açıklanabilirlik alanı ister
+(alternatifler, güven, doğrulama zamanı) ve iyileştirme kaydında bunların
+karşılığı yoktur. Boş geçmek uydurmak olurdu. Zarf olduğu gibi basılıyor;
+yeni bir `OpportunityCard` da icat edilmedi.
+
+**3. "FİLTRE UYGULANMIYOR" uyarısı KALKTI — çünkü artık doğru değil.**
+Ekranda "pozitif sınıfı işaretleyen alan ODIN'de bildirilmedi, bu yüzden
+liste filtrelenmiyor" yazıyordu. Dürüst ama artık bayat: ADR-0154 kuralı
+beyan etti (yalnız `detected`, yalnız uygulanabilir adımı olanlar) ve
+sıralamayı da ODIN'e verdi (`prioritize()`, deterministik). Arayüz ikisini
+de icat etmiyor — bu yüzden uyarıya da gerek kalmadı.
+
+**4. Öncelik rozeti glyph'siz ve renk semantiksiz.** `showGlyph={false}`:
+badge'in `○` işareti bir DURUM göstergesidir, öncelik seviyesi değil — ve
+"high"/"medium" metni seviyeyi zaten söylüyor. `high → danger` eşlemesi de
+yapılmadı: ODIN önceliği ETİKET olarak yayınlıyor, arayüz ona kendi
+ciddiyet skalasını giydiremez. (Aynı hata S15'te RuntimeDirectorCard'da
+çift glyph olarak canlı ekranda yakalanmıştı.)
+
+**5. `ai_queue` / `ai_cost` yorumu ÖLÇÜME dayandırıldı.** Kayıtta "🔜 S9
+(AI Gateway) kurulunca kendiliğinden gelir" yazıyordu. S9 geldi, bu ikisi
+gelmedi — ve `available: false` kalmalarının sebebi artık "henüz
+yapılmadı" değil: ODIN ADR-0150 ile AI yönlendirmesini gerçekten kurdu
+(`odin/ai.py`) ama **kuyruk kavramı yok** (çağrılar sıraya girmez; sıfır
+göstermek "kuyruk boş" iddiası olurdu, oysa doğru cevap "kuyruk diye bir
+şey yok") ve **maliyet kısmi** (`ai.usage()` yalnız kendi maliyetini
+bildiren çağrıları toplar, kaçının bildirdiğini `cost_known_calls` olarak
+yanına yazar; fiyat tablosu olmadan tek bir rakam bildirmeyenleri sıfır
+sayar). Şart ODIN tarafında ve yazılı.
+
+**6. Mock anahtarı YENİDEN ADLANDIRILMADI, ŞEKLİ DEĞİŞTİ.**
+`briefing.opportunities` aynı kaldı; tek tüketicisi vardı ve yerini
+değiştirmedi. İkinci bir anahtar açmak, ölü anahtarı da beraberinde
+bırakırdı.
+
+### Ölçüm — gerçek modda, üretim derlemesiyle
+
+`NEXT_PUBLIC_ODIN_DATA_MODE=odin`, `next start`, canlı cockpit (8765):
+Fırsatlar bölümünde **10 gerçek kayıt**, `○` yok. İlk kart: "Job
+'ads_ingest' failing repeatedly (14x) · high · Önerilen adım: Investigate
+and stabilise the 'ads_ingest' job. · Kanıt: failures=14 · job=ads_ingest
+· telemetry · 3 gün önce". Kanıttaki SAYI korundu — "backlog" değil
+"remaining_videos=257".
+
+**Not — cockpit yeniden başlatılmalıydı.** İlk denemede `/api/state`
+`opportunities` anahtarını hiç taşımıyordu: sunucu 16:23'te başlamış,
+ADR-0154 17:48'de commit edilmişti. Bu ders üçüncü kez tekrarlandı.
+
+301 test yeşil (161 birim + 140 storybook), `build:release` temiz
+(188 mock imzası tarandı).
+
+---
+
 ## UI-ADR-142 — Story bir DAVRANIŞ kanıtlar; envanter kapısı bunu ister (S13)
 
 **Durum:** ✅ Dondurulmuş — ölçüldü

@@ -114,6 +114,20 @@ export interface AIRecommendation {
 export type PercentScale = "0-1" | "0-100";
 
 /** ADR-0143 §2 sınır zarfının durumu (FR-0044'ten genelleşti). */
+/**
+ * ODIN'in kayıt-başına bildirdiği pencere. Şekli kaynağa göre değişir ve
+ * arayüz onu NORMALLEŞTİRMEZ: bir kayan pencereyi sabit tarihe çevirmek,
+ * kaydın söylemediği bir şeyi söylemek olurdu.
+ */
+export interface MetricReportPeriod {
+  /** `rolling_window` · `as_of` · (Ads raporunda hiç yok) */
+  basis?: string | null;
+  windowDays?: number | null;
+  start?: string | null;
+  end?: string | null;
+  at?: string | null;
+}
+
 export type MetricStatus = "available" | "data_required" | "unavailable";
 
 /**
@@ -148,6 +162,17 @@ export interface ExecutiveKPI {
   reason?: string | null;
   /** ISO 8601 — metriğin veri anı. */
   asOf: string;
+  /**
+   * Metriğin ÖLÇÜM PENCERESİ — ODIN ADR-0138/0147 (UI-ADR-140).
+   *
+   * `asOf` "ne kadar eski" sorusunu cevaplar; bu alan "hangi aralık"
+   * sorusunu. İkisi ayrı bilgidir: "38 adet satıldı" ile "hangi 38 gün"
+   * aynı şey değil, ve bugün ekranda ÜÇ farklı pencere yan yana duruyor
+   * (7 günlük kayan · anlık · 2026-07-01→30).
+   *
+   * Kaynak dönemini beyan etmemişse `null` — arayüz pencere UYDURMAZ.
+   */
+  reportPeriod?: MetricReportPeriod | null;
   /**
    * Eşiği olan metrik/alarm bunu TAŞIR; olmayan ATLAR (null yazmaz).
    * `unapproved_default` geldiğinde arayüz GÖSTERMEK zorundadır:
@@ -530,3 +555,35 @@ export interface RuntimeDirector {
   jobs: RuntimeDirectorJob[];
 }
 
+/* --------------------------------------------------------------------------
+   Opportunity — ODIN ADR-0154 (UI-ADR-141)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ADR-0143 §3 Opportunity'yi KAYIT olarak reddetmişti ve arayüz de haklı
+ * olarak tip yazmamıştı: karşılığı olmayan tipe şema yazmak onu zamanla
+ * gerçek gösterir (UI-ADR-113).
+ *
+ * ODIN ADR-0154 ile durum DEĞİŞTİ — ikinci bir kayıt türü yaratılmadı,
+ * mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM yayınlandı. Yani tip
+ * artık gerçek bir üreticinin şeklidir, arayüzün varsayımı değil.
+ *
+ * Filtreleme de ODIN'de: yalnız `detected` kayıtlar ve yalnız uygulanabilir
+ * bir adımı olanlar geliyor. Arayüz filtre uygulamaz.
+ */
+export interface Opportunity {
+  id: string;
+  /** Üreten dedektör — ör. `"telemetry"`, `"knowledge_metrics"`. */
+  source: string;
+  title: string;
+  summary: string;
+  /** Zorunlu: aksiyon öneremeyen kayıt zaten Opportunity değildir. */
+  suggestedAction: string;
+  /** ISO 8601 — tespit anı. */
+  asOf: string;
+  /** `anahtar=değer` — sayı korunur, "backlog" değil "backlog=257". */
+  evidence: string[];
+  category?: string | null;
+  /** ODIN'in deterministik önceliği (ADR-0114); arayüz sıralama icat etmez. */
+  priorityLevel?: string | null;
+}

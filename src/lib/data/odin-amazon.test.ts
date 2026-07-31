@@ -270,3 +270,47 @@ describe("SKU adaptörü — ODIN ADR-0149", () => {
     expect(() => skuHealthSchema.parse(s)).not.toThrow();
   });
 });
+
+describe("ölçüm penceresi — ODIN ADR-0138 (UI-ADR-140)", () => {
+  it("kayan pencereyi OLDUĞU GİBİ taşır, sabit tarihe çevirmez", () => {
+    /* Kayıt "30 Temmuz'da biten 7 günlük pencere" diyor. Onu bir tarih
+       aralığına çevirmek, kaydın söylemediği bir kesinlik iddia etmek
+       olurdu — `sales.period`daki hesap AYRI bir sözleşme (SkuHealth) ve
+       orada beyanın aritmetiğidir. */
+    const [k] = adaptKpis(amazonSchema.parse(LIVE));
+    expect(k.reportPeriod).toEqual({
+      basis: "rolling_window",
+      windowDays: 7,
+      start: null,
+      end: null,
+      at: null,
+    });
+  });
+
+  it("sabit aralıklı reklam penceresi start/end taşır", () => {
+    const raw = clone();
+    (raw.kpis[0] as { report_period: unknown }).report_period = {
+      start: "2026-07-01",
+      end: "2026-07-30",
+    };
+    const [k] = adaptKpis(amazonSchema.parse(raw));
+    expect(k.reportPeriod?.start).toBe("2026-07-01");
+    expect(k.reportPeriod?.end).toBe("2026-07-30");
+  });
+
+  it("pencere BEYAN EDİLMEMİŞSE null — uydurulmaz", () => {
+    const raw = clone();
+    (raw.kpis[0] as { report_period: unknown }).report_period = null;
+    const [k] = adaptKpis(amazonSchema.parse(raw));
+    expect(k.reportPeriod).toBeNull();
+  });
+
+  it("penceresiz KPI hâlâ kanonik şemadan geçer", () => {
+    /* Alan opsiyonel: ODIN yayınlamayan bir üretici için de sözleşme
+       geçerli kalmalı. */
+    const raw = clone();
+    (raw.kpis[0] as { report_period: unknown }).report_period = null;
+    const [k] = adaptKpis(amazonSchema.parse(raw));
+    expect(() => executiveKpiSchema.parse(k)).not.toThrow();
+  });
+});

@@ -94,7 +94,8 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…149` serisindedir.
+Bu repodaki kararlar `UI-ADR-001…149` serisindedir — **boşluk yok.**
+S13 merge edildiğinde `main`'in S15 için açtığı 130–139 aralığı doldu.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
 Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-150`'den**
@@ -106,6 +107,18 @@ YEDİ kez numara çakıştı (098; 099/100 iki kez; 116/117 — bir oturum
 çünkü paralel oturumlar aynı anda numara alıyor; BEŞİNCİSİ 129 idi
 (S13 dalı lokal 129'u aldı, main aynı gün S14 için 129'u DONDURDU —
 lokal olan 135'e taşındı). Karar günlüğü bu repoda geri alınması en zor dosyadır.
+
+**ALTINCI ve YEDİNCİ çakışma (31 Tem 2026):** S13 dalı açıkken `main`
+S15 ve S16'yı aldı ve **140 ile 141'i** dondurdu; S13'ünkiler
+**148/149**'a taşındı. Aynı gün S13 merge edildi ve `main`'in S15 için
+açtığı 130–139 boşluğu doldu.
+
+⚠️ **`feature/s17-storybook-gate` dalı da UI-ADR-142 kullanıyor** ve S13
+o numarayı `main`'e indirdi. S17 merge edilirken **taşınması gerekir.**
+
+Kural üç cümlede: **numarayı `main`'den al, dalından değil** ·
+merge edilmiş ve yayında olan kazanır, lokal olan taşınır ·
+**dal açıkken `main` yeniden hareket edebilir — merge öncesi TEKRAR bak.**
 
 ### 7. Karar ODIN çekirdeğini etkiliyorsa
 

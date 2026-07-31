@@ -27,6 +27,7 @@ import type {
   EvidenceRef,
   ExecutiveBrief,
   ExecutiveKPI,
+  Opportunity,
   PulseChannelStates,
   RuntimeDirector,
 } from "@/types/executive";
@@ -390,8 +391,24 @@ export function risksMock(): DataEnvelope<Alert[]> {
  * ODIN'de henüz bildirilmedi (13-...md §17); mock bu yüzden filtre
  * UYGULAMAZ, ekran neyi filtrelemediğini söyler.
  */
-export function opportunitiesMock(): DataEnvelope<AIRecommendation[]> {
-  return mockEnvelope([ppcRecommendation()]);
+/* UI-ADR-141: ODIN ADR-0154 ile fırsat KANONİK bir zarf oldu; mock da o
+   şekli taşır. Eskiden burada `AIRecommendation` dönüyordu — o tip yedi
+   zorunlu açıklanabilirlik alanı ister ve iyileştirme kaydında karşılığı
+   yoktur. Anahtar aynı kaldı: tüketicisi tek ve yerini değiştirmedi. */
+export function opportunitiesMock(): DataEnvelope<Opportunity[]> {
+  return mockEnvelope([
+    {
+      id: "OPP-mock-0001",
+      source: "telemetry",
+      title: "'ads_ingest' işi üst üste başarısız (14x)",
+      summary: "ads_ingest telemetride 14 kez başarısız oldu.",
+      suggestedAction: "'ads_ingest' işini incele ve kararlı hâle getir.",
+      asOf: ago(3 * 60 * 60_000),
+      evidence: ["failures=14", "job=ads_ingest"],
+      category: "reliability",
+      priorityLevel: "high",
+    },
+  ]);
 }
 
 /* --------------------------------------------------------------------------

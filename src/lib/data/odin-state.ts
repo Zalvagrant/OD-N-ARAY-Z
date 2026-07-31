@@ -18,7 +18,12 @@ import { internalEnvelope } from "@/types/data-envelope";
 import { httpLoad } from "./client";
 import { contractError } from "./errors";
 import { IS_MOCK } from "./mode";
-import { alertSchema, goalSchema, runtimeDirectorSchema } from "./schemas";
+import {
+  alertSchema,
+  goalSchema,
+  opportunitySchema,
+  runtimeDirectorSchema,
+} from "./schemas";
 import { useOdinQuery, type OdinQueryResult } from "./use-odin-query";
 import { loadMock } from "@/mocks/registry";
 
@@ -191,6 +196,79 @@ export function useOdinAlerts(): OdinQueryResult<z.infer<typeof alertSchema>[]> 
               ...(a.suggested_action
                 ? { suggestedAction: a.suggested_action }
                 : {}),
+            }))
+          );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Opportunities — ODIN ADR-0154 (UI-ADR-141)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in `opportunities` yayını — iyileştirme kayıtları üzerinde bir
+ * GÖRÜNÜM, ikinci bir kayıt türü değil (ADR-0143 §3'ün şartı).
+ *
+ * FİLTRE ODIN'DE. Ekran eskiden "pozitif sınıfı hangi alanın işaretlediği
+ * ODIN'de bildirilmedi, bu yüzden FİLTRE UYGULANMIYOR" yazıyordu — bu
+ * dürüst ama eksik bir hâldi. ADR-0154 kuralı beyan etti: yalnız
+ * `detected` durumundakiler ve yalnız uygulanabilir bir adımı olanlar
+ * yayınlanır. Arayüz artık kendi filtresini icat etmediği gibi, eksik
+ * filtre uyarısını da taşımıyor.
+ *
+ * SIRALAMA da ODIN'de (`prioritize()`, deterministik). Liste geldiği
+ * sırada gösterilir; arayüz yeniden sıralarsa sahibin gördüğü öncelik
+ * ODIN'in gerekçelendirebildiği öncelik olmaktan çıkar.
+ */
+const opportunitiesStateSchema = z.object({
+  generated_at: z.string(),
+  /* `null` = kayıt defteri okunamadı. Boş dizi "hiç fırsat yok" İDDİASIDIR
+     ve okunamayan bir defter o iddianın kanıtı değildir. */
+  opportunities: z
+    .array(
+      z.object({
+        id: z.string(),
+        source: z.string(),
+        title: z.string(),
+        summary: z.string(),
+        suggested_action: z.string(),
+        as_of: z.string(),
+        evidence: z.array(z.string()),
+        category: z.string().nullable().optional(),
+        priority_level: z.string().nullable().optional(),
+      })
+    )
+    .nullable(),
+});
+
+export type Opportunity = z.infer<typeof opportunitySchema>;
+
+export function useOdinOpportunities(): OdinQueryResult<Opportunity[]> {
+  return useOdinQuery({
+    key: ["odin", "opportunities"],
+    module: "default",
+    schema: z.array(opportunitySchema),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.opportunities")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = opportunitiesStateSchema.parse(raw);
+          if (parsed.opportunities === null) {
+            throw new Error("ODIN iyileştirme kayıtlarını okuyamadı");
+          }
+          return internalEnvelope(
+            parsed.generated_at,
+            parsed.opportunities.map((o) => ({
+              id: o.id,
+              source: o.source,
+              title: o.title,
+              summary: o.summary,
+              suggestedAction: o.suggested_action,
+              asOf: o.as_of,
+              evidence: o.evidence,
+              category: o.category ?? null,
+              priorityLevel: o.priority_level ?? null,
             }))
           );
         },

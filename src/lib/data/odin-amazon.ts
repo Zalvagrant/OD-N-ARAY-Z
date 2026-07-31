@@ -57,6 +57,18 @@ const rawKpiSchema = z.object({
   reason: z.string().nullable(),
   as_of: z.string(),
   threshold_provenance: z.string().optional(),
+  /* ADR-0138: kaydın KENDİ bildirdiği pencere. Şekli kaynağa göre
+     değişiyor (kayan pencere / anlık / sabit aralık), o yüzden gevşek. */
+  report_period: z
+    .looseObject({
+      basis: z.string().optional(),
+      window_days: z.number().optional(),
+      start: z.string().optional(),
+      end: z.string().optional(),
+      as_of: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 const rawAlertSchema = z.object({
@@ -112,6 +124,19 @@ export function adaptKpis(raw: RawAmazon): AmazonKpi[] {
     ...(k.scale === "0-1" || k.scale === "0-100" ? { scale: k.scale } : {}),
     reason: k.reason,
     asOf: k.as_of,
+    /* YALNIZ yeniden adlandırma — pencere NORMALLEŞTİRİLMİYOR. Kayıt
+       "30 Temmuz'da biten 7 günlük pencere" diyorsa ekran da onu der;
+       sabit bir tarih aralığına çevirmek, kaydın söylemediği bir
+       kesinlik iddia etmek olurdu (UI-ADR-140). */
+    reportPeriod: k.report_period
+      ? {
+          basis: k.report_period.basis ?? null,
+          windowDays: k.report_period.window_days ?? null,
+          start: k.report_period.start ?? null,
+          end: k.report_period.end ?? null,
+          at: k.report_period.as_of ?? null,
+        }
+      : null,
     ...threshold(k.threshold_provenance),
   }));
 }

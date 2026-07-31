@@ -20,7 +20,7 @@ import { useState } from "react";
 import type { Decision } from "@/types/executive";
 import type { DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
-import { useNow } from "@/lib/clock/tick";
+import { relativeTime, useNow } from "@/lib/clock/tick";
 import { MockBadge } from "@/components/ui/mock-badge";
 import {
   demoError,
@@ -30,6 +30,10 @@ import {
 } from "@/features/shell/screen-state";
 import { greeting } from "@/features/executive/presentation/greeting";
 import { useOdinFixture } from "@/lib/data/odin-fixture";
+/* CANLI fırsat görünümü main'den (S16 / UI-ADR-141) — mock'a GERİ
+   DÖNDÜRÜLMEDİ. `useMockData` ve `@/mocks/mock-badge` ise S13'ün tek veri
+   borusuyla (UI-ADR-135) değiştirildi: main o borudan önceki hâldeydi. */
+import { useOdinOpportunities } from "@/lib/data/odin-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
@@ -40,8 +44,8 @@ import { Section } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
 import { AIPulse } from "@/components/executive/ai-pulse";
-import { AIRecommendationView } from "@/components/executive/ai-recommendation-card";
 import { AlertStack } from "@/components/executive/alert-stack";
+import { Badge } from "@/components/ui/badge";
 import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { DecisionQueue } from "@/components/executive/decision-queue";
@@ -150,11 +154,21 @@ export function ExecutiveBriefing({
   demo?: DemoState;
 }) {
   const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
+  const now = useNow();
 
   const hero = useOdinFixture("briefing.hero");
   const decisions = useOdinFixture("briefing.decisions");
   const risks = useOdinFixture("briefing.risks");
-  const opportunities = useOdinFixture("briefing.opportunities");
+  /* CANLI — ODIN ADR-0154 (main'de UI-ADR-141, S16). Fırsat AYRI KAYIT
+     DEĞİL: ODIN mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM
+     yayınlıyor. Filtre (`detected` + uygulanabilir adım) ve sıralama
+     ODIN'de; arayüz ikisini de icat etmiyor.
+
+     ⚠️ MERGE NOTU: S13 dalı bu yuvayı `useOdinFixture` yapıyordu çünkü
+     dal, S16 inmeden ÖNCE açılmıştı. Naif bir merge canlı veriyi mock'a
+     geri döndürür ve repo kuralı #2'yi ihlal ederdi. İskelet S13'ten,
+     fırsat kaynağı main'den. */
+  const opportunities = useOdinOpportunities();
   const kpis = useOdinFixture("briefing.kpis");
   const brief = useOdinFixture("briefing.brief");
   const directors = useOdinFixture("briefing.directors");
@@ -254,28 +268,51 @@ export function ExecutiveBriefing({
           loading={loading}
           loadingLayout="list"
           loadingCount={4}
-          error={error}
+          error={error ?? opportunities.error?.toErrorState() ?? null}
           onRetry={reloadAll}
-          empty={isEmpty}
-          emptyTitle="Fırsat üretilmedi"
-          emptyDescription="Bu dönem için ölçülmüş bir büyüme fırsatı yok."
+          empty={isEmpty || opportunities.envelope?.data.length === 0}
+          emptyTitle="Açık fırsat yok"
+          emptyDescription="ODIN'in açık iyileştirme kaydı yok. Boşalan bir liste doğru cevaptır — hiç boşalmayan liste birikmiş iş demektir."
         >
-          {/* ADR-0143 §3: fırsat AYRI KAYIT DEĞİL — öneri kayıtlarının
-              görünümüdür. Bu yüzden mevcut `AIRecommendationView` kullanılır;
-              icat edilmiş OpportunityCard silindi. Pozitif sınıfı hangi
-              kayıtlı alanın işaretlediği ODIN'de bildirilmedi, bu yüzden
-              FİLTRE UYGULANMIYOR ve bu durum ekranda yazılı. */}
+          {/* ADR-0143 §3 fırsatı ayrı kayıt olarak reddetti; ADR-0154 o
+              şartı karşılayarak GÖRÜNÜMÜ yayınladı. Bu yüzden burada
+              icat edilmiş bir OpportunityCard yok: gelen zarf olduğu gibi
+              basılıyor. `AIRecommendationView` KULLANILMIYOR — o tip yedi
+              zorunlu açıklanabilirlik alanı ister (alternatifler, güven),
+              iyileştirme kaydında bunların karşılığı yoktur ve boş
+              geçmek uydurmak olurdu. */}
           <div className="flex flex-col gap-4">
-            {opportunities.envelope?.data.map((r) => (
-              <div key={r.id} className="odin-ai-region p-3">
-                <AIRecommendationView rec={r} compact />
+            {opportunities.envelope?.data.map((o) => (
+              <div key={o.id} className="odin-ai-region flex flex-col gap-2 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-content font-medium">{o.title}</span>
+                  {/* Glyph KAPALI: badge'in ○ işareti bir DURUM göstergesidir,
+                      öncelik seviyesi değil — ve metin ("high"/"medium")
+                      seviyeyi zaten açıkça söylüyor. Renk semantiği de
+                      verilmedi: ODIN önceliği ETİKET olarak yayınlıyor,
+                      arayüz ona kendi ciddiyet skalasını giydiremez. */}
+                  {o.priorityLevel ? (
+                    <Badge variant="tertiary" showGlyph={false}>
+                      {o.priorityLevel}
+                    </Badge>
+                  ) : null}
+                </div>
+                <Text size="sm" tone="secondary">
+                  {o.summary}
+                </Text>
+                <Text size="sm">
+                  <strong>Önerilen adım:</strong> {o.suggestedAction}
+                </Text>
+                {o.evidence.length > 0 ? (
+                  <Text size="sm" tone="tertiary">
+                    Kanıt: {o.evidence.join(" · ")}
+                  </Text>
+                ) : null}
+                <Text size="sm" tone="tertiary">
+                  {o.source} · {relativeTime(o.asOf, now)}
+                </Text>
               </div>
             ))}
-            <Text size="sm" tone="tertiary">
-              Fırsatlar öneri kayıtlarının görünümüdür (ADR-0143 §3). Pozitif
-              sınıfı işaretleyen alan ODIN&apos;de henüz bildirilmediği için
-              liste filtrelenmiyor — soru 13-...md §17&apos;de.
-            </Text>
           </div>
         </Section>
       </div>
