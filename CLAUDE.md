@@ -198,6 +198,13 @@ görünümü).
 | **S8 Amazon Canlı Bağlantı** | ⚠️ **dalda** — `feature/s8-amazon-live-v2`, UI-ADR-118…124. Meclis: **teknik merge ✅**. `/goals` ile **ilk canlı ODIN verisi ekranda** (üretim derlemesinde doğrulandı) |
 | **S10 Amazon canlı KPI + Alert** | ⚠️ **dalda** — `feature/s10-amazon-live`, UI-ADR-126. ODIN ADR-0147'nin `GET /api/amazon` yayınına bağlandı; Amazon Director şeridi ve alarmları **gerçek veri** gösteriyor |
 | S9 AI Gateway | ⬜ başlanmadı — ölçüldü ve ERTELENDİ: `telemetry.jsonl`'de 0 model çağrısı kaydı, router modülü yok. Bugün yapılsa AI Runtime sekmesi boş bir panel olurdu (kural 2 ihlali) |
+| **S13 Kurumsal Ön Yüz Mimarisi** | ⚠️ **dalda** — `feature/s13-frontend-architecture`, UI-ADR-129…134. **7 commit lokal, push/merge YOK, sahip onayı YOK.** ➜ **`19-s13-devir.md` oku** |
+
+⚠️ **S13 devam ediyor.** Yeni oturum açan: önce
+`docs/ui_chatgpt/19-s13-devir.md`. Orada ne bittiği, sıradaki iş ve
+**altı tuzak** yazılı (en sık çarpılan: *tam test paketinden önce dev
+sunucusunu kapat*, yoksa Storybook tarayıcı projesi 12/56'da düşer ve
+kod hatası sanılır).
 
 **S8 ne teslim etti:** veri borusu + kapılar + canlı vekil + **`/goals`
 ekranı**. Sahip Goal kapsam kararını verdi (gavadolar 2/2 → ayrı ekran,
