@@ -10,7 +10,8 @@ import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { FRESHNESS_THRESHOLDS_MS } from "@/types/data-envelope";
+import { FRESHNESS_THRESHOLDS_MS, internalEnvelope } from "@/types/data-envelope";
+import { mockKpi } from "@/mocks/envelope";
 import { httpLoad, parseEnvelope } from "./client";
 import { OdinError, classifyError, contractError, httpError, offlineError } from "./errors";
 import { makeQueryClient } from "./query";
@@ -384,5 +385,42 @@ describe("gerçek modda mock sızamaz", () => {
     await expect(import("./mode")).rejects.toThrow(/geçersiz/);
     vi.unstubAllEnvs();
     vi.resetModules();
+  });
+});
+
+/* ------------------------------------------------------------------ 8 */
+
+/**
+ * UI-ADR-137 — iki fabrika birer kez yazılıyor. Bu blok onların
+ * VARSAYILANLARINI kilitler; kopyalar birleştirilmeden önce hiçbir test
+ * bu üç kararı okumuyordu ve tam olarak bu yüzden sessizce ayrılabilirlerdi.
+ */
+describe("zarf ve kayıt fabrikaları — UI-ADR-137", () => {
+  it('internalEnvelope her zaman source="internal" damgalar', () => {
+    const env = internalEnvelope("2026-07-31T10:00:00Z", [1, 2, 3]);
+    expect(env.meta.source).toBe("internal");
+    expect(env.meta.lastUpdated).toBe("2026-07-31T10:00:00Z");
+    expect(env.data).toEqual([1, 2, 3]);
+  });
+
+  it("internalEnvelope'un freshness'ı YER TUTUCUDUR — parseEnvelope yeniden hesaplar", () => {
+    /* Adaptör "live" yazıyor ama tek doğru kaynak istemcideki yeniden
+       hesaptır (UI-ADR-115). Bayat bir damga canlı görünmemeli. */
+    const old = new Date(Date.now() - 48 * 60 * 60_000).toISOString();
+    expect(internalEnvelope(old, []).meta.freshness).toBe("live");
+    expect(parseEnvelope(internalEnvelope(old, [kpi()]), z.array(executiveKpiSchema), "kpi", "amazon").meta.freshness).toBe("stale");
+  });
+
+  it("mockKpi value'yu NULL bırakır — anti-fake mock'ta da geçerlidir", () => {
+    const k = mockKpi({ id: "x", label: "X", unit: "currency" });
+    expect(k.value).toBeNull();
+    expect(k.status).toBe("available");
+    expect(typeof k.asOf).toBe("string");
+  });
+
+  it("mockKpi'nin verilen alanları varsayılanları EZER", () => {
+    const k = mockKpi({ id: "x", label: "X", unit: "count", value: 42, status: "unavailable", reason: "yok" });
+    expect(k.value).toBe(42);
+    expect(k.status).toBe("unavailable");
   });
 });

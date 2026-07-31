@@ -3041,3 +3041,61 @@ bir bağlantı**, kod hatası da değil, sunucu çakışması da değil.
 bölmesi ölçümde daha kararlı çıktı — `--shard=1/3` üst üste iki kez düştü,
 AYNI dosyalar `src/components/ui` olarak koşunca 18/18 geçti). Dev
 sunucusunu kapatmaya gerek yok — ve başkasının worktree'sine ait olabilir.
+
+---
+
+## UI-ADR-137 — Zarf ve kayıt fabrikaları birer kez yazılır (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-094 · UI-ADR-115 · UI-ADR-136
+
+### Bulgu
+
+İki fabrika, iki dosyada, **birebir aynı gövdeyle**:
+
+| Fabrika | Kopyalar | Yeni yeri |
+|---|---|---|
+| `kpi(over)` | `mocks/briefing.ts:404` · `mocks/amazon.ts:338` | `mocks/envelope.ts` → `mockKpi` |
+| `envelope(generatedAt, data)` | `lib/data/odin-state.ts:49` · `lib/data/odin-amazon.ts:82` | `types/data-envelope.ts` → `internalEnvelope` |
+
+**Gerekçe yalnız BİR kopyanın başında duruyordu.** `envelope()`in neden
+`source: "internal"` yazdığı ve `freshness`in neden yer tutucu olduğu
+(UI-ADR-115: `parseEnvelope` onu istemcide yeniden hesaplar) `odin-state.ts`te
+yazılıydı; `odin-amazon.ts`teki ikiz çıplaktı. İkiye bölünmüş bir kural,
+yarısı okunmayan bir kuraldır.
+
+Tekrarın maliyeti dört satır değil, üç varsayılanın **sessizce
+ayrılabilmesidir**: `status: "available"` · `value: null` (anti-fake) ·
+`asOf`. Birine dokunulup diğerine dokunulmadığı gün, iki ekran aynı
+sözleşmeyi farklı yorumlar ve fark hiçbir testte görünmez.
+
+### `mockEnvelope` ile `internalEnvelope` NEDEN AYRI KALDI
+
+Bunlar da zarf üretir ama birleştirilmemelidir: `mockEnvelope`
+`source: "mock"` damgalar ve `src/mocks/` altında yaşaması UI-ADR-094'ün
+kuralıdır — tek bir `source: "mock"` araması tüm mock'ları bulabilmelidir.
+Ortak bir fabrikaya çekmek o aramayı kör ederdi.
+
+### YAPILMAYAN — `toISOString().slice(0, 10)`
+
+Devir §2.3 bunu da tekrar olarak listeliyordu (`odin-amazon.ts:238`,
+`mocks/amazon.ts:575`, `mocks/briefing.ts:36`). **Çıkarılmadı.** Üç ayrı
+katmanda üç kez geçen bir JS deyimi bu; ortak bir yardımcıya çekmek iki
+katman arasında yeni bir bağımlılık kurar ve karşılığında hiçbir POLİTİKA
+merkezileşmez. Tekrar her zaman kusur değildir — merkezileşmesi gereken
+şey bir KARARDIR, bir deyim değil.
+
+### Kapı
+
+`data-layer.test.ts` §8 — dört iddia. Kritik olanı: `internalEnvelope`in
+`freshness`i 48 saat eski bir damgada bile `"live"` döner, ama
+`parseEnvelope`ten geçince `"stale"` olur. Adaptörün damgası yer
+tutucudur; tek doğru kaynak istemcideki yeniden hesaptır.
+
+Bu iki fabrikanın varsayılanlarını **hiçbir test okumuyordu** —
+kopyaların sessizce ayrılabilmesinin asıl sebebi buydu.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **58 dosya / 318 test** (+4 test, bu ADR'nin kapısı).

@@ -109,7 +109,7 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
     "no-restricted-imports": ["error", {
       patterns: [
         {
-          /* Mock erişimi TEK KAPIDAN — UI-ADR-123 · 129.
+          /* Mock erişimi TEK KAPIDAN — UI-ADR-123 · 135.
              Kayıt defteri dışındaki her mock modülü yasak; doğrudan import
              modülü üretim paketine geri sokar. */
           group: ["@/mocks/*", "**/mocks/*", "!@/mocks/registry"],

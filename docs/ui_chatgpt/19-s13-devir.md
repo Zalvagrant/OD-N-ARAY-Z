@@ -33,14 +33,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **133** | Rota sınırları | `error.tsx` + kök `not-found.tsx`; beyaz sayfa yerine beş adımlı hata |
 | **134** | `amazon-director` bölündü | **802 → 496 satır** |
 | **136** | Etiket-değer + metin tonu tek yerde | Yerel `Stat` kopyası ve 4 elle yazılmış `<dt>/<dd>` silindi; `StatTone`/`TextTone` → tek `Tone` |
+| **137** | Zarf/kayıt fabrikaları birer kez | `kpi()` ve `envelope()` ikizleri silindi; varsayılanlar ilk kez test altında |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **58 dosya/314 test**
-(+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan),
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **58 dosya/318 test**
+(+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
++4 test UI-ADR-137'den),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…136**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…137**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -104,9 +106,11 @@ kaybolacağı için "ekranı yalnız `app/` import eder" kuralı
   `"text-xs uppercase tracking-wide text-content-tertiary"` 7 kez — oysa
   `ui/typography.tsx:97` `Label` **tam olarak o dizedir** ve hiçbiri onu
   kullanmıyor.
-- `kpi()` fabrikası `mocks/amazon.ts:338` ve `mocks/briefing.ts:404`'te aynı.
-- `envelope()` `odin-state.ts:49` ve `odin-amazon.ts:82`'de aynı.
-- `toISOString().slice(0,10)` üç ayrı yerde.
+- ✅ **KAPANDI (UI-ADR-137):** `kpi()` → `mocks/envelope.ts` `mockKpi`;
+  `envelope()` → `types/data-envelope.ts` `internalEnvelope`.
+- `toISOString().slice(0,10)` üç ayrı yerde — **KASITLI OLARAK BIRAKILDI**
+  (UI-ADR-137): merkezileşmesi gereken bir KARAR değil, bir JS deyimi.
+  İki katman arasında yeni bağımlılık kurmaya değmez.
 - **Etiket-değer gösterimi — KISMEN KAPANDI (UI-ADR-136).**
   Silinenler: `mission-control.tsx` yerel `Stat`, `executive-briefing.tsx`
   dört elle yazılmış `<dt>/<dd>`. **KALAN:** `director-card.tsx:34` yerel
@@ -227,11 +231,11 @@ npm run lint              # 0 hata olmalı
 # Tam paketi TEK SEFERDE çalıştırma — tarayıcı bağlantısı zaman aşımına
 # uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
 # de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
-npx vitest run --project=unit                                   # 13 / 167
+npx vitest run --project=unit                                   # 13 / 171
 npx vitest run --project=storybook src/components/ui            # 18 /  57
 npx vitest run --project=storybook src/components/executive       src/components/layout src/features src/app                # 22 /  73
 npx vitest run --project=storybook src/styles src/components/screens  # 5 / 17
-#                                                        TOPLAM: 58 / 314
+#                                                        TOPLAM: 58 / 318
 
 npx next dev -p 3111      # /briefing /amazon /mission-control /goals → 200
                           # /bilinmeyen-ekran → 404

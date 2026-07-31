@@ -22,7 +22,7 @@
 
 import { z } from "zod";
 
-import type { DataEnvelope } from "@/types/data-envelope";
+import { internalEnvelope } from "@/types/data-envelope";
 import type { Money, ThresholdProvenance } from "@/types/executive";
 import type { MetricPeriod, SkuHealth } from "@/types/screens";
 import { httpLoad } from "./client";
@@ -79,12 +79,6 @@ export const amazonSchema = z.object({
 
 type RawAmazon = z.infer<typeof amazonSchema>;
 
-function envelope<T>(generatedAt: string, data: T): DataEnvelope<T> {
-  return {
-    data,
-    meta: { source: "internal", lastUpdated: generatedAt, freshness: "live" },
-  };
-}
 
 /**
  * Eşik kaynağı — ODIN ADR-0146.
@@ -150,7 +144,7 @@ export function useAmazonKpis(): OdinQueryResult<AmazonKpi[]> {
       ? async () => loadMock("amazon.kpis")
       : async (signal) => {
           const raw = amazonSchema.parse(await httpLoad(AMAZON_PATH, { signal }));
-          return envelope(raw.generated_at, adaptKpis(raw));
+          return internalEnvelope(raw.generated_at, adaptKpis(raw));
         },
   });
 }
@@ -164,7 +158,7 @@ export function useAmazonAlerts(): OdinQueryResult<AmazonAlert[]> {
       ? async () => loadMock("amazon.alerts")
       : async (signal) => {
           const raw = amazonSchema.parse(await httpLoad(AMAZON_PATH, { signal }));
-          return envelope(raw.generated_at, adaptAlerts(raw));
+          return internalEnvelope(raw.generated_at, adaptAlerts(raw));
         },
   });
 }
@@ -294,7 +288,7 @@ export function useAmazonSkus(): OdinQueryResult<SkuHealth[]> {
       ? async () => loadMock("amazon.skus")
       : async (signal) => {
           const raw = amazonSkusSchema.parse(await httpLoad(AMAZON_PATH, { signal }));
-          return envelope(raw.generated_at, adaptSkus(raw));
+          return internalEnvelope(raw.generated_at, adaptSkus(raw));
         },
   });
 }
