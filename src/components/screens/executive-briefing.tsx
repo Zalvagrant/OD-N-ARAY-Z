@@ -21,8 +21,8 @@ import type { Decision } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
 import { useNow } from "@/lib/clock/tick";
-import { MockBadge } from "@/mocks/mock-badge";
-import { useMockData } from "@/mocks/use-mock";
+import { MockBadge } from "@/components/ui/mock-badge";
+import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
@@ -153,30 +153,30 @@ export function ExecutiveBriefing({
 }) {
   const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
 
-  const hero = useMockData("briefing.hero");
-  const decisions = useMockData("briefing.decisions");
-  const risks = useMockData("briefing.risks");
-  const opportunities = useMockData("briefing.opportunities");
-  const kpis = useMockData("briefing.kpis");
-  const brief = useMockData("briefing.brief");
-  const directors = useMockData("briefing.directors");
-  const timeline = useMockData("briefing.timeline");
-  const pulse = useMockData("briefing.pulse");
+  const hero = useOdinFixture("briefing.hero");
+  const decisions = useOdinFixture("briefing.decisions");
+  const risks = useOdinFixture("briefing.risks");
+  const opportunities = useOdinFixture("briefing.opportunities");
+  const kpis = useOdinFixture("briefing.kpis");
+  const brief = useOdinFixture("briefing.brief");
+  const directors = useOdinFixture("briefing.directors");
+  const timeline = useOdinFixture("briefing.timeline");
+  const pulse = useOdinFixture("briefing.pulse");
 
   const loading = demo === "loading" || hero.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    hero.reload();
-    decisions.reload();
-    risks.reload();
-    opportunities.reload();
-    kpis.reload();
-    brief.reload();
-    directors.reload();
-    timeline.reload();
-    pulse.reload();
+    hero.refetch();
+    decisions.refetch();
+    risks.refetch();
+    opportunities.refetch();
+    kpis.refetch();
+    brief.refetch();
+    directors.refetch();
+    timeline.refetch();
+    pulse.refetch();
   };
 
   /* Verdict S7'de POST /api/command'a bağlanacak (ER-0025). Şimdilik
@@ -191,7 +191,7 @@ export function ExecutiveBriefing({
       <WorkspaceHeader
         title="Executive Briefing"
         context="Bugün neye karar vermeliyim?"
-        lastSync={hero.data?.meta.lastUpdated ?? null}
+        lastSync={hero.envelope?.meta.lastUpdated ?? null}
         actions={
           <>
             <MockBadge />
@@ -211,7 +211,7 @@ export function ExecutiveBriefing({
       ) : error ? (
         <Section title="Executive Summary" error={error} onRetry={reloadAll} />
       ) : (
-        <DataGuard env={hero.data} reason="Brifing özeti üretilmedi">
+        <DataGuard env={hero.envelope} reason="Brifing özeti üretilmedi">
           {(data, meta) => <HeroView hero={data} meta={meta} />}
         </DataGuard>
       )}
@@ -227,7 +227,7 @@ export function ExecutiveBriefing({
         onRetry={reloadAll}
       >
         <DecisionQueue
-          env={isEmpty ? empty(decisions.data) : decisions.data}
+          env={isEmpty ? empty(decisions.envelope) : decisions.envelope}
           limit={3}
           onVerdict={onVerdict}
         />
@@ -254,7 +254,7 @@ export function ExecutiveBriefing({
           {/* Kart başlığı FİLTRE KURALINI söyler; boş bırakılırsa kartın
               üstünde boş bir şerit kalır ve eleme kuralı görünmez olur. */}
           <AlertStack
-            env={isEmpty ? empty(risks.data) : risks.data}
+            env={isEmpty ? empty(risks.envelope) : risks.envelope}
             title="Aksiyon gerektirenler"
           />
         </Section>
@@ -277,7 +277,7 @@ export function ExecutiveBriefing({
               kayıtlı alanın işaretlediği ODIN'de bildirilmedi, bu yüzden
               FİLTRE UYGULANMIYOR ve bu durum ekranda yazılı. */}
           <div className="flex flex-col gap-4">
-            {opportunities.data?.data.map((r) => (
+            {opportunities.envelope?.data.map((r) => (
               <div key={r.id} className="odin-ai-region p-3">
                 <AIRecommendationView rec={r} compact />
               </div>
@@ -309,8 +309,8 @@ export function ExecutiveBriefing({
             768px'te ölçüldü (S6 görsel incelemesi) — bu yüzden ikinci kolon
             `md` değil `lg`de açılır. */}
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {kpis.data?.data.map((k) => (
-            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.data!.meta }} />
+          {kpis.envelope?.data.map((k) => (
+            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.envelope!.meta }} />
           ))}
         </div>
       </Section>
@@ -325,7 +325,7 @@ export function ExecutiveBriefing({
         error={error}
         onRetry={reloadAll}
       >
-        <AIBrief env={isEmpty ? null : brief.data} />
+        <AIBrief env={isEmpty ? null : brief.envelope} />
       </Section>
 
       {/* 6 — Director aktivitesi (UI-ADR-074 ile dondurulmuş 6 Director) */}
@@ -342,10 +342,10 @@ export function ExecutiveBriefing({
         emptyDescription="Heartbeat servisi bağlı değil."
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {directors.data?.data.map((d) => (
+          {directors.envelope?.data.map((d) => (
             <DirectorCard
               key={d.agentId}
-              env={{ data: d, meta: directors.data!.meta }}
+              env={{ data: d, meta: directors.envelope!.meta }}
             />
           ))}
         </div>
@@ -362,9 +362,9 @@ export function ExecutiveBriefing({
           error={error}
           onRetry={reloadAll}
         >
-          <Timeline items={isEmpty ? [] : (timeline.data?.data ?? [])} />
-          {timeline.data && !isEmpty && (
-            <TrustSignal meta={timeline.data.meta} className="mt-3" />
+          <Timeline items={isEmpty ? [] : (timeline.envelope?.data ?? [])} />
+          {timeline.envelope && !isEmpty && (
+            <TrustSignal meta={timeline.envelope.meta} className="mt-3" />
           )}
         </Section>
 
@@ -377,7 +377,7 @@ export function ExecutiveBriefing({
           error={error}
           onRetry={reloadAll}
         >
-          <AIPulse env={isEmpty ? null : pulse.data} />
+          <AIPulse env={isEmpty ? null : pulse.envelope} />
         </Section>
       </div>
     </div>

@@ -32,13 +32,13 @@ import type { SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
-import { MockBadge } from "@/mocks/mock-badge";
+import { MockBadge } from "@/components/ui/mock-badge";
 import {
   useAmazonAlerts,
   useAmazonKpis,
   useAmazonSkus,
 } from "@/lib/data/odin-amazon";
-import { useMockData } from "@/mocks/use-mock";
+import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
@@ -410,15 +410,15 @@ export function AmazonDirector({
   const kpis = useAmazonKpis();
   const alerts = useAmazonAlerts();
 
-  const snapshot = useMockData("amazon.snapshot");
+  const snapshot = useOdinFixture("amazon.snapshot");
   /* CANLI — ODIN ADR-0149 (UI-ADR-128). 48 SKU: kimlik, stok,
      gün-kapsamı, satılan adet, reklam, fiyat. Skor YOK ve
      türetilmiyor; durum kendi eşik provenance'ıyla geliyor. */
   const skus = useAmazonSkus();
-  const ppc = useMockData("amazon.ppc");
-  const campaigns = useMockData("amazon.campaigns");
-  const simulations = useMockData("amazon.simulations");
-  const opportunities = useMockData("amazon.opportunities");
+  const ppc = useOdinFixture("amazon.ppc");
+  const campaigns = useOdinFixture("amazon.campaigns");
+  const simulations = useOdinFixture("amazon.simulations");
+  const opportunities = useOdinFixture("amazon.opportunities");
 
   /* Canlı bölümün hatası SUSTURULMAZ (S8 dersi, main CLAUDE.md kural 6):
      bir bölüm gerçek uç noktadan besleniyorsa, o uç nokta düştüğünde
@@ -432,14 +432,14 @@ export function AmazonDirector({
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    snapshot.reload();
+    snapshot.refetch();
     kpis.refetch();
     skus.refetch();
-    ppc.reload();
-    campaigns.reload();
-    simulations.reload();
+    ppc.refetch();
+    campaigns.refetch();
+    simulations.refetch();
     alerts.refetch();
-    opportunities.reload();
+    opportunities.refetch();
   };
 
   const skuRows = isEmpty ? [] : (skus.envelope?.data ?? []);
@@ -448,7 +448,7 @@ export function AmazonDirector({
      §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
      domain alanı sorusu 13-...md §17'de (FR-0042 fingerprint'i zaten
      (domain, recommendation_type, …) kullanıyor — alan gelirse ayrım döner). */
-  const feedOpportunities = isEmpty ? [] : (opportunities.data?.data ?? []);
+  const feedOpportunities = isEmpty ? [] : (opportunities.envelope?.data ?? []);
 
   /* ODIN sözlüğü (UI-ADR-128). `unknown` BU LİSTEYE GİRMEZ: hızı
      ölçülemeyen bir SKU riskli değildir, ÖLÇÜLMEMİŞTİR — ikisini
@@ -471,7 +471,7 @@ export function AmazonDirector({
            "senkron yok" diyordu. Önce gerçekten bağlı olan kaynağın zamanı
            yazılır; ikisi de yoksa `—` kalır ve bu dürüsttür. */
         lastSync={
-          kpis.envelope?.meta.lastUpdated ?? snapshot.data?.meta.lastUpdated ?? null
+          kpis.envelope?.meta.lastUpdated ?? snapshot.envelope?.meta.lastUpdated ?? null
         }
         actions={
           <>
@@ -497,7 +497,7 @@ export function AmazonDirector({
       ) : error ? (
         <Section title="Executive Glance" error={error} onRetry={reloadAll} />
       ) : (
-        <DataGuard env={isEmpty ? null : snapshot.data} reason="Amazon anlık görüntüsü üretilmedi">
+        <DataGuard env={isEmpty ? null : snapshot.envelope} reason="Amazon anlık görüntüsü üretilmedi">
           {(s, meta) => <GlanceView s={s} meta={meta} />}
         </DataGuard>
       )}
@@ -656,7 +656,7 @@ export function AmazonDirector({
           error={error}
           onRetry={reloadAll}
         >
-          <PPCOverviewCard env={isEmpty ? null : ppc.data} />
+          <PPCOverviewCard env={isEmpty ? null : ppc.envelope} />
         </Section>
 
         <Section
@@ -701,9 +701,9 @@ export function AmazonDirector({
         >
           <AIBrief
             env={
-              isEmpty || !snapshot.data
+              isEmpty || !snapshot.envelope
                 ? null
-                : { data: snapshot.data.data.intelligence, meta: snapshot.data.meta }
+                : { data: snapshot.envelope.data.intelligence, meta: snapshot.envelope.meta }
             }
             title="Amazon Executive Intelligence"
           />
@@ -768,7 +768,7 @@ export function AmazonDirector({
         onRetry={reloadAll}
       >
         <div className="grid gap-8 xl:grid-cols-3 [&>*]:min-w-0">
-          <CampaignIntelligenceList env={isEmpty ? empty(campaigns.data) : campaigns.data} />
+          <CampaignIntelligenceList env={isEmpty ? empty(campaigns.envelope) : campaigns.envelope} />
 
           <div className="flex flex-col gap-4">
             <Text size="sm" tone="secondary">
@@ -785,7 +785,7 @@ export function AmazonDirector({
             </Text>
           </div>
 
-          <SimulationPanel env={isEmpty ? empty(simulations.data) : simulations.data} />
+          <SimulationPanel env={isEmpty ? empty(simulations.envelope) : simulations.envelope} />
         </div>
       </Section>
 

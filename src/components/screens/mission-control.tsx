@@ -25,8 +25,8 @@ import {
   useOdinDirectors,
   type RuntimeDirectorParsed,
 } from "@/lib/data/odin-state";
-import { MockBadge } from "@/mocks/mock-badge";
-import { useMockData } from "@/mocks/use-mock";
+import { MockBadge } from "@/components/ui/mock-badge";
+import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
@@ -159,33 +159,33 @@ export function MissionControl({
   const router = useRouter();
   const [query, setQuery] = useState("");
 
-  const decisions = useMockData("briefing.decisions");
+  const decisions = useOdinFixture("briefing.decisions");
   /* CANLI — ODIN ADR-0148 (UI-ADR-127). Bu bölüm artık ZAMANLANMIŞ
      runtime işlerini gösteriyor, görev-kuyruğu ajanlarını değil: kuyruk
      hiç kullanılmadı (`agents` boş), oysa 18 iş heartbeat üstünde
      koşuyor. Sahibin sorusunu ("ODIN yaşıyor mu?") cevaplayan yüzey bu. */
   const directors = useOdinDirectors();
-  const alerts = useMockData("briefing.risks");
+  const alerts = useOdinFixture("briefing.risks");
 
   const loading = demo === "loading" || decisions.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    decisions.reload();
+    decisions.refetch();
     directors.refetch();
-    alerts.reload();
+    alerts.refetch();
   };
 
   const decisionEnv =
-    isEmpty && decisions.data ? { data: [], meta: decisions.data.meta } : decisions.data;
+    isEmpty && decisions.envelope ? { data: [], meta: decisions.envelope.meta } : decisions.envelope;
 
   return (
     <div className="flex max-w-screen-2xl flex-col gap-8">
       <WorkspaceHeader
         title="Mission Control"
         context="Şu anda ne oluyor?"
-        lastSync={decisions.data?.meta.lastUpdated ?? null}
+        lastSync={decisions.envelope?.meta.lastUpdated ?? null}
         actions={
           <>
             <MockBadge />
@@ -253,7 +253,7 @@ export function MissionControl({
           onRetry={reloadAll}
         >
           <AlertStack
-            env={isEmpty && alerts.data ? { data: [], meta: alerts.data.meta } : alerts.data}
+            env={isEmpty && alerts.envelope ? { data: [], meta: alerts.envelope.meta } : alerts.envelope}
           />
         </Section>
       </div>

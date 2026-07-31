@@ -2496,3 +2496,95 @@ etmiyor (ADR-0149 §6). Arayüz de uydurmuyor. Kolon kaldırıldı.
 `/amazon` SKU Health tablosu, 48 satır. Örnekler: `CapDome-Xs-10` →
 Kritik · 3,5 gün · 1 stok · 2 satılan. `CloseSmokeyDome-M-20-pcs` →
 Sağlıklı · 258,9 gün · 37 stok · 1 satılan · ACOS %71,5.
+
+---
+
+## UI-ADR-129 — Tek veri borusu: fixture ayrı bir zincir değil, bir taşıyıcıdır (S13)
+
+**Durum:** ✅ Dondurulmuş — dört ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-113 · UI-ADR-115 · UI-ADR-123 · S7 veri katmanı
+
+### Bulgu — repoda İKİ paralel veri zinciri vardı
+
+Sayıldı, tahmin edilmedi:
+
+| | Zincir A | Zincir B |
+|---|---|---|
+| Giriş | `useOdinQuery` | `useMockData` |
+| Önbellek | React Query | `use-mock.ts` içinde modül-global `Map` |
+| Şema | zod | **yok** |
+| Tazelik yeniden hesabı | var | **yok** |
+| Evren anahtarı | var | **yok** |
+| Çöp toplama | var | **yok** |
+| Hata kanalı | `OdinError` | **`MockState` tipinde `error` alanı HİÇ YOKTU** |
+| Ekran yuvası | 6 | **15** |
+
+Yani ekranların çoğunluğu, S7'de kurulan bütün kapıların DIŞINDAN
+besleniyordu. En ağır sonuç hata kanalıydı: o 15 bölüm için bir hata
+oluşsa bile ekrana çıkacak yol yoktu — sessizce boş kalırdı.
+
+Bu yalnız tekrar değil, **güven** sorunudur: aynı ekranda yan yana duran
+iki sayıdan biri doğrulanmış borudan, diğeri doğrulanmamış borudan
+geliyordu ve bakan kişi hangisinin hangisi olduğunu ayırt edemiyordu.
+
+### Karar
+
+Zincir B kaldırıldı. `src/lib/data/odin-fixture.ts` → `useOdinFixture(key)`
+fixture'ı aynı borunun bir **taşıyıcısı** yapar. `use-mock.ts` ve
+`mock-gate.test.ts` silindi.
+
+Desen zaten vardı: `odin-state.ts` canlı direktörler için
+`IS_MOCK ? loadMock(...) : httpLoad(...)` yazıyordu. Yeni bir mimari
+icat edilmedi, var olan doğru desen 15 yuvaya genişletildi.
+
+### Şema kapsamı — UI-ADR-113 KORUNDU
+
+"Mock-only" şema yine YAZILMADI. Ayrım şöyle netleşti:
+
+- **Telden gelen veri** → payload şeması ZORUNLU.
+- **Süreç içi fixture** → payload'ı biz yazdık, `satisfies` ile derlemede
+  zaten kilitli; tekrar doğrulamak kendi yazdığımızı kendimize
+  kanıtlamaktır.
+
+Her iki durumda da **zarf doğrulanır** (`meta.source` · `lastUpdated` ·
+`freshness` · AI-confidence kuralı) — atlanmaz.
+
+### Gerçek modda sorgu HİÇ koşmaz
+
+`enabled: IS_MOCK`. Bilinçli ve davranışı birebir korur: `loadMock`
+gerçek modda `null` döner; `null` `parseEnvelope`'a girseydi sözleşme
+hatası fırlatırdı ve ODIN'in henüz **yayınlamadığı** bir bölüm ekranda
+kırmızı bir hata gibi görünürdü. Doğru anlatım "sözleşme yok" boş
+durumudur (UI-ADR-096). Kapalı sorgu
+`envelope: null · error: null · loading: false` döner ve `Section`
+bugünkü boş metnini aynen basar.
+
+Yan fayda: kapalı sorgu `loadMock`'u çağırmaz — UI-ADR-123'ün üretim
+paketi kapısı bozulmadan kalır.
+
+### `MockBadge` yer değiştirdi
+
+`src/mocks/` → `src/components/ui/`. Rozet mock ÜRETMEZ, yalnız `IS_MOCK`
+okuyup etiket çizer; `src/mocks/` altında durması dört ekranın mock
+katmanına import atmasına sebep oluyordu.
+
+### Ölçülen sonuç
+
+`screens → mocks` kenarı **8 → 0**. Fixture erişimi tek kapıya
+(`lib/data/odin-fixture.ts`) indi.
+
+Testler: 54 dosya/292 test → 53 dosya/290 test. Fark hesaplanmıştır:
+emekli `mockGate` testleri (−4), React Query'nin devraldığı tekilleştirme
+testi (−1), yeni gerçek-mod fail-closed testi (+1), yeni hata
+sınıflandırma testleri (+2).
+
+Fail-closed güvencesi (UI-ADR-115) kaybolmadı, **taşındı**: artık emekli
+uygulamada değil, hayatta kalan yolda ölçülüyor —
+`registry.test.ts` her anahtarın gerçek modda `null` döndüğünü doğrular.
+
+### Ölçüm — mock modda, dev sunucusunda
+
+`/briefing` dokuz bölümüyle, `/amazon` Executive Glance + KPI şeridi +
+48 satırlık SKU tablosuyla, `/mission-control` Operational Status
+sayaçlarıyla render edildi. Konsolda hata yok.
