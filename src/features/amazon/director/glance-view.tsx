@@ -18,12 +18,11 @@ import { Badge } from "@/components/ui/badge";
 import { NoData } from "@/components/ui/no-data";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
-import { Num, Text } from "@/components/ui/typography";
+import { Num, Pct, Text } from "@/components/ui/typography";
 import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { Meter } from "@/components/executive/meter";
 import { PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 import { TrustSignal } from "@/components/executive/trust-signal";
-import { toPercentUnit } from "@/lib/format/percent";
 import { HEALTH_SCORE_GOOD_MIN } from "@/features/amazon/presentation/thresholds";
 
 /* --------------------------------------------------------------------------
@@ -111,10 +110,9 @@ export function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
           <Stat
             label="ACOS"
             value={
-              <Num
-                value={toPercentUnit(s.acos, scale)}
-                format="percent"
-                fractionDigits={1}
+              <Pct
+                value={s.acos}
+                scale={scale}
                 size="lg"
                 noDataReason="ACOS ölçeği bildirilmedi"
               />
@@ -124,10 +122,9 @@ export function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
           <Stat
             label="TACOS"
             value={
-              <Num
-                value={toPercentUnit(s.tacos, scale)}
-                format="percent"
-                fractionDigits={1}
+              <Pct
+                value={s.tacos}
+                scale={scale}
                 size="lg"
                 noDataReason="TACOS ölçeği bildirilmedi"
               />
@@ -137,10 +134,9 @@ export function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
           <Stat
             label="Buy Box"
             value={
-              <Num
-                value={toPercentUnit(s.buyBoxRate, scale)}
-                format="percent"
-                fractionDigits={1}
+              <Pct
+                value={s.buyBoxRate}
+                scale={scale}
                 size="lg"
                 noDataReason="BuyBox oranı gelmedi"
               />
@@ -150,10 +146,9 @@ export function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
           <Stat
             label="Inventory Health"
             value={
-              <Num
-                value={toPercentUnit(s.inventoryHealth, scale)}
-                format="percent"
-                fractionDigits={1}
+              <Pct
+                value={s.inventoryHealth}
+                scale={scale}
                 size="lg"
                 noDataReason="Stok sağlığı hesaplanmadı"
               />

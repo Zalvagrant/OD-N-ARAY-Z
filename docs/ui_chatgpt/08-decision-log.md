@@ -3099,3 +3099,58 @@ kopyaların sessizce ayrılabilmesinin asıl sebebi buydu.
 ### Ölçüm
 
 `tsc` 0 · `lint` 0 hata · **58 dosya / 318 test** (+4 test, bu ADR'nin kapısı).
+
+---
+
+## UI-ADR-138 — Yüzde gösteriminin tek yolu: `Pct` (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-093 · UI-ADR-136 · UI-ADR-137
+
+### Bulgu
+
+Aşağıdaki beş satır **ON yerde** kelimesi kelimesine yazılıydı (devir
+belgesi "9 kez" diyordu; sayıldı, onuncusu `sku-columns.tsx:114`'te):
+
+```tsx
+<Num value={toPercentUnit(x, scale)} format="percent" fractionDigits={1} … />
+```
+
+`ppc-overview` · `amazon-director` · `amazon-sku-panel` ×3 ·
+`glance-view` ×4 · `sku-columns`.
+
+### Neden `percent.ts` yetmedi
+
+`lib/format/percent.ts` zaten vardı ve ölçek DÖNÜŞÜMÜNÜ tekilleştirmişti —
+kendi başlığında gerekçesi de yazılıydı: *"Dört kopya, bir gün üçünün
+düzeltilip birinin unutulması demektir."*
+
+Ama dönüşümden sonra gelen iki **SUNUM KARARI** — `format="percent"` ve
+**bir ondalık** — on kopyada yaşamaya devam ediyordu. Yarısı
+merkezileştirilmiş bir kural, tam olarak merkezileştirilmemiş demektir.
+Ondalık sayısı bir gün değişirse onun onu da bulunmak zorunda; dokuzu
+bulunup biri unutulduğunda ekranda %71,5 ile %71 yan yana durur ve
+hangisinin doğru olduğu anlaşılmaz.
+
+### Anti-fake KORUNDU
+
+`Pct` ham değeri alır, dönüşümü kendi yapar. Ölçek bildirilmemişse
+`toPercentUnit` `null` döner ve `Num` `NoData` basar — 0 ya da tahmin
+ASLA basılmaz (UI-ADR-093). Bu davranış bileşenin içine taşındı, çağıranın
+hatırlamasına bırakılmadı.
+
+### Kapı
+
+`typography.stories.tsx` → `Percentages`. Üç iddia: ölçek `0-100` ile
+`0-1` **AYNI** çıktıyı verir (dönüşüm çağıranda değil burada) · çıktı
+`%71,5`tir · ölçek yoksa `—` + erişilebilir gerekçe.
+
+İlk yazımda ikinci iddia düştü: `/71,5\s*%/` bekliyordum, **tr-TR yüzde
+işaretini BAŞA yazıyor** (`%71,5`). Yine bileşen değil test yanlıştı.
+Biçimlendirme yerelden gelir, elle kurulmaz.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **58 dosya / 319 test** (+1 test, bu ADR'nin kapısı).
+Çağrı yeri: **10 → 0**.

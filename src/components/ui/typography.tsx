@@ -12,6 +12,8 @@
  */
 
 import type { ElementType, ReactNode } from "react";
+import type { PercentScale } from "@/types/executive";
+import { toPercentUnit } from "@/lib/format/percent";
 import { NoData } from "@/components/ui/no-data";
 
 /* --------------------------------------------------------------------------
@@ -234,6 +236,48 @@ export function Num({
     >
       {formatNumber(value, { format, currency, fractionDigits, locale })}
     </span>
+  );
+}
+
+/* --------------------------------------------------------------------------
+   Pct — YÜZDE. `Num`un üstünde ince bir katman, UI-ADR-138.
+   -------------------------------------------------------------------------- */
+
+/**
+ * NEDEN AYRI BİLEŞEN: aşağıdaki beş satır ALTI yerde kelimesi kelimesine
+ * yazılıydı (ppc-overview · amazon-director · amazon-sku-panel ×3 ·
+ * glance-view):
+ *
+ *     <Num value={toPercentUnit(x, scale)} format="percent" fractionDigits={1} … />
+ *
+ * `lib/format/percent.ts` ölçek DÖNÜŞÜMÜNÜ zaten tekilleştirmişti; ama
+ * ölçekten sonra gelen iki SUNUM KARARI — `format="percent"` ve
+ * **bir ondalık** — altı kopyada yaşamaya devam ediyordu. Ondalık sayısı
+ * bir gün değişirse altı yerin altısı da bulunmak zorunda; beşi bulunup
+ * biri unutulduğunda ekranda %71,5 ile %71 yan yana durur ve hangisinin
+ * doğru olduğu anlaşılmaz.
+ *
+ * Anti-fake KORUNUR: ölçek bildirilmemişse `toPercentUnit` null döner ve
+ * `Num` NoData basar — 0 ya da tahmin ASLA basılmaz (UI-ADR-093).
+ */
+export function Pct({
+  value,
+  scale,
+  fractionDigits = 1,
+  ...rest
+}: {
+  /** HAM değer — ölçek dönüşümü burada yapılır, çağıranda değil. */
+  value: number | null | undefined;
+  scale: PercentScale | undefined;
+  fractionDigits?: number;
+} & Omit<Parameters<typeof Num>[0], "value" | "format" | "fractionDigits">) {
+  return (
+    <Num
+      value={toPercentUnit(value, scale)}
+      format="percent"
+      fractionDigits={fractionDigits}
+      {...rest}
+    />
   );
 }
 

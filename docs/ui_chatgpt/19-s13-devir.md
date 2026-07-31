@@ -34,15 +34,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **134** | `amazon-director` bölündü | **802 → 496 satır** |
 | **136** | Etiket-değer + metin tonu tek yerde | Yerel `Stat` kopyası ve 4 elle yazılmış `<dt>/<dd>` silindi; `StatTone`/`TextTone` → tek `Tone` |
 | **137** | Zarf/kayıt fabrikaları birer kez | `kpi()` ve `envelope()` ikizleri silindi; varsayılanlar ilk kez test altında |
+| **138** | Yüzde gösterimi tek bileşende (`Pct`) | 10 çağrı yeri → 0; `format="percent" fractionDigits={1}` artık tek yerde |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **58 dosya/318 test**
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **58 dosya/319 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
-+4 test UI-ADR-137'den),
++4 test UI-ADR-137'den, +1 test UI-ADR-138'den),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…137**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…138**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -120,8 +121,8 @@ kaybolacağı için "ekranı yalnız `app/` import eder" kuralı
   `ai-recommendation-card.tsx:117`.
   ⚠️ Birleştirmeden önce `Stat`a `truncate`/`plain-label` seçeneği mi
   gerekiyor, yoksa iki ayrı bileşen mi doğru — **önce karar, sonra kod.**
-- `<Num value={toPercentUnit(...)} format="percent" fractionDigits={1}>`
-  **9 kez** tekrarlanıyor.
+- ✅ **KAPANDI (UI-ADR-138):** `Pct` bileşeni. Gerçek sayı **9 değil 10**'du
+  (`sku-columns.tsx:114` listede yoktu).
 - **Export edilmemiş sihirli-dize birlikleri** (çağıran elle yeniden
   yazıyor): `avatar.tsx:45,47` · `badge.tsx:47` size · `stat.tsx:50` ·
   `typography.tsx:212` · `timeline.tsx:36` · `tooltip.tsx:36` ·
@@ -235,7 +236,7 @@ npx vitest run --project=unit                                   # 13 / 171
 npx vitest run --project=storybook src/components/ui            # 18 /  57
 npx vitest run --project=storybook src/components/executive       src/components/layout src/features src/app                # 22 /  73
 npx vitest run --project=storybook src/styles src/components/screens  # 5 / 17
-#                                                        TOPLAM: 58 / 318
+#                                                        TOPLAM: 58 / 319
 
 npx next dev -p 3111      # /briefing /amazon /mission-control /goals → 200
                           # /bilinmeyen-ekran → 404

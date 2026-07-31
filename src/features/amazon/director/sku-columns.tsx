@@ -15,8 +15,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { SkuHealth } from "@/types/screens";
 import { Badge } from "@/components/ui/badge";
 import { NoData } from "@/components/ui/no-data";
-import { Mono, Num } from "@/components/ui/typography";
-import { toPercentUnit } from "@/lib/format/percent";
+import { Mono, Num, Pct } from "@/components/ui/typography";
 import { SKU_SCALE, SKU_STATUS } from "@/features/amazon/presentation/sku";
 
 /* --------------------------------------------------------------------------
@@ -110,10 +109,9 @@ export function skuColumns(): ColumnDef<SkuHealth, unknown>[] {
       header: "ACOS",
       meta: { numeric: true },
       cell: (c) => (
-        <Num
-          value={toPercentUnit(c.getValue() as number | null, SKU_SCALE)}
-          format="percent"
-          fractionDigits={1}
+        <Pct
+          value={c.getValue() as number | null}
+          scale={SKU_SCALE}
           size="sm"
           noDataReason="Reklam verisi yok"
         />

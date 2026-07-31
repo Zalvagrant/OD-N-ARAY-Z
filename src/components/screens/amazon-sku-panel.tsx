@@ -24,14 +24,13 @@
 
 import type { MetricPeriod } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
-import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
 import { useAmazonSkus } from "@/lib/data/odin-amazon";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
-import { Heading, Mono, Num, Text } from "@/components/ui/typography";
+import { Heading, Mono, Num, Pct, Text } from "@/components/ui/typography";
 import { Meter } from "@/components/executive/meter";
 import { PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 import {
@@ -227,10 +226,9 @@ export function AmazonSkuPanel() {
           <Stat
             label="Dönüşüm oranı"
             value={
-              <Num
-                value={toPercentUnit(sku.sales.conversionRate, SKU_SCALE)}
-                format="percent"
-                fractionDigits={1}
+              <Pct
+                value={sku.sales.conversionRate}
+                scale={SKU_SCALE}
                 noDataReason="Dönüşüm oranı ölçülmedi"
               />
             }
@@ -276,10 +274,9 @@ export function AmazonSkuPanel() {
           <Stat
             label="ACOS"
             value={
-              <Num
-                value={toPercentUnit(sku.advertising.acos, SKU_SCALE)}
-                format="percent"
-                fractionDigits={1}
+              <Pct
+                value={sku.advertising.acos}
+                scale={SKU_SCALE}
                 noDataReason="ACOS hesaplanmadı"
               />
             }
@@ -287,10 +284,9 @@ export function AmazonSkuPanel() {
           <Stat
             label="BuyBox oranı"
             value={
-              <Num
-                value={toPercentUnit(sku.sales.buyBoxRate, SKU_SCALE)}
-                format="percent"
-                fractionDigits={1}
+              <Pct
+                value={sku.sales.buyBoxRate}
+                scale={SKU_SCALE}
                 noDataReason="BuyBox oranı raporlanmadı"
               />
             }

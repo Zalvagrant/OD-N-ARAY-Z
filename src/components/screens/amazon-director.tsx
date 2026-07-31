@@ -26,7 +26,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { remainingTime, useNow } from "@/lib/clock/tick";
-import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
 import { MockBadge } from "@/components/ui/mock-badge";
 import {
@@ -47,7 +46,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/table";
 import { NoData } from "@/components/ui/no-data";
 import { Search } from "@/components/ui/search";
-import { Mono, Num, Text } from "@/components/ui/typography";
+import { Mono, Num, Pct, Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
@@ -417,12 +416,7 @@ export function AmazonDirector({
                 className="flex items-baseline justify-between gap-3 border-b border-line-subtle pb-2 last:border-b-0"
               >
                 <Mono size="sm">{s.sku}</Mono>
-                <Num
-                  value={toPercentUnit(s.sales.buyBoxRate, SKU_SCALE)}
-                  format="percent"
-                  fractionDigits={1}
-                  size="sm"
-                />
+                <Pct value={s.sales.buyBoxRate} scale={SKU_SCALE} size="sm" />
               </li>
             ))}
           </ul>
