@@ -33,6 +33,7 @@ import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
 import { MockBadge } from "@/mocks/mock-badge";
+import { useAmazonAlerts, useAmazonKpis } from "@/lib/data/odin-amazon";
 import { useMockData } from "@/mocks/use-mock";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -370,14 +371,25 @@ export function AmazonDirector({
     st.selectedEntity?.kind === AMAZON_SKU_KIND ? st.selectedEntity.id : null
   );
 
+  /* CANLI — ODIN ADR-0147 `GET /api/amazon` (UI-ADR-126). Bu iki bölüm
+     gerçek modda promote edilmiş SP-API ve Ads kayıtlarını gösterir;
+     kalan altısının ODIN'de yayını hâlâ yok ve mock'ta kalıyor. */
+  const kpis = useAmazonKpis();
+  const alerts = useAmazonAlerts();
+
   const snapshot = useMockData("amazon.snapshot");
-  const kpis = useMockData("amazon.kpis");
   const skus = useMockData("amazon.skus");
   const ppc = useMockData("amazon.ppc");
   const campaigns = useMockData("amazon.campaigns");
   const simulations = useMockData("amazon.simulations");
-  const alerts = useMockData("amazon.alerts");
   const opportunities = useMockData("amazon.opportunities");
+
+  /* Canlı bölümün hatası SUSTURULMAZ (S8 dersi, main CLAUDE.md kural 6):
+     bir bölüm gerçek uç noktadan besleniyorsa, o uç nokta düştüğünde
+     ekranda beş adımlı açıklama görünmeli. Demo hatası önceliklidir —
+     hata hâllerini göstermek onun tek işi. */
+  const sectionError = (live: { toErrorState: () => SectionError } | null) =>
+    demo === "error" ? DEMO_ERROR : (live?.toErrorState() ?? null);
 
   const loading = demo === "loading" || snapshot.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
@@ -385,12 +397,12 @@ export function AmazonDirector({
 
   const reloadAll = () => {
     snapshot.reload();
-    kpis.reload();
+    kpis.refetch();
     skus.reload();
     ppc.reload();
     campaigns.reload();
     simulations.reload();
-    alerts.reload();
+    alerts.refetch();
     opportunities.reload();
   };
 
@@ -414,7 +426,13 @@ export function AmazonDirector({
       <WorkspaceHeader
         title="Amazon Director"
         context="Bugün Amazon işinde hangi kararları vermeliyim?"
-        lastSync={snapshot.data?.meta.lastUpdated ?? null}
+        /* Snapshot HÂLÂ yayınlanmıyor; KPI şeridi ise ODIN'den CANLI geliyor.
+           Yalnız snapshot'a bakan başlık, ekran gerçek sayılarla doluyken
+           "senkron yok" diyordu. Önce gerçekten bağlı olan kaynağın zamanı
+           yazılır; ikisi de yoksa `—` kalır ve bu dürüsttür. */
+        lastSync={
+          kpis.envelope?.meta.lastUpdated ?? snapshot.data?.meta.lastUpdated ?? null
+        }
         actions={
           <>
             <MockBadge />
@@ -447,10 +465,10 @@ export function AmazonDirector({
       <Section
         title="Executive KPI Strip"
         description="Kapalıyken sade, açıkken mini rapor. Ölçüm kaynağı olmayan metrik değer göstermez."
-        loading={loading}
+        loading={loading || kpis.loading}
         loadingLayout="kpi"
         loadingCount={8}
-        error={error}
+        error={sectionError(kpis.error)}
         onRetry={reloadAll}
         empty={isEmpty}
         emptyTitle="KPI üretilmedi"
@@ -460,8 +478,8 @@ export function AmazonDirector({
             `text-3xl` para değeri sığmaz (768 ve 1280'de ölçüldü). Sekiz kart
             bu yüzden 4 kolona ancak 2xl'de dizilir. */}
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 [&>*]:min-w-0">
-          {kpis.data?.data.map((k) => (
-            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.data!.meta }} />
+          {kpis.envelope?.data.map((k) => (
+            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.envelope!.meta }} />
           ))}
         </div>
         <Text size="sm" tone="tertiary" className="mt-3">
@@ -685,14 +703,14 @@ export function AmazonDirector({
         <Section
           title="Alerts"
           description="Yalnızca aksiyon gerektirenler listelenir."
-          loading={loading}
+          loading={loading || alerts.loading}
           loadingLayout="list"
           loadingCount={4}
-          error={error}
+          error={sectionError(alerts.error)}
           onRetry={reloadAll}
         >
           <AlertStack
-            env={isEmpty ? empty(alerts.data) : alerts.data}
+            env={isEmpty ? empty(alerts.envelope) : alerts.envelope}
             title="Aksiyon gerektirenler"
           />
         </Section>

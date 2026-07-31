@@ -21,6 +21,7 @@ import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/ui/typography";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ThresholdNote } from "./threshold-note";
 import { DataGuard } from "./data-guard";
 import { TrustSignal } from "./trust-signal";
 import { relativeTime, useNow } from "@/lib/clock/tick";
@@ -85,6 +86,7 @@ export function AlertStack({
                             Önerilen: {a.suggestedAction}
                           </Text>
                         )}
+                        <ThresholdNote provenance={a.thresholdProvenance} />
                         {a.evidence.length > 0 && (
                           <p className="text-xs text-content-tertiary">
                             Kanıt: {a.evidence.join(", ")}

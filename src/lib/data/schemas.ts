@@ -70,6 +70,11 @@ export const executiveKpiSchema = z
     scale: z.enum(["0-1", "0-100"]).optional(),
     reason: z.string().nullable().optional(),
     asOf: isoDate,
+    /* ODIN ADR-0146: bu seviyeyi doğuran EŞİĞİN kaynağı. "3 SKU kritik
+       stokta" sayısı ölçülmüştür ama "kritik" bir sınıra dayanır ve meclis
+       o sınırı gerçek veriden türetmeyi REDDETTİ (bir haftalık 18 SKU bir
+       politika değil, gürültüdür). Eşiği olmayan üretici alanı ATLAR. */
+    thresholdProvenance: z.enum(["unapproved_default", "owner_policy"]).optional(),
   })
   .refine((k) => k.status !== "available" || k.value !== null, {
     message: "status=available ise value sayı olmalı",
@@ -106,6 +111,11 @@ export const alertSchema = z.object({
   evidence: z.array(z.string()),
   createdAt: isoDate,
   suggestedAction: z.string().optional(),
+  /* ODIN ADR-0146: bu seviyeyi doğuran EŞİĞİN kaynağı. "3 SKU kritik
+     stokta" sayısı ölçülmüştür ama "kritik" bir sınıra dayanır ve meclis
+     o sınırı gerçek veriden türetmeyi REDDETTİ (bir haftalık 18 SKU bir
+     politika değil, gürültüdür). Eşiği olmayan üretici alanı ATLAR. */
+  thresholdProvenance: z.enum(["unapproved_default", "owner_policy"]).optional(),
 });
 
 /* Opportunity ve Goal/Mission için şema YOKTUR — ADR-0143 §3 ve §4 ikisini

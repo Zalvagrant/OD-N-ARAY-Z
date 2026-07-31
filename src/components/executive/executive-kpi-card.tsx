@@ -25,6 +25,7 @@ import { PERCENT_SCALE_MISSING, percentFactor } from "@/lib/format/percent";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Heading, Num } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
+import { ThresholdNote } from "./threshold-note";
 import { TrustSignal } from "./trust-signal";
 
 /**
@@ -102,6 +103,10 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
             size="3xl"
             noDataReason={reason}
           />
+          {/* Sayının HEMEN altında: "kritik" hükmünün onaylanmamış bir
+              eşikten geldiğini görmeyen okur, ölçülmüş bir sayıyı
+              kararlaştırılmış bir sınırla karıştırır (UI-ADR-126). */}
+          <ThresholdNote provenance={kpi.thresholdProvenance} className="mt-1" />
         </div>
       </CardBody>
 

@@ -148,6 +148,13 @@ export interface ExecutiveKPI {
   reason?: string | null;
   /** ISO 8601 — metriğin veri anı. */
   asOf: string;
+  /**
+   * Eşiği olan metrik/alarm bunu TAŞIR; olmayan ATLAR (null yazmaz).
+   * `unapproved_default` geldiğinde arayüz GÖSTERMEK zorundadır:
+   * aksi hâlde ekran, kararlaştırılmamış bir sınırı yetkili bir
+   * hüküm gibi sunar (UI-ADR-126).
+   */
+  thresholdProvenance?: ThresholdProvenance;
 }
 
 /* --------------------------------------------------------------------------
@@ -250,6 +257,17 @@ export interface AgentHealth {
    -------------------------------------------------------------------------- */
 
 /** ADR-0143 §1 kanonik sözlük — UI eşleme icat etmez. */
+/**
+ * Bir seviyeyi doğuran EŞİĞİN kaynağı — ODIN ADR-0146.
+ *
+ * Meclis stok eşiğini gerçek veriden türetmeyi REDDETTİ: bir haftalık
+ * 18 SKU bir dağılım özetidir, politika değil. Bunun yerine mevcut band
+ * OTORİTE İDDİASINI bıraktı ve sonucu bu alanla işaretliyor —
+ * seviyeler kullanılabilir kalır, ama bir iş kararıymış gibi
+ * davranmayı bırakır.
+ */
+export type ThresholdProvenance = "unapproved_default" | "owner_policy";
+
 export type AlertSeverity = "critical" | "risk" | "warning" | "info";
 
 /**
@@ -277,6 +295,13 @@ export interface Alert {
   /** ISO 8601. */
   createdAt: string;
   suggestedAction?: string;
+  /**
+   * Eşiği olan metrik/alarm bunu TAŞIR; olmayan ATLAR (null yazmaz).
+   * `unapproved_default` geldiğinde arayüz GÖSTERMEK zorundadır:
+   * aksi hâlde ekran, kararlaştırılmamış bir sınırı yetkili bir
+   * hüküm gibi sunar (UI-ADR-126).
+   */
+  thresholdProvenance?: ThresholdProvenance;
 }
 
 /*
