@@ -27,7 +27,7 @@ import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heading, Num, Text } from "@/components/ui/typography";
+import { Caption, Heading, Num, Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
 import { ConfidenceBadge } from "./confidence-badge";
 import { ConfidenceBreakdown } from "./confidence-breakdown";
@@ -100,7 +100,7 @@ export function AIRecommendationView({
       {/* 💰 Beklenen finansal sonuç */}
       {(Number.isFinite(fin.amount) || Number.isFinite(fin.percent)) && (
         <p className="flex items-baseline gap-2">
-          <span className="text-xs text-content-tertiary">💰 Beklenen sonuç</span>
+          <Caption>💰 Beklenen sonuç</Caption>
           {Number.isFinite(fin.amount) && (
             <Num value={fin.amount!} format="currency" currency={fin.currency} size="lg" />
           )}

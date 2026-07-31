@@ -19,7 +19,7 @@ import type { Alert } from "@/types/executive";
 import type { DataEnvelope } from "@/types/data-envelope";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Text } from "@/components/ui/typography";
+import { Caption, Text } from "@/components/ui/typography";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pressable } from "@/components/ui/pressable";
 import { ThresholdNote } from "./threshold-note";
@@ -79,8 +79,8 @@ export function AlertStack({
                             {sev.label}
                           </Badge>
                           <span className="text-content">{a.title}</span>
-                          <span className="text-xs text-content-tertiary">{a.module}</span>
-                          {age && <span className="text-xs text-content-tertiary">· {age}</span>}
+                          <Caption>{a.module}</Caption>
+                          {age && <Caption>· {age}</Caption>}
                         </p>
                         {a.suggestedAction && (
                           <Text size="sm" tone="secondary">

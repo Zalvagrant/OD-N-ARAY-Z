@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
-import { Heading, Mono, Num, Pct, Text } from "@/components/ui/typography";
+import { Caption, Heading, Mono, Num, Pct, Text } from "@/components/ui/typography";
 import { Meter } from "@/components/executive/meter";
 import { PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 import {
@@ -302,7 +302,7 @@ export function AmazonSkuPanel() {
             value={
               <>
                 <Num value={sku.unitsAvailable} noDataReason="Stok adedi gelmedi" />
-                <span className="text-xs text-content-tertiary">adet</span>
+                <Caption>adet</Caption>
               </>
             }
           />
@@ -334,7 +334,7 @@ export function AmazonSkuPanel() {
                   noDataReason="Sipariş önerisi üretilmedi"
                 />
                 {sku.reorderUnits !== null && (
-                  <span className="text-xs text-content-tertiary">adet</span>
+                  <Caption>adet</Caption>
                 )}
               </>
             }

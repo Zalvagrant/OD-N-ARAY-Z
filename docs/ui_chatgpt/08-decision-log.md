@@ -3597,3 +3597,80 @@ koruyor:
 
 `tsc` 0 · `lint` 0 hata · **66 dosya / 411 test**
 (unit 15/220 · storybook 51/191). `decision-card` 419 → 307 satır.
+
+---
+
+## UI-ADR-145 — §2.3'ün kalanı: üç iddia ÖLÇÜLDÜ, ikisi çürüdü (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-136 · UI-ADR-137 · UI-ADR-144 · gavadolar 2/2
+
+Devir belgesi §2.3'te dört tekrar kalemi listeliyordu. Dördü de kaynaktan
+ölçüldü; **ikisi çürüdü, biri düzeltildi, biri sahibe kaldı.**
+
+### 1 · "`DataGuard > Card > … > TrustSignal` 9 dosyada kelimesi kelimesine" → ÇÜRÜDÜ
+
+Varyasyon matrisi çıkarıldı (gavadolar'ın istediği ölçüm):
+
+| | |
+|---|---|
+| `DataGuard` kullanan | 15 dosya |
+| **View-çıkarma** kalıbı (`{(x, meta) => <XView …/>}`) | 6 |
+| **satır içi** kompozisyon | 9 |
+| `CardHeader` propları | üç ayrı şekil: yok · `title` · `title`+`description` |
+| `CardFooter`/`TrustSignal` | 11'de var, 4'ünde yok |
+
+Ortak bir `GuardedCard` yazmak `title?` · `description?` · `actions?` ·
+`footer?` · `trust?` proplarını gerektirirdi — yani `Card`ın kendisini bir
+kapıyla sarmalayıp aynı esnekliği yeniden üretmek. Bu **merkezileştirme
+değil prop taşımacılığıdır** ve UI-ADR-144'ün dördüncü koşulunu
+(ebeveyn yalnızca orkestrasyon yapar, prop karmaşıklığı ARTMAZ) doğrudan
+ihlal eder. **Yazılmadı.**
+
+gavadolar 2/2 zaten bunu söylemişti: *"kelimesi kelimesine aynı JSX
+kanıttır, ama aynı iş kavramı kanıtı değildir."*
+
+### 2 · "`text-xs text-content-tertiary` 48 kez, `Caption` kullanılmıyor" → KISMEN
+
+Sayıldı: 48 geçişin yalnız **9'u** birebir `<span className="text-xs
+text-content-tertiary">` — yani gerçekten `Caption`. Kalan 37'si farklı
+etikette (`<p>`, `<dt>`), ek sınıflarla ya da farklı bir bağlamda.
+
+Toplu değiştirme **yapılmadı** (gavadolar 2/2: *"aynı Tailwind dizesi aynı
+mimari karar değildir"*). Birebir olan 9 site `Caption`a çevrildi —
+yedi dosya, 22 satır.
+
+### 3 · "Export edilmemiş sihirli-dize birlikleri, çağıran elle yeniden yazıyor" → BİR TANE GERÇEK
+
+İddia yedi dosyayı sayıyordu. Ölçüldü: bir birliği elle yeniden yazan
+**tek bir çağıran** var — `director-card.tsx:42`, `NumFormat`ı
+(`"percent" | "currency" | "plain" | "compact"`) kopyalamış. Düzeltildi;
+artık `typography.tsx`ten import ediliyor.
+
+Diğerleri (`avatar` SIZE/STATUS · `tooltip` SIDE · `modal` MODAL_SIZE ·
+`stat` SIZE · `badge` SIZE) hiçbir çağıran tarafından değişkende
+tutulmuyor; export etmek **kullanılmayan API yüzeyi** üretirdi.
+`BadgeVariant` zaten export ve gerçekten kullanılıyor (`campaign-
+intelligence` bir `Record` kuruyor) — kanıtı olan tek durum buydu.
+(`ChartProps` UI-ADR-142'de export edilmişti; onun üç gerçek tüketicisi
+vardı.)
+
+### 4 · `director-card`in yerel `Metric`i → **SAHİP KARARI** bekliyor
+
+Ölçüldü: `Metric` **tek** dosyada tanımlı; `runtime-director-card` aynı
+şekli iki kez satır içi yazıyor. Yani tekrar gerçek ama küçük (2 site).
+
+Asıl mesele mühendislik değil: `Metric` etiketi **truncate + normal harf**,
+`Stat` ise **BÜYÜK HARF + geniş aralık** çiziyor. Birleştirmek ya
+`director-card`in görünümünü sessizce değiştirir ya da tek çağıran için
+bir görünüm prop'u ekler. Hangi etiket muamelesinin kanonik olduğu bir
+**tasarım dili kararıdır** ve sahibinindir; kendiliğinden verilmedi.
+
+UI-ADR-137'nin kuralı burada da geçerli: **merkezileşmesi gereken şey bir
+KARARDIR** — ve o karar henüz verilmemiş.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **66 dosya / 411 test** (değişmedi — bu tur
+davranış değiştirmedi, yalnız tekrar sildi).

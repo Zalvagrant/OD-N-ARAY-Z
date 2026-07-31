@@ -15,6 +15,7 @@
 
 import type { EvidenceRef } from "@/types/executive";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Caption } from "@/components/ui/typography";
 import { Meter } from "./meter";
 import { relativeTime, useNow } from "@/lib/clock/tick";
 
@@ -91,7 +92,7 @@ export function EvidenceChain({
                 ) : (
                   <span className="text-content">{e.title}</span>
                 )}
-                <span className="text-xs text-content-tertiary">{TYPE_LABEL[e.type]}</span>
+                <Caption>{TYPE_LABEL[e.type]}</Caption>
               </p>
 
               {e.excerpt && (

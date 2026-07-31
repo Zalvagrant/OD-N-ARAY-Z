@@ -41,6 +41,7 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **142** | Story bir DAVRANIŞ kanıtlar; §2.7 kapandı | 7 yeni story + envanterdeki 7 bileşene `play`; kapıya ikinci kol; 141'in kök-neden iddiası düzeltildi |
 | **143** | Ekranlar `features/<alan>/screen.tsx`e taşındı | `components/screens/` KALKTI; kapı dosya adına bağlandı, 4 ihlalle denendi (biri ilk denemede kaçtı) |
 | **144** | Bölme ÖLÇÜTÜ (4 koşul); yalnız `VerdictForm` geçti | 6 dosya ölçüldü 1'i bölündü (419→307); ADR-0085 açıklanabilirlik kapısı ilk kez test altına alındı |
+| **145** | §2.3'ün kalanı ölçüldü; iki iddia ÇÜRÜDÜ | `GuardedCard` yazılmadı (varyasyon matrisi) · `Caption` 48 değil 9'muş · tek gerçek elle-yazım düzeltildi |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
@@ -49,7 +50,7 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 +4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den, +5 dosya/+42 test UI-ADR-142'den, +1 dosya/+9 test UI-ADR-144'ten),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…144**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…145**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -93,43 +94,30 @@ Kapı artık DOSYA ADINA bağlı (`**/screen`), klasöre değil — `features/`
 altında ekran olmayan çok şey var. Dört ihlalle denendi; **aşağı göreli
 import (`./director/screen`) ilk denemede KAÇTI**, desen tamamlandı.
 
-### 2.3 · Bileşen seviyesi tekrar (task #10)
+### 2.3 · ~~Bileşen seviyesi tekrar~~ ✅ KAPANDI
 
-- ✅ **KAPANDI (UI-ADR-136):** `ui/stat.tsx:20` ≡ `ui/typography.tsx:60`
-  birleşti, tek `Tone`. `ui/icon.tsx:22` ve `ui/timeline.tsx:29`
-  **BİRLEŞTİRİLMEDİ ve birleştirilmemeli** — aynı anahtar adları, farklı
-  token uzayı (`text-icon*` / `bg-*`). "20 harita" sayısı yüzeysel biçim
-  benzerliğine dayanıyordu; kaynaktan doğrulanınca birebir aynı olan
-  yalnız İKİSİYDİ.
-- `DataGuard > Card > CardHeader > CardBody > CardFooter > TrustSignal`
-  kompozisyonu **9 dosyada** kelimesi kelimesine yazılı.
-- `"text-xs text-content-tertiary"` **21 kez**;
-  `"text-xs uppercase tracking-wide text-content-tertiary"` 7 kez — oysa
-  `ui/typography.tsx:97` `Label` **tam olarak o dizedir** ve hiçbiri onu
-  kullanmıyor.
-- ✅ **KAPANDI (UI-ADR-137):** `kpi()` → `mocks/envelope.ts` `mockKpi`;
-  `envelope()` → `types/data-envelope.ts` `internalEnvelope`.
-- `toISOString().slice(0,10)` üç ayrı yerde — **KASITLI OLARAK BIRAKILDI**
-  (UI-ADR-137): merkezileşmesi gereken bir KARAR değil, bir JS deyimi.
-  İki katman arasında yeni bağımlılık kurmaya değmez.
-- **Etiket-değer gösterimi — KISMEN KAPANDI (UI-ADR-136).**
-  Silinenler: `mission-control.tsx` yerel `Stat`, `executive-briefing.tsx`
-  dört elle yazılmış `<dt>/<dd>`. **KALAN:** `director-card.tsx:34` yerel
-  `Metric` (`truncate` + büyük harf YOK — `Stat`tan görsel olarak farklı,
-  körlemesine birleştirme), `runtime-director-card.tsx:83`,
-  `decision-card.tsx:249`, `council-view.tsx:39`,
-  `ai-recommendation-card.tsx:117`.
-  ⚠️ Birleştirmeden önce `Stat`a `truncate`/`plain-label` seçeneği mi
-  gerekiyor, yoksa iki ayrı bileşen mi doğru — **önce karar, sonra kod.**
-- ✅ **KAPANDI (UI-ADR-138):** `Pct` bileşeni. Gerçek sayı **9 değil 10**'du
-  (`sku-columns.tsx:114` listede yoktu).
-- **Export edilmemiş sihirli-dize birlikleri** (çağıran elle yeniden
-  yazıyor): `avatar.tsx:45,47` · `badge.tsx:47` size · `stat.tsx:50` ·
-  `typography.tsx:212` · `timeline.tsx:36` · `tooltip.tsx:36` ·
-  `modal.tsx:169,185`. `chart.tsx:47` `ChartProps` **export edilmemiş**
-  olmasına rağmen üç bileşen onu alıyor. `director-card.tsx:42`
-  `NumFormat`'ı elle yeniden tanımlıyor (oysa `typography.tsx:153`'te
-  export edilmiş).
+**UI-ADR-136 · 137 · 138 · 142 · 145.** Dört iddianın ikisi ölçülünce
+ÇÜRÜDÜ ve kasıtlı olarak YAPILMADI:
+
+- ~~`DataGuard>Card>…>TrustSignal` 9 dosyada aynı~~ → **değil.** 6'sı
+  View-çıkarma, 9'u satır içi; `CardHeader` propları üç ayrı şekilde.
+  Ortak sarmalayıcı `title?/description?/actions?/footer?/trust?`
+  isterdi — merkezileştirme değil prop taşımacılığı.
+- ~~`text-xs text-content-tertiary` 48 kez~~ → 48'in yalnız **9'u**
+  birebir `Caption`. O 9'u çevrildi; kalan 37 farklı etiket/bağlam,
+  toplu değiştirme yapılmadı.
+- Export edilmemiş birlikler → **tek** gerçek elle-yazım vardı
+  (`director-card` `NumFormat`), düzeltildi. Diğerlerini export etmek
+  kullanılmayan API yüzeyi üretirdi.
+- `kpi()` / `envelope()` ikizleri → UI-ADR-137'de silindi.
+- Yüzde gösterimi 10 çağrı yeri → UI-ADR-138'de tek `Pct`.
+- `ChartProps` export edildi (UI-ADR-142).
+
+⚠️ **AÇIK — SAHİP KARARI:** `director-card`in yerel `Metric`i etiketi
+**truncate + normal harf**, `Stat` ise **BÜYÜK HARF + geniş aralık**
+çiziyor. Birleştirmek görünümü sessizce değiştirir ya da tek çağıran için
+görünüm prop'u ekler. Hangi etiket muamelesi kanonik? Tasarım dili
+kararıdır, kendiliğinden verilmedi.
 
 ### 2.5 · ~~Test edilmeyen "test edilebilir" yardımcılar~~ ✅ KAPANDI
 

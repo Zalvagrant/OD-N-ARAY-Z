@@ -19,7 +19,7 @@ import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { relativeTime, useNow } from "@/lib/clock/tick";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heading, Num } from "@/components/ui/typography";
+import { Caption, Heading, Num, type NumFormat } from "@/components/ui/typography";
 import { NoData } from "@/components/ui/no-data";
 import { DataGuard } from "./data-guard";
 import { TrustSignal } from "./trust-signal";
@@ -39,7 +39,11 @@ function Metric({
 }: {
   label: string;
   value: number | null;
-  format?: "percent" | "currency" | "plain" | "compact";
+  /* UI-ADR-145: bu birlik burada ELLE yeniden yazılıydı, oysa
+     `typography.tsx` onu `NumFormat` olarak zaten export ediyor. İki
+     kopya demek, `Num`a yeni bir biçim eklendiğinde buranın sessizce
+     geride kalması demektir. */
+  format?: NumFormat;
   reason: string;
 }) {
   return (
@@ -78,7 +82,7 @@ function DirectorView({ agent, meta }: { agent: AgentHealth; meta: DataMeta }) {
           </span>
         }
         actions={
-          <span className="text-xs text-content-tertiary">
+          <Caption>
             {/* Yaş yazılır, canlılık YORUMLANMAZ (UI-ADR-111). */}
             {agent.metrics.lastHeartbeat && beatAge ? (
               <>
@@ -90,7 +94,7 @@ function DirectorView({ agent, meta }: { agent: AgentHealth; meta: DataMeta }) {
             ) : (
               <NoData reason="Heartbeat kaydı yok" />
             )}
-          </span>
+          </Caption>
         }
       />
 

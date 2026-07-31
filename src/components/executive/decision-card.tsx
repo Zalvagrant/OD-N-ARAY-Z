@@ -31,7 +31,7 @@ import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heading, Text } from "@/components/ui/typography";
+import { Caption, Heading, Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
 import { ConfidenceBadge } from "./confidence-badge";
 import { TrustSignal } from "./trust-signal";
@@ -112,7 +112,7 @@ function DecisionView({
                 {decided ? OUTCOME[decided.outcome].label : STATUS_LABEL[decision.status]}
               </Badge>
               {decision.domain && (
-                <span className="text-xs text-content-tertiary">{decision.domain}</span>
+                <Caption>{decision.domain}</Caption>
               )}
             </span>
             <Heading level={3} size={3}>
