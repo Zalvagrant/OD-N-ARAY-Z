@@ -11,7 +11,7 @@
 
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useUiStore } from "@/lib/store/ui";
-import { AmazonSkuPanel, AMAZON_SKU_KIND } from "./amazon-sku-panel";
+import { AmazonSkuPanel, AMAZON_SKU_KIND } from "./screen";
 
 const select = (id: string | null) => () => {
   useUiStore.setState({

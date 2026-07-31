@@ -21,8 +21,8 @@
 
 import type { ContextPanelSlot } from "@/components/layout/app-shell";
 import { AMAZON_SKU_KIND } from "@/features/amazon/presentation/sku";
-import { AmazonSkuPanel } from "@/components/screens/amazon-sku-panel";
-import { IntelligenceFeed } from "@/components/screens/intelligence-feed";
+import { AmazonSkuPanel } from "@/features/amazon/sku/screen";
+import { IntelligenceFeed } from "@/features/intelligence-feed/screen";
 
 /**
  * Executive Briefing'de akan istihbarat paneli (05-dashboard.md §6);

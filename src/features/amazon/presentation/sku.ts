@@ -7,7 +7,7 @@
  * dosyaya yazılırsa, uydurulmuş bir politika "domain katmanı" adı altında
  * meşrulaştırılmış olur; taşımak temizlemek değildir.
  *
- * NEDEN BURADA: bu haritalar `components/screens/amazon-sku-panel.tsx`
+ * NEDEN BURADA: bu haritalar `features/amazon/sku/screen.tsx`
  * içinde yaşıyordu ve `amazon-director.tsx` onları KARDEŞ EKRANDAN import
  * ediyordu. Ekranlar birbirinin iç detayına bağlanınca ikisi de tek
  * başına taşınamaz hâle gelir.

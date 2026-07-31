@@ -3439,3 +3439,79 @@ Bileşen doğru, test yanlıştı.
 
 `tsc` 0 · `lint` 0 hata · **65 dosya / 402 test** (unit 15/215 ·
 storybook 50/187). `ChartProps` de export edildi (§2.3 kalemi).
+
+---
+
+## UI-ADR-143 — Ekranlar `features/<alan>/screen.tsx`e taşındı; kapı dosya adına bağlandı (S13)
+
+**Durum:** ✅ Dondurulmuş — davranışsız taşıma, ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-130 · gavadolar 2/2
+
+### Karar
+
+`components/screens/` klasörü KALKTI. Altı ekranın hepsi kendi feature
+alanına indi:
+
+| Eski | Yeni |
+|---|---|
+| `components/screens/executive-briefing.tsx` | `features/briefing/screen.tsx` |
+| `components/screens/mission-control.tsx` | `features/mission-control/screen.tsx` |
+| `components/screens/goals.tsx` | `features/goals/screen.tsx` |
+| `components/screens/intelligence-feed.tsx` | `features/intelligence-feed/screen.tsx` |
+| `components/screens/amazon-director.tsx` | `features/amazon/director/screen.tsx` |
+| `components/screens/amazon-sku-panel.tsx` | `features/amazon/sku/screen.tsx` |
+
+`components/{ui,executive,layout}` **paylaşılan katman olarak kaldı** —
+taşınan yalnızca ekranlar.
+
+**Neden `screen.tsx`, neden `screens/` alt klasörü değil** (gavadolar 2/2):
+`director` zaten Amazon'un gerçek alt alanı; ekran, `glance-view.tsx` ile
+aynı alanın kompozisyon köküdür. Paralel ikinci bir sınıflandırma katmanı
+(`features/amazon/screens/director.tsx`) aynı şeyi iki kez adlandırırdı.
+
+**Neden D'den (büyük bileşenleri bölme) ÖNCE** (gavadolar 2/2): ekranlar
+önce bölünüp sonra taşınsaydı, taşıma diff'i ve çakışma yüzeyi kat kat
+büyürdü. Önce sahiplik sınırı, sonra bölme.
+
+### Kapı: ayırıcı KLASÖR değil DOSYA ADI
+
+`features/` altında ekran olmayan çok şey var (`selectors`,
+`presentation`, `shell`, `director/glance-view`); `@/features/**` gibi bir
+desen mimariyi kilitlerdi. Kural yalnız giriş dosyasını hedefliyor.
+
+**Denendi — ve ilk deneme EKSİK ÇIKTI.** Dört ihlal enjekte edildi:
+
+| İhlal | İlk desen |
+|---|---|
+| `@/features/briefing/screen` | ✅ yakalandı |
+| `@/features/amazon/director/screen` | ✅ yakalandı |
+| `../director/screen` (yukarı göreli) | ✅ yakalandı |
+| `./director/screen` (**aşağı göreli**) | ❌ **KAÇTI** |
+
+Desen tamamlandı, dördü de yakalanıyor. Bu repoda `@/components/*`
+deseninin tek `*` yüzünden sessizce boş çıkması aynı hataydı: **kapı,
+denenmeden kapı sayılmaz.**
+
+Bir yan etki kapının çalıştığını ayrıca kanıtladı: `goals.tsx` için
+yazılmış `react/forbid-dom-props` istisna YOLU bayatladı ve lint hemen
+patladı — yol güncellendi.
+
+### gavadolar'a verdiğim bir ölçüm YANLIŞTI
+
+Danışırken *"`intelligence-feed`in hiçbir app/ rotası onu import etmiyor,
+yalnız story'si var"* demiştim. Yanlıştı: `app/(shell)/context-panel.tsx`
+onu da `amazon-sku-panel`i de import ediyor — ikisi **bağlam paneli
+yuvalarıdır**, rota sayfası değil ama app-katmanı tüketicileri var.
+Bu yüzden gavadolar'ın *"ekran değil, kendi klasörünü açma"* tavsiyesi
+uygulanmadı: yanlış öncüle dayanıyordu ve altısı da aynı sözleşmeye girdi.
+
+Ders yine aynı: **meclis cevabı, verilen ölçüm kadar doğrudur.**
+
+### Ölçüm — "davranış değişmedi" iddiasının kanıtı
+
+`tsc` 0 · `lint` 0 hata · **65 dosya / 402 test** — taşımadan ÖNCEKİ
+sayının birebir aynısı. Üretim derlemesi 7 sayfa; dört rota 200,
+bilinmeyen 404. Tarayıcıda `/mission-control` canlı ODIN sayaçlarını,
+`/amazon` 16 yüzdeyi `Pct` ile ve `<table role="grid">` + `<caption>`
+"SKU sağlık tablosu" (iç içe tablo: 0) çiziyor. Konsol hatasız.

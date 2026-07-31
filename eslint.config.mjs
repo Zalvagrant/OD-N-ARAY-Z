@@ -72,7 +72,7 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
     /* Hedef ilerleme çubuğunun genişliği ölçülen değerden gelir —
        kuralın kendi metnindeki "ilerleme genişliği" istisnası (UI-ADR-124).
        Renk yine token'dan: bg-accent. */
-    "src/components/screens/goals.tsx",
+    "src/features/goals/screen.tsx",
   ],
   rules: { "react/forbid-dom-props": "off" },
 }, {
@@ -98,7 +98,7 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
    *
    * İZİNLİ YÖN — yukarıdan aşağı, asla ters:
    *
-   *     app  →  features  →  components/{screens,executive,layout,ui}
+   *     app  →  features  →  components/{executive,layout,ui}
    *                       →  lib  →  types
    *
    * `app` kompozisyon köküdür: her şeyi tanır, kimse onu tanımaz.
@@ -119,10 +119,29 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
         {
           /* TERS BAĞIMLILIK: aşağıdaki katmanlar ekranı tanıyamaz.
              Kabuk her feature'ı tanırsa hiçbir feature tek başına
-             taşınamaz; sağ panel bunun için slota çevrildi. */
-          group: ["@/components/screens/**", "**/components/screens/**"],
+             taşınamaz; sağ panel bunun için slota çevrildi.
+
+             ♻️ UI-ADR-143: desen `@/components/screens/**` idi; ekranlar
+             `features/<alan>/screen.tsx`e taşındı. Ayırt edici artık
+             KLASÖR değil DOSYA ADI: `features/` altında ekran olmayan çok
+             şey var (`selectors`, `presentation`, `shell`) ve onları
+             kapsayan bir desen mimariyi kilitlerdi.
+
+             ⚠️ GÖRELİ İMPORT deseni atlatır ve dört ihlal enjekte edilip
+             ölçüldü: alias (`@/features/briefing/screen`), derin alias
+             (`@/features/amazon/director/screen`) ve YUKARI göreli
+             (`../director/screen`) yakalandı; ama AŞAĞI göreli
+             (`./director/screen`) ilk denemede KAÇTI. Desen ona göre
+             tamamlandı — kapı, denenmeden kapı sayılmaz (bu repoda
+             `@/components/*` deseni de tam böyle sessizce boş çıkmıştı). */
+          group: [
+            "@/features/*/screen", "@/features/*/*/screen",
+            "**/features/*/screen", "**/features/*/*/screen",
+            "./*/screen", "./*/*/screen",
+            "../*/screen", "../../*/screen", "../*/*/screen",
+          ],
           message:
-            "Ekranı yalnızca app/ kompozisyon kökü import eder (UI-ADR-130). Kabuk bir SLOT tanımlar, içeriği app/ verir — bkz. app/(shell)/context-panel.tsx.",
+            "Ekranı yalnızca app/ kompozisyon kökü import eder (UI-ADR-130 · 143). Kabuk bir SLOT tanımlar, içeriği app/ verir — bkz. app/(shell)/context-panel.tsx.",
         },
       ],
     }],
@@ -160,7 +179,7 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
     "no-restricted-imports": ["error", {
       patterns: [{
         group: [
-          "@/components/screens/**", "@/components/executive/**",
+          "@/components/executive/**",
           "@/features/**", "@/mocks/**", "@/lib/store/**",
         ],
         message:

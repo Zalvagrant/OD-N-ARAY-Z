@@ -39,6 +39,7 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **140** | **SAHİP KARARI:** 9 tüketicisiz modül envanter olarak kalır | `inventory.test.ts` kapısı: çağıranı yoksa hikâyesi olacak — enjekte ihlalle denendi |
 | **141** | Erişilebilirlik: 5 açık kapandı + tuzak #1'in KÖK NEDENİ | ızgara adı · iconOnly derleme kapısı · modal labelledby · Escape kökte · search combobox; `connectTimeout` ile testler tek koşuda |
 | **142** | Story bir DAVRANIŞ kanıtlar; §2.7 kapandı | 7 yeni story + envanterdeki 7 bileşene `play`; kapıya ikinci kol; 141'in kök-neden iddiası düzeltildi |
+| **143** | Ekranlar `features/<alan>/screen.tsx`e taşındı | `components/screens/` KALKTI; kapı dosya adına bağlandı, 4 ihlalle denendi (biri ilk denemede kaçtı) |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
@@ -47,7 +48,7 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 +4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den, +5 dosya/+42 test UI-ADR-142'den),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…142**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…143**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -80,22 +81,16 @@ S14'ün runtime alarmlarıdır, başka bir karardır.
 sayısına göre DEĞİL. *"Sırf dosya küçülsün diye 20 küçük bileşen"* yapma.
 Ekranın DÜZENİ olan bloklar yerinde kalabilir.
 
-### 2.2 · Ekranları `features/` altına taşı (task #9)
+### 2.2 · ~~Ekranları `features/` altına taşı~~ ✅ KAPANDI
 
-Meclis şekli (terra, küçük diff): `features/{briefing,mission-control,
-amazon/{director,sku},goals,intelligence-feed}/`.
-`components/{ui,executive,layout}` **paylaşılan katman olarak kalır.**
+**UI-ADR-143.** `components/screens/` kalktı; altı ekran
+`features/{briefing,mission-control,goals,intelligence-feed,
+amazon/director,amazon/sku}/screen.tsx`e indi.
+`components/{ui,executive,layout}` paylaşılan katman olarak kaldı.
 
-Zaten yerinde: `features/amazon/{presentation,selectors,director}`,
-`features/executive/presentation`, `features/shell`.
-
-⚠️ **Klasörü ancak GERÇEK kod dolduruyorsa aç.** Boş 10 alt klasör
-şablonu meclisin iki üyesi tarafından da reddedildi — reponun kendi
-"sahte yapı yasak" kuralını ihlal eder.
-
-Taşıma bitince ESLint kapısını sıkılaştır: `components/screens/**`
-kaybolacağı için "ekranı yalnız `app/` import eder" kuralı
-`features/*/screen`e kayar.
+Kapı artık DOSYA ADINA bağlı (`**/screen`), klasöre değil — `features/`
+altında ekran olmayan çok şey var. Dört ihlalle denendi; **aşağı göreli
+import (`./director/screen`) ilk denemede KAÇTI**, desen tamamlandı.
 
 ### 2.3 · Bileşen seviyesi tekrar (task #10)
 
@@ -255,3 +250,61 @@ Katman kenarlarını ölçmek için `scratchpad/deps.py` kullanıldı; mantığ�
 basit: `src/**` içindeki `@/` import'larını katmana eşleyip sayıyor.
 Beklenen: `screens → mocks` **0**, `layout → screens` **0**,
 `mocks → components` **0**.
+
+---
+
+## 6. HAZIRLIK TARAMASI — 31 Tem 2026, kapanış öncesi
+
+> Bu bölüm §1–§5'i **yeniden ölçtü**. Aşağıdaki dört satır, yukarıdaki
+> metinle çelişiyorsa doğru olan burasıdır.
+
+### 6.1 Dalın gerçek konumu (ölçüldü)
+
+| | Ölçüm |
+|---|---|
+| `main` | `7903e95` — **S15 ve S16 da indi**, §0'daki `9e7904a` bayat |
+| Dal ↔ main | main'de olmayan **18**, dalda olmayan **4** commit |
+| Push durumu | origin'de, ama **2 commit push edilmemiş** (`origin/...` 2 geride) |
+| Çalışma ağacı | temiz |
+| `tsc --noEmit` | **0 hata** |
+| `vitest --project=unit` | **15 dosya / 215 test yeşil** |
+| `--project=storybook` | ⬜ bu taramada koşulmadı |
+
+⚠️ `CLAUDE.md`'nin sprint panosu S13 için **"lokal, push/merge YOK"** diyor —
+**yanlış**, dal push edilmiş. Panonun düzeltilmesi gerekiyor.
+
+### 6.2 ÜÇ ADR numarası çakışıyor (§1'deki 129 çakışması tekrarladı)
+
+| Numara | S13 dalında | `main` / `s17` tarafında |
+|---|---|---|
+| **140** | Tüketicisiz dokuz bileşen envanterdir | **S15** — her metrik ölçüm penceresini söyler (`main`'de) |
+| **141** | Erişilebilirlik kapıya bağlandı | **S16** — fırsat bir görünüm (`main`'de) |
+| **142** | Story bir DAVRANIŞ kanıtlar | **S17** — Storybook kapısı fail-closed (dalda, merge YOK) |
+
+`main`'dekiler dondurulmuş sayılır (yayında). **S13'ünkiler taşınır.**
+S17 de merge edilmemiş; 142 için sıra kararı sahibindir.
+
+### 6.3 Merge önizlemesi: 3 dosyada çakışma
+
+`git merge-tree main feature/s13-frontend-architecture` →
+`CLAUDE.md` · `08-decision-log.md` · `src/components/screens/executive-briefing.tsx`
+
+⚠️ **Üçüncüsü metin çakışması değil, REGRESYON riskidir.**
+`main`'de (S16 / UI-ADR-141) fırsat yuvası **canlı**:
+`useOdinOpportunities()` + ODIN ADR-0154 görünümü. S13 dalı aynı yuvayı
+`useOdinFixture("briefing.opportunities")` yapıyor ve `AIRecommendationView`
+ile basıyor — oysa `main`'in oradaki yorumu bu bileşeni **açıkça
+reddediyor** ("yedi zorunlu açıklanabilirlik alanı ister, boş geçmek
+uydurmak olurdu"). Naif merge **canlı veriyi mock'a geri döndürür** ve
+repo kuralı #2'yi ihlal eder.
+
+**Çözüm şekli:** iskelet (`screenState` · `useOdinFixture` · `emptied`)
+S13'ten; **fırsat bloğunun tamamı `main`'den.** `screenState`'in
+`useOdinOpportunities`'in kendi `error`/`empty` kanalını taşıması gerekir.
+
+### 6.4 §4 tablosunun iki satırı bayat
+
+- ~~`chart.tsx` sahip kararı bekliyor~~ → **UI-ADR-140 karar verdi:**
+  dokuzu da envanter olarak kalır. Satır kapatılmalı.
+- ~~"7 yardımcı hiç test edilmiyor"~~ → **UI-ADR-139 kapattı** (8 yardımcı,
+  25 iddia).

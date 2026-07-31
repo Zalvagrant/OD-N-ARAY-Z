@@ -1,9 +1,9 @@
-/** S6 · 3 — Amazon Director (tam ekran) */
+/** S5 · 2 — Mission Control (tam ekran) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { AmazonDirector } from "./amazon-director";
+import { MissionControl } from "./screen";
 
 const meta: Meta = {
-  title: "Screens/3 · Amazon Director",
+  title: "Screens/2 · Mission Control",
   parameters: {
     layout: "fullscreen",
     nextjs: { appDirectory: true },
@@ -11,15 +11,11 @@ const meta: Meta = {
 };
 export default meta;
 
-/**
- * Referans modül. Primary Focus: Executive Glance + KPI Strip.
- * Net kâr ve Profit After Ads BİLEREK boştur (UI-ADR-116); Sales & Profit ile
- * Orders bölümlerinin sözleşmesi yoktur (UI-ADR-096).
- */
-export const Amazon: StoryObj = {
+/** Primary Focus: Mission Board. Sözleşmesi olmayan üç bölüm boş görünür. */
+export const Operasyon: StoryObj = {
   render: () => (
     <div className="bg-bg p-6">
-      <AmazonDirector />
+      <MissionControl />
     </div>
   ),
 };
@@ -27,7 +23,7 @@ export const Amazon: StoryObj = {
 export const Yukleniyor: StoryObj = {
   render: () => (
     <div className="bg-bg p-6">
-      <AmazonDirector demo="loading" />
+      <MissionControl demo="loading" />
     </div>
   ),
 };
@@ -35,7 +31,7 @@ export const Yukleniyor: StoryObj = {
 export const Bos: StoryObj = {
   render: () => (
     <div className="bg-bg p-6">
-      <AmazonDirector demo="empty" />
+      <MissionControl demo="empty" />
     </div>
   ),
 };
@@ -43,7 +39,7 @@ export const Bos: StoryObj = {
 export const Hata: StoryObj = {
   render: () => (
     <div className="bg-bg p-6">
-      <AmazonDirector demo="error" />
+      <MissionControl demo="error" />
     </div>
   ),
 };
