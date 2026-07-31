@@ -3212,3 +3212,63 @@ doğru, test yanlıştı — bu oturumda üçüncü kez.
 ### Ölçüm
 
 `tsc` 0 · `lint` 0 hata · **59 dosya / 344 test** (+1 dosya / +25 test).
+
+---
+
+## UI-ADR-140 — Tüketicisi olmayan dokuz bileşen tasarım sistemi envanteridir (SAHİP KARARI)
+
+**Durum:** ✅ Dondurulmuş — **sahip kararı**, 31 Temmuz 2026
+**İlgili:** UI-ADR-139 · CLAUDE.md §5 · `10-component-library.md` §10
+
+### Soru
+
+Dokuz modülün hiçbir ekran tüketicisi yoktu (hikâyeler hariç):
+`ui/chart` (357 satır) · `ui/modal` (195, reponun tek focus-trap
+uygulaması) · `ui/tabs` · `ui/tooltip` · `ui/filter` · `ui/icon` ·
+`ui/avatar` · `ui/sparkline` · `executive/telemetry-bar`.
+
+**Tasarım sistemi envanteri mi, ölü kod mu?** Bu bir mimari değil bir
+ÜRÜN sorusudur — arayüzün hangi bileşenlere sahip olmayı taahhüt ettiği
+sorusu — ve cevabı sahibindir.
+
+### Karar
+
+**Envanter olarak KALIRLAR. Silinmiyorlar.**
+
+Karar `10-component-library.md` §10 ile tutarlıdır: dokuzunun dokuzu da
+o envanterde adı geçen kalemlerdir (`Tabs` · `Tooltip` · `Modal` ·
+`Avatar` · `Icon` · `Chart` · `Sparkline` · `Filter` · `TelemetryBar`).
+Kararın temeli ölçüldü: **dokuzunun dokuzunun da hikâyesi var**, yani
+Storybook'ta render ediliyor, `addon-a11y` ile taranıyor ve test
+paketinde koşuyor. Görünmeyen kod değiller.
+
+### Kararın bedeli — ve onu ödeten kapı
+
+"Envanter" bir ETİKETTİR ve etiket tek başına ölü kodu meşrulaştırır.
+Bugün doğru olan bir karar, altı ay sonra çağıranı olmayan her dosyanın
+arkasına saklandığı bir gerekçeye dönüşebilir.
+
+`src/components/inventory.test.ts` bunu engeller. Kural **kasıtlı olarak
+dar**:
+
+> **Bir bileşenin ekran tüketicisi yoksa, hikâyesi OLACAK.**
+> İkisi birden yoksa test düşer.
+
+Çağıranı OLAN bileşen için hikâye zorunlu değildir (§2.7'de hâlâ yedi
+eksik var; o ayrı bir iş). Burada kilitlenen tek şey envanter kararının
+bedelidir: envanter, GÖRÜLEBİLİR bileşenler içindir.
+
+İkinci kol bir satır içi anlık görüntüdür: liste dokuz kalemden
+BÜYÜRSE test düşer. Sahibin kararı bu dokuz kalem içindi, çağıranı
+olmayan her yeni dosya için açık uçlu bir izin değil.
+
+**Denendi ve ateşledi:** `ui/olu-kod-denemesi.tsx` enjekte edildi; iki
+kol da düştü, mesaj *"hikâye yaz ya da dosyayı sil"* dedi. İhlal geri
+alındı, 10/10 yeşil.
+
+`stories.fixtures.ts` taramadan hariç: hikâye verisi bir bileşen
+değildir, tüketicisinin yalnız hikâyeler olması onun DOĞRU hâlidir.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **60 dosya / 354 test** (+1 dosya / +10 test).

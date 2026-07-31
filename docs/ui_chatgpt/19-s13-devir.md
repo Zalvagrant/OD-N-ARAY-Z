@@ -36,15 +36,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **137** | Zarf/kayıt fabrikaları birer kez | `kpi()` ve `envelope()` ikizleri silindi; varsayılanlar ilk kez test altında |
 | **138** | Yüzde gösterimi tek bileşende (`Pct`) | 10 çağrı yeri → 0; `format="percent" fractionDigits={1}` artık tek yerde |
 | **139** | 8 saf fonksiyon nihayet test altında | 25 iddia; `decision-queue.tsx` başlığının kodla çeliştiği ortaya çıktı |
+| **140** | **SAHİP KARARI:** 9 tüketicisiz modül envanter olarak kalır | `inventory.test.ts` kapısı: çağıranı yoksa hikâyesi olacak — enjekte ihlalle denendi |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **59 dosya/344 test**
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **60 dosya/354 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
-+4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan),
++4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…139**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…140**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -142,16 +143,15 @@ Test yazılırken `decision-queue.tsx` başlığının **kodla çeliştiği**
 ortaya çıktı: silinmiş `priority`/`financialImpact` sıralamasını
 anlatıyordu (UI-ADR-100). Düzeltildi.
 
-### 2.6 · Tüketicisi olmayan modüller — **önce sahibe sor**
+### 2.6 · ~~Tüketicisi olmayan modüller~~ ✅ SAHİP KARAR VERDİ
 
-Hiçbir yerden import edilmiyor (hikâyeler hariç):
-`ui/chart.tsx` (357) · `ui/modal.tsx` (195, tek focus-trap uygulaması) ·
-`ui/tabs.tsx` · `ui/tooltip.tsx` · `ui/filter.tsx` · `ui/icon.tsx` ·
-`ui/avatar.tsx` · `ui/sparkline.tsx` · `executive/telemetry-bar.tsx`.
+**UI-ADR-140: envanter olarak KALIRLAR, silinmiyorlar.** Dokuzunun
+dokuzu da `10-component-library.md` §10 envanterinde adı geçen
+kalemlerdir ve dokuzunun da hikâyesi vardır.
 
-Bunlar **tasarım sistemi envanteri mi, ölü kod mu** — karar sahibindir,
-kendiliğinden silme. `10-component-library.md` §10 envanteri kanonik
-kaynaktır, önce oraya bak.
+Kapı: `src/components/inventory.test.ts` — **çağıranı yoksa hikâyesi
+olacak**, ve liste dokuz kalemden büyürse test düşer. Yeni bir bileşeni
+çağıranı olmadan eklemek isteyen önce hikâyesini yazar.
 
 ### 2.7 · Storybook boşlukları
 
@@ -228,11 +228,11 @@ npm run lint              # 0 hata olmalı
 # Tam paketi TEK SEFERDE çalıştırma — tarayıcı bağlantısı zaman aşımına
 # uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
 # de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
-npx vitest run --project=unit                                   # 14 / 196
+npx vitest run --project=unit                                   # 15 / 206
 npx vitest run --project=storybook src/components/ui            # 18 /  57
 npx vitest run --project=storybook src/components/executive       src/components/layout src/features src/app                # 22 /  73
 npx vitest run --project=storybook src/styles src/components/screens  # 5 / 17
-#                                                        TOPLAM: 59 / 344
+#                                                        TOPLAM: 60 / 354
 
 # ÜRETİM DERLEMESİ + EKRAN DOĞRULAMASI (31 Tem'de yapıldı)
 npx next build            # 7 sayfa, 0 hata
