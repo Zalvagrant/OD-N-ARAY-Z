@@ -195,12 +195,19 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 
 `15-execution-plan.md` — S0…S13.
 
-⚠️ **Bu bölüm 31 Tem 2026'da GERÇEK DURUMLA hizalandı.** Önceki hâli
-"Sıradaki: S6" diyordu — oysa S6 ve S7 çoktan `main`'e inmişti. Paralel
-oturumlar bu panoyu güncellemeyi atladığı için dört kez ADR numarası
-çakıştı. **Sprint bitirince BURAYI da güncelle.**
+⚠️ **Bu bölüm 1 Ağu 2026'da yeniden ölçülüp hizalandı** (öncesi: 31 Tem).
+Bir gün önce "hizalandı" denmiş olmasına rağmen dört satır yine yanlıştı:
+S8 ve S10 "dalda" diyordu (ikisi de `main`'deydi), S11 ve S12 panoda hiç
+yoktu, S9'un erteleme gerekçesi ölçümle çürümüştü. Bu panoyu elle tutmak
+sekiz ADR numarası çakışmasının kök nedeni.
 
-**`main` = S1…S17 + S13** (31 Tem 2026). ADR-0143 hizalıdır (Alert/KPI
+🔧 **Bu pano ELLE TUTULMAYACAK — S18'de Git'ten türetilecek** (C-1,
+`docs/ui_chatgpt/20-s18-worklist.md` §B2). O iş bitene kadar: **sprint
+bitirince BURAYI da güncelle**, ve numarayı `main`'den al.
+
+**`main` = S1…S17 + S13** (1 Ağu 2026, `1aa1a65`). Dört sprint dalının da
+`origin/main`'de olmayan commit'i **0** (ölçüldü: s8-v2 · s10 · s11 · s12).
+ADR-0143 hizalıdır (Alert/KPI
 kanonik zarfları · Opportunity ayrı kayıt DEĞİL · Mission reddedildi,
 tahta "izlenen kararlar + vadesi gelen ertelemeler" görünümü).
 
@@ -210,9 +217,11 @@ tahta "izlenen kararlar + vadesi gelen ertelemeler" görünümü).
 | S5 Briefing + Mission Control · S5.5 Sözleşme Hizalama | ✅ `main`'de |
 | S6 Amazon Director | ✅ `main`'de (ADR-0143'e hizalandı) |
 | S7 State & Data Layer | ✅ `main`'de (UI-ADR-112…115) |
-| **S8 Amazon Canlı Bağlantı** | ⚠️ **dalda** — `feature/s8-amazon-live-v2`, UI-ADR-118…124. Meclis: **teknik merge ✅**. `/goals` ile **ilk canlı ODIN verisi ekranda** (üretim derlemesinde doğrulandı) |
-| **S10 Amazon canlı KPI + Alert** | ⚠️ **dalda** — `feature/s10-amazon-live`, UI-ADR-126. ODIN ADR-0147'nin `GET /api/amazon` yayınına bağlandı; Amazon Director şeridi ve alarmları **gerçek veri** gösteriyor |
-| S9 AI Gateway | ⬜ başlanmadı — ölçüldü ve ERTELENDİ: `telemetry.jsonl`'de 0 model çağrısı kaydı, router modülü yok. Bugün yapılsa AI Runtime sekmesi boş bir panel olurdu (kural 2 ihlali) |
+| S8 Amazon Canlı Bağlantı | ✅ `main`'de (UI-ADR-118…124) — `/goals` ile **ilk canlı ODIN verisi ekranda** |
+| S10 Amazon canlı KPI + Alert | ✅ `main`'de (UI-ADR-126) — ODIN ADR-0147'nin `GET /api/amazon` yayınına bağlı; Amazon Director şeridi ve alarmları **gerçek veri** |
+| S11 Director sağlığı | ✅ `main`'de (UI-ADR-127) |
+| S12 SKU olguları | ✅ `main`'de (UI-ADR-128) |
+| S9 AI Gateway | ⬜ başlanmadı — **erteleme gerekçesi 1 Ağu'da kısmen çürüdü.** Eski gerekçe "0 model çağrısı"ydı; ölçüm artık **3 `provider.call`** ve token'lar yayınlanıyor (155/25). AMA **3/3 çağrıda `cost_known:false`** ve router modülü hâlâ yok → maliyet paneli bugün de kural 2 ihlali olur. Meclis 2/2: S18 değil, sonraki sprint |
 | S14 Runtime alarmları · S15 Ölçüm penceresi · S16 Fırsat görünümü | ✅ `main`'de (UI-ADR-129 · 140 · 141) |
 | S17 Storybook kapısı | ✅ `main`'de (UI-ADR-142) — `npm run test:ci` fail-closed |
 | **S13 Kurumsal Ön Yüz Mimarisi** | ✅ **`main`'de** — UI-ADR-130…139 + 143…153. Sahip onayladı. Kapılar: katman sınırları · envanter · sahte veri kaçağı · erişilebilirlik · ekran durum matrisi |
