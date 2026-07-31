@@ -94,10 +94,10 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…128` serisindedir.
+Bu repodaki kararlar `UI-ADR-001…129` serisindedir.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-129`'dan**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-130`'dan**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
