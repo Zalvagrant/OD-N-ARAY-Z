@@ -12,8 +12,14 @@
  * Decision Center'a yönlendirilir. Bastırmayı bilen katman bastırmayı yazar
  * (UI-ADR-091 ile aynı ilke).
  *
- * SIRALAMA: `priority` artan (1 = en yüksek), eşitlikte finansal etki büyük
- * olan önce. Türetilmiş bir "skor" ÜRETİLMEZ; ikisi de sözleşmede var.
+ * SIRALAMA: katman (D3 > D2 > D1), eşitlikte DÜŞÜK güven önce.
+ * Türetilmiş bir "skor" ÜRETİLMEZ; ikisi de sözleşmede var.
+ *
+ * ♻️ UI-ADR-139: bu satır *"`priority` artan, eşitlikte finansal etki
+ * büyük olan önce"* diyordu — oysa `priority` ve `financialImpact`
+ * UYDURMAYDI ve UI-ADR-100 ile SİLİNDİ. Başlık kodla çelişik kaldı ve
+ * dosyayı okuyan herkese yanlış kuralı öğretiyordu. Fonksiyonun testi
+ * yazılırken yakalandı: kuralı doğrulamak, onu okumaya zorlar.
  */
 
 import type { Decision } from "@/types/executive";

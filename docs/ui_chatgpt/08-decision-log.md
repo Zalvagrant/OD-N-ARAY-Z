@@ -3154,3 +3154,61 @@ Biçimlendirme yerelden gelir, elle kurulmaz.
 
 `tsc` 0 · `lint` 0 hata · **58 dosya / 319 test** (+1 test, bu ADR'nin kapısı).
 Çağrı yeri: **10 → 0**.
+
+---
+
+## UI-ADR-139 — "Test edilebilir" diye export edilen sekiz fonksiyon nihayet test edildi (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-130 · UI-ADR-100 · CLAUDE.md §2
+
+### Bulgu
+
+Sekiz saf fonksiyon JSX'ten çıkarılıp export edilmişti, üçünün başında
+kelimesi kelimesine *"kural tek yerde, test edilebilir"* yazıyordu.
+Sayıldı: **hiçbirinin testi yoktu ve hiçbiri kendi dosyası dışından
+import edilmiyordu** — dış referans sayısı sekizinde de **0**.
+
+`sortIntelligence` · `actionableAlerts` · `sortCampaigns` ·
+`sortDecisions` · `dueDeferrals` · `monitoredDecisions` ·
+`rotationSeconds` · `canRenderSimulation`.
+
+Test edilmeyen bir export iki dünyanın da kötüsüdür: API yüzeyini
+genişletir, karşılığında hiçbir davranış kilitlemez. "Test edilebilir"
+bir niyet beyanıdır, bir kapı değil.
+
+### Kilitlenen şey biçim değil KARAR
+
+Bu sekiz fonksiyon **ekranda görünen sıranın ve görünmeyenin tamamıdır**;
+bugüne kadar yalnız gözle doğrulanabiliyordu. 25 iddia, `src/lib` dışında
+yazılan ilk saf-mantık test dosyası (`components/executive/helpers.test.ts`,
+tarayıcı gerekmez).
+
+Öne çıkan üçü:
+
+- **`dueDeferrals(x, null)` BOŞ döner.** İstemci saati yokken "vadesi
+  geldi" demek doğrulanmamış bir iddiadır — anti-fake'in zaman hâli.
+- **Bilinmeyen `severity`/`status` LİSTEDE KALIR, sona düşer.** ODIN
+  sözlüğü genişlerse yeni bir kayıt sessizce kaybolmamalı: görünmeyen bir
+  uyarı, olmayan bir uyarıdan tehlikelidir.
+- **`rotationSeconds(null)` = en YAVAŞ.** Halka gerçekten dönüyor, hızı
+  bir ölçüme bağlı. Ölçüm yokken hızlı dönmek "sistem yoğun çalışıyor"
+  diye okunur ve sahte göstergedir.
+
+### Testin yakaladığı iki gerçek hata
+
+**1 — `decision-queue.tsx` başlığı KODLA ÇELİŞİYORDU.** Dosyanın tepesi
+*"`priority` artan, eşitlikte finansal etki büyük olan önce"* diyordu;
+oysa `priority` ve `financialImpact` UYDURMAYDI ve **UI-ADR-100 ile
+silinmişti**. Kod katmana + güvene göre sıralıyordu. Başlık kaldı ve
+dosyayı okuyan herkese yanlış kuralı öğretiyordu. Düzeltildi.
+
+**2 — İlk yazımda testin kendisi yanlıştı.** `sortCampaigns`e
+`"critical"` verdim; o bir `CampaignStatus` DEĞİL, yani iki kayıt da
+bilinmiyordu ve sıralama haklı olarak girdi sırasını korudu. Bileşen
+doğru, test yanlıştı — bu oturumda üçüncü kez.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **59 dosya / 344 test** (+1 dosya / +25 test).

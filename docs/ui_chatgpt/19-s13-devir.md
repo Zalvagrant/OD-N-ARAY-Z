@@ -35,15 +35,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **136** | Etiket-değer + metin tonu tek yerde | Yerel `Stat` kopyası ve 4 elle yazılmış `<dt>/<dd>` silindi; `StatTone`/`TextTone` → tek `Tone` |
 | **137** | Zarf/kayıt fabrikaları birer kez | `kpi()` ve `envelope()` ikizleri silindi; varsayılanlar ilk kez test altında |
 | **138** | Yüzde gösterimi tek bileşende (`Pct`) | 10 çağrı yeri → 0; `format="percent" fractionDigits={1}` artık tek yerde |
+| **139** | 8 saf fonksiyon nihayet test altında | 25 iddia; `decision-queue.tsx` başlığının kodla çeliştiği ortaya çıktı |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **58 dosya/319 test**
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **59 dosya/344 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
-+4 test UI-ADR-137'den, +1 test UI-ADR-138'den),
++4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…138**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…139**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -131,20 +132,15 @@ kaybolacağı için "ekranı yalnız `app/` import eder" kuralı
   `NumFormat`'ı elle yeniden tanımlıyor (oysa `typography.tsx:153`'te
   export edilmiş).
 
-### 2.5 · Test edilmeyen "test edilebilir" yardımcılar
+### 2.5 · ~~Test edilmeyen "test edilebilir" yardımcılar~~ ✅ KAPANDI
 
-Yedi fonksiyon *"tek yerde, test edilebilir"* yorumuyla export edilmiş ve
-**hiçbirinin testi yok** (repoda `src/lib` + `src/mocks` + `src/features`
-dışında birim testi yok):
-`activity-feed.tsx:49 sortIntelligence` · `alert-stack.tsx:42
-actionableAlerts` · `campaign-intelligence.tsx:49 sortCampaigns` ·
-`decision-queue.tsx:31 sortDecisions` · `monitored-decisions-board.tsx:36
-dueDeferrals` ve `:45 monitoredDecisions` · `ai-pulse.tsx:45
-rotationSeconds` · `simulation-panel.tsx:33 canRenderSimulation`.
+**UI-ADR-139.** Sekizi de (devir "yedi" diyordu; `monitoredDecisions`
+ayrı sayılmalıydı) `components/executive/helpers.test.ts` altında,
+25 iddia. Tarayıcı gerekmez.
 
-UI-ADR-130'da `atRiskSkus`/`losingBuyBoxSkus` için yapılan tam olarak
-budur: JSX'ten çıkar, saf fonksiyon yap, davranışı kilitle. Aynı kalıp
-bu yediye uygulanabilir.
+Test yazılırken `decision-queue.tsx` başlığının **kodla çeliştiği**
+ortaya çıktı: silinmiş `priority`/`financialImpact` sıralamasını
+anlatıyordu (UI-ADR-100). Düzeltildi.
 
 ### 2.6 · Tüketicisi olmayan modüller — **önce sahibe sor**
 
@@ -232,11 +228,11 @@ npm run lint              # 0 hata olmalı
 # Tam paketi TEK SEFERDE çalıştırma — tarayıcı bağlantısı zaman aşımına
 # uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
 # de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
-npx vitest run --project=unit                                   # 13 / 171
+npx vitest run --project=unit                                   # 14 / 196
 npx vitest run --project=storybook src/components/ui            # 18 /  57
 npx vitest run --project=storybook src/components/executive       src/components/layout src/features src/app                # 22 /  73
 npx vitest run --project=storybook src/styles src/components/screens  # 5 / 17
-#                                                        TOPLAM: 58 / 319
+#                                                        TOPLAM: 59 / 344
 
 npx next dev -p 3111      # /briefing /amazon /mission-control /goals → 200
                           # /bilinmeyen-ekran → 404
