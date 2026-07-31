@@ -68,7 +68,16 @@ Ham HTTP baytında geçerli UTF-8 var (`şİğüöç`), U+FFFD yok, mojibake imz
 Sıra **terra**'nınki (bkz. §3 çelişki kaydı): baz hattı önce, çünkü kirli
 ağaç üzerinde alınan her ölçüm sahte.
 
-### B1 — Temiz baz hattı  *(ön koşul, ürün işi değil)*
+> **SAHİP KARARI — S18 beş bloktur ve kapsam kilitlendi (1 Ağu 2026):**
+> B1 Repository Baseline · B2 Generated CLAUDE.md · B3 Commit Guard ·
+> B4 Operational Score (C-2) · B5 Session Lease Detection.
+>
+> **Kilitleyici ilke: S18 yalnızca GÖRÜNÜRLÜK sağlar; S19 YAPTIRIM getirir.**
+> Bu ayrım B5'te en keskin: tespit ve uyarı S18, read-only/force-lock/
+> kill-session/otomatik worktree S19. Aynı ilke B3 için de geçerli —
+> guard raporlar ve reddeder, ortamı yeniden yapılandırmaz.
+
+### B1 — Repository Baseline  *(ön koşul, ürün işi değil)*
 
 > **✅ KENDİ KENDİNE ÇÖZÜLDÜ — hazırlık oturumu sürerken.** Kirli dosyaların
 > sahibi belirlendi: başka oturumlardı ve ikisi de işini indirdi.
@@ -82,15 +91,31 @@ ağaç üzerinde alınan her ölçüm sahte.
 - **Kontrol:** `git status --porcelain` boş; `npm run test:ci` temiz ağaçta koşuyor
 - **Done:** kapı yeşili WIP'ten değil, `origin/main`'den geliyor
 
-### B2 — C-1 · Sprint panosu Git'ten türesin
+### B2 — Generated CLAUDE.md  *(C-1)*
 
 - **Girdi:** `CLAUDE.md`'deki elle yazılan sprint tablosu (bugün **dört** yerde yanlış — §2)
 - **Çıktı:** `tools/sprint_board.py --write` / `--check`; `CLAUDE.md`'de
   `<!-- SPRINT-BOARD:BEGIN/END -->` bloğu
+
 - **Kontrol:** `--check` byte-level karşılaştırma yapar (regex ile gevşek eşleşme YOK);
   BEGIN/END tam birer kez, sırayla; marker dışına yazmayı reddeder;
   kontrol karakterleri (U+0000–U+001F, newline/tab hariç) reddedilir
 - **Done:** pano elle güncellenmiyor; `--check` `test:ci` zincirinde koşuyor ve kırmızı yanabiliyor
+
+**Panoya ne yazılır (sahip kararı):** ham test sonucu **YAZILMAZ** — yoksa
+pano her koşuda kirlenir ve `--check` sürekli kırmızı yanar. Panonun taşıdığı
+alanlar sabittir:
+
+| Alan | Kaynak | Neden bu |
+|---|---|---|
+| `Last Measurement` | ölçümü yapan commit'in SHA'sı | sonucun kendisi değil, **kim ölçtü** |
+| `Commit` | `git rev-parse` | pano hangi ağacı anlatıyor |
+| `Coverage` | `measured/expected` | ADR-0129'un formu |
+| `Threshold` | `verify-tests.mjs` alt sınırı | 190/230 gibi kalibrasyon değeri |
+| `Generated At` | üretim zamanı | bayatlığın kendisi görünür olur |
+
+Alt sınır kalibrasyon değeridir, tercih değil — düşürmeden önce soğuk ölç
+(UI-ADR-142 dersi).
 
 **Kaynak otoritesi** (tek kaynak yok — her bilgi farklı yerden):
 
@@ -107,7 +132,39 @@ ağaç üzerinde alınan her ölçüm sahte.
 ağacı yakalar (atlanabilir, güvenlik kapısı değil); `test:ci` commit'li
 panonun kaynaklardan türediğini doğrular (**nihai otorite**).
 
-### B3 — C-2 · `operational` skoru 4 → 8 eksen  *(ODIN çekirdeği, ADR gerektirir)*
+### B3 — Commit Guard  *(arayüz reposu DAHİL)*
+
+- **Girdi (ölçüldü):**
+
+  | | Çekirdek | Arayüz |
+  |---|---|---|
+  | `core.hooksPath` | ✅ `tools/hooks` | ❌ **boş** |
+  | pre-commit | ✅ `tools/precommit.py` (138 satır) | ❌ **yok** |
+  | Mevcut kontroller | yetenek karışımı (ADR-0048) · mesajda `ADR-NNNN`/`chore:` · `status --porcelain` ile bekleyen paralel iş | — |
+
+- **Çıktı:** çekirdeğin hook sistemi arayüz reposuna taşınır + iki kontrol eklenir:
+  1. **Stage kontrolü** — commit'e senin dokunmadığın dosya giriyor mu
+  2. **Dal kontrolü** — beklenen dalda mısın
+- **Kontrol:** her kontrol için kasıtlı ihlal enjekte edilip KIRMIZI yandığı kanıtlanır
+- **Done:** iki repoda da hook koşuyor; `core.hooksPath` ayarlı; "script var ama koşmuyor" tekrarı yok
+
+> ⚠️ **Zincirin ilk iki halkası hook'la kurulamaz — tasarım bunu varsaymalı.**
+> `pwd` ve "doğru repo mu" kontrolleri bir pre-commit hook'una yazılamaz:
+> hook, commit'in yapıldığı reponun İÇİNDE çalışır, o seçim çoktan
+> yapılmıştır. Yanlış repoda commit atılsaydı o reponun hook'u koşacak ve
+> gayet meşru görünen bir commit görecekti.
+>
+> **1 Ağu'da bu tam olarak yaşandı:** çalışma dizini çekirdek repoydu,
+> `git rev-parse --abbrev-ref HEAD` "main" dedi ve `git log -- CLAUDE.md`
+> çekirdeğin geçmişini gösterdi. Yakalayan şey hook değil, `git -C` ile
+> mutlak yol doğrulamasıydı. Bu bir **ajan davranış kuralıdır**, kapı değil.
+>
+> Guard'ın gerçekten otomatikleşen değeri 5. halkadır: **yabancı dosya
+> stage edilmiş mi.** Aynı gün `git add .` yerine dosya adı kullanıldığı
+> için başka bir oturumun `eslint.config.mjs` ve `package.json` değişiklikleri
+> commit'e girmedi — bu elle yapıldı, otomatikleşmeli.
+
+### B4 — Operational Score  *(C-2 · ODIN çekirdeği, ADR gerektirir)*
 
 - **Girdi:** `odin/briefing.py:83 operational_readiness_score()`, 4 bileşen, şema `{name, value, detail}`
 - **Çıktı:** 8 kanonik eksen; bileşen şeması geriye dönük uyumlu genişletme:
@@ -136,13 +193,24 @@ panonun kaynaklardan türediğini doğrular (**nihai otorite**).
 > `operational` hâlâ 4 eksen; C-2'nin işi duruyor, yalnız gerekçesi kanıtlandı.
 - **Modül:** `briefing.py`'de kalır (iki skor mantığı/iki sözleşme oluşmasın); eksen hesaplayıcıları saf `_measure_<eksen>()` fonksiyonları olur
 
-### B4 — `/api/state` yayın–tüketim envanteri
+### B5 — Session Lease Detection  *(YALNIZ TESPİT)*
 
-- **Girdi:** 39 yayınlanan anahtar; arayüz tüketim eşlemesi **ölçülmemiş**
-- **Çıktı:** `published_not_rendered` / `rendered_not_published` / `rendered_but_stale` kümeleri
-- **Kontrol:** üretilebilir + doğrulanabilir (tek seferlik markdown DEĞİL — hemen bayatlar)
-- **Done:** C-2'nin yeni eksenleri "yayınlandı ama görünmüyor" durumuna düşmüyor
-- ⚠️ **Tuzak:** düz string araması dinamik property erişimini, selector'ları ve türetilmiş alanları kaçırır; "render ediliyor" ≠ "güncel" (cache/staleTime)
+- **Girdi (ölçülmüş risk, varsayım değil):** bu hazırlık oturumu sırasında
+  aynı worktree **üç kez** başka oturumlar tarafından değiştirildi; commit
+  anında `eslint.config.mjs` ve `package.json` altımızdan değişmişti
+- **Çıktı:** `SessionStart` hook'u worktree'ye kira yazar
+  (`.git/odin-session-lease`: oturum kimliği + zaman damgası).
+  Açılışta başka **canlı** kira varsa **UYARIR**.
+- **Kontrol:** iki kira aynı anda kurulur, ikincisi uyarı üretir
+- **Done:** çakışma ilk saniyede görünür — `git status`'un altından
+  değişmesiyle değil
+
+> **YAPTIRIM YOK — S19'a bırakıldı.** S18'de olmayan: read-only mod ·
+> force-lock · kill-session · otomatik yeni worktree · kira yenileme ·
+> timeout. S18 çakışmayı **görünür** kılar, çözmez.
+>
+> Altyapı zaten var: `SessionStart` hook'u bu depoda hâlihazırda çalışıyor.
+> Yeni mekanizma değil, mevcut kancaya ~30 satır.
 
 ---
 
@@ -234,6 +302,8 @@ Numara tahsisinden **önce** `08-decision-log.md`'nin SONUNA ve
 | Tablet / Mobile | UI kapıları yeni onarıldı, storybook sonucu WIP'ten etkileniyor |
 | Geniş H13 Hardening → v1.0 | S18'in ölçüm altyapısı bitmeden anlamlı kabul kriteri üretilemez |
 | Eski BULGU 3 (bozuk metinler) | **Çürüdü** — veri temiz, konsol artefaktı |
+| **Memory Validation** | **Katman karışması.** Hafıza `~/.claude/projects/.../memory/` altında — iki reponun da DIŞINDA, versiyonlanmıyor, makineye özel. Bir git hook'u ona sahip olamaz; ODIN'in ürün mimarisi de değil. Bu bir **harness (Claude Code hook)** işidir, ODIN sprinti değil. S18'den bağımsız yapılabilir |
+| B5'in yaptırım katmanı | read-only · force-lock · kill-session · otomatik worktree · kira yenileme · timeout → **S19**. S18 görünürlük, S19 yaptırım |
 
 ---
 
@@ -291,3 +361,35 @@ Aynı ölçüm ikinci bir şeyi de gösteriyor: bu depoda **eşzamanlı oturumla
 çalışıyor. B1'in kirli dosyaları kimseye sorulmadan çözüldü çünkü sahipleri
 kendi oturumlarındaydı. C-1 tasarımı bunu varsaymalı — pano tek bir oturumun
 gerçeğini değil, `origin/main`'in gerçeğini yazmalı.
+
+---
+
+## 8. AÇIK SORU — `/api/state` envanteri kapsamda mı?
+
+Sahibin kilitlediği beş blok listesinde **`/api/state` yayın–tüketim
+envanteri yok.** Bu hazırlığın ilk sürümünde dördüncü blok oydu. Sessizce
+düşürmüyorum, çünkü meclisin iki kurulu da onu **C-2'nin ön koşulu** saydı:
+
+> terra: *"Bu çalışma C-2'nin yeni sistem-sağlığı alanlarının 'yayınlandı ama
+> görünmüyor' durumuna düşmesini engeller."*
+> luna: *"Yayınlanan ama gösterilmeyen veri de önemlidir: kullanılmayan
+> sözleşme, gizli operasyonel risk ve gereksiz API yüzeyi oluşturur."*
+
+Somut riski: B4 sekiz ekseni `/api/state`'e yayınlayacak. Envanter yoksa
+yeni eksenlerin ekranda karşılığı olup olmadığı **ölçülmez** — ve bu tam
+olarak S8'de yaşanan hatadır (boru ve kapılar teslim edildi, `httpLoad`'un
+hiçbir ekran çağıranı yoktu, testler bunu gizledi; CLAUDE.md'nin 6. sprint
+sorusu bu yüzden var).
+
+Ölçülmüş durum: `/api/state` **39 anahtar** yayınlıyor, arayüz tüketim
+eşlemesi ölçülmemiş — yani "kaçı ekranda karşılıksız" sorusunun cevabı
+bugün **BİLİNMİYOR** (meclis de sayı tahmin etmeyi reddetti).
+
+Üç seçenek:
+1. **Altıncı blok olarak S18'e girsin** — B4'ün ön koşulu olduğu için
+2. **S19'a gitsin** — S18 zaten beş blok; envanter yaptırım değil ölçüm,
+   ama B4 onsuz kör bir yüzey yayınlayabilir
+3. **B4'ün içine daralt** — yalnız C-2'nin eklediği alanların ekran
+   karşılığı doğrulansın, 39 anahtarın tamamı değil
+
+Sahip cevabı beklemede. Cevaplanana kadar S18 **beş bloktur**.
