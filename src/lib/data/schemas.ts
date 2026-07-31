@@ -197,3 +197,63 @@ export const runtimeDirectorSchema = z.object({
     })
   ),
 });
+
+/* --------------------------------------------------------------------------
+   SkuHealth — ODIN ADR-0149 (UI-ADR-128)
+   -------------------------------------------------------------------------- */
+
+const metricPeriodSchema = z.object({ from: isoDate, to: isoDate }).nullable();
+
+/* ADR-0085 Explainability Envelope: türetilmiş bir skorun gerekçesi
+   makine kodu + insan cümlesi taşır; arayüz cümle KURMAZ. */
+const scoreFactorSchema = z.object({
+  code: z.string().min(1),
+  message: z.string().min(1),
+  direction: z.enum(["positive", "negative", "neutral"]),
+  contribution: z.number().nullable(),
+});
+
+const moneySchema = z
+  .object({ amount: z.number(), currency: z.string().min(1) })
+  .nullable();
+
+export const skuHealthSchema = z
+  .object({
+    sku: z.string().min(1),
+    asin: z.string().min(1),
+    title: z.string().min(1),
+    /* ODIN skor YAYINLAMIYOR (ADR-0149). Alan duruyor ki bir gün bir
+       skorlama politikası çıkarsa sözleşme değişmeden geçebilsin. */
+    healthScore: z.number().min(0).max(100).nullable(),
+    healthScoreExplanation: z.array(scoreFactorSchema).nullable(),
+    /* ODIN'in BEŞ değerli sözlüğü — `unknown` dahil (UI-ADR-128). */
+    status: z.enum(["ok", "warn", "critical", "no_movement", "unknown"]),
+    statusBasis: z.enum(["health_score", "rule_set"]),
+    thresholdProvenance: z.enum(["unapproved_default", "owner_policy"]).optional(),
+    inventoryAsOf: isoDate.nullable(),
+    unitsAvailable: z.number().nullable(),
+    daysOfSupply: z.number().nullable(),
+    estimatedStockoutAt: isoDate.nullable(),
+    reorderUnits: z.number().nullable(),
+    sales: z.object({
+      period: metricPeriodSchema,
+      unitsSold: z.number().nullable(),
+      revenue: moneySchema,
+      conversionRate: z.number().nullable(),
+      buyBoxRate: z.number().nullable(),
+    }),
+    advertising: z.object({
+      period: metricPeriodSchema,
+      spend: moneySchema,
+      sales: moneySchema,
+      acos: z.number().nullable(),
+    }),
+    price: moneySchema,
+  })
+  /* Gerekçesiz skor gösterilmez (UI-ADR-104): skor doluysa açıklaması da
+     dolu olmalı. ODIN bugün ikisini de null yolluyor, yani şart boşta —
+     ama sözleşme, skor geldiği gün gerekçesini de zorunlu tutuyor. */
+  .refine((s) => s.healthScore === null || !!s.healthScoreExplanation?.length, {
+    message: "healthScore doluysa healthScoreExplanation zorunlu",
+    path: ["healthScoreExplanation"],
+  });

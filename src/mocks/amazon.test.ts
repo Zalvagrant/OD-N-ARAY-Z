@@ -116,10 +116,10 @@ describe("amazon mock — iç tutarlılık (UI-ADR-103)", () => {
 
   it("ölçüm penceresi geçerlidir ve satış/reklam aynı dönemi kullanır", () => {
     for (const s of skusMock().data) {
-      expect(s.sales.period.from < s.sales.period.to, s.sku).toBe(true);
+      expect(s.sales.period!.from < s.sales.period!.to, s.sku).toBe(true);
       /* Farklı dönemlerin ACOS'u ile cironun yan yana gösterilmesi
          karşılaştırılamaz iki sayı üretir. */
-      expect(s.advertising.period, s.sku).toEqual(s.sales.period);
+      expect(s.advertising.period, s.sku).toEqual(s.sales.period!);
     }
   });
 

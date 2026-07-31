@@ -26,7 +26,7 @@ import type { MetricPeriod, SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
-import { useMockData } from "@/mocks/use-mock";
+import { useAmazonSkus } from "@/lib/data/odin-amazon";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NoData } from "@/components/ui/no-data";
@@ -42,10 +42,15 @@ export const SKU_STATUS: Record<
   SkuHealth["status"],
   { label: string; variant: BadgeVariant }
 > = {
-  healthy: { label: "Sağlıklı", variant: "success" },
-  watch: { label: "İzlemede", variant: "info" },
-  at_risk: { label: "Riskli", variant: "warning" },
+  ok: { label: "Sağlıklı", variant: "success" },
+  warn: { label: "İzlemede", variant: "warning" },
   critical: { label: "Kritik", variant: "danger" },
+  /* Stok VAR, satış YOK — kendi başına bir bulgu. `ok` saymak da
+     `critical` saymak da ayrı birer yalan olurdu. */
+  no_movement: { label: "Hareketsiz", variant: "info" },
+  /* Hızı ölçülemeyen SKU. Bugün 48'in 29'u bu — ve bu bir sağlık
+     durumu DEĞİL, bir ölçüm boşluğudur. */
+  unknown: { label: "Ölçülmedi", variant: "secondary" },
 };
 
 /** SKU yüzdeleri 0–100 ölçeğindedir; teklif sözleşmesinde bildirilmiştir. */
@@ -78,7 +83,7 @@ function Group({
 }: {
   title: string;
   /** Bölümün ölçüm penceresi — verilirse başlığın altında yazılır. */
-  period?: MetricPeriod;
+  period?: MetricPeriod | null;
   children: React.ReactNode;
 }) {
   return (
@@ -99,12 +104,14 @@ function Group({
 export function AmazonSkuPanel() {
   const selected = useUiStore((s) => s.selectedEntity);
   const now = useNow();
-  const skus = useMockData("amazon.skus");
+  /* Tablo ile AYNI sorgu anahtarı — React Query tek istek yapar ve
+     panel ile tablo birbirinden sapamaz. */
+  const skus = useAmazonSkus();
 
   /* Kimlikten kanonik kayda: kopya tutulmadığı için burada okunur. */
   const sku =
     selected?.kind === AMAZON_SKU_KIND
-      ? (skus.data?.data.find((s) => s.sku === selected.id) ?? null)
+      ? (skus.envelope?.data.find((s) => s.sku === selected.id) ?? null)
       : null;
 
   if (!selected || selected.kind !== AMAZON_SKU_KIND) return null;

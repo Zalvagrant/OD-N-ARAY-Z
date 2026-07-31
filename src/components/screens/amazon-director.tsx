@@ -33,7 +33,11 @@ import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
 import { MockBadge } from "@/mocks/mock-badge";
-import { useAmazonAlerts, useAmazonKpis } from "@/lib/data/odin-amazon";
+import {
+  useAmazonAlerts,
+  useAmazonKpis,
+  useAmazonSkus,
+} from "@/lib/data/odin-amazon";
 import { useMockData } from "@/mocks/use-mock";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -260,7 +264,10 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
 
 const SKU_SCALE = "0-100" as const;
 
-function skuColumns(now: number | null): ColumnDef<SkuHealth, unknown>[] {
+/* `now` PARAMETRESİ DÜŞTÜ: tabloda artık geri sayım yok — tükenme
+   tarihi ODIN tarafından üretilmiyor (ADR-0149). Envanter bölümü
+   kendi `now`unu kullanmaya devam ediyor. */
+function skuColumns(): ColumnDef<SkuHealth, unknown>[] {
   return [
     {
       id: "sku",
@@ -283,38 +290,64 @@ function skuColumns(now: number | null): ColumnDef<SkuHealth, unknown>[] {
         );
       },
     },
+    /*
+     * ÖLÇÜLENİ GÖSTER — S12 düzeltmesi (UI-ADR-128).
+     *
+     * Burada üç kolon vardı: Sağlık skoru · Tükenme tarihi · BuyBox. ODIN
+     * ADR-0149 ile üçünün de KARARLA null olduğu kesinleşti (skorlama
+     * politikası yok, tükenme tarihi bir tahmin politikasının çıktısı,
+     * BuyBox'ın kaynağı dönemini beyan etmiyor). Canlı ekranda görüldü:
+     * beş kolonun üçü her satırda "—" idi.
+     *
+     * Sürekli boş bir kolon, veri yokluğunu bildirmez — tabloyu okunmaz
+     * yapar ve gerçekten ölçülmüş olanı gizler. Yerlerine ODIN'in
+     * yayınladığı gerçek alanlar kondu. Skor/tükenme/BuyBox bir üretici
+     * kazandığı gün geri gelir; o güne kadar yerlerini işgal etmezler.
+     */
     {
-      id: "healthScore",
-      accessorKey: "healthScore",
-      header: "Sağlık",
+      id: "daysOfSupply",
+      accessorKey: "daysOfSupply",
+      header: "Kalan gün",
+      meta: { numeric: true },
+      cell: (c) => (
+        <Num
+          value={c.getValue() as number | null}
+          fractionDigits={1}
+          size="sm"
+          noDataReason="Satış hızı ölçülmedi"
+        />
+      ),
+    },
+    {
+      id: "unitsAvailable",
+      accessorKey: "unitsAvailable",
+      header: "Stok",
       meta: { numeric: true },
       cell: (c) => (
         <Num
           value={c.getValue() as number | null}
           size="sm"
-          noDataReason="Sağlık skoru hesaplanmadı"
+          noDataReason="Envanter kaydı yok"
         />
       ),
     },
     {
-      id: "stockout",
-      accessorKey: "estimatedStockoutAt",
-      header: "Tükenme",
-      cell: (c) => {
-        /* GELECEK tarih → remainingTime (S5 dersi). */
-        const left = remainingTime(c.getValue() as string | null, now);
-        return left ? (
-          <span className="text-sm text-content-secondary">{left}</span>
-        ) : (
-          <NoData reason="Tükenme tarihi hesaplanmadı" />
-        );
-      },
+      id: "unitsSold",
+      accessorFn: (r) => r.sales.unitsSold,
+      header: "Satılan",
+      meta: { numeric: true },
+      cell: (c) => (
+        <Num
+          value={c.getValue() as number | null}
+          size="sm"
+          noDataReason="Bu SKU satış penceresinde yok"
+        />
+      ),
     },
     {
-      id: "buyBoxRate",
-      /* Dönem artık alan adında değil veride: `sales.buyBoxRate`. */
-      accessorFn: (r) => r.sales.buyBoxRate,
-      header: "BuyBox",
+      id: "acos",
+      accessorFn: (r) => r.advertising.acos,
+      header: "ACOS",
       meta: { numeric: true },
       cell: (c) => (
         <Num
@@ -322,7 +355,7 @@ function skuColumns(now: number | null): ColumnDef<SkuHealth, unknown>[] {
           format="percent"
           fractionDigits={1}
           size="sm"
-          noDataReason="BuyBox oranı raporlanmadı"
+          noDataReason="Reklam verisi yok"
         />
       ),
     },
@@ -378,7 +411,10 @@ export function AmazonDirector({
   const alerts = useAmazonAlerts();
 
   const snapshot = useMockData("amazon.snapshot");
-  const skus = useMockData("amazon.skus");
+  /* CANLI — ODIN ADR-0149 (UI-ADR-128). 48 SKU: kimlik, stok,
+     gün-kapsamı, satılan adet, reklam, fiyat. Skor YOK ve
+     türetilmiyor; durum kendi eşik provenance'ıyla geliyor. */
+  const skus = useAmazonSkus();
   const ppc = useMockData("amazon.ppc");
   const campaigns = useMockData("amazon.campaigns");
   const simulations = useMockData("amazon.simulations");
@@ -398,7 +434,7 @@ export function AmazonDirector({
   const reloadAll = () => {
     snapshot.reload();
     kpis.refetch();
-    skus.reload();
+    skus.refetch();
     ppc.reload();
     campaigns.reload();
     simulations.reload();
@@ -406,7 +442,7 @@ export function AmazonDirector({
     opportunities.reload();
   };
 
-  const skuRows = isEmpty ? [] : (skus.data?.data ?? []);
+  const skuRows = isEmpty ? [] : (skus.envelope?.data ?? []);
   /* FR-0046 v1 Opportunity'de `category` YOK — reklam/genel ayrımını sürecek
      bir kaynak alan kalmadı, ayrım UYDURULMAZ (UI-ADR-106). Tüm fırsatlar
      §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
@@ -414,8 +450,12 @@ export function AmazonDirector({
      (domain, recommendation_type, …) kullanıyor — alan gelirse ayrım döner). */
   const feedOpportunities = isEmpty ? [] : (opportunities.data?.data ?? []);
 
+  /* ODIN sözlüğü (UI-ADR-128). `unknown` BU LİSTEYE GİRMEZ: hızı
+     ölçülemeyen bir SKU riskli değildir, ÖLÇÜLMEMİŞTİR — ikisini
+     karıştırmak 48'in 29'unu risk listesine doldurur ve liste anlamını
+     yitirir. `no_movement` da ayrı bir bulgudur, stok riski değil. */
   const atRisk = skuRows.filter(
-    (s) => s.status === "critical" || s.status === "at_risk"
+    (s) => s.status === "critical" || s.status === "warn"
   );
   const losingBuyBox = skuRows
     .filter((s) => s.sales.buyBoxRate !== null && s.sales.buyBoxRate < 90)
@@ -515,7 +555,7 @@ export function AmazonDirector({
           <DataTable
             label="SKU sağlık tablosu"
             data={skuRows}
-            columns={skuColumns(now)}
+            columns={skuColumns()}
             globalFilter={query}
             density="compact"
             onSelect={(row) =>

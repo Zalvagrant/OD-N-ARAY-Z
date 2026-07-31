@@ -135,7 +135,20 @@ export interface SkuHealth {
    */
   healthScoreExplanation: ScoreFactor[] | null;
 
-  status: "healthy" | "watch" | "at_risk" | "critical";
+  /**
+   * ODIN'İN SÖZLÜĞÜ — genişletildi (UI-ADR-128, ODIN ADR-0149).
+   *
+   * Eskiden `healthy | watch | at_risk | critical` idi ve `unknown`
+   * YOKTU. ODIN'in stockout motoru beş değer üretiyor ve bugün
+   * **48 SKU'nun 29'u `unknown`** — dört değerli enum'a sıkıştırmak,
+   * kataloğun çoğunluğunu "ölçüldü" diye etiketlemek olurdu.
+   *
+   * `no_movement` da kendi başına bir bulgudur: stok VAR, satış YOK.
+   * Onu `healthy` saymak da `critical` saymak da ayrı birer yalandır.
+   *
+   * Sahip kararı (31 Tem 2026): ODIN'in sözlüğü kanonik, arayüz hizalanır.
+   */
+  status: "ok" | "warn" | "critical" | "no_movement" | "unknown";
   /**
    * Durumun nereden geldiği. `health_score` ise backend, durumu skorla
    * TUTARLI üretmek zorundadır; `rule_set` ise durum skordan bağımsız bir
@@ -145,6 +158,13 @@ export interface SkuHealth {
    * hatasıdır, arayüzün tamir edeceği bir şey değildir.
    */
   statusBasis: "health_score" | "rule_set";
+  /**
+   * Durumu doğuran EŞİĞİN kaynağı — ODIN ADR-0146.
+   * `unapproved_default` geldiğinde ekran bunu GÖSTERMEK zorundadır:
+   * aksi hâlde "Kritik" etiketi, sahibin hiç onaylamadığı bir sınırı
+   * yetkili bir hüküm gibi sunar.
+   */
+  thresholdProvenance?: "unapproved_default" | "owner_policy";
 
   /* Envanter — FBA Inventory */
   /**
@@ -167,7 +187,12 @@ export interface SkuHealth {
 
   /* Satış — Sales & Traffic raporu. Dönem ALAN ADINDA DEĞİL, veride. */
   sales: {
-    period: MetricPeriod;
+    /**
+     * `null` = kaynak dönemini BEYAN ETMEDİ (ODIN ADR-0138). Uydurulmuş
+     * bir pencere yerine yokluğu taşınır; ekran o zaman sayıyı dönemsiz
+     * göstermez.
+     */
+    period: MetricPeriod | null;
     unitsSold: number | null;
     revenue: Money | null;
     /** 0–100 */
@@ -178,7 +203,7 @@ export interface SkuHealth {
 
   /* Reklam — Ads API */
   advertising: {
-    period: MetricPeriod;
+    period: MetricPeriod | null;
     spend: Money | null;
     sales: Money | null;
     /** 0–100 */

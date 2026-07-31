@@ -8,8 +8,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { adaptAlerts, adaptKpis, amazonSchema } from "./odin-amazon";
-import { alertSchema, executiveKpiSchema } from "./schemas";
+import { adaptAlerts, adaptKpis, adaptSkus, amazonSchema, amazonSkusSchema } from "./odin-amazon";
+import { alertSchema, executiveKpiSchema, skuHealthSchema } from "./schemas";
 
 const LIVE = {
   schema_version: 1,
@@ -163,5 +163,110 @@ describe("eşik kaynağı — ODIN ADR-0146", () => {
 describe("sözleşme ihlali", () => {
   it("beklenmeyen biçim sessizce geçmez", () => {
     expect(() => parse({ generated_at: "yok" })).toThrow();
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+
+const LIVE_SKU = {
+  generated_at: "2026-07-31T08:23:43.725722+00:00",
+  skus: [
+    {
+      sku: "CapDome-Xs-10",
+      asin: "B0GBMCSS2G",
+      title: "10 pcs Phonak Cap Dome",
+      health_score: null,
+      health_score_explanation: null,
+      status: "critical",
+      status_basis: "rule_set",
+      threshold_provenance: "unapproved_default",
+      inventory_as_of: "2026-07-30",
+      inventory_period: { basis: "as_of", as_of: "2026-07-30T10:31:40+00:00" },
+      units_available: 1,
+      days_of_supply: 3.5,
+      estimated_stockout_at: null,
+      reorder_units: null,
+      sales: {
+        period: { basis: "rolling_window", window_days: 7, end: "2026-07-30" },
+        source: "KO-spapi-sku_sales-2026-07-30",
+        units_sold: 2,
+        revenue: null,
+        conversion_rate: null,
+        buy_box_rate: null,
+      },
+      advertising: {
+        period: { start: "2026-07-01", end: "2026-07-30" },
+        source: "KO-ads-ads_report-2026-07-30",
+        currency: "USD",
+        spend: 12.5,
+        sales: 40,
+        acos: 0.3125,
+      },
+      price: 6.9,
+      currency: "USD",
+    },
+  ],
+};
+
+const cloneSku = () => JSON.parse(JSON.stringify(LIVE_SKU)) as typeof LIVE_SKU;
+
+describe("SKU adaptörü — ODIN ADR-0149", () => {
+  it("canlı satırı kanonik şemadan geçirir", () => {
+    for (const s of adaptSkus(amazonSkusSchema.parse(LIVE_SKU))) {
+      expect(() => skuHealthSchema.parse(s), s.sku).not.toThrow();
+    }
+  });
+
+  it("skoru TÜRETMEZ — ODIN yayınlamıyor", () => {
+    const [s] = adaptSkus(amazonSkusSchema.parse(LIVE_SKU));
+    expect(s.healthScore).toBeNull();
+    expect(s.healthScoreExplanation).toBeNull();
+  });
+
+  it("eşik provenance'ını taşır — 'Kritik' yetkili bir hüküm değil", () => {
+    const [s] = adaptSkus(amazonSkusSchema.parse(LIVE_SKU));
+    expect(s.thresholdProvenance).toBe("unapproved_default");
+    expect(s.statusBasis).toBe("rule_set");
+  });
+
+  it("kayan pencerenin başlangıcını BEYANDAN hesaplar, tahmin etmez", () => {
+    /* "30 Temmuz'da biten 7 günlük pencere" → 24-30 Temmuz. Bu aritmetik,
+       tahmin değil. */
+    const [s] = adaptSkus(amazonSkusSchema.parse(LIVE_SKU));
+    expect(s.sales.period).toEqual({ from: "2026-07-24", to: "2026-07-30" });
+  });
+
+  it("üç dönem BİRBİRİNE karışmaz", () => {
+    const [s] = adaptSkus(amazonSkusSchema.parse(LIVE_SKU));
+    expect(s.advertising.period).toEqual({ from: "2026-07-01", to: "2026-07-30" });
+    expect(s.sales.period).not.toEqual(s.advertising.period);
+  });
+
+  it("ACOS 0-1'den 0-100'e çevrilir — ölçek sözleşmesi", () => {
+    const [s] = adaptSkus(amazonSkusSchema.parse(LIVE_SKU));
+    expect(s.advertising.acos).toBeCloseTo(31.25);
+  });
+
+  it("dönemi BEYAN EDİLMEMİŞ kaynak `null` taşır, uydurulmaz", () => {
+    const raw = cloneSku();
+    raw.skus[0].sales.period = null as never;
+    const [s] = adaptSkus(amazonSkusSchema.parse(raw));
+    expect(s.sales.period).toBeNull();
+  });
+
+  it("kimliği olmayan satır LİSTELENMEZ", () => {
+    /* `asin`/`title` sözleşmede zorunlu; boş string koymak olmayan bir
+       ürünü varmış gibi göstermek olurdu. */
+    const raw = cloneSku();
+    raw.skus[0].asin = null as never;
+    expect(adaptSkus(amazonSkusSchema.parse(raw))).toHaveLength(0);
+  });
+
+  it("`unknown` durumu KORUNUR — 48'in 29'u bu", () => {
+    const raw = cloneSku();
+    raw.skus[0].status = "unknown";
+    const [s] = adaptSkus(amazonSkusSchema.parse(raw));
+    expect(s.status).toBe("unknown");
+    expect(() => skuHealthSchema.parse(s)).not.toThrow();
   });
 });
