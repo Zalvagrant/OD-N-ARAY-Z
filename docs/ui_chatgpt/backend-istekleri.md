@@ -160,7 +160,17 @@ gösterir, kayıp alan sessizdir.
 
 ---
 
-## 6. `AgentHealth` / Director sağlığı
+## 6. ✅ KAPANDI — Director sağlığı
+
+**ODIN ADR-0148 / FR-0050 (31 Temmuz 2026).** `/api/state.directors`
+canlı: 18 zamanlanmış işin, her işin kendi beyan ettiği agent'a göre
+gruplanmış sağlığı — hükmü ODIN veriyor
+(`healthy|stale|failed|unknown`). Arayüz S11'de bağlandı (UI-ADR-127).
+
+⚠️ Talebin `AgentHealth` yüzeyi (görev-kuyruğu ajanları) AYRI bir şeydir
+ve hâlâ boştur — kuyruk hiç kullanılmadı. İkisi birleştirilmedi.
+
+### Tarihsel
 
 `/api/state.agents` bugün düz string listesi:
 `["watcher", "transcript", "analyze", …]`.

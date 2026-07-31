@@ -21,7 +21,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
 import type { DataEnvelope } from "@/types/data-envelope";
-import type { AgentHealth } from "@/types/executive";
+import {
+  useOdinDirectors,
+  type RuntimeDirectorParsed,
+} from "@/lib/data/odin-state";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
@@ -31,7 +34,7 @@ import { Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AlertStack } from "@/components/executive/alert-stack";
-import { DirectorCard } from "@/components/executive/director-card";
+import { RuntimeDirectorCard } from "@/components/executive/runtime-director-card";
 import { MonitoredDecisionsBoard } from "@/components/executive/monitored-decisions-board";
 
 /* --------------------------------------------------------------------------
@@ -63,13 +66,16 @@ function Stat({
 function OperationalStatus({
   directors,
 }: {
-  directors: DataEnvelope<AgentHealth[]> | null;
+  directors: DataEnvelope<RuntimeDirectorParsed[]> | null;
 }) {
   const open = activeTelemetryChannels().length;
   const total = TELEMETRY_CHANNELS.length;
 
-  /* Sayım ODIN'in verdict'ine dayanır — UI canlılık eşiği TÜRETMEZ
-     (UI-ADR-111; eski beatIntervalMs×3 kuralı UI icadıydı). */
+  /* Sayım ODIN'in `status`una dayanır — UI canlılık eşiği TÜRETMEZ
+     (UI-ADR-111; eski beatIntervalMs×3 kuralı UI icadıydı).
+     ODIN ADR-0148 ile DÖRT durum var ve dördü de ayrı sayılır:
+     `stale`i `failed` ile toplamak, gecikmiş bir işi hata vermiş gibi
+     göstermek olurdu — sahibin görmesi gereken fark tam olarak budur. */
 
   /*
    * KAYNAK YOKSA SAYI DA YOK — S8 (UI-ADR-120).
@@ -84,9 +90,9 @@ function OperationalStatus({
    * bu görüldü. Hiçbir test yakalamadı, ekrana bakılarak bulundu.
    */
   const measured = directors?.data ?? null;
-  const verdicts = (measured ?? []).map((d) => d.verdict);
-  const count = (v: AgentHealth["verdict"]) =>
-    measured === null ? "—" : verdicts.filter((x) => x === v).length;
+  const statuses = (measured ?? []).map((d) => d.status);
+  const count = (v: RuntimeDirectorParsed["status"]) =>
+    measured === null ? "—" : statuses.filter((x) => x === v).length;
   const note = (measuredNote: string) =>
     measured === null ? "kaynak bağlı değil — ölçülmedi" : measuredNote;
 
@@ -100,13 +106,19 @@ function OperationalStatus({
           <Stat
             label="Sağlıklı Director"
             value={count("healthy")}
-            note={note("ODIN verdict: healthy")}
+            note={note("ODIN status: healthy")}
             tone="text-success"
           />
           <Stat
-            label="Sağlıksız"
-            value={count("unhealthy")}
-            note={note("ODIN verdict: unhealthy")}
+            label="Hatalı"
+            value={count("failed")}
+            note={note("ODIN status: failed")}
+            tone="text-danger"
+          />
+          <Stat
+            label="Gecikmiş"
+            value={count("stale")}
+            note={note("beklenen ritmi kaçırdı — hata vermiş değil")}
             tone="text-warning"
           />
           <Stat
@@ -148,7 +160,11 @@ export function MissionControl({
   const [query, setQuery] = useState("");
 
   const decisions = useMockData("briefing.decisions");
-  const directors = useMockData("briefing.directors");
+  /* CANLI — ODIN ADR-0148 (UI-ADR-127). Bu bölüm artık ZAMANLANMIŞ
+     runtime işlerini gösteriyor, görev-kuyruğu ajanlarını değil: kuyruk
+     hiç kullanılmadı (`agents` boş), oysa 18 iş heartbeat üstünde
+     koşuyor. Sahibin sorusunu ("ODIN yaşıyor mu?") cevaplayan yüzey bu. */
+  const directors = useOdinDirectors();
   const alerts = useMockData("briefing.risks");
 
   const loading = demo === "loading" || decisions.loading;
@@ -157,7 +173,7 @@ export function MissionControl({
 
   const reloadAll = () => {
     decisions.reload();
-    directors.reload();
+    directors.refetch();
     alerts.reload();
   };
 
@@ -198,7 +214,7 @@ export function MissionControl({
         error={error}
         onRetry={reloadAll}
       >
-        <OperationalStatus directors={isEmpty ? null : directors.data} />
+        <OperationalStatus directors={isEmpty ? null : directors.envelope} />
       </Section>
 
       {/* PRIMARY FOCUS AREA */}
@@ -252,11 +268,14 @@ export function MissionControl({
         onRetry={reloadAll}
         empty={isEmpty}
         emptyTitle="Director verisi yok"
-        emptyDescription="Heartbeat servisi bağlı değil."
+        emptyDescription="ODIN hiçbir zamanlanmış iş bildirmedi."
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {directors.data?.data.map((d) => (
-            <DirectorCard key={d.agentId} env={{ data: d, meta: directors.data!.meta }} />
+          {directors.envelope?.data.map((d) => (
+            <RuntimeDirectorCard
+              key={d.id}
+              env={{ data: d, meta: directors.envelope!.meta }}
+            />
           ))}
         </div>
       </Section>

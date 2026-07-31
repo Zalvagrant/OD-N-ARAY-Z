@@ -17,7 +17,7 @@ import { z } from "zod";
 import type { DataEnvelope } from "@/types/data-envelope";
 import { httpLoad } from "./client";
 import { IS_MOCK } from "./mode";
-import { goalSchema } from "./schemas";
+import { goalSchema, runtimeDirectorSchema } from "./schemas";
 import { useOdinQuery, type OdinQueryResult } from "./use-odin-query";
 import { loadMock } from "@/mocks/registry";
 
@@ -82,6 +82,50 @@ export function useOdinGoals(): OdinQueryResult<Goal[]> {
           const raw = await httpLoad("/api/state", { signal });
           const parsed = stateSchema.parse(raw);
           return envelope(parsed.generated_at, adaptGoals(parsed));
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Directors — ODIN ADR-0148 (UI-ADR-127)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in `directors` yayını — zamanlanmış runtime işlerinin, her işin
+ * KENDİ beyan ettiği agent'a göre gruplanmış sağlığı.
+ *
+ * Adaptör YOK: ODIN zaten camelCase ve kanonik şekilde yayınlıyor
+ * (ADR-0148 sözleşmeyi bu şekilde dondurdu). Yeniden adlandırma bile
+ * gerekmiyor — yalnız doğrulama.
+ *
+ * Hüküm (`status`) ODIN'de hesaplanır. Arayüz eşik TUTMAZ: eski
+ * "beatIntervalMs × 3" kuralı UI icadıydı ve UI-ADR-111 ile kaldırıldı.
+ */
+const directorsStateSchema = z.object({
+  generated_at: z.string(),
+  /* ODIN okunamayan sağlık durumunu `null` yayınlar — boş dizi DEĞİL.
+     "Okuyamadım" ile "hiç direktör yok" aynı şey değildir. */
+  directors: z.array(runtimeDirectorSchema).nullable(),
+});
+
+export type RuntimeDirectorParsed = z.infer<typeof runtimeDirectorSchema>;
+
+export function useOdinDirectors(): OdinQueryResult<RuntimeDirectorParsed[]> {
+  return useOdinQuery({
+    key: ["odin", "directors"],
+    module: "default",
+    schema: z.array(runtimeDirectorSchema),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.directors.runtime")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = directorsStateSchema.parse(raw);
+          if (parsed.directors === null) {
+            /* Fail-closed: ODIN sağlık durumunu okuyamadığını söylüyor.
+               Boş dizi göstermek "hiçbir direktör yok" iddiası olurdu. */
+            throw new Error("ODIN direktör sağlığını okuyamadı");
+          }
+          return envelope(parsed.generated_at, parsed.directors);
         },
   });
 }

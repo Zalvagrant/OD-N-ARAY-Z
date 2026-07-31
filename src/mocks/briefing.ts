@@ -21,13 +21,14 @@ import type { TimelineItem } from "@/components/ui/timeline";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type {
   AIRecommendation,
+  AgentHealth,
   Alert,
   Decision,
-  AgentHealth,
   EvidenceRef,
   ExecutiveBrief,
   ExecutiveKPI,
   PulseChannelStates,
+  RuntimeDirector,
 } from "@/types/executive";
 import type { ExecutiveHero } from "@/types/screens";
 import { ago, ahead, mockEnvelope } from "./envelope";
@@ -656,4 +657,62 @@ export function timelineMock(): DataEnvelope<TimelineItem[]> {
       actor: "Reasoning AI",
     },
   ] satisfies TimelineItem[]);
+}
+
+/**
+ * Runtime direktörleri — ODIN ADR-0148 (UI-ADR-127).
+ *
+ * `AgentHealth` mock'undan AYRI, çünkü kavram ayrı: bunlar zamanlanmış
+ * runtime işleridir, görev-kuyruğu ajanları değil. Dördü de dört durumu
+ * kapsar — `stale` ile `failed`'in ekranda AYRI göründüğü Storybook'ta
+ * doğrulanabilsin diye.
+ */
+export function runtimeDirectorsMock(): DataEnvelope<RuntimeDirector[]> {
+  const now = Date.now();
+  const at = (msAgo: number) => new Date(now - msAgo).toISOString();
+  return mockEnvelope([
+    {
+      id: "watcher-agent",
+      status: "healthy" as const,
+      lastBeat: at(20_000),
+      beatIntervalMs: 60_000,
+      failuresTotal: 0,
+      lastError: null,
+      jobs: [{ id: "drain", status: "healthy" as const, lastBeat: at(20_000),
+               cadence: "1dk", lastError: null }],
+    },
+    {
+      id: "data-director",
+      status: "stale" as const,
+      lastBeat: at(4 * 3_600_000),
+      beatIntervalMs: 3_600_000,
+      failuresTotal: 1,
+      lastError: null,
+      jobs: [{ id: "amazon_ingest", status: "stale" as const,
+               lastBeat: at(4 * 3_600_000), cadence: "saatlik", lastError: null }],
+    },
+    {
+      id: "curator-agent",
+      status: "failed" as const,
+      lastBeat: at(90_000),
+      beatIntervalMs: 86_400_000,
+      failuresTotal: 3,
+      lastError: "RuntimeError",
+      jobs: [{ id: "creator_curator", status: "failed" as const,
+               lastBeat: at(90_000), cadence: "gunluk",
+               lastError: "RuntimeError" }],
+    },
+    {
+      id: "acie-agent",
+      /* Hiç koşmamış bir iş `unknown`dır, `healthy` DEĞİL — ADR-0148 §5. */
+      status: "unknown" as const,
+      lastBeat: null,
+      /* Cadence bilinmiyorsa `null`; tahmin edilmez. */
+      beatIntervalMs: null,
+      failuresTotal: 0,
+      lastError: null,
+      jobs: [{ id: "acie", status: "unknown" as const, lastBeat: null,
+               cadence: null, lastError: null }],
+    },
+  ]);
 }

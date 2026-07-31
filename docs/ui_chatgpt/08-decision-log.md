@@ -2372,3 +2372,63 @@ sessizce düşüyordu. Düzeltildi.
 | Taranan imza | 9 | **183** (9 elle + 174 otomatik) |
 | Sessizce düşen | — | 1 (yazdırılıyor) |
 | Mock derlemesinde | — | 364 eşleşme, kapı KIRMIZI |
+
+---
+
+## UI-ADR-127 — İki canlılık yüzeyi ayrı kalır; "Directors" gerçekten koşanı gösterir (S11)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** ODIN ADR-0148 · UI-ADR-111 · `backend-istekleri.md` #6
+
+ODIN'in **iki ayrı canlılık yüzeyi** var, çünkü iki tür işçisi var:
+
+| Yüzey | Ne | Bugün |
+|---|---|---|
+| `agents` (`AgentHealthMonitor`) | Kuyruktan görev yürüten ajanlar | **BOŞ** — hiç `task.*` olayı yok, kuyruk hiç kullanılmadı |
+| `directors` (`JOBS` + `metrics.json`) | Heartbeat üstünde koşan 18 zamanlanmış iş, her işin KENDİ beyan ettiği agent'a göre gruplanmış | **8 gerçek direktör** |
+
+Arayüzün `AgentHealth` tipi (UI-ADR-111) birincisine doğru biçimde
+hizalanmış — ama birincisi boş. Yani **arayüzün modellediği şey boştu,
+gerçek sinyali olan şeyin arayüzde tipi yoktu.**
+
+### Karar (meclis · gavadolar 2/2)
+
+**1. "Directors" bölümü `directors`ı gösterir.** Sahibin sorusu "ODIN
+yaşıyor mu, bozuk bir şey var mı?" — 18 iş dakikalardır koşarken boş bir
+kart göstermek teknik olarak doğru, pratikte yanıltıcı olurdu.
+
+**2. Dört durum KORUNUR** — `healthy | stale | failed | unknown`.
+`stale`i `AgentHealth.verdict`in üç değerine sıkıştırmak bilgi kaybıdır:
+gecikmiş bir kalp atışı ile hata veren bir iş aynı şey değildir.
+Operational Status'ta da dördü **ayrı** sayılır.
+
+**3. `AgentHealth`e ADAPTE EDİLMEZ.** Cazipti — mevcut kart kullanılırdı.
+Ama `failuresTotal`ı `consecutiveFailures` alanına yazmak demekti ve
+ODIN ardışık seri **ölçmüyor**; arayüzün fark edemeyeceği bir yalan
+olurdu. Bu yüzden ayrı bir `RuntimeDirectorCard` yazıldı ve
+`DirectorCard` kendi sözleşmesinde bırakıldı (repo kural 5: benzer diye
+zorlamak yerine, gerçekten farklı olanı ayır).
+
+**4. Hüküm ODIN'in.** Kart eşik hesaplamaz, `lastBeat`i yorumlamaz —
+yaşını yazar, kararı `status`tan okur. UI-ADR-111'in kaldırdığı
+"beatIntervalMs × 3" UI icadı geri gelmedi.
+
+**5. `beatIntervalMs` beklenen ritimdir, ölçülmüş değil.** Kartta
+"1 saatte bir beklenir" diye yazılıyor — "1 saatte bir çalıştı" değil.
+`null` ise "Cadence bildirilmedi".
+
+**6. Boş `agents` yüzeyi ekrana konmadı.** Kuyruk gerçekten kullanılana
+kadar ayrı bir "Task Agents" bölümü açılmayacak; sahte bir kart ya da
+sahte bir sağlık durumu kesinlikle yok.
+
+### Ölçüm — gerçek modda, üretim derlemesiyle
+
+`/mission-control`: **8 direktör kartı**, Operational Status
+`6 sağlıklı · 0 hatalı · 0 gecikmiş · 2 bilinmiyor`. Her kart gerçek son
+atışını, beklenen ritmini ve alt işlerinin rozetlerini gösteriyor.
+
+**Ekranda yakalanan, testin kaçırdığı kusur:** `Badge` variant'ına göre
+kendi glyph'ini basıyor; kart da glyph yazınca ekranda "✓ ● Sağlıklı"
+çıkıyordu. Testler geçiyordu. `DirectorCard`ın sözleşmesine uyuldu —
+yalnız label geçiliyor.
