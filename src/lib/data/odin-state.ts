@@ -16,6 +16,7 @@ import { z } from "zod";
 
 import type { DataEnvelope } from "@/types/data-envelope";
 import { httpLoad } from "./client";
+import { contractError } from "./errors";
 import { IS_MOCK } from "./mode";
 import { goalSchema, runtimeDirectorSchema } from "./schemas";
 import { useOdinQuery, type OdinQueryResult } from "./use-odin-query";
@@ -122,8 +123,16 @@ export function useOdinDirectors(): OdinQueryResult<RuntimeDirectorParsed[]> {
           const parsed = directorsStateSchema.parse(raw);
           if (parsed.directors === null) {
             /* Fail-closed: ODIN sağlık durumunu okuyamadığını söylüyor.
-               Boş dizi göstermek "hiçbir direktör yok" iddiası olurdu. */
-            throw new Error("ODIN direktör sağlığını okuyamadı");
+               Boş dizi göstermek "hiçbir direktör yok" iddiası olurdu.
+
+               `OdinError` olarak atılır: düz `Error` atıldığında
+               `classifyError` bunu "unknown" dalına düşürüyordu ve
+               kullanıcı, sebebi TAM OLARAK bilinen bir durum için
+               "kaynağı sınıflandırılamadı" görüyordu. */
+            throw contractError(
+              "/api/state",
+              "directors alanı null — ODIN direktör sağlığını okuyamadığını bildirdi."
+            );
           }
           return envelope(parsed.generated_at, parsed.directors);
         },

@@ -335,6 +335,34 @@ describe("hata metinleri beş adımı doldurur", () => {
   it("sınıflandırılamayan hata SEBEP UYDURMAZ", () => {
     expect(classifyError({ x: 1 }, "kpi").why).toContain("UYDURULMADI");
   });
+
+  /* Ham yük doğrulaması `ZodError` atar. Bu dal yazılmadan önce hata
+     "unknown"a düşüyordu: kullanıcı, sebebi tam olarak bilinen bir
+     sözleşme farkı için "kaynağı sınıflandırılamadı" görüyordu. */
+  it("ham yükün ZodError'ı SÖZLEŞME hatasıdır, 'unknown' değil", () => {
+    let thrown: unknown;
+    try {
+      z.object({ generated_at: z.string() }).parse({ generated_at: 42 });
+    } catch (err) {
+      thrown = err;
+    }
+
+    const e = classifyError(thrown, "/api/amazon");
+    expect(e.kind).toBe("contract");
+    expect(e.what).toBe("Veri doğrulanamadı");
+    /* Zod'un ham mesajı kullanıcıya ÇIKMAZ, `technical`e gider. */
+    expect(e.technical).toContain("generated_at");
+    expect(e.why).not.toContain("generated_at");
+    /* Sözleşme ihlali tekrar denenmez — aynı sunucu aynı veriyi üretir. */
+    expect(e.retryable).toBe(false);
+  });
+
+  it("iptal hatası ŞEKİLDEN tanınır — ayrı realm'de instanceof çalışmaz", () => {
+    /* Node'un undici'si düz `Error` atabilir; `instanceof DOMException`
+       o durumda false döner ve gerçek iptal "unknown" olurdu. */
+    const plain = Object.assign(new Error("aborted"), { name: "AbortError" });
+    expect(classifyError(plain, "kpi").kind).toBe("timeout");
+  });
 });
 
 /* ------------------------------------------------------------------ 7 */
