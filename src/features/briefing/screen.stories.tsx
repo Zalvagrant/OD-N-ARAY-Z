@@ -1,6 +1,6 @@
 /** S5 · 1 — Executive Briefing (tam ekran) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import { ExecutiveBriefing } from "./screen";
 
 const meta: Meta = {
@@ -15,6 +15,17 @@ export default meta;
 
 /** Dolu hâl — mock veriyle. MOCK DATA rozeti başlıkta görünür. */
 export const Brifing: StoryObj = {
+  /* POZİTİF KONTROL — `heroSkoru` helper'ının gerçekten DEĞER
+     döndürebildiğini kanıtlar. Olmasaydı: etiket metni ya da `Stat`ın
+     dt/dd yapısı değiştiği an helper sonsuza kadar `null` dönerdi ve
+     aşağıdaki iki `toBeNull()` iddiası KALICI YEŞİL olurdu — hiçbir şeyi
+     korumayan iki test. Yokluk iddiasının yanına varlık iddiası. */
+  play: async ({ canvasElement }) => {
+    await waitFor(
+      () => expect(heroSkoru(canvasElement)).not.toBeNull(),
+      { timeout: 15_000 }
+    );
+  },
   render: () => (
     <div className="bg-bg p-6">
       <ExecutiveBriefing />

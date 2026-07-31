@@ -76,8 +76,16 @@ export const Bos: StoryObj = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    /* ÖNCE: yüklenmenin bittiğini kanıtla. */
-    await canvas.findByRole("heading", { name: /Executive Glance/i }, BEKLE);
+    /* ÖNCE: yüklenmenin bittiğini kanıtla — AMA DOĞRU ÇAPAYLA.
+       İlk hâli `findByRole("heading", {name:/Executive Glance/})` idi ve
+       YEŞİL YALAN söylüyordu: o başlık YALNIZ iskelet/hata dallarında
+       (`<Section title="Executive Glance">`) var; yükleme bitince yerini
+       `DataGuard`ın `NoData`sı alıyor ve `GlanceView`ün kendi başlığı bir
+       `<span>` (heading değil). Yani çapa ilk poll'de İSKELETTE çözülüyor,
+       ardından gelen yokluk iddiası iskelet üstünde koşuyordu — boş durum
+       gerçekten bir `alert` üretse bile test geçerdi.
+       Doğru çapa: boş hâlde GERÇEKTEN görünen şey. */
+    await canvas.findByLabelText(/Amazon anlık görüntüsü üretilmedi/, {}, BEKLE);
 
     /* Boş bir gün HATA DEĞİLDİR. İkisini karıştıran ekran, satışsız bir
        günü arıza gibi gösterir ve sahibi olmayan bir sorunu aramaya

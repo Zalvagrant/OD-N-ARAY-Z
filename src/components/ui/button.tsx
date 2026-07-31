@@ -75,6 +75,12 @@ interface ButtonBase
   offline?: boolean;
   /** Metnin solundaki ikon. Lucide bileşeni verilir. */
   icon?: ReactNode;
+  /**
+   * Kare padding — YALNIZ YERLEŞİM. Erişilebilirlik iddiası TAŞIMAZ:
+   * adın zorunluluğu `children`ın yokluğundan gelir (aşağıya bak), bu
+   * bayraktan değil. Unutulması yalnız görünümü etkiler.
+   */
+  iconOnly?: boolean;
   children?: ReactNode;
   /**
    * React 19'da `ref` sıradan bir prop'tur, ama TİPİ beyan edilmezse
@@ -86,22 +92,36 @@ interface ButtonBase
 }
 
 /**
- * `iconOnly` → `aria-label` DERLEMEDE zorunlu (UI-ADR-149).
+ * METİN YOKSA AD ZORUNLU — derlemede (UI-ADR-149, kapanış denetiminde
+ * onarıldı).
  *
  * Burada bir yorum vardı: *"Yalnız ikon — `aria-label` ZORUNLU."* — ve
- * hiçbir şey onu zorlamıyordu. Yorumla korunan bir kural, korunmayan bir
- * kuraldır: adsız bir ikon butonu ekran okuyucuda yalnızca "buton" diye
- * okunur ve ne yaptığı ASLA anlaşılmaz. Görerek fark edilmez; bu yüzden
- * derleyiciye verildi (eslint.config.mjs'in "mimari derleyicide yaşar"
- * ilkesiyle aynı).
+ * hiçbir şey onu zorlamıyordu. Adsız bir ikon butonu ekran okuyucuda
+ * yalnızca "buton" diye okunur ve ne yaptığı ASLA anlaşılmaz. Görerek
+ * fark edilmez; bu yüzden derleyiciye verildi.
  *
- * `aria-labelledby` de kabul edilir: ad görünür bir başlıktan geliyorsa
- * onu tekrar etmek yerine ona bağlanmak DOĞRUSUDUR (bkz. `modal.tsx`).
+ * ⚠️ İLK DÜZELTME DE AÇIKTI: kapı `iconOnly` BAYRAĞINA bağlanmıştı, yani
+ * bayrağı YAZMAMAK kapıyı susturuyordu. `<Button icon={<X/>} />` —
+ * `children` yok, `iconOnly` yok — derlemeden geçiyor ve adsız bir buton
+ * çiziyordu. Bağımsız denetimde bulundu ve deneyle doğrulandı.
+ *
+ * Şimdi kapı `children`a bağlı: metin varsa ad içerikten gelir, metin
+ * yoksa `aria-label` ya da `aria-labelledby` İSTENİR. `iconOnly` artık
+ * yalnız bir YERLEŞİM bayrağı (kare padding) — erişilebilirlik iddiası
+ * taşımadığı için unutulması bir şey bozmuyor. Bayrağa bağlı kapı,
+ * bayrağı yazmayı hatırlamaya bağlı kapıdır; bu da yorumdan bir adım
+ * ötesidir, kapı değildir.
+ *
+ * ponytail: `aria-label=""` tipçe `string`tir ve geçer. Tipte engellemek
+ * okunaksız bir şablon-literal tipi ister; bugün hiçbir çağıran öyle
+ * yazmıyor. Gerekirse ESLint kuralıyla.
  */
 export type ButtonProps =
-  | (ButtonBase & { iconOnly?: false })
-  | (ButtonBase & { iconOnly: true; "aria-label": string })
-  | (ButtonBase & { iconOnly: true; "aria-labelledby": string });
+  /* Metin varsa ad İÇERİKTEN gelir — ek bir şey istenmez. */
+  | (ButtonBase & { children: ReactNode })
+  /* Metin YOKSA ad açıkça verilmek ZORUNDA. */
+  | (ButtonBase & { children?: undefined; "aria-label": string })
+  | (ButtonBase & { children?: undefined; "aria-labelledby": string });
 
 export function Button({
   variant = "secondary",
@@ -152,7 +172,7 @@ export function Button({
         </>
       )}
       {!loading && !offline && icon}
-      {!iconOnly && children}
+      {children}
     </button>
   );
 }

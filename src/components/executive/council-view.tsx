@@ -99,8 +99,15 @@ export function CouncilView({ recommendation }: { recommendation: AIRecommendati
           </ul>
         </div>
       ) : (
+        /* "— uzlaşma tam" SİLİNDİ (kapanış denetimi). Bu cümle YOKLUKTAN
+           bir ölçüm çıkarıyordu: bu dosyanın kendi başlığı Director
+           pozisyonlarının ODIN şemasında SAKLANMADIĞINI (`not_exposed`)
+           yazıyor — yani boş liste bu kaynağın VARSAYILAN hâlidir, bir
+           mutabakat kanıtı değil. "Kimse itiraz kaydetmedi" ile "herkes
+           aynı fikirde" ayrı şeylerdir; ikincisini iddia etmek uydurulmuş
+           bir SAYI değil, uydurulmuş bir SONUÇTUR (CLAUDE.md §2). */
         <Text size="sm" tone="tertiary">
-          Azınlık görüşü kaydedilmemiş — uzlaşma tam.
+          Azınlık görüşü kaydedilmemiş.
         </Text>
       )}
 

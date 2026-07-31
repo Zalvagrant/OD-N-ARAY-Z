@@ -321,9 +321,41 @@ kusur çıktı — üçü de KENDİ yeni işimde:
    kırıldı. Ayrıldı: self-check kendi sınırını açıkça veriyor, ayrıca
    yürürlükteki `FLOOR`un gerçekten koruduğunu da sınıyor.
 
-### 6.5 Yeni oturumun ilk işi
+### 6.5 Bağımsız denetim — UI-ADR-152
 
-⬜ **Meclis (gavadolar / yazılımcılar) denetimi ALINAMADI** — MCP araçları
-oturum ortasında düştü, yeni oturum gerektiriyor. S13 teknik olarak kapalı
-ve kapılarla korunuyor ama **bağımsız bir göz geçmedi.**
-Yeni oturumda `ask_yazilimcilar` ile son hâli denetlet.
+Meclis MCP araçları düştüğü için denetim **bağımsız bir ajana** yaptırıldı:
+9 bulgu, 2 kritik, hepsi kaynaktan doğrulandı, hiçbiri elenmedi.
+
+**Sonuç sertti:** S13'ün kapılarının çoğu ya hiç koşmuyordu ya
+kırılabiliyordu.
+
+| Bulgu | Durum |
+|---|---|
+| **ESLint hiçbir otomatik komutta koşmuyordu** → 130 ve 146 dekoratifti | ✅ `test:ci`ye eklendi |
+| **`Button` kapısı bayrağa bağlıydı** — `iconOnly` yazmamak yetiyordu | ✅ `children`a taşındı |
+| `council-view` yokluktan "uzlaşma tam" çıkarıyordu | ✅ kesildi + test |
+| `amazon/director` `Bos` çapası İSKELETTE çözülüyordu (yeşil yalan) | ✅ `NoData`ya taşındı |
+| `briefing` `heroSkoru` hiç pozitif doğrulanmamıştı | ✅ pozitif kontrol |
+| `state-matrix`: blok başına çok `demo` · boş `play` | ✅ ikisi de kapatıldı |
+| `state-matrix`te GÖRÜNMEZ BAYT (`` → 0x08) kapıyı haksız kırmızı yapıyordu | ✅ `includes` |
+| S17'nin `FLOOR`u 140'ta, ölçüm 193 → 53 test kaybolabilirdi | ✅ 190 |
+| self-check `FLOOR`a bağlıydı | ✅ ayrıldı |
+
+### 6.6 KABUL EDİLDİ, YAPILMADI — yeni oturumun işi
+
+1. **`features/*/screen.tsx` muafiyeti.** Durum matrisi kapısı
+   `demo?: DemoState` beyanına kilitli. `amazon/sku`, `goals`,
+   `intelligence-feed` bu prop'u ALMIYOR → matristen muaflar.
+   `amazon/sku/screen.stories.tsx`'te üç durum story'si var ve
+   **hiçbirinde `play` yok**; `goals` ile `intelligence-feed`'in hiç
+   hikâyesi yok. Muafiyeti daraltmak o ekranlara demo durumu EKLEMEYİ
+   gerektirir — kapanış düzeltmesi değil, yeni iş.
+2. **`inventory` kapısı dosya seviyesinde `play` arıyor.** Çok bileşenli
+   bir story dosyasındaki alakasız bir `play` yeni bir yetimi kapatabilir.
+   Bugün fiilen ihlal YOK (ölçüldü). `state-matrix`in blok ayrımı deseni
+   buraya da uygulanabilir.
+3. **`unit` projesi için alt sınır yok.** `state-matrix.test.ts`i
+   yeniden adlandırmak kapıyı sessizce buharlaştırır; `verify-storybook-
+   tests.mjs`in `evaluate()` mantığı `--project unit` raporuna da
+   uygulanabilir.
+4. ⬜ **Meclis denetimi hâlâ ALINMADI** — `ask_yazilimcilar` yeni oturumda.

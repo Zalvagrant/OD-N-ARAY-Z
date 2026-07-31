@@ -94,11 +94,11 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…151` serisindedir — **boşluk yok.**
+Bu repodaki kararlar `UI-ADR-001…152` serisindedir — **boşluk yok.**
 S13 merge edildiğinde `main`'in S15 için açtığı 130–139 aralığı doldu.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-152`'den**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-153`'ten**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
@@ -215,7 +215,7 @@ tahta "izlenen kararlar + vadesi gelen ertelemeler" görünümü).
 | S9 AI Gateway | ⬜ başlanmadı — ölçüldü ve ERTELENDİ: `telemetry.jsonl`'de 0 model çağrısı kaydı, router modülü yok. Bugün yapılsa AI Runtime sekmesi boş bir panel olurdu (kural 2 ihlali) |
 | S14 Runtime alarmları · S15 Ölçüm penceresi · S16 Fırsat görünümü | ✅ `main`'de (UI-ADR-129 · 140 · 141) |
 | S17 Storybook kapısı | ✅ `main`'de (UI-ADR-142) — `npm run test:ci` fail-closed |
-| **S13 Kurumsal Ön Yüz Mimarisi** | ✅ **`main`'de** — UI-ADR-130…139 + 143…151. Sahip onayladı. Kapılar: katman sınırları · envanter · sahte veri kaçağı · erişilebilirlik · ekran durum matrisi |
+| **S13 Kurumsal Ön Yüz Mimarisi** | ✅ **`main`'de** — UI-ADR-130…139 + 143…152. Sahip onayladı. Kapılar: katman sınırları · envanter · sahte veri kaçağı · erişilebilirlik · ekran durum matrisi |
 
 ✅ **S13 kapandı ve `main`'e indi.** Geçmişi ve tuzakları
 `docs/ui_chatgpt/19-s13-devir.md`'de.

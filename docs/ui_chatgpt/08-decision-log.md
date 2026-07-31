@@ -4117,3 +4117,109 @@ kapısı AÇIK (51 dosya / 193 test, **alt sınır 190**, atlanan 0, düşen 0).
 ⬜ **Bağımsız denetim ALINAMADI:** meclis MCP araçları bu oturumda düştü
 (oturuma bağlıdırlar, yeniden başlatmak geri getirmiyor). Yeni oturumun
 ilk işi `ask_yazilimcilar` ile son hâli denetletmektir.
+
+---
+
+## UI-ADR-152 — Bağımsız denetim: beş kapının dördü kırıldı, biri hiç koşmuyordu (S13 kapanış)
+
+**Durum:** ✅ Dondurulmuş — her düzeltme enjekte ihlalle denendi
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-130 · 142 · 146 · 149 · 151
+
+Meclis MCP araçları oturum ortasında düştüğü için (oturuma bağlıdırlar)
+denetim bağımsız bir ajana yaptırıldı: **9 bulgu, 2 kritik.** Hepsi
+kaynaktan doğrulandı; hiçbiri elenmedi. Sonuç sert: **S13'ün kapılarının
+çoğu ya hiç koşmuyordu ya da kırılabiliyordu.**
+
+### KRİTİK 1 — ESLint hiçbir otomatik komutta koşmuyordu
+
+`package.json`'da `lint` script'i vardı ama **hiçbir şey onu çağırmıyordu:**
+`test:ci` = unit + storybook · `build:release` = release + build + bundle
+taraması · `.github/` yok · `core.hooksPath` boş. Next 16'da
+`next/dist/lint` **artık mevcut değil** (ölçüldü) — `next build` de lint
+koşturmuyor.
+
+Yani UI-ADR-130'un katman sınırları ve UI-ADR-146'nın sahte-veri kaçağı
+kuralı **DEKORATİFTİ**: yalnız bir insan elle `npm run lint` yazarsa
+ateşliyorlardı. `test:ci`ye eklendi; `<Num value={x ?? 0} />` enjekte
+edildi, kapı ateşledi.
+
+**Ders:** kural yazmak, kuralın koşması demek değil. "Mimari derleyicide
+yaşar" diyen bir repoda derleyicinin çağrıldığı yeri de göstermek gerekir.
+
+### KRİTİK 2 — `Button` kapısı BAYRAĞA bağlıydı, bayrağı yazmamak yetiyordu
+
+UI-ADR-149 `iconOnly` için `aria-label`ı derlemede zorunlu kılmıştı. Ama
+`<Button icon={<X/>} />` — `children` yok, `iconOnly` yok — **geçiyordu**
+ve adsız bir buton çiziyordu. Kapı, kapıyı tetikleyecek bayrağı yazmayı
+hatırlamaya bağlıydı; bu yorumdan yalnız bir adım ötesidir.
+
+Birleşim `children`a taşındı: metin varsa ad içerikten gelir, metin yoksa
+`aria-label`/`aria-labelledby` İSTENİR. `iconOnly` artık yalnız yerleşim
+bayrağı. Üç durum denendi: delik kapandı, iki meşru kullanım geçti.
+
+### Sahte veri — `council-view`
+
+*"Azınlık görüşü kaydedilmemiş — uzlaşma tam."* İlk yarısı dürüst, ikinci
+yarısı **YOKLUKTAN çıkarılmış bir ölçüm**. Bileşenin kendi başlığı
+Director pozisyonlarının ODIN şemasında SAKLANMADIĞINI (`not_exposed`)
+yazıyor — boş liste bu kaynağın VARSAYILAN hâli, mutabakat kanıtı değil.
+"Kimse itiraz kaydetmedi" ile "herkes aynı fikirde" ayrı şeylerdir;
+ikincisi uydurulmuş bir sayı değil, **uydurulmuş bir SONUÇTUR.** Kesildi
+ve story ile kilitlendi.
+
+### İki YEŞİL YALAN — UI-ADR-151'in kendi testlerinde
+
+1. **`amazon/director` `Bos` çapası iskelette çözülüyordu.**
+   `findByRole("heading", {name:/Executive Glance/})` — o başlık YALNIZ
+   iskelet/hata dallarında var (`<Section title=…>`); yükleme bitince
+   yerini `NoData` alıyor ve `GlanceView`ün kendi başlığı bir `<span>`.
+   Yani "yükleme bitti" çapası ilk poll'de İSKELETTE çözülüyor, ardından
+   gelen yokluk iddiası iskelet üstünde koşuyordu — boş durum gerçekten
+   bir `alert` üretse bile test geçerdi. Çapa `NoData`ya taşındı.
+2. **`briefing` `heroSkoru` hiç pozitif doğrulanmamıştı.** Yalnız
+   `toBeNull()` ile kullanılıyordu: etiket metni ya da `Stat`ın dt/dd
+   yapısı değişse helper sonsuza kadar `null` döner ve iki iddia KALICI
+   YEŞİL olurdu. Dolu story'ye pozitif kontrol eklendi.
+
+### `state-matrix` kapısının iki kaçış yolu daha
+
+Bir blok birden fazla `demo` taşıyabiliyordu (tek `play` üç durumu
+"karşılar" görünürdü) ve `play: async () => {}` biçimsel olarak
+geçiyordu. İkisi de kapatıldı, ikisi de enjekte ihlalle denendi.
+
+⚠️ **Ve kapının kendisinde GÖRÜNMEZ BİR BAYT vardı.** Boş-`play` kontrolü
+`/expect\s*\(/` olarak yazılmıştı ve `` dosyaya **backspace baytı
+(0x08)** olarak girmişti; regex hiçbir zaman eşleşmedi ve kapı üç dosyayı
+da HAKSIZ yere kırmızı gösterdi. Düz `includes("expect(")` ile
+değiştirildi — aranan şey bir alt dize, regex hiçbir şey kazandırmıyordu.
+
+Bu, oturumda **testin kendisi yanlış çıktığı yedinci** vakadır.
+
+### `FLOOR` gerçekten korumuyordu
+
+S17'nin alt sınırı 140'ta kalmıştı, ölçüm 193'tü: kapı AÇIK görünürken
+**53 test sessizce kaybolabilirdi.** 190'a çıkarıldı. Ayrıca S17'nin
+self-check'i `FLOOR` sabitine bağlıydı ve sınır yükseltilince mantık
+senaryoları çöktü — oysa mantıkta bir şey bozulmamıştı. Bağ koparıldı:
+self-check kendi sınırını açıkça verir (mantığı sınar, kalibrasyonu
+değil) ve ayrıca yürürlükteki `FLOOR`un koruduğunu da sınar. *Kalibrasyon
+değişince kırılan bir test, kalibrasyonu değiştirmemek için bahane olur.*
+
+### Kabul edilen ama YAPILMAYAN iki bulgu
+
+- **`features/*/screen.tsx` muafiyeti.** Kapı `demo?: DemoState` beyanına
+  kilitli; `amazon/sku`, `goals`, `intelligence-feed` bu prop'u almadığı
+  için matristen muaf. Denetçi haklı, ama muafiyeti daraltmak o üç ekrana
+  demo durumu EKLEMEYİ gerektirir — yeni iş, kapanış düzeltmesi değil.
+  Devir belgesine yazıldı.
+- **`inventory` kapısının dosya seviyesi `play` kontrolü.** Çok bileşenli
+  bir story dosyasındaki alakasız bir `play` yeni bir yetimi kapatabilir.
+  Bugün fiilen ihlal YOK (ölçüldü); blok bazlı kontrole geçirmek aynı
+  desenle mümkün, devir belgesine yazıldı.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **67 dosya / 421 test** · `npm run test:ci`
+artık **lint + unit + storybook** koşuyor; Storybook kapısı AÇIK
+(51 dosya / 193 test, alt sınır 190).

@@ -89,6 +89,33 @@ describe("ekran durum matrisi kapısı (UI-ADR-151)", () => {
             `KANITLAMAZ (UI-ADR-150 ile aynı kural). Başka bir story'deki ` +
             `play bunun yerine geçmez.`
         ).toBe(true);
+
+        /* Bir blok İKİ durumu birden taşıyamaz: taşısaydı tek `play` üç
+           durumu birden "karşılar" görünürdü ve kapı susardı. Her durum
+           kendi story'sinde, kendi iddiasıyla. */
+        const demoSayisi = (blok!.match(/demo="(loading|empty|error)"/g) ?? [])
+          .length;
+        expect(
+          demoSayisi,
+          `${rel}: "${s.key}" story'si ${demoSayisi} farklı demo durumu ` +
+            `çiziyor. Her durum AYRI story olmalı — tek play birden fazla ` +
+            `durumu kanıtlayamaz.`
+        ).toBe(1);
+
+        /* `play` GÖVDESİ boş olamaz: `play: async () => {}` biçimsel
+           olarak geçer ve sıfır şey iddia eder. En az bir `expect` istenir.
+
+           Düz `includes` KASITLI, regex değil: ilk yazımda buraya
+           `/expect…/` konmuştu ve `` yazıya GÖRÜNMEZ bir backspace
+           baytı (0x08) olarak girmişti — regex hiçbir zaman eşleşmedi ve
+           kapı ÜÇ dosyayı da haksız yere kırmızı gösterdi. Aranan şey düz
+           bir alt dize; regex burada hiçbir şey kazandırmıyordu. */
+        const govde = blok!.slice(blok!.search(/^\s*play:/m));
+        expect(
+          govde.includes("expect("),
+          `${rel}: "${s.key}" story'sinin \`play\`inde hiç \`expect\` yok. ` +
+            `Boş bir play, olmayan bir play'dir.`
+        ).toBe(true);
       }
     }
   );
