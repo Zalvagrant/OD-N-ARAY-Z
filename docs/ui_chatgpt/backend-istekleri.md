@@ -238,3 +238,47 @@ bölüm eklemekten iyidir.
   nötr 50'si BU ALANA ait değil (o, metin-hedef hizası puanıdır ve cockpit
   onu yayınlamıyor). 09b §10'daki tuzak uyarısı iki şeyi karıştırıyordu;
   kaynak okunarak düzeltildi.
+
+---
+
+## 12. `meta.universeId` — yanıtın hangi evrene ait olduğu doğrulanamıyor
+
+**S7'den devredilen borç** (meclis bulgusu; bu listeyi ADR-0143'e göre
+yeniden yazarken bir tur düşmüş, geri kondu).
+
+Arayüz önbellek anahtarını `[DATA_MODE, universeId, ...]` diye kuruyor;
+bu **istemci tarafını** korur — bir evrenin verisi diğerinin ekranında
+görünmez. Ama yanlış evrenin verisini DÖNDÜREN bir sunucuyu yakalamaz:
+istek doğru evren için gitti, yanıt başka evrenin verisiyle geldiyse
+arayüzün elinde bunu anlayacak hiçbir alan yok.
+
+**İstenen:** zarfın `meta`sında `universeId`. Arayüz onu istediğiyle
+karşılaştırır ve tutmuyorsa sözleşme hatası basar — sessizce göstermez.
+
+Bu, "kayıp alan uydurulmuş alandan tehlikelidir" kuralının tam örneğidir:
+alan yok olduğu için doğrulama da yok, ve yanlış evrenin sayısı doğru
+evrenin sayısından ayırt edilemez.
+
+---
+
+## Arayüz tarafında kalan borçlar (ODIN'den aksiyon İSTEMEZ)
+
+Kayıt için; bu maddeler backend'e sorulmuyor.
+
+- **`OdinSectionBoundary` kalıbı** (S7 borcu, meclis önerisi): bugün her
+  `Section`'a hata elle bağlanıyor. Yeni bir bölüm eklenirken unutulursa
+  S7'de görülen "sessiz boş bölüm" hatası geri döner. Sarmalayıcı kalıp
+  bunu yapısal olarak kapatır.
+- **Beş bölüm hâlâ mock kancasında** — `AmazonSnapshot` · `PPCOverview` ·
+  `CampaignIntelligence` · `SimulationCase` · `SkuHealth`. Sebep
+  UI-ADR-113: doğrulanmış sözleşmeleri yok. §7 ve §2 kapanınca üçer
+  satırla yeni boruya taşınırlar. Sessiz borç DEĞİL: gerçek modda
+  kendiliğinden "veri yok" durumuna düşerler.
+- **Vekilin önünde yetkilendirme yok** — §10'da açıklandı; dağıtım hâlinde
+  gerekir.
+
+**S7 borcu #3 KAPANDI:** "gerçek modda `ODIN_BASE_URL` 127.0.0.1'e düşüyor,
+tarayıcıda bu KULLANICININ makinesidir." Artık tarayıcı 127.0.0.1'i hiç
+görmüyor — aynı kökende `/odin` yolunu kullanıyor; mutlak adres yalnız
+sunucu tarafında ve `NEXT_PUBLIC_` olmayan `ODIN_ORIGIN`'den geliyor
+(UI-ADR-119).
