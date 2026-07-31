@@ -20,11 +20,17 @@ import { dirname } from "node:path";
 
 const REPORT = ".artifacts/storybook-vitest.json";
 
-/* Alt sınır — sahip kararı (sabit sayı değil). Sabit sayı her yeni story'de
-   kapıyı kırar; alt sınır yalnız DÜŞÜŞÜ yakalar. Bugün ölçülen: 43 dosya /
-   140 test. Bu sayı büyüdüğünde sınırı yükseltmek serbesttir, düşürmek bir
-   karardır — düşürüyorsan aynı PR'da nedenini yaz. */
-const FLOOR = 140;
+/* Alt sınır — sabit sayı değil, DÜŞÜŞ dedektörü. Sabit sayı her yeni
+   story'de kapıyı kırar; alt sınır yalnız kaybı yakalar. Yükseltmek
+   serbesttir, DÜŞÜRMEK bir karardır — düşürüyorsan aynı PR'da nedenini yaz.
+
+   140 → 190 (S13 kapanışı). Gerekçe: S17 bu sınırı koyduğunda ölçüm 43
+   dosya / 140 testti; S13 ile 51 dosya / 193 teste çıktı. 140'ta bırakmak
+   **53 testin sessizce kaybolmasına izin vermek** demekti — kapı açık
+   görünürken kapsamın üçte biri buharlaşabilirdi. Sınır ölçümün hemen
+   altında durmalı ki gerçekten bir şey korusun; 190 küçük dalgalanmaya
+   pay bırakır, kayba bırakmaz. */
+const FLOOR = 190;
 
 /* ponytail: kapı testlerin SAYISINI doğruluyor, KİMLİKLERİNİ değil. Meclis
    (gavadolar 2/2) daha güçlüsünü önerdi: `vitest list` ile keşfedilen test
@@ -60,11 +66,19 @@ export function evaluate(report, { runFailed = false, floor = FLOOR } = {}) {
 
 if (process.argv.includes("--self-check")) {
   const { strict: assert } = await import("node:assert");
+
+  /* Self-check MANTIĞI sınar, KALİBRASYONU değil: bu yüzden `FLOOR`
+     sabitini kullanmaz, kendi sınırını AÇIKÇA verir. İlk hâli `FLOOR`a
+     bağlıydı ve sınır 140→190 yükseltilince senaryolar çöktü — oysa
+     mantıkta hiçbir şey bozulmamıştı. Kalibrasyon değişince kırılan bir
+     testi, kalibrasyonu değiştirmemek için bahane olarak kullanmak
+     kolaydır; o yüzden bağ koparıldı. */
+  const F = { floor: 140 };
   const ok = { numPassedTests: 140, numFailedTests: 0, numPendingTests: 0,
                numTodoTests: 0, testResults: new Array(43) };
-  const red = (r, o) => assert.ok(evaluate(r, o).problems.length > 0);
+  const red = (r, o) => assert.ok(evaluate(r, { ...F, ...o }).problems.length > 0);
 
-  assert.equal(evaluate(ok).problems.length, 0);              // sağlıklı koşu
+  assert.equal(evaluate(ok, F).problems.length, 0);            // sağlıklı koşu
   red({ ...ok, numPassedTests: 139 });                         // alt sınır altı
   red({ ...ok, numPassedTests: 0, testResults: [] });          // tarayıcı düştü
   red({ ...ok, numFailedTests: 1 });                           // düşen test
@@ -72,8 +86,10 @@ if (process.argv.includes("--self-check")) {
   red({ ...ok, numTodoTests: 1 });                             // todo
   red(ok, { runFailed: true });          // rapor temiz ama süreç hata verdi
   // Sınır büyüyünce eski alt sınır kapıyı körleştirmemeli:
-  assert.equal(evaluate({ ...ok, numPassedTests: 400 }).problems.length, 0);
-  console.log("self-check: 8 senaryo — kapı beklenen yerlerde kırmızı");
+  assert.equal(evaluate({ ...ok, numPassedTests: 400 }, F).problems.length, 0);
+  // Yürürlükteki FLOOR gerçekten koruyor mu: bugünkü ölçümün altı kırmızı.
+  assert.ok(evaluate({ ...ok, numPassedTests: FLOOR - 1 }).problems.length > 0);
+  console.log(`self-check: 9 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 

@@ -261,58 +261,69 @@ Beklenen: `screens → mocks` **0**, `layout → screens` **0**,
 
 ---
 
-## 6. HAZIRLIK TARAMASI — 31 Tem 2026, kapanış öncesi
+## 6. KAPANIŞ — 1 Ağu 2026
 
-> Bu bölüm §1–§5'i **yeniden ölçtü**. Aşağıdaki dört satır, yukarıdaki
-> metinle çelişiyorsa doğru olan burasıdır.
+> §6'nın önceki hâli merge ÖNCESİ bir hazırlık taramasıydı (dalın konumu,
+> çakışan numaralar, merge önizlemesi). Hepsi gerçekleşti; tahmin
+> satırlarının yerine SONUÇ yazıldı.
 
-### 6.1 Dalın gerçek konumu (ölçüldü)
+### 6.1 Nerede bitti
 
-| | Ölçüm |
+| | |
 |---|---|
-| `main` | `7903e95` — **S15 ve S16 da indi**, §0'daki `9e7904a` bayat |
-| Dal ↔ main | main'de olmayan **18**, dalda olmayan **4** commit |
-| Push durumu | origin'de, ama **2 commit push edilmemiş** (`origin/...` 2 geride) |
-| Çalışma ağacı | temiz |
-| `tsc --noEmit` | **0 hata** |
-| `vitest --project=unit` | **15 dosya / 215 test yeşil** |
-| `--project=storybook` | ⬜ bu taramada koşulmadı |
+| `main` | S13 **indi** — 19 karar (130…139 + 143…151) |
+| Test | **67 dosya / 421 test** · `npm run test:ci` yeşil |
+| Sahip onayı | ✅ `Metric`→`Stat` (147) · envanter (148) · merge |
+| Açık iş | **yok** |
 
-⚠️ `CLAUDE.md`'nin sprint panosu S13 için **"lokal, push/merge YOK"** diyor —
-**yanlış**, dal push edilmiş. Panonun düzeltilmesi gerekiyor.
+### 6.2 Numara çakışmaları — nasıl bitti
 
-### 6.2 ÜÇ ADR numarası çakışıyor (§1'deki 129 çakışması tekrarladı)
-
-| Numara | S13 dalında | `main` / `s17` tarafında |
+| S13'te yazılan | Sonuç | Neden |
 |---|---|---|
-| **140** | Tüketicisiz dokuz bileşen envanterdir | **S15** — her metrik ölçüm penceresini söyler (`main`'de) |
-| **141** | Erişilebilirlik kapıya bağlandı | **S16** — fırsat bir görünüm (`main`'de) |
-| **142** | Story bir DAVRANIŞ kanıtlar | **S17** — Storybook kapısı fail-closed (dalda, merge YOK) |
+| 129 | → **135** | `main` S14 için 129'u dondurdu |
+| 140 · 141 | → **148 · 149** | `main` S15/S16 için aldı |
+| 142 | → **150** | S17 `main`'e ÖNCE indi |
 
-`main`'dekiler dondurulmuş sayılır (yayında). **S13'ünkiler taşınır.**
-S17 de merge edilmemiş; 142 için sıra kararı sahibindir.
+Kural: **merge edilmiş ve yayında olan kazanır, lokal olan taşınır.**
+`main`'in S15 için açtığı 130–139 boşluğu S13 ile doldu; seri kesintisiz.
 
-### 6.3 Merge önizlemesi: 3 dosyada çakışma
+### 6.3 Merge'de korunanlar — ikisi de gerçek riskti
 
-`git merge-tree main feature/s13-frontend-architecture` →
-`CLAUDE.md` · `08-decision-log.md` · `src/components/screens/executive-briefing.tsx`
+**Fırsat yuvası (S16).** `main` onu canlıya bağlamıştı
+(`useOdinOpportunities`), S13 dalı fixture yapıyordu çünkü dal S16'dan
+önce açılmıştı. Naif merge **canlı veriyi mock'a döndürürdü.** İskelet
+S13'ten, fırsat bloğunun tamamı `main`'den alındı; tarayıcıda doğrulandı.
 
-⚠️ **Üçüncüsü metin çakışması değil, REGRESYON riskidir.**
-`main`'de (S16 / UI-ADR-149) fırsat yuvası **canlı**:
-`useOdinOpportunities()` + ODIN ADR-0154 görünümü. S13 dalı aynı yuvayı
-`useOdinFixture("briefing.opportunities")` yapıyor ve `AIRecommendationView`
-ile basıyor — oysa `main`'in oradaki yorumu bu bileşeni **açıkça
-reddediyor** ("yedi zorunlu açıklanabilirlik alanı ister, boş geçmek
-uydurmak olurdu"). Naif merge **canlı veriyi mock'a geri döndürür** ve
-repo kuralı #2'yi ihlal eder.
+**S17'nin işi — burada BİR HATA YAPILDI ve onarıldı.** Merge commit'i
+`git commit-tree $TREE -p origin/main -p HEAD` ile kurulmuştu; `origin/main`
+o an sessizce S17'yi almıştı ama `$TREE` daha eski bir tabandan geliyordu.
+Ebeveyn S17'yi gösterdi, **içerik göstermedi** → S17'nin script'i, npm
+komutları ve `connectTimeout` değeri `main`'de sessizce geri alındı.
 
-**Çözüm şekli:** iskelet (`screenState` · `useOdinFixture` · `emptied`)
-S13'ten; **fırsat bloğunun tamamı `main`'den.** `screenState`'in
-`useOdinOpportunities`'in kendi `error`/`empty` kanalını taşıması gerekir.
+⚠️ **Kural: `commit-tree` ile merge commit'i KURMA.** Git ağaç/ebeveyn
+tutarlılığını doğrulamaz ve push ileri-sarma olduğu için kabul eder.
+`main` başka worktree'deyse `git merge origin/main` + `git push HEAD:main`.
+Push çıktısındaki **eski SHA'yı oku** — beklediğinden farklıysa `main`
+sen bakmıyorken hareket etmiştir.
 
-### 6.4 §4 tablosunun iki satırı bayat
+### 6.4 Kapanış denetiminde bulunanlar (kendi kapılarıma saldırarak)
 
-- ~~`chart.tsx` sahip kararı bekliyor~~ → **UI-ADR-148 karar verdi:**
-  dokuzu da envanter olarak kalır. Satır kapatılmalı.
-- ~~"7 yardımcı hiç test edilmiyor"~~ → **UI-ADR-139 kapattı** (8 yardımcı,
-  25 iddia).
+Meclis araçları bu oturumda düştüğü için denetim kendim yapıldı ve üç
+kusur çıktı — üçü de KENDİ yeni işimde:
+
+1. **`state-matrix.test.ts` AÇIKTI.** `play:` SAYISINI sayıyordu; bir
+   durum story'sinin `play`ini silip alakasız bir story'ye sahte `play`
+   eklemek kapıyı geçiriyordu. Artık her `export const` bloğu ayrı
+   inceleniyor — `demo` hangi bloktaysa `play` de orada olmak zorunda.
+2. **S17'nin `FLOOR`u 140'ta kalmıştı**, ölçüm 193'tü: **53 test sessizce
+   kaybolabilirdi.** 190'a yükseltildi.
+3. **Self-check `FLOOR`a bağlıydı** ve sınır yükseltilince mantık testi
+   kırıldı. Ayrıldı: self-check kendi sınırını açıkça veriyor, ayrıca
+   yürürlükteki `FLOOR`un gerçekten koruduğunu da sınıyor.
+
+### 6.5 Yeni oturumun ilk işi
+
+⬜ **Meclis (gavadolar / yazılımcılar) denetimi ALINAMADI** — MCP araçları
+oturum ortasında düştü, yeni oturum gerektiriyor. S13 teknik olarak kapalı
+ve kapılarla korunuyor ama **bağımsız bir göz geçmedi.**
+Yeni oturumda `ask_yazilimcilar` ile son hâli denetlet.

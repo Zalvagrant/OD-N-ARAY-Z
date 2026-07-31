@@ -4089,7 +4089,31 @@ körleşmesini de kontrol ediyor: ekran listesi boşalırsa düşer.
 **Denendi ve ateşledi:** bir `play` silindi, kapı *"durum story'lerinde 2
 adet play var, en az 3 olmalı"* diyerek düştü. İhlal geri alındı.
 
+### Kapanış denetimi — kapının KENDİSİ açık çıktı
+
+Meclis araçları oturum ortasında düştüğü için denetim kendim yapıldı:
+kapılarıma saldırdım ve üçü de kendi yeni işimde olan üç kusur çıktı.
+
+1. **Bu kapı AÇIKTI.** İlk hâli dosyadaki `play:` SAYISINI sayıyordu. Bir
+   durum story'sinin `play`ini silip ALAKASIZ bir story'ye sahte bir
+   `play` eklemek sayıyı koruyordu ve **kapı geçiyordu** — denendi,
+   geçti. Sayı saymak, doğru yerde olup olmadığını sormaz. Artık her
+   `export const` bloğu ayrı inceleniyor: `demo` hangi bloktaysa `play`
+   de O BLOKTA olmak zorunda. Aynı ihlal tekrar denendi, bu kez düştü.
+2. **S17'nin `FLOOR`u 140'ta kalmıştı**, ölçüm 193'tü — kapı açık
+   görünürken **53 test sessizce kaybolabilirdi.** 190'a yükseltildi.
+3. **S17'nin self-check'i `FLOOR` sabitine bağlıydı** ve sınır
+   yükseltilince mantık senaryoları çöktü, oysa mantıkta bir şey
+   bozulmamıştı. Bağ koparıldı: self-check kendi sınırını AÇIKÇA veriyor
+   (mantığı sınar, kalibrasyonu değil) ve ayrıca yürürlükteki `FLOOR`un
+   gerçekten koruduğunu da sınıyor. Kalibrasyon değişince kırılan bir
+   test, kalibrasyonu değiştirmemek için bahane olur.
+
 ### Ölçüm
 
 `tsc` 0 · `lint` 0 hata · **67 dosya / 421 test**; S17'nin fail-closed
-kapısı AÇIK (51 dosya / 193 test, atlanan 0, düşen 0).
+kapısı AÇIK (51 dosya / 193 test, **alt sınır 190**, atlanan 0, düşen 0).
+
+⬜ **Bağımsız denetim ALINAMADI:** meclis MCP araçları bu oturumda düştü
+(oturuma bağlıdırlar, yeniden başlatmak geri getirmiyor). Yeni oturumun
+ilk işi `ask_yazilimcilar` ile son hâli denetletmektir.

@@ -16,9 +16,16 @@
  * (yazılımcılar meclisinin bulduğu eksik test sınıfı buydu). Yalnız render
  * eden bir durum story'si, ekranın o durumda ne gösterdiğini kanıtlamaz.
  *
- * ponytail: kapı dosyayı METİN olarak tarıyor, AST kurmuyor. Yeni bir
- * ekran eklendiğinde ya da bir `play` silindiğinde düşer; bu yeterli.
- * Story'nin İÇERİĞİNİN doğruluğunu `play`in kendisi doğrular.
+ * ⚠️ İLK HÂLİ AÇIKTI ve kendi kapıma saldırınca çıktı: dosyadaki `play:`
+ * SAYISINI sayıyordu. Bir durum story'sinin `play`ini silip ALAKASIZ bir
+ * story'ye sahte bir `play` eklemek sayıyı koruyordu ve kapı geçiyordu.
+ * Sayı saymak, doğru yerde olup olmadığını sormaz. Şimdi her `export
+ * const` bloğu AYRI AYRI inceleniyor: `demo="..."` hangi bloktaysa `play`
+ * de O BLOKTA olmak zorunda.
+ *
+ * ponytail: blok ayrımı `export const` sınırıyla yapılıyor, AST
+ * kurulmuyor. Bu kapının yakalaması gereken hata sınıfı için yeterli;
+ * story'nin İÇERİĞİNİN doğruluğunu `play`in kendisi doğrular.
  */
 
 import { describe, expect, it } from "vitest";
@@ -60,24 +67,29 @@ describe("ekran durum matrisi kapısı (UI-ADR-151)", () => {
       );
       const src = readFileSync(storyPath, "utf8");
 
+      /* Dosyayı `export const` sınırlarından bloklara ayır — `play`in
+         DOĞRU story'de olduğunu ancak böyle sorabiliriz. */
+      const bloklar = src.split(/^export const /m).slice(1);
+
       for (const s of STATES) {
+        const blok = bloklar.find((b) => s.demo.test(b));
+
         expect(
-          s.demo.test(src),
+          blok,
           `${rel}: "${s.key}" durumunun story'si yok. Ekran o durumu ` +
             `çizebiliyor ama ne gösterdiğini kimse kanıtlamıyor.`
+        ).toBeDefined();
+
+        /* `play` AYNI blokta olmalı. Başka bir story'deki `play` bu durumu
+           kanıtlamaz — kapının ilk hâli tam olarak buna kanıyordu. */
+        expect(
+          /^\s*play:/m.test(blok!),
+          `${rel}: "${s.key}" durum story'sinde \`play\` YOK. Yalnız render ` +
+            `eden bir durum story'si ekranın o durumda ne gösterdiğini ` +
+            `KANITLAMAZ (UI-ADR-150 ile aynı kural). Başka bir story'deki ` +
+            `play bunun yerine geçmez.`
         ).toBe(true);
       }
-
-      /* Üç durum story'sinin ÜÇÜNDE de `play` olmalı. Sayı karşılaştırması
-         yeterli: dosyada üç `demo=` var ve en az üç `play:` varsa hiçbiri
-         çıplak kalmamıştır. */
-      const playSayisi = (src.match(/^\s*play:/gm) ?? []).length;
-      expect(
-        playSayisi,
-        `${rel}: durum story'lerinde ${playSayisi} adet play var, en az 3 ` +
-          `olmalı. Yalnız render eden bir durum story'si ekranın o durumda ` +
-          `ne gösterdiğini KANITLAMAZ (UI-ADR-150 ile aynı kural).`
-      ).toBeGreaterThanOrEqual(STATES.length);
     }
   );
 });
