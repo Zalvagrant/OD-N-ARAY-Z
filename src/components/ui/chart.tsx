@@ -44,7 +44,7 @@ export interface ChartDatum {
 
 const PAD = { left: 48, right: 8, top: 8, bottom: 20 };
 
-/** UI-ADR-142: `LineChart`/`AreaChart`/`BarChart` üçü de bunu alıyordu
+/** UI-ADR-150: `LineChart`/`AreaChart`/`BarChart` üçü de bunu alıyordu
  *  ama tip EXPORT EDİLMEMİŞTİ — çağıran prop kümesini elle yeniden
  *  yazmak zorunda kalıyordu. */
 export interface ChartProps {

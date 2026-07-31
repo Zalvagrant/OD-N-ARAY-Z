@@ -1,7 +1,7 @@
 /**
  * DataGuard — anti-fake kuralının TEK uygulama noktası (UI-ADR-088).
  *
- * Bu dosya UI-ADR-142'de yazıldı ve reponun EN KRİTİK sözleşme testidir:
+ * Bu dosya UI-ADR-150'de yazıldı ve reponun EN KRİTİK sözleşme testidir:
  * `DataGuard` yanlış çalışırsa hiçbir şey patlamaz, ekran sadece
  * uydurulmuş bir şey gösterir — ve bu, ürünün tamamının güvenilirliğini
  * bitiren tek hata sınıfıdır (CLAUDE.md §2).

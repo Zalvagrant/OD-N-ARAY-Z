@@ -1,5 +1,5 @@
 /**
- * ThresholdNote — UI-ADR-126 (ODIN ADR-0146). Story UI-ADR-142'de yazıldı.
+ * ThresholdNote — UI-ADR-126 (ODIN ADR-0146). Story UI-ADR-150'de yazıldı.
  *
  * Bu bileşen "sahte veri yasağı"nın en sinsi biçimini kapatır: uydurulmuş
  * bir SAYI değil, uydurulmuş bir OTORİTE. "3 SKU kritik stokta" cümlesinde

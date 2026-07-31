@@ -20,22 +20,25 @@ export default defineConfig({
     alias: { '@': path.join(dirname, 'src') },
   },
   test: {
-    /* TARAYICI BAĞLANTI ZAMAN AŞIMI — KÖKTE OLMAK ZORUNDA (UI-ADR-142).
+    /* TARAYICI BAĞLANTI ZAMAN AŞIMI — KÖKTE OLMAK ZORUNDA.
      *
-     * Vitest bu değeri `project.vitest.config.browser.connectTimeout ?? 6e4`
-     * ile okur: `vitest.config`, yani KÖK config. Proje içindeki
-     * `browser.connectTimeout` OKUNMAZ — oraya yazıldığında sessizce yok
-     * sayılır ve varsayılan 60 sn yürürlükte kalır.
+     * İKİ OTURUM AYNI KÖK NEDENİ BAĞIMSIZ BULDU (S13 ve S17): vitest bu
+     * değeri `project.vitest.config.browser.connectTimeout ?? 6e4` ile
+     * KÖK config'ten okur; proje içine yazılırsa SESSİZCE yok sayılır ve
+     * varsayılan 60 sn yürürlükte kalır. İkisi de bir kez proje içine
+     * yazıp yeşil sonucu ayara bağlama hatasını yaptı — yeşillik sıcak
+     * önbellekten geliyordu.
      *
-     * Nasıl anlaşıldı: proje seviyesine `connectTimeout: 1_000` konup
-     * koşuldu ve test 25 saniyede GEÇTİ. Ayar uygulansaydı 1 sn'de
-     * düşmesi gerekirdi. Kaynak okundu, `?? 6e4` bulundu — gözlenen tüm
-     * düşüşlerin ~61 sn'de olması da bunu doğruluyor.
+     * DEĞER S17'DEN: 300 sn, SOĞUK `node_modules/.vite` ile ölçüldü.
+     * S13 merge'ünde 180 sn'ye düşürülmüştü — o ölçüm SICAK önbellekle
+     * yapılmıştı, yani düşük olan değer doğrulanmamıştı. S17'nin uyarısı
+     * geçerlidir: **düşürmeden önce `rm -rf node_modules/.vite` ile
+     * SOĞUK ölç.** Bu bir kalibrasyon değeridir, bir tercih değil.
      *
-     * (UI-ADR-149 bu ayarı proje içine yazmış ve "kök neden bulundu"
-     * demişti; YANLIŞTI, UI-ADR-142'de düzeltildi. Bu oturumda dördüncü
-     * kez bir iddia ölçülmeden doğru sanıldı.) */
-    browser: { connectTimeout: 180_000 },
+     * ⚠️ `unit` ile `storybook` AYNI ANDA koşturulmaz (S13 ölçümü): node
+     * işçileri CPU'yu tutunca bağlantı yine düşüyor. `npm run test:ci`
+     * ikisini sırayla çalıştırır. */
+    browser: { connectTimeout: 300_000 },
     projects: [
       {
         // Saf mantık testleri (chart ölçekleme gibi) — tarayıcı gerekmez.

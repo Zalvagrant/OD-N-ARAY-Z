@@ -16,7 +16,7 @@
  * KURAL (iki kollu):
  *   1. **Çağıranı yoksa hikâyesi olacak.**
  *   2. **O hikâye bir DAVRANIŞ kanıtlayacak** (en az bir `play`) —
- *      UI-ADR-142'de eklendi, gerekçesi aşağıda.
+ *      UI-ADR-150'de eklendi, gerekçesi aşağıda.
  *
  * Bu kural KASITLI OLARAK DAR: çağıranı OLAN bileşen için hikâye zorunlu
  * değildir. Burada kilitlenen şey yalnızca envanter kararının bedelidir.
@@ -96,7 +96,7 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-148)
   );
 
   /**
-   * KAPININ AÇIĞI — UI-ADR-142 (gavadolar 2/2 buldu).
+   * KAPININ AÇIĞI — UI-ADR-150 (gavadolar 2/2 buldu).
    *
    * "Hikâyesi var" yetmez: yalnız render eden bir story kapıyı BİÇİMSEL
    * olarak geçer ama hiçbir davranış kanıtlamaz. O hâlde etiket yine tek

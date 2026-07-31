@@ -103,7 +103,7 @@ export const Loading: StoryObj = {
 };
 
 /**
- * UI-ADR-142 — envanter kapısının davranış koşulu.
+ * UI-ADR-150 — envanter kapısının davranış koşulu.
  *
  * Grafiğin tek gerçek anti-fake kuralı: **ölçülemeyen nokta `null`dır ve
  * 0 ile karıştırılmaz.** Bir grafikte 0, "ölçtük ve sıfır çıktı" demektir;

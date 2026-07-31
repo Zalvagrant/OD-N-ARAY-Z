@@ -3331,7 +3331,91 @@ ADR-0154 17:48'de commit edilmişti. Bu ders üçüncü kez tekrarlandı.
 
 ---
 
-## UI-ADR-142 — Story bir DAVRANIŞ kanıtlar; envanter kapısı bunu ister (S13)
+## UI-ADR-142 — 140 Storybook testi bir yıldır koşmuyordu; kapı fail-closed yapıldı (S17)
+
+**Durum:** ✅ Dondurulmuş — soğuk önbellekte ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-121 eki (kapı sessizce körleşiyordu) · ODIN ADR-0156
+
+⚠️ **NUMARA:** `main`'den alındı. 129–134 hâlâ
+`feature/s13-frontend-architecture` dalında REZERVE.
+
+### Ölçüm — iddia değil
+
+```
+npx vitest run
+  Test Files  12 passed (55)      ← 55 dosyanın 43'ü HİÇ KOŞMADI
+  Tests      161 passed (161)
+  Errors       1 error  "Failed to connect to the browser session"
+```
+
+Bir üstteki UI-ADR-141 dahil son beş karar kaydı **"301 test yeşil
+(161 birim + 140 storybook)"** yazıyordu. 161'i doğruydu. **140'ı hiç
+koşmamıştı.** `package.json`'da bunu koşturacak bir `test` script'i de
+yoktu — yalnız `build:release` vardı.
+
+### Kök neden — iki katmanlı, ikisi de ölçüldü
+
+**1. Soğuk `node_modules/.vite` ile tarayıcı oturumu kurulamıyor.**
+Chromium'un kendisi sağlam: doğrudan Playwright ile **1.3 sn**'de açılıyor
+ve yerel bir HTTP sunucusuna ulaşabiliyor. Süreyi yiyen, Vite'ın ilk
+`optimizeDeps` geçişi. Orkestratör sayfası vitest'in **60 sn**'lik
+varsayılan `browser.connectTimeout`'undan sonra hazır oluyor; koşu
+61.86 sn'de "no tests" ile bitiyor.
+
+**2. Ayar proje bloğunda SESSİZCE yok sayılıyor.** vitest bu değeri
+`project.vitest.config.browser.connectTimeout ?? 6e4` diye okuyor
+(`node_modules/vitest/dist/chunks/cli-api.*.js`), yani **kök**
+yapılandırmadan. İlk düzeltme `projects[1].test.browser` içine yazıldı ve
+yeşil sonuç verdi — ama o yeşil **sıcak önbellekten** geliyordu, ayardan
+değil. `rm -rf node_modules/.vite` ile ölçünce aynı 61.86 sn'ye çarptı.
+Kök seviyeye taşındı: `test.browser.connectTimeout = 300_000`.
+
+### Karar
+
+`scripts/verify-storybook-tests.mjs` + `test:unit` / `test:storybook` /
+`test:ci` script'leri. Kapı komutun **çıkış koduna güvenmez** — `vitest
+list` aynı çöküşte exit 0 döndürdü. Rapor dosyasını önce siler, sonra
+VARLIĞINI, JSON'luğunu ve içindeki sayıları denetler: 0 düşen, 0 atlanan,
+0 todo, ≥ alt sınır.
+
+**Alt sınır, sabit sayı değil — sahip kararı.** Sabit 140 her yeni
+story'de kapıyı kırardı. Alt sınır yalnız DÜŞÜŞÜ yakalar.
+
+**Meclis (gavadolar 2/2) daha güçlüsünü önerdi ve alınmadı:** keşfedilen
+test KİMLİKLERİNİN tamamının koştuğunu doğrulamak — böylece sayı korunurken
+içeriğin bozulması da yakalanırdı. Ölçüm engelledi: `vitest list --json`
+çıktısını gürültüyle karıştırıyor, `--outputFile` bu sürümde dosya
+yazmıyor, ve ayrı bir tarayıcı açılışı kapı süresini ikiye katlıyor.
+Tavan `ponytail:` yorumuyla scriptte adıyla işaretlendi; yükseltme yolu
+orada yazılı.
+
+### Kapının kendisi doğrulandı — üç koşu
+
+| Koşul | Beklenen | Ölçülen |
+|---|---|---|
+| `--self-check` (8 senaryo: 139 test · 0 test · düşen · skip · todo · temiz rapor + hatalı çıkış kodu) | kırmızı | ✅ hepsi |
+| Soğuk önbellek + `connectTimeout: 1_000` | **kırmızı** | ✅ `KAPALI: geçen test 0 < alt sınır 140`, exit 1 |
+| Soğuk önbellek + kökte `300_000` | yeşil | ✅ `AÇIK: 43 dosya / 140 test`, exit 0 |
+
+Sıcak önbellekle yapılan ilk körleştirme denemesi yeşil kalmıştı —
+tarayıcı 1 sn'de bağlandığı için. Kapıyı kör etmenin tek dürüst yolu
+önbelleği de silmekti; bu, "kapıyı kasten kır" kuralının kendisinin de
+ölçülmesi gerektiğini gösterdi.
+
+### Sonuç
+
+**301 test artık gerçekten koşuyor:** 161 birim + 140 storybook (43 dosya).
+Bundan önceki her "301 yeşil" iddiası yarısı ölçülmemiş bir iddiaydı.
+
+---
+
+> ⚠️ **Numara çakışması — sekizinci.** Bu blok S13 dalında **UI-ADR-142**
+> olarak yazılmıştı. `feature/s17-storybook-gate` aynı numarayı kullandı ve
+> `main`'e ÖNCE indi (`67e0bfc`), S13 sonra (`5519bc0`). Kural: merge edilmiş
+> ve yayında olan kazanır — **S17'nin 142'si kaldı, S13'ünki 150'ye taşındı.**
+
+## UI-ADR-150 — Story bir DAVRANIŞ kanıtlar; envanter kapısı bunu ister (S13)
 
 **Durum:** ✅ Dondurulmuş — ölçüldü
 **Tarih:** 31 Temmuz 2026

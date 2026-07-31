@@ -29,7 +29,7 @@ export const VeriYok: StoryObj = {
 };
 
 /**
- * UI-ADR-142 — envanter kapısının davranış koşulu.
+ * UI-ADR-150 — envanter kapısının davranış koşulu.
  *
  * Bu bileşen "karşılığı olmayan telemetri kanalı ÇİZİLMEZ" kuralının
  * (CLAUDE.md §2) doğrudan uygulamasıdır. İki ayrı yokluk iddiası var ve

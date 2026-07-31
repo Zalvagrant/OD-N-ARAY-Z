@@ -49,7 +49,7 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 
 **Test tabanı:** başlangıç 54 dosya/292 test → şimdi **66 dosya/413 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
-+4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-148'tan, +6 test UI-ADR-149'den, +5 dosya/+42 test UI-ADR-142'den, +1 dosya/+9 test UI-ADR-144'ten),
++4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-148'tan, +6 test UI-ADR-149'den, +5 dosya/+42 test UI-ADR-150'den, +1 dosya/+9 test UI-ADR-144'ten),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
 ⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…139 + 142…149**
@@ -114,7 +114,7 @@ import (`./director/screen`) ilk denemede KAÇTI**, desen tamamlandı.
   kullanılmayan API yüzeyi üretirdi.
 - `kpi()` / `envelope()` ikizleri → UI-ADR-137'de silindi.
 - Yüzde gösterimi 10 çağrı yeri → UI-ADR-138'de tek `Pct`.
-- `ChartProps` export edildi (UI-ADR-142).
+- `ChartProps` export edildi (UI-ADR-150).
 
 ✅ **SAHİP KARAR VERDİ (UI-ADR-147):** `Stat` kanonik. `Metric` ve
 `runtime-director-card`in iki elle yazılmış hücresi `Stat`a bağlandı;
@@ -160,7 +160,7 @@ olacak**, ve liste dokuz kalemden büyürse test düşer. Yeni bir bileşeni
 
 ### 2.7 · ~~Storybook boşlukları~~ ✅ KAPANDI
 
-**UI-ADR-142.** Yedisinin de story'si var ve hepsi `play` taşıyor.
+**UI-ADR-150.** Yedisinin de story'si var ve hepsi `play` taşıyor.
 Ayrıca envanterdeki (UI-ADR-148) yedi bileşene de davranış testi yazıldı —
 gavadolar kapıdaki açığı buldu: "hikâyesi var" yetmez, yalnız render eden
 story hiçbir şey kanıtlamaz. Kapıya ikinci kol eklendi.
@@ -183,7 +183,7 @@ tam ARIA combobox (120 ms zamanlayıcı kalktı).
    `browser.connectTimeout`u aşıyordu. ⚠️ Ayar **KÖK** `test.browser`a
    yazılmalı — proje içine yazılırsa Vitest onu SESSİZCE YOK SAYAR
    (`project.vitest.config.browser.connectTimeout ?? 6e4`); UI-ADR-149
-   önce oraya yazdı ve düzeltme hiç etkili olmadı, UI-ADR-142'de
+   önce oraya yazdı ve düzeltme hiç etkili olmadı, UI-ADR-150'de
    düzeltildi. Şimdi storybook projesi **tek komutta 50/50** geçiyor,
    parçalamaya (`--shard`) gerek yok.
    ⚠️ **AMA iki projeyi AYNI ANDA çalıştırma:** `unit` (node) ile

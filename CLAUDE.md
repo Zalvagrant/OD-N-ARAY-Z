@@ -94,11 +94,11 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…149` serisindedir — **boşluk yok.**
+Bu repodaki kararlar `UI-ADR-001…150` serisindedir — **boşluk yok.**
 S13 merge edildiğinde `main`'in S15 için açtığı 130–139 aralığı doldu.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-150`'den**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-151`'den**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
@@ -113,7 +113,7 @@ S15 ve S16'yı aldı ve **140 ile 141'i** dondurdu; S13'ünkiler
 **148/149**'a taşındı. Aynı gün S13 merge edildi ve `main`'in S15 için
 açtığı 130–139 boşluğu doldu.
 
-⚠️ **`feature/s17-storybook-gate` dalı da UI-ADR-142 kullanıyor** ve S13
+⚠️ **`feature/s17-storybook-gate` dalı da UI-ADR-150 kullanıyor** ve S13
 o numarayı `main`'e indirdi. S17 merge edilirken **taşınması gerekir.**
 
 Kural üç cümlede: **numarayı `main`'den al, dalından değil** ·

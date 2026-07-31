@@ -1,6 +1,6 @@
 /**
  * MonitoredDecisionsBoard — `/mission-control`'ün ANA odak alanı.
- * Story UI-ADR-142'de yazıldı.
+ * Story UI-ADR-150'de yazıldı.
  *
  * ODIN ADR-0143 §4 "Mission" kavramını REDDETTİ; tahta artık uydurulmuş
  * görevlerin değil GERÇEK karar kayıtlarının görünümüdür. 179 satırlık bu

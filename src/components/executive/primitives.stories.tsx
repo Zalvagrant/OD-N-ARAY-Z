@@ -1,6 +1,6 @@
 /**
  * Executive iç yardımcıları — Meter · Disclosure · ConfidenceBreakdown.
- * Story UI-ADR-142'de yazıldı.
+ * Story UI-ADR-150'de yazıldı.
  *
  * NEDEN TEK DOSYA: gavadolar'ın iki üyesi bu noktada AYRIŞTI — terra
  * "yedi ayrı dosya" dedi (her bileşenin sözleşmesi bağımsız), luna

@@ -50,7 +50,7 @@ export const Default: StoryObj = {
 };
 
 /**
- * UI-ADR-142 — envanter kapısının davranış koşulu.
+ * UI-ADR-150 — envanter kapısının davranış koşulu.
  * Sekme klavye gezinmesi ARIA tablist kalıbının kalbidir ve fareyle
  * bakarken görünmez: ok tuşları çalışmazsa klavye kullanıcısı ikinci
  * sekmeye HİÇ ulaşamaz.

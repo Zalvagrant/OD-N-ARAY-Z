@@ -1,6 +1,6 @@
 /**
  * NoData — anti-fake kuralının EN KÜÇÜK parçası (CLAUDE.md §2).
- * Story UI-ADR-142'de yazıldı.
+ * Story UI-ADR-150'de yazıldı.
  *
  * 18 satırlık bir bileşen ama arayüzdeki HER "veri yok" durumunun tek
  * çıkışıdır. Yanlış çalışırsa hata vermez — ekran sadece bir sıfır ya da

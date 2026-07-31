@@ -52,7 +52,7 @@ export const NotEnoughData: StoryObj = {
 };
 
 /**
- * UI-ADR-142 — envanter kapısının davranış koşulu.
+ * UI-ADR-150 — envanter kapısının davranış koşulu.
  * Sparkline'ın iki anti-fake kuralı var ve ikisi de sessizce bozulabilir.
  */
 export const IkiNoktadanAzsaCIZMEZ: StoryObj = {

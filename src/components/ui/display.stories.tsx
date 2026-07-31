@@ -88,7 +88,7 @@ export const Icons: StoryObj = {
 };
 
 /* --------------------------------------------------------------------------
-   DAVRANIŞ TESTLERİ — UI-ADR-142.
+   DAVRANIŞ TESTLERİ — UI-ADR-150.
 
    Bu üçü UI-ADR-148'ta "tasarım sistemi envanteri" olarak KALMAYA karar
    verilen dokuz bileşenden. gavadolar 2/2 kapıdaki açığı buldu: "hikâyesi
