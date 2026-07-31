@@ -2003,7 +2003,7 @@ boş liste AYRI ele alınır; ölçülmemiş sayaç `—` gösterir ve notu
 
 ---
 
-## UI-ADR-121 — İptal sebebi bayrakla tutulur, sinyalden okunmaz (S8)
+## UI-ADR-121 — Çağıranın iptali zaman aşımını yener (S8)
 
 **Durum:** ✅ Dondurulmuş
 **Tarih:** 31 Temmuz 2026
@@ -2057,3 +2057,61 @@ ifade derlemede `"odin" !== "odin"` → `false` olur.
 üretim paketinde kaldı; çünkü sorun ifadede değil **import grafiğinde** —
 ekranlar mock'ları doğrudan import ediyor. Kararın etkisiz kaldığını
 yazmak, etkili sanmaktan iyidir.
+
+---
+
+## UI-ADR-123 — Mock ekrana anahtarla girer; üretim paketinde hiç bulunmaz (S8)
+
+**Durum:** ✅ Dondurulmuş
+**Tarih:** 31 Temmuz 2026
+**Meclis şartı:** "sahte ekran verisi üretim paketinde HİÇ bulunmasın"
+
+**Sorun:** ekranlar mock üreticilerini DOĞRUDAN import ediyordu
+(`import { skusMock } from "@/mocks/amazon"`). Fail-closed kanca
+(UI-ADR-115) onların ekrana çıkmasını engelliyordu — ama modüller import
+grafiğinde kaldığı için **mock verisi gerçek-mod üretim paketine
+giriyordu.** Ekranda görünmemek yetmez: paketteki veri indirilebilir.
+
+**Yanlış teşhis önce denendi ve ölçümle çürütüldü.** UI-ADR-122 `IS_MOCK`'u
+ölü kod elemesine uygun yazdı; tek başına HİÇBİR ŞEY değiştirmedi. Sorun
+ifadede değil **import grafiğindeydi**: bir modül statik olarak import
+edildiği sürece paketleyicinin onu elememesi doğru davranıştır.
+
+**Karar — üç katman, her biri ölçüldü:**
+
+1. **Anahtar.** Ekranlar üretici fonksiyon değil, `registry.ts`'teki bir
+   ANAHTAR geçirir: `useMockData("amazon.skus")`. Tüm `import()` çağrıları
+   tek bir modülde toplandı. Tipler `typeof import(...)` ile alınır — tip
+   konumunda olduğu için derlemede tamamen silinir, tip güvenliği kaybolmaz.
+2. **Yerinde koşul.** `registry.ts` `IS_MOCK`'u başka modülden almaz;
+   `process.env.NEXT_PUBLIC_ODIN_DATA_MODE === "odin"` ifadesini YERİNDE
+   yazar. Ölçüm: sunucu paketi temizlendi (6 eşleşme → 0), istemcide dört
+   lazy chunk kaldı.
+3. **Release ikizi.** Paketleyici dinamik import'ları ayrıştırma aşamasında
+   toplar; sabit koşul altında olsalar bile chunk üretir. Gerçek mod
+   derlemesinde `@/mocks/registry` bir stub'a çözülür
+   (`turbopack.resolveAlias` → `registry.release.ts`). Ölçüm: **istemci 0 /
+   sunucu 0.**
+
+**Meclisin "paketleyici hilesi" uyarısı karşılandı:** alias dağınık statik
+import'ları sürdürmek için değil, ÖNCE tek modüle toplanmış erişimin tek
+dikiş yerini değiştirmek için kullanılıyor. `tsc` gerçek dosyayı görür;
+imzalar ayrışırsa derleme düşer.
+
+**Bir tuzak ölçülerek bulundu:** `use-mock.ts` kayıt defterini göreli yolla
+(`./registry`) import ederken alias EŞLEŞMİYORDU ve chunk'lar çıktıda
+kalıyordu. Belirteç mutlak yola çevrildi. Ölçmeseydim "çözüldü" derdim.
+
+**Kalıcı kapı:** `scripts/assert-no-mock-in-bundle.mjs` release çıktısında
+yedi mock imzasını tarar ve `build:release`'in parçasıdır. Kapının
+DÜŞEBİLDİĞİ kanıtlandı: mock modda derlenen çıktıda 22 eşleşme bulup
+çıkış kodu 1 verdi. Şart bir kez sağlandı; ölçülmezse geri gelir.
+
+**Canlı doğrulama (iki mod):**
+- Mock mod: bütün bölümler doluyor, MOCK DATA rozeti görünüyor.
+- Gerçek mod: rozet yok, Director sayaçları `—` + "kaynak bağlı değil —
+  ölçülmedi", bölümler gerekçeli boş durum basıyor, konsolda hata yok.
+
+**Etki:** `mocks/registry.ts` (yeni), `mocks/registry.release.ts` (yeni),
+`mocks/use-mock.ts`, beş ekran, `next.config.ts`,
+`scripts/assert-no-mock-in-bundle.mjs` (yeni), `package.json`.

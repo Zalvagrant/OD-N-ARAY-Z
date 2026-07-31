@@ -26,7 +26,6 @@ import type { MetricPeriod, SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
-import { skusMock } from "@/mocks/amazon";
 import { useMockData } from "@/mocks/use-mock";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -100,7 +99,7 @@ function Group({
 export function AmazonSkuPanel() {
   const selected = useUiStore((s) => s.selectedEntity);
   const now = useNow();
-  const skus = useMockData(skusMock);
+  const skus = useMockData("amazon.skus");
 
   /* Kimlikten kanonik kayda: kopya tutulmadığı için burada okunur. */
   const sku =

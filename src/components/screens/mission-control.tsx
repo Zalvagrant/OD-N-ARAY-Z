@@ -22,7 +22,6 @@ import { useRouter } from "next/navigation";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type { AgentHealth } from "@/types/executive";
-import { decisionsMock, directorsMock, risksMock } from "@/mocks/briefing";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
@@ -148,9 +147,9 @@ export function MissionControl({
   const router = useRouter();
   const [query, setQuery] = useState("");
 
-  const decisions = useMockData(decisionsMock);
-  const directors = useMockData(directorsMock);
-  const alerts = useMockData(risksMock);
+  const decisions = useMockData("briefing.decisions");
+  const directors = useMockData("briefing.directors");
+  const alerts = useMockData("briefing.risks");
 
   const loading = demo === "loading" || decisions.loading;
   const error = demo === "error" ? DEMO_ERROR : null;

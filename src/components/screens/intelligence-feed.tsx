@@ -8,14 +8,13 @@
  * yalnızca içerik sağlayıcısı değişir. Bu dosya o sağlayıcıdır.
  */
 
-import { feedMock } from "@/mocks/feed";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ActivityFeed } from "@/components/executive/activity-feed";
 
 export function IntelligenceFeed() {
-  const feed = useMockData(feedMock);
+  const feed = useMockData("feed.items");
 
   return (
     <div className="flex flex-col gap-3">
