@@ -20,6 +20,18 @@ export default defineConfig({
     alias: { '@': path.join(dirname, 'src') },
   },
   test: {
+    /* Ölçüm: soğuk `node_modules/.vite` ile Storybook projesi HİÇ koşmuyordu —
+       43 dosya, "no tests", 61.86 sn, "Failed to connect to the browser
+       session". Chromium'un kendisi sağlam (1.3 sn'de açılıyor, localhost'a
+       ulaşıyor); süreyi yiyen Vite'ın ilk `optimizeDeps` geçişi ve orkestratör
+       sayfası 60 sn'lik varsayılan sınırdan sonra hazır oluyor.
+       ⚠️ Bu ayar KÖKTE olmak zorunda: vitest onu
+       `project.vitest.config.browser.connectTimeout ?? 6e4` diye okuyor
+       (`dist/chunks/cli-api.*.js`), yani proje içine yazılırsa SESSİZCE
+       yok sayılır — bir kez öyle yazıldı ve yeşil sonuç sıcak önbellekten
+       geldi, ayardan değil. Kalibrasyon değeridir; düşürmeden önce
+       `rm -rf node_modules/.vite` ile SOĞUK ölç. */
+    browser: { connectTimeout: 300_000 },
     projects: [
       {
         // Saf mantık testleri (chart ölçekleme gibi) — tarayıcı gerekmez.
