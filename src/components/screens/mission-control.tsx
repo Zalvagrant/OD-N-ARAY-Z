@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
 import { Text } from "@/components/ui/typography";
+import { Stat } from "@/components/ui/stat";
 import { Section } from "@/components/layout/section";
 import type { DataEnvelope } from "@/types/data-envelope";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
@@ -50,44 +51,17 @@ import { MonitoredDecisionsBoard } from "@/components/executive/monitored-decisi
    -------------------------------------------------------------------------- */
 
 /*
- * Sayaç tonu — UI-ADR-132.
+ * Sayaç tonu — UI-ADR-132 → UI-ADR-136.
  *
  * `tone` serbest `string` idi ve doğrudan `className`e enterpole
  * ediliyordu: HERHANGİ bir sınıf (token dışı bir renk dahil) tip
  * denetiminden geçerdi ve ESLint'in token kuralı da template içindeki
  * değişkeni göremezdi. Birlik tipi, izin verilen tonu derlemede kilitler.
+ *
+ * ♻️ 136: buradaki yerel `Stat` `ui/stat.tsx`in satır satır kopyasıydı,
+ * yalnız ton adları farklıydı (`neutral`/`muted` ≡ `default`/`tertiary`).
+ * Aynı üçlüyü ikinci kez yazmak CLAUDE.md §5'in ihlaliydi; kopya silindi.
  */
-const STAT_TONE = {
-  neutral: "text-content",
-  success: "text-success",
-  danger: "text-danger",
-  warning: "text-warning",
-  muted: "text-content-tertiary",
-} as const;
-
-type StatTone = keyof typeof STAT_TONE;
-
-function Stat({
-  label,
-  value,
-  note,
-  tone = "neutral",
-}: {
-  label: string;
-  value: number | string;
-  note: string;
-  tone?: StatTone;
-}) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-content-tertiary">{label}</dt>
-      <dd className="mt-1">
-        <span className={`odin-num text-lg ${STAT_TONE[tone]}`}>{value}</span>
-      </dd>
-      <p className="text-xs text-content-tertiary">{note}</p>
-    </div>
-  );
-}
 
 function OperationalStatus({
   directors,
@@ -151,7 +125,7 @@ function OperationalStatus({
             label="Bilinmiyor"
             value={count("unknown")}
             note={note("hiç gözlem yok — ölmüş demek değildir")}
-            tone="muted"
+            tone="tertiary"
           />
         </dl>
       </CardBody>
@@ -186,7 +160,7 @@ export function MissionControl({
      hiç kullanılmadı (`agents` boş), oysa 18 iş heartbeat üstünde
      koşuyor. Sahibin sorusunu ("ODIN yaşıyor mu?") cevaplayan yüzey bu. */
   const directors = useOdinDirectors();
-  /* CANLI — ODIN ADR-0151 (UI-ADR-136, main'de S14). Üst üste üç kez
+  /* CANLI — ODIN ADR-0151 (UI-ADR-129, main'de S14). Üst üste üç kez
      patlayan zamanlanmış işler kanonik Alert olarak geliyor. Bugün liste
      BOŞ ve bu doğru cevap: hiç boşalmayan bir alarm listesi okunmaz. */
   const alerts = useOdinAlerts();

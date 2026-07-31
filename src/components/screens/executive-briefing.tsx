@@ -34,7 +34,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Timeline } from "@/components/ui/timeline";
-import { Heading, Num, Text } from "@/components/ui/typography";
+import { Caption, Heading, Num, Text } from "@/components/ui/typography";
+import { Stat } from "@/components/ui/stat";
 import { Section } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
@@ -74,49 +75,54 @@ function HeroView({ hero, meta }: { hero: ExecutiveHero; meta: DataMeta }) {
 
         {/* min-w-0: uzun metinler grid hücresini şişirip komşusunun üstüne
             binmesin (S4'te görsel incelemede yakalanan hata). */}
+        {/* Dördü de `Stat`tır (UI-ADR-136). Elle yazılmış `<dt>/<dd>`
+            çiftleriydi; `Stat`ın kendisiyle aynı sınıf dizesini taşıyor
+            ama onun hizalama kuralını (sayı SATIR İÇİ) kaybediyorlardı. */}
         <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>div]:min-w-0">
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-content-tertiary">
-              Today&apos;s Mission
-            </dt>
-            <dd className="mt-1 text-sm text-content">
-              {hero.todaysMission ?? <NoData reason="Günün hedefi belirlenmedi" />}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-content-tertiary">
-              Current Focus
-            </dt>
-            <dd className="mt-1 text-sm text-content">
-              {hero.currentFocus ?? <NoData reason="Odak konusu belirlenmedi" />}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-content-tertiary">
-              System Status
-            </dt>
-            <dd className="mt-1">
-              <Num
-                value={hero.systemHealthScore}
-                size="lg"
-                noDataReason="Sistem sağlık skoru ölçülmedi"
-              />
-              <span className="ml-1 text-xs text-content-tertiary">/ 100</span>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-content-tertiary">
-              AI Readiness
-            </dt>
-            <dd className="mt-1">
-              {/* Sözleşmede karşılığı YOK — uydurulmaz (13-...md §14.1). */}
+          <Stat
+            label="Today's Mission"
+            value={
+              hero.todaysMission ? (
+                <Text size="sm">{hero.todaysMission}</Text>
+              ) : (
+                <NoData reason="Günün hedefi belirlenmedi" />
+              )
+            }
+          />
+          <Stat
+            label="Current Focus"
+            value={
+              hero.currentFocus ? (
+                <Text size="sm">{hero.currentFocus}</Text>
+              ) : (
+                <NoData reason="Odak konusu belirlenmedi" />
+              )
+            }
+          />
+          <Stat
+            label="System Status"
+            value={
+              <>
+                <Num
+                  value={hero.systemHealthScore}
+                  size="lg"
+                  noDataReason="Sistem sağlık skoru ölçülmedi"
+                />
+                <Caption>/ 100</Caption>
+              </>
+            }
+          />
+          <Stat
+            label="AI Readiness"
+            /* Sözleşmede karşılığı YOK — uydurulmaz (13-...md §14.1). */
+            value={
               <Num
                 value={hero.aiReadiness}
                 size="lg"
                 noDataReason="AI hazırlık göstergesi henüz üretilmiyor (13-backend-recommendations.md §14.1)"
               />
-            </dd>
-          </div>
+            }
+          />
         </dl>
       </CardBody>
 

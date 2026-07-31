@@ -11,8 +11,8 @@
 |---|---|
 | Worktree | `C:\Users\PackardBell\Desktop\ODIN\ODIN-UI-arch` |
 | Dal | `feature/s13-frontend-architecture` |
-| Çıkış noktası | `main` = `9e7904a` |
-| Durum | **7 commit, hepsi lokal — PUSH EDİLMEDİ, merge EDİLMEDİ** |
+| Çıkış noktası | `main` = `9e7904a`; **`main` (S14) 31 Tem'de dala merge edildi** |
+| Durum | **origin'e PUSH EDİLDİ** (dalın kendisi; `main`'e merge YOK) |
 | Sahip onayı | ⬜ **Alınmadı.** Beş soru sorulmadı. |
 
 Sahibin isteği (özet): *"ön yüz mimarisini kurumsal seviyeye taşı;
@@ -21,20 +21,28 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 
 ---
 
-## 1. Ne bitti (7 commit)
+## 1. Ne bitti
 
 | ADR | Konu | Ölçülen sonuç |
 |---|---|---|
 | — | `classifyError`'da `ZodError` dalı yoktu | Her ham yük sözleşme ihlali "bilinmeyen hata" diye gösteriliyordu → artık `contract` |
-| **129** | **İki paralel veri zinciri birleşti** | `screens → mocks` kenarı **8 → 0**; 15 ekran yuvası artık zod+tazelik+hata kanalından geçiyor |
+| **135** | **İki paralel veri zinciri birleşti** (eski lokal 129) | `screens → mocks` kenarı **8 → 0**; 15 ekran yuvası artık zod+tazelik+hata kanalından geçiyor |
 | **130** | Katman sınırları ESLint'e bağlandı | `layout → screens` 0 · `mocks → components` 0; üç kapı da enjekte ihlalle **denendi ve ateşledi** |
 | **131** | Ekran iskelesi tek yerde | "sözleşme yok" metninin İKİ şekli bire indi, `emptyProps` adaptörü silindi |
 | **132** | `Pressable` primitive'i | İki geçersiz `<button>` iç içeliği + bir sahte affordance |
 | **133** | Rota sınırları | `error.tsx` + kök `not-found.tsx`; beyaz sayfa yerine beş adımlı hata |
 | **134** | `amazon-director` bölündü | **802 → 496 satır** |
+| **136** | Etiket-değer + metin tonu tek yerde | Yerel `Stat` kopyası ve 4 elle yazılmış `<dt>/<dd>` silindi; `StatTone`/`TextTone` → tek `Tone` |
+| — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **56 dosya/305 test**,
-hepsi yeşil. Lint 0, `tsc` 0.
+
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **58 dosya/314 test**
+(+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan),
+hepsi yeşil. Lint 0 hata, `tsc` 0.
+
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…136**.
+Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
+S14'ün runtime alarmlarıdır, başka bir karardır.
 
 ---
 
@@ -84,10 +92,12 @@ kaybolacağı için "ekranı yalnız `app/` import eder" kuralı
 
 ### 2.3 · Bileşen seviyesi tekrar (task #10)
 
-- **20 ayrı** status→(variant|label|glyph|color) haritası.
-  `ui/stat.tsx:20` ile `ui/typography.tsx:60` **birebir aynı**, iki farklı
-  adla export ediliyor (`StatTone` / `TextTone`); `ui/icon.tsx:22` aynı
-  küme + `info`.
+- ✅ **KAPANDI (UI-ADR-136):** `ui/stat.tsx:20` ≡ `ui/typography.tsx:60`
+  birleşti, tek `Tone`. `ui/icon.tsx:22` ve `ui/timeline.tsx:29`
+  **BİRLEŞTİRİLMEDİ ve birleştirilmemeli** — aynı anahtar adları, farklı
+  token uzayı (`text-icon*` / `bg-*`). "20 harita" sayısı yüzeysel biçim
+  benzerliğine dayanıyordu; kaynaktan doğrulanınca birebir aynı olan
+  yalnız İKİSİYDİ.
 - `DataGuard > Card > CardHeader > CardBody > CardFooter > TrustSignal`
   kompozisyonu **9 dosyada** kelimesi kelimesine yazılı.
 - `"text-xs text-content-tertiary"` **21 kez**;
@@ -97,11 +107,15 @@ kaybolacağı için "ekranı yalnız `app/` import eder" kuralı
 - `kpi()` fabrikası `mocks/amazon.ts:338` ve `mocks/briefing.ts:404`'te aynı.
 - `envelope()` `odin-state.ts:49` ve `odin-amazon.ts:82`'de aynı.
 - `toISOString().slice(0,10)` üç ayrı yerde.
-- **Etiket-değer gösterimi dört ayrı uygulama:** `ui/stat.tsx:38` (`Stat`),
-  `ui/typography.tsx:196` (`Num`), `executive/director-card.tsx:34`
-  (yerel `Metric` — `Stat`'ın satır satır kopyası), ve ham `<dt>/<dd>`
-  (`decision-card.tsx:249`, `council-view.tsx:39`,
-  `runtime-director-card.tsx:83`, `ai-recommendation-card.tsx:117`).
+- **Etiket-değer gösterimi — KISMEN KAPANDI (UI-ADR-136).**
+  Silinenler: `mission-control.tsx` yerel `Stat`, `executive-briefing.tsx`
+  dört elle yazılmış `<dt>/<dd>`. **KALAN:** `director-card.tsx:34` yerel
+  `Metric` (`truncate` + büyük harf YOK — `Stat`tan görsel olarak farklı,
+  körlemesine birleştirme), `runtime-director-card.tsx:83`,
+  `decision-card.tsx:249`, `council-view.tsx:39`,
+  `ai-recommendation-card.tsx:117`.
+  ⚠️ Birleştirmeden önce `Stat`a `truncate`/`plain-label` seçeneği mi
+  gerekiyor, yoksa iki ayrı bileşen mi doğru — **önce karar, sonra kod.**
 - `<Num value={toPercentUnit(...)} format="percent" fractionDigits={1}>`
   **9 kez** tekrarlanıyor.
 - **Export edilmemiş sihirli-dize birlikleri** (çağıran elle yeniden
@@ -140,8 +154,9 @@ kaynaktır, önce oraya bak.
 
 ### 2.7 · Storybook boşlukları
 
-Hiç hikâyesi olmayanlar: `ui/no-data.tsx` · `ui/stat.tsx` (hiçbir story
-dosyasında geçmiyor) · `executive/confidence-breakdown.tsx` ·
+Hiç hikâyesi olmayanlar: `ui/no-data.tsx` · ~~`ui/stat.tsx`~~ ✅ kapandı
+(`ui/stat.stories.tsx`, UI-ADR-136 — reponun `components/ui` altındaki
+ilk davranış testi) · `executive/confidence-breakdown.tsx` ·
 `executive/data-guard.tsx` · `executive/disclosure.tsx` ·
 `executive/meter.tsx` · `executive/monitored-decisions-board.tsx`
 (179 satır, `/mission-control`'ün ANA odak alanı) ·
@@ -163,10 +178,16 @@ dosyasında geçmiyor) · `executive/confidence-breakdown.tsx` ·
 
 ## 3. TUZAKLAR — bunları tekrar keşfetme
 
-1. **Tam test paketinden önce dev sunucusunu KAPAT.** Açıkken Storybook
-   tarayıcı projesi kaynak bulamıyor ve `Failed to connect to the browser
-   session` ile 12/56 dosyada düşüyor. **Kod hatası değil.** Kapatınca
-   56/56 geçiyor.
+1. ~~**Tam test paketinden önce dev sunucusunu KAPAT.**~~ **♻️ YANLIŞ
+   TEŞHİS — UI-ADR-136'da ölçüldü ve düzeltildi.** Sebep dev sunucusu
+   değil: Playwright tarayıcı oturumu, aynı anda toplanan dosya sayısı
+   arttıkça bağlantı zaman aşımına uğruyor. Dev sunucusu açıkken
+   `--shard=1/3` ve `2/3` sorunsuz geçti; `3/3` bir kez düştü ve
+   **hiçbir şey değiştirmeden tekrar çalıştırılınca geçti**.
+   **Doğru işlem:** `npx vitest run --project=unit`, sonra
+   `npx vitest run --project=storybook --shard=i/3` (i=1,2,3); düşen
+   parçayı tekrarla. Dev sunucusunu kapatma — başkasının worktree'sine
+   ait olabilir (ölçümde port 3000 `ODIN-UI-s8`'e aitti).
 2. **`not-found.tsx` route-group içinde ÇALIŞMIYOR.** `(shell)/` ve
    `(shell)/[[...slug]]/` altına kondu, ikisi de yok sayıldı (temiz
    önbellekle doğrulandı). Yalnız kök `app/not-found.tsx` devreye giriyor.
@@ -188,7 +209,7 @@ dosyasında geçmiyor) · `executive/confidence-breakdown.tsx` ·
 | Konu | Durum |
 |---|---|
 | **Sahip onayı** | ⬜ Beş soru sorulmadı, S13 kapanmadı |
-| **Push / merge** | ⬜ 7 commit lokal; sahibe sorulmadan push edilmedi |
+| **Push / merge** | Dal origin'de; **`main`'e merge YOK** — sahip onayı bekliyor |
 | `chart.tsx` (357 satır) | Hiç tüketicisi yok. Tasarım sistemi envanteri mi, ölü kod mu? **Sahip kararı.** Aynı durum: `modal`, `tabs`, `tooltip`, `filter`, `icon`, `avatar`, `sparkline`, `telemetry-bar`. |
 | Amazon eşikleri | `backend-istekleri.md` §14'e yazıldı. ODIN `health.tone` / `buy_box_at_risk` yayınlayınca `features/amazon/presentation/thresholds.ts` **silinir**. |
 | Bileşen testi yok | Repoda `src/lib` ve `src/mocks` dışında birim testi yok; "test edilebilir olsun diye" export edilmiş 7 yardımcı (`sortIntelligence`, `actionableAlerts`, `sortCampaigns`, `sortDecisions`, `dueDeferrals`, `monitoredDecisions`, `rotationSeconds`) **hiç test edilmiyor**. |
@@ -202,8 +223,15 @@ cd C:/Users/PackardBell/Desktop/ODIN/ODIN-UI-arch
 
 npx tsc --noEmit          # 0 hata olmalı
 npm run lint              # 0 hata olmalı
-# ÖNCE dev sunucusunu kapat:
-npx vitest run            # 56 dosya / 305 test yeşil olmalı
+
+# Tam paketi TEK SEFERDE çalıştırma — tarayıcı bağlantısı zaman aşımına
+# uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
+# de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
+npx vitest run --project=unit                                   # 13 / 167
+npx vitest run --project=storybook src/components/ui            # 18 /  57
+npx vitest run --project=storybook src/components/executive       src/components/layout src/features src/app                # 22 /  73
+npx vitest run --project=storybook src/styles src/components/screens  # 5 / 17
+#                                                        TOPLAM: 58 / 314
 
 npx next dev -p 3111      # /briefing /amazon /mission-control /goals → 200
                           # /bilinmeyen-ekran → 404

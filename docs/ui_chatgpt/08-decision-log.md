@@ -2969,3 +2969,75 @@ uygulamada değil, hayatta kalan yolda ölçülüyor —
 sayaçlarıyla render edildi. Konsolda hata yok.
 
 ---
+
+---
+
+## UI-ADR-136 — Etiket-değer gösterimi tek bileşende; metin tonu tek sözlükte (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-131 · UI-ADR-132 · CLAUDE.md §5 (bileşen tekrarı yasak)
+
+### Bulgu — sayıldı, tahmin edilmedi
+
+`19-s13-devir.md` §2.3 "20 ayrı status→stil haritası" diyordu. Kaynaktan
+doğrulanınca tablo şu çıktı:
+
+| İddia | Ölçüm | Karar |
+|---|---|---|
+| `ui/stat.tsx:20` ≡ `ui/typography.tsx:60` | **Birebir aynı** yedi giriş, iki adla (`StatTone` / `TextTone`) | Birleştirildi |
+| `ui/icon.tsx:22` "aynı küme + info" | `text-icon` / `text-icon-active` / `text-icon-muted` — **farklı token kümesi** | Birleştirilmedi |
+| `ui/timeline.tsx:29` | `bg-*` nokta + glyph — **farklı şey** | Birleştirilmedi |
+| `mission-control.tsx:69` yerel `Stat` | `ui/stat.tsx`in satır satır kopyası; yalnız ton adları farklı (`neutral`≡`default`, `muted`≡`tertiary`) | Silindi |
+| `executive-briefing.tsx:78-119` | Dört elle yazılmış `<dt>/<dd>` çifti, `Stat` ile AYNI sınıf dizesi | `Stat`a çevrildi |
+| `StatTone` dışarıdan kullanılıyor mu | **Hiçbir yerde.** `TextTone` da yalnız kendi dosyasında | İkisi `Tone` oldu |
+
+**Benzer görünmek aynı olmak değildir.** Devir belgesindeki "20 harita"
+sayısı yüzeysel biçim benzerliğine dayanıyordu; `icon` ve `timeline`
+haritaları aynı ANAHTAR adlarını taşıyor ama farklı DEĞER uzaylarına
+bakıyor. Onları birleştirmek, tek bir sözlüğü üç ayrı token ailesine
+hizmet etmeye zorlardı — tekrarı silmek yerine yanlış bir soyutlama
+üretirdi. Yalnız birebir aynı olan iki tanesi birleşti.
+
+### Kaybolan kural — asıl bulgu bu
+
+Elle yazılan `<dt>/<dd>` kopyaları `Stat`ın SINIF dizesini taşıyordu ama
+DAVRANIŞINI taşımıyordu: `Stat`, düz sayıyı satır içi bir `span`e sarar
+çünkü `.odin-num` sayıları SAĞA hizalar ve blok bir elemana verilirse sayı
+etiketinden kopar (03-...md §11, S5'te görsel incelemede yakalanmıştı).
+Kopyalar bu tek satırlık kuralı düşürmüştü. Tekrarın maliyeti hacim değil,
+**kuralın sessizce kaybolmasıdır.**
+
+### Kapı
+
+`ui/stat.stories.tsx` — reponun `components/ui` altındaki ilk davranış
+testi (devir §2.7'de "hiç hikâyesi yok" diye listelenmişti). Dört story,
+üçü `play` ile: düz sayı satır içi sarılır · düğüm değer OLDUĞU GİBİ geçer
+(`Stat` etrafına kendi span'ini sarmaz, sarsaydı `size="lg"` "veri yok"
+tiresini sayı boyutunda büyütürdü) · ton sözlüğü `typography` ile ortaktır.
+
+İlk yazımda iki iddia düştü ve **bileşen değil test yanlıştı**: `NoData`
+zaten `odin-num` taşıyor (tire sayı sütununda hizalansın diye, kasıtlı).
+Ayırt eden şey sınıfın varlığı değil, `Stat`ın boyut sınıfının YOKLUĞU.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **58 dosya / 314 test**. Dağılım: 56/305 (S13'ün
+136 öncesi hâli) + 1 dosya/5 test (main'in S14'ü, merge ile geldi) +
+**1 dosya/4 test (bu ADR'nin kapısı)**.
+
+### Tuzak #1 YANLIŞ TEŞHİS EDİLMİŞ — devir belgesi düzeltildi
+
+Devir §3.1 "tam test paketinden önce dev sunucusunu KAPAT, yoksa Storybook
+12/56'da düşer" diyordu. Ölçüm: dev sunucusu (port 3000, üstelik BAŞKA bir
+worktree'nin) açıkken de `--shard=1/3` ve `2/3` sorunsuz geçti; `3/3` bir
+kez düştü, **hiçbir şey değiştirmeden tekrar çalıştırılınca geçti**.
+
+Sebep dev sunucusu değil: Playwright tarayıcı oturumu, aynı anda toplanan
+dosya sayısı arttıkça bağlantı zaman aşımına uğruyor — **kararsız (flaky)
+bir bağlantı**, kod hatası da değil, sunucu çakışması da değil.
+
+**Doğru işlem:** DİZİN bazında parçala (`--shard` de işe yarar ama dizin
+bölmesi ölçümde daha kararlı çıktı — `--shard=1/3` üst üste iki kez düştü,
+AYNI dosyalar `src/components/ui` olarak koşunca 18/18 geçti). Dev
+sunucusunu kapatmaya gerek yok — ve başkasının worktree'sine ait olabilir.

@@ -57,7 +57,16 @@ const TEXT_SIZE = {
   md: "text-md",
 } as const;
 
-const TONE = {
+/**
+ * METİN TONU — TEK SÖZLÜK (UI-ADR-136).
+ *
+ * Aynı yedi giriş `ui/stat.tsx`te ikinci kez, `StatTone` adıyla yazılıydı.
+ * İki sözlük demek, birine ton eklendiğinde diğerinin sessizce geride
+ * kalması demektir. `ui/icon.tsx` ve `ui/timeline.tsx` BİRLEŞTİRİLMEDİ:
+ * onlar `text-icon*` / `bg-*` token kümelerine bakar, aynı isimler farklı
+ * değerlerdir — benzer görünmek aynı olmak değildir.
+ */
+export const TONE = {
   default: "text-content",
   secondary: "text-content-secondary",
   tertiary: "text-content-tertiary",
@@ -67,7 +76,7 @@ const TONE = {
   success: "text-success",
 } as const;
 
-export type TextTone = keyof typeof TONE;
+export type Tone = keyof typeof TONE;
 
 export function Text({
   size = "base",
@@ -77,7 +86,7 @@ export function Text({
   children,
 }: {
   size?: keyof typeof TEXT_SIZE;
-  tone?: TextTone;
+  tone?: Tone;
   as?: ElementType;
   className?: string;
   children: ReactNode;
@@ -210,7 +219,7 @@ export function Num({
   fractionDigits?: number;
   locale?: string;
   size?: keyof typeof NUM_SIZE;
-  tone?: TextTone;
+  tone?: Tone;
   noDataReason?: string;
   className?: string;
 }) {
@@ -239,7 +248,7 @@ export function Mono({
   children,
 }: {
   size?: keyof typeof TEXT_SIZE;
-  tone?: TextTone;
+  tone?: Tone;
   className?: string;
   children: ReactNode;
 }) {

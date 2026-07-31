@@ -16,24 +16,13 @@
  */
 
 import type { ReactNode } from "react";
-
-const TONE = {
-  default: "text-content",
-  secondary: "text-content-secondary",
-  tertiary: "text-content-tertiary",
-  ai: "text-ai-text",
-  danger: "text-danger",
-  warning: "text-warning",
-  success: "text-success",
-} as const;
+import { TONE, type Tone } from "@/components/ui/typography";
 
 const SIZE = {
   sm: "text-sm",
   base: "text-base",
   lg: "text-lg",
 } as const;
-
-export type StatTone = keyof typeof TONE;
 
 export function Stat({
   label,
@@ -46,7 +35,7 @@ export function Stat({
   /** Düz sayı/metin satır içi `odin-num` ile yazılır; düğüm olduğu gibi geçer. */
   value: ReactNode;
   note?: ReactNode;
-  tone?: StatTone;
+  tone?: Tone;
   size?: keyof typeof SIZE;
 }) {
   const plain = typeof value === "number" || typeof value === "string";
