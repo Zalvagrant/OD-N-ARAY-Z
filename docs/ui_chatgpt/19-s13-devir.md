@@ -380,3 +380,89 @@ Bu bir "yuzlerce hata" degil, bir tasarim dili karari. Olculmus adaylar:
 
 Sahip tonu secerse: token degistir -> tekrar olc -> kalan ~27 ihlali kapat
 -> `test: "error"`. Sayilar `.storybook/preview.tsx`te yazili; tahmin etme.
+
+### 6.7 SAHIP KARARI BEKLEYEN TEK MADDE
+
+**Erisilebilirlik taramasi CI'da baglayici DEGIL** (`a11y.test: "todo"`).
+Olculdu: `error`e cevrilince **107 story dusuyor, 609 ihlal** - ve
+**582'si (%96) TEK TOKEN'dan**: `#64748b` (`text-content-tertiary`),
+en kotu kontrast **3.73:1**, WCAG AA 4.5:1 istiyor.
+
+Bu bir "yuzlerce hata" degil, bir tasarim dili karari. Olculmus adaylar:
+`#7c8899` -> 4.93, `#8593a5` -> 5.67, `#94a3b8` -> 6.92.
+
+Sahip tonu secerse: token degistir -> tekrar olc -> kalan ~27 ihlali kapat
+-> `test: "error"`. Sayilar `.storybook/preview.tsx`te yazili; tahmin etme.
+
+
+---
+
+## 7. UCUNCU DENETIMIN ACIK BULGULARI (UI-ADR-155)
+
+Uc tur bagimsiz denetim yapildi (meclis MCP araclari dustugu icin ajanla).
+Ucuncu tur KODUN KENDISINE bakti: **6 kritik, 21 orta, 14 dusuk.**
+Alti kritik kapatildi (UI-ADR-155). Asagisi KAPATILMAYANLARDIR - hepsi
+kaynaktan dogrulandi, hicbiri elenmedi.
+
+> Siralama ONEM sirasidir. Her madde: nerede - ne - hangi durumda yanlis.
+
+### 7.1 Sessiz yanlis SAYI / YANLIS IDDIA
+
+| Nerede | Ne | Ne zaman yanlis |
+|---|---|---|
+| `amazon/director/screen.tsx:174` - `mission-control/screen.tsx:201` | Arama sayaci FILTRELENMEMIS toplami yaziyor (`aria-live` ile de okunuyor) | 48 SKU'da "zzz" ara: tablo "SKU yok" der, kutu "48 sonuc" der |
+| `amazon/director/screen.tsx` stok bolumu | Hizi `unknown` olan SKU'lar listeye BILEREK alinmiyor ama bos durum "hicbir SKU riskli degil" diyor | 29 SKU olculmemis, 19'u iyi -> ekran "hicbir SKU riskli degil" |
+| `ui/table.tsx:187` | Filtre sonucu bos = "Bu tabloda gosterilecek veri bulunmuyor" | Veri VAR, filtre eslesmiyor |
+| `ui/table.tsx:379` | Secili satir filtreyle listeden cikinca "1 satir secili" yazmaya devam eder, `onSelect(null)` cagrilmaz | Sag panel listede olmayan kaydi gosterir |
+| `executive/alert-stack.tsx:73` | Bilinmeyen `severity` sessizce "Bilgi"ye duser ve EN ALTA gider | ODIN `severity:"urgent"` yayinlarsa |
+| `ui/typography.tsx:193` | `currency ?? "TRY"` - para birimi bildirilmemisse lira uydurulur | Bugun tetiklenmiyor (tum cagiranlar currency geciyor) ama tuzak duruyor |
+| `ui/chart.tsx:219` | Eksen daima `compact`, okuma satiri `percent` - ayni grafikte iki olcek | `format="percent"` grafiginde eksen "0,4", okuma "%42" |
+
+### 7.2 COKME riski
+
+| Nerede | Ne |
+|---|---|
+| `activity-feed.tsx:60` - `timeline.tsx:75` - `decision-card.tsx:90,109` | Korumasiz sozluk aramasi (`CATEGORY[x]` -> `.cls`). ODIN sozluge yeni deger eklerse TypeError, beyaz ekran. Ayni dosyalarda `??` savunmasi baska satirlarda VAR - tutarsiz |
+| `executive-kpi-card.tsx:143` - `amazon/sku/screen.tsx:49` | `Intl.DateTimeFormat.format(new Date(iso))` gecersiz tarihte **RangeError**. `report_period` alanlari semada yalniz `z.string()`, `isoDate` uygulanmamis |
+| `lib/data/odin-amazon.ts:251` | `toPeriod`: gecersiz `end` -> `toISOString()` RangeError; `window_days: 0` -> `from > to` |
+| `ui/chart.tsx:140` - `ui/sparkline.tsx:52` | `NaN`/`Infinity` tip olarak `number`dir: chart "NaN" basar, sparkline `d="M NaN,NaN"` uretir |
+
+### 7.3 Klavye / odak sozlesmesi
+
+| Nerede | Ne |
+|---|---|
+| `ui/modal.tsx:57` | Escape `document` capture'da `stopPropagation` ile yakalaniyor; ayni dugumdeki digerini durdurmaz -> **ic ice diyalogda ikisi birden kapanir**. Ayni kok neden: `table`/`search`/`filter` Escape'leri modal ICINDE hic calismaz |
+| `ui/modal.tsx:47` | `useEffect` bagimliliginda `onClose`; satir ici ok fonksiyonu verilirse her render'da odak Kapat butonuna siciyor |
+| `layout/command-palette.tsx:114` | `aria-modal="true"` diyor ama odak tuzagi ve kaydirma kilidi YOK; Escape yalniz input'ta; `listRef` tanimli ama hic okunmuyor (imlec gorunmez pencereye kayar) |
+| `layout/right-context-panel.tsx:95` | Panel kapaninca odak `<body>`ye duser. `ui/filter.tsx:55` tam bu hatayi adiyla anip duzeltmis |
+| `ui/selection.tsx:226` | `value` hicbir secenekle eslesmezse tum butonlar `tabIndex=-1` -> kontrole Tab'la ULASILAMAZ; `move()` odagi tasimiyor |
+| `ui/table.tsx:229` | `<table onKeyDown>` Enter'da `preventDefault` -> siralama basligi butonu Enter ile calismiyor (dosyanin 17. satiri "Enter/Space ile siralar" diyor) |
+
+### 7.4 Erisilebilirlik / anti-fake
+
+| Nerede | Ne |
+|---|---|
+| `ui/no-data.tsx:8` | Gerekce ekran okuyucuya ULASMIYOR: `aria-label` generic rolde yok sayilir, `title` yalniz fareyle. Bilesen TUM repoda gerekce tasiyicisi |
+| `executive/verdict-form.tsx:65` | **Fail-open**: `recClass` tasimada duserse gerekce ZORUNLU olmaktan cikar, ADR-0131 B/C kurali sessizce kalkar |
+| `executive/decision-card.tsx:233` | Bayat-veri kilidi yalniz butonlara; `VerdictForm` gonderimi engellenmiyor |
+| `layout/section.tsx:80` | Bos bolum bayragi ekran degiskeninden geliyor, diziden degil -> basligi olan ama icerigi de bos durumu da olmayan bolumler |
+| `ui/search.tsx:212` | `aria-live` bolgesi icerigiyle BIRLIKTE mount ediliyor -> cogu ekran okuyucu duyurmaz. `ui/chart.tsx:161` ayni isi dogru yapiyor |
+| `ui/tabs.tsx:84` | `id={`tab-${item.id}`}` `useId` ile kapsanmamis -> ayni sayfada iki `Tabs` cakisir |
+| `ui/timeline.tsx:134` | Tiklanabilir satirin erisilebilir adi olay BASLIGI degil KIMLIGI ("evt-4821, buton") |
+
+### 7.5 Veri katmani
+
+| Nerede | Ne |
+|---|---|
+| `lib/data/odin-amazon.ts:58` - `schemas.ts:100` | Tek bir provenance boslugu (`as_of: null`) ya da reklam gated iken (`currency` yok) **tum Amazon KPI ve alarm listesi** kararir. `parse` yerine kayit-basina `safeParse` gerekir - bugunku davranis fail-closed degil **fail-total** |
+| `lib/data/client.ts:73` - `trust-signal.tsx:53` | Tazelik yalniz fetch aninda hesaplanip onbellekte DONUYOR -> 50. dakikada "canli - 50 dk once" yan yana yazar |
+| `lib/data/odin-state.ts:184,258` | Duz `Error` -> `classifyError` "unknown" der, kullanici "kaynagi UYDURULMADI" gorur; oysa sebep tam olarak biliniyor (`:122` dogru yapmis) |
+| `lib/data/odin-amazon.ts:270` | `adaptSkus` `status` bos olan satiri sessizce DUSURUYOR: reklam harcamasi OLCULMUS bir SKU tablodan tamamen kaybolur, "N satir dusuruldu" bilgisi yok |
+| `lib/store/navigation.ts:60` | `rememberSelection` `entry`yi yaymadigi icin `expandedIds` duser - satir secilince acik kartlar kapanir (`rememberScroll` ayni dosyada dogru yazilmis) |
+
+### 7.6 ODIN'e talep (kural 7 - kendin yapma)
+
+`backend-istekleri.md`ye yazildi: **`sales_change_pct` olcek beyani yanlis**
+(`amazon_director.py:541` `* 100` uretiyor, `amazon_api.py:134`
+`scale="0-1"` diyor). UI tarafinda savunma kapisi kondu (UI-ADR-155) ama
+kok neden ODIN'de.

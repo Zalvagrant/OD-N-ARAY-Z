@@ -4390,3 +4390,224 @@ guven vermemek icin duzeltildi.
 `tsc` 0, `lint` 0 hata **0 uyari**,
 **unit 16 dosya / 234 test** (alt sinir 230, kapi dosyalari adla araniyor),
 **storybook 53 dosya / 195 test** (alt sinir 190), atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-154 - Ikinci denetim: kapilar kosuyordu ama ustlerinden atlanabiliyordu (S13 kapanis)
+
+**Durum:** DONDURULDU - her duzeltme enjekte ihlalle denendi
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-146 - 148 - 151 - 152 - 153
+
+Bagimsiz denetimin IKINCI turu: **12 bulgu, 2 kritik.** Birincisi aciydi -
+UI-ADR-152'de "derleyiciye verdim" dedigim kapi, **derleyici kosulmadigi
+icin** aslinda kosmuyordu.
+
+### KRITIK 1 - `test:ci` `tsc` KOSMUYORDU
+
+`Button`in erisilebilirlik kapisi bir TIP kapisidir. Ama `test:ci` =
+`lint + unit + storybook`; ESLint tip hatasi raporlamaz, vitest/esbuild
+tipleri **kontrol etmeden siler**. `tsc` yalniz `build` icindeydi.
+
+Olculdu: adsiz `<Button icon={...} />` icin `tsc` hata verdi, `eslint`
+**cikis 0**. Yani kapi vardi, `test:ci` yesilken ihlal commit edilirdi.
+`typecheck` script'i eklendi ve `test:ci`nin BASINA kondu.
+
+**Ders (152'nin dersinin devami):** "kapi yazdim" -> "kapi koruyor" ->
+**"kapi KOSUYOR"**. Ucu ayri iddiadir ve ucu de ayri ayri dogrulanir.
+
+### KRITIK 2 - tek satirlik `eslint-disable` HER SEYI susturuyordu
+
+Bir dosyanin basina yazilan tek bir satir token kuralini, **sahte veri
+kuralini (146)** ve **katman sinirlarini (130)** ayni anda kapatiyordu;
+`npx eslint` sifir bulguyla cikis 0 veriyordu. Bu reponun butun mimari
+kapilari ESLint'te yasiyor - tek satirla kapatilabilir birakmak, kapi
+olmadiklarini soylemektir.
+
+`noInlineConfig: true` + `reportUnusedDisableDirectives: "error"` +
+`--max-warnings 0`. Dort gerekceli istisna (`avatar` img, `search`
+exhaustive-deps, `table` unused-vars ve incompatible-library) silinmedi,
+`eslint.config.mjs`e DOSYA BAZINDA tasindi: ayni muafiyet, ama merkezi ve
+gorulerek. Ayrica `--max-warnings 0` gizli **9 uyariyi** ortaya cikardi.
+
+### Kapilardan atlama yollari - hepsi kapatildi
+
+| Kacis | Duzeltme |
+|---|---|
+| `<Button>{gizli && <span/>}</Button>` -> false olunca ADSIZ buton | calisma zamani dev uyarisi (tip `ReactNode`u daraltamaz) |
+| story dosyasi `export default meta` bicimine cevrilir -> 0 blok -> dongu donmez -> yesil | blok sayisi 0 ise kirmizi |
+| `play` govdesinde yalniz YORUM icinde `expect(` | yorumlar dusurulup araniyor |
+| `expect(true).toBe(true)` | sabit-degerli iddialar dusurulup GERCEK iddia araniyor |
+| Commit A'da 15 onemsiz test ekle, commit B'de kapi dosyasini sil -> toplam korunur -> yesil | kapi dosyalari **adlariyla** araniyor (`ZORUNLU`) |
+| `value={x === null ? 0 : x}` - `??` yasaklaninca yazilacak bicim | ternary ve mantiksal-veya da yasaklandi |
+
+Ucu de enjekte ihlalle denendi: `state-matrix.test.ts` yeniden
+adlandirildi -> *"KAPI DOSYASI KOSMADI"*; satir ici disable yazildi ->
+3 hata yakalandi; ternary + mantiksal-veya -> 2 hata.
+
+### Iki zayif iddia guclendirildi
+
+`goals`ta `expect(govde.length).toBeGreaterThan(0)` bir satir yukaridaki
+`findByRole` gectiyse KOSULSUZ dogruydu - silindi. `intelligence-feed`de
+`findAllByRole` ILK ogede cozuluyordu, yani `maxVisible` siniri sanildigi
+kadar kilitli degildi - liste durgunlasana kadar beklenip yeniden
+sayiliyor.
+
+### SAHIP KARARI BEKLIYOR - erisilebilirlik taramasi baglayici degil
+
+`.storybook/preview.tsx`te `a11y.test: "todo"` - axe ihlalleri
+**gosteriliyor ama CI'i dusurmuyor.** `error`e cevrildi ve OLCULDU:
+
+> **107 story dusuyor, 609 ihlal.**
+> `color-contrast` **582** (%96), `definition-list` 12, `dlitem` 10,
+> `landmark-unique` 2, `label` 2, `aria-valid-attr-value` 1
+
+582'nin neredeyse tamami **TEK TOKEN**: `#64748b`
+(`text-content-tertiary`). Bes zemine karsi olculen en kotu oran
+**3.73:1**; WCAG AA kucuk metin icin 4.5:1 istiyor.
+
+Yani bu "yuzlerce hata" degil, **bir tasarim dili karari**: tek token
+acilirsa ihlallerin ~%96'si kapanir. Olculmus adaylar (en kotu zemine
+gore): `#7c8899` -> 4.93, `#8593a5` -> 5.67, `#94a3b8` -> 6.92.
+
+Token degistirmek arayuzun TAMAMININ gorunumunu etkiler; sessizce
+yapilmaz. Karar verilip sifirlanana kadar `todo`da kaliyor ve **sayi
+kodda yazili** - bir sonraki oturum tahmin etmeyecek.
+
+Ayrica `inventory.test.ts`in basligindaki *"addon-a11y ile taranir"*
+ifadesi CI'da dogru DEGILDI (taraniyor ama baglayici degil) - yanlis
+guven vermemek icin duzeltildi.
+
+### Olcum
+
+`npm run test:ci` = **typecheck + lint + unit + storybook**:
+`tsc` 0, `lint` 0 hata **0 uyari**,
+**unit 16 dosya / 234 test** (alt sinir 230, kapi dosyalari adla araniyor),
+**storybook 53 dosya / 195 test** (alt sinir 190), atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-155 - Ucuncu denetim: kapilar degil KODUN KENDISI (S13 kapanis)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-093 - 120 - 152 - 154 - ODIN ADR-0085
+
+Ilk iki tur KAPILARI denetledi. Ucuncu tur, meclisin `yazilimcilar` grubunun
+bakacagi seye bakti: **kodun kendisi.** Iki ajan paralel calisti (veri
+katmani / bilesen katmani, kapsam catismasi prompt'ta yasaklandi):
+**6 kritik, 21 orta, 14 dusuk.**
+
+Asagidakiler bu turda KAPATILANLAR. Kalanlar §"acik kalanlar"da.
+
+### 1 - Satis degisimi ekranda 100 KAT yanlis cikiyordu
+
+ODIN `amazon_director.py:541` yuzdeyi `* 100` ile uretiyor (0-100) ama
+`amazon_api.py:134` onu **`scale="0-1"` diye BEYAN ediyor**. Arayuz beyana
+guveniyor, `Intl` `style:"percent"` bir kez daha 100 ile carpiyor.
+
+**Somut:** satis %12,5 dustuyse KPI kartinda **"-%1.250,0"** yaziyordu.
+Ayni listedeki `acos` gercekten 0-1 orani ve dogru beyan edilmis - yani iki
+yuzde ayni etiketle geliyor, biri dogru biri degil.
+
+UI-ADR-093 *"olcegi tahmin etme, bildirilsin"* diyordu ama **yanlis
+BILDIRILEN** olcege karsi bir sey soylemiyordu. `executiveKpiSchema`ya
+refine eklendi: `scale="0-1"` beyaniyla gelen degerin mutlak degeri 1,5'i
+asamaz. Celiskide sayi basmak yerine SOZLESME HATASI verilir - yanlis bir
+yuzde, eksik bir yuzdeden tehlikelidir cunku makul gorunur.
+
+Kok neden ODIN'de; kural 7 geregi dokunulmadi, `backend-istekleri.md`ye
+madde yazildi. Kapi o duzelene kadar yanlis sayiyi ekranda tutmaz.
+
+### 2 - Amazon Director olculmemis veriyi "risk yok" diye iddia ediyordu
+
+`skus.envelope?.data ?? []` - zarf `null` oldugunda (kaynak bagli degil,
+`/api/amazon` hata verdi, ilk yukleme suruyor) liste bos diziye dusuyor ve
+bolumler sunlari yaziyordu:
+
+> "Stok riski yok - Hicbir SKU riskli ya da kritik durumda degil."
+> "BuyBox kaybi yok - Orani raporlanan SKU'larin hepsi %90 uzerinde."
+
+Ucu de birer OLCUMDUR ve hicbiri olculmemistir. `mission-control`de
+**UI-ADR-120 ile bulunup duzeltilen hatanin AYNISI**; bu ekranda
+uygulanmamisti. `null` = olculmedi, `[]` = olculdu ve bos ayrimi getirildi;
+bos durumlar yalniz gercekten olculduyse gosteriliyor. Story ile kilitlendi.
+
+### 3 - `SystemReadiness` "hazir" diyordu ama bu bir DERLEME SABITI
+
+`isChannelAvailable` yalniz registry'deki statik `available:` alanini okur;
+hicbir calisma zamani durumuna bakmaz. ODIN tamamen kapaliyken de ekran
+ayni uc satiri yesil **"hazir"** gosteriyordu. Bilesenin kendi basligi
+*"ODIN'de o tikler olcume dayanir"* diyordu - dayanmiyordu.
+
+Bu uydurulmus bir sayi degil, **uydurulmus bir CANLILIK**. Kanal listesi bir
+YETENEK BEYANIDIR; etiket de artik onu soyluyor: **"tanimli" /
+"tanimli degil"**. Canlilik gercekten olculmek istenirse kaynagi bir saglik
+yayinidir - *etiketi degistirmek bedava, uydurmak pahalidir.*
+
+### 4 - Aciklanabilirlik kapisi yalniz BIR dala uygulaniyordu
+
+`decision-card.tsx`te `recOk = canRenderRecommendation(rec)` hesaplaniyor
+ama yalnizca acilir bolumde kullaniliyordu. Govde kosulsuz olarak oneri
+metnini, guven skorunu ve kanit sayisini basiyordu: kart ustte skoru
+gosterip altta *"aciklanabilirlik sartini saglamiyor"* diyordu.
+
+ADR-0085 kanitsiz bir guven skorunun gosterilmemesini ister; yarisi
+bastirilmis bir kart o sarti saglamaz. Ayrica `evidence` tasimada duserse
+`rec.evidence.length` **TypeError atip karti cokertiyordu** - dosyanin
+kendi 20. satiri tam o durumu yakalamak icin yazilmisti.
+
+Kapi govdeye tasindi. Alternatifler kapinin DISINDA kaldi: onlar kararin
+kendi kaydidir, onerinin aciklanabilirligine bagli degil.
+
+### 5 - `AIPulse` olculmemis yuku "0" basiyordu
+
+`Math.round(state.load)` - `load` null iken **"yuk 0"**, undefined iken
+**"yuk NaN"**. Ayni dosyadaki `rotationSeconds` `load`u
+`number | null | undefined` kabul edip `Number.isFinite` ile koruyor, yani
+null BEKLENEN bir deger; metin onu korumuyordu. Halka dogru sekilde en
+yavas donerken yazinin "yuk 0" demesi, olculmemisi olculmus gosterir.
+
+### 6 - `<dl>` icinde `<p>`: HTML gecersizdi
+
+`Stat`in `note`u `<p>` olarak basiliyordu; `<dl>` dogrudan yalniz
+`<dt>`/`<dd>` gruplari (ve `<div>`/`<script>`/`<template>`) icerebilir.
+axe `definition-list` ile **12 story dusuyordu**. Not ikinci bir `<dd>`
+oldu - bir `<dt>`nin birden cok `<dd>`si gecerlidir ve anlamca dogrusudur:
+not, ayni terimin ikinci aciklamasidir. Ayrica `stat.stories.tsx`
+`Stat`i `<dl>` disinda render ediyordu (`dlitem`, 10 ihlal) - dekorator
+eklendi, ama YALNIZ `args` tabanli story'lere: kendi `<dl>`sini kuranlara
+da eklemek IC ICE `<dl>` uretti ve ayni kurali ters yonden ihlal etti.
+
+Kontrast disi a11y ihlalleri **27 -> 12**. Kalanlarin tamami tek token
+kararina bagli degil; bkz UI-ADR-154 §a11y.
+
+### ACIK KALANLAR - kayda gecti, yapilmadi
+
+Ucuncu tur 41 bulgu uretti; yukaridaki 6'si kapatildi. Kalanlar
+`19-s13-devir.md` §7'de listeli. One cikanlar:
+
+- **Arama sayaci filtrelenmemis toplami duyuruyor** (2 ekran): 48 SKU'da
+  "zzz" aratinca tablo "SKU yok" derken kutu "48 sonuc" der.
+- **Escape `document` capture katmaninda yutuluyor**: ic ice diyalogda
+  ikisi birden kapanir; `table`/`search`/`filter` Escape'leri modal
+  icinde hic calismaz.
+- **`command-palette` `aria-modal` diyor ama modal degil**: odak tuzagi
+  ve kaydirma kilidi yok.
+- **Sozluk aramalarinda tutarsiz savunma** (4 yer): ODIN sozluge yeni bir
+  deger eklerse TypeError ile beyaz ekran.
+- **`NoData` gerekcesi ekran okuyucuya ULASMIYOR**: `aria-label` generic
+  rolde yok sayilir, `title` yalniz fareyle gorunur.
+- **`verdict-form` fail-open**: `recClass` tasimada duserse gerekce
+  ZORUNLU olmaktan cikar, ADR-0131'in B/C kurali sessizce kalkar.
+
+Uc tekrar eden kok desen (ajanin kendi tespiti): kapi hesaplanip yalniz
+bir dala uygulanmasi - sozluk aramalarinda tutarsiz `??` savunmasi -
+Escape/odak sozlesmesinin capture katmaninda sessizce yutulmasi.
+
+### Olcum
+
+`npm run test:ci` = typecheck + lint + unit + storybook:
+`tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 238 test** (alt sinir 230),
+**storybook 53 dosya / 196 test** (alt sinir 190), atlanan 0, dusen 0.

@@ -424,3 +424,41 @@ describe("zarf ve kayıt fabrikaları — UI-ADR-137", () => {
     expect(k.status).toBe("unavailable");
   });
 });
+
+/* ------------------------------------------------------------------ 9 */
+
+describe("ölçek çelişkisi — UI-ADR-155", () => {
+  const pct = (value: number | null, scale: "0-1" | "0-100") => ({
+    id: "sales_change_pct",
+    label: "Satış değişimi",
+    status: "available" as const,
+    value,
+    unit: "percent" as const,
+    scale,
+    asOf: NOW(),
+  });
+
+  it('scale="0-1" iken 1,5 üstü değer REDDEDİLİR', () => {
+    /* ODIN gerçekten böyle bir yayın yaptı: amazon_director.py yüzdeyi
+       *100 ile üretiyor, amazon_api.py onu "0-1" diye bildiriyor.
+       Sonuç ekranda %1.250,0 idi. Sayıyı basmaktansa reddetmek dürüst. */
+    expect(() => executiveKpiSchema.parse(pct(-12.5, "0-1"))).toThrow(/ÖLÇEK ÇELİŞKİSİ/);
+  });
+
+  it('gerçek bir 0-1 oranı GEÇER', () => {
+    expect(executiveKpiSchema.parse(pct(0.081, "0-1")).value).toBe(0.081);
+    /* Sınır: %150 bir oran olamaz ama %100 olabilir (iki kat). */
+    expect(executiveKpiSchema.parse(pct(1, "0-1")).value).toBe(1);
+  });
+
+  it('scale="0-100" iken büyük değer SERBEST — kural yalnız çelişkiyi yakalar', () => {
+    expect(executiveKpiSchema.parse(pct(-12.5, "0-100")).value).toBe(-12.5);
+  });
+
+  it("değer null ise ölçek çelişkisi ARANMAZ", () => {
+    /* "Ölçülmedi" bir çelişki değildir; reddetmek NoData'yı da öldürürdü. */
+    expect(() =>
+      executiveKpiSchema.parse({ ...pct(null, "0-1"), status: "unavailable", reason: "yok" })
+    ).not.toThrow();
+  });
+});

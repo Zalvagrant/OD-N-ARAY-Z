@@ -131,13 +131,32 @@ export function AmazonDirector({
     error: DEMO_ERROR,
   });
 
-  const skuRows = isEmpty ? [] : (skus.envelope?.data ?? []);
+  /**
+   * ÖLÇÜLMEDİYSE "YOK" DENMEZ — UI-ADR-155 (bağımsız denetim bulgusu).
+   *
+   * Burada `?? []` vardı ve zarf `null` olduğunda (kaynak bağlı değil,
+   * `/api/amazon` hata verdi ya da ilk yükleme sürüyor) liste boş diziye
+   * düşüyordu. Ardından bölümler `atRisk.length === 0` diye bakıp şunları
+   * yazıyordu:
+   *     "Stok riski yok — Hiçbir SKU riskli ya da kritik durumda değil."
+   *     "BuyBox kaybı yok — Oranı raporlanan SKU'ların hepsi %90 üzerinde."
+   * Üçü de birer ÖLÇÜMDÜR ve hiçbiri ölçülmemiştir. Sahibin göreceği fark,
+   * işin sağlıklı mı yoksa hiç izlenmiyor mu olduğudur — CLAUDE.md §2.
+   *
+   * `mission-control`de UI-ADR-120 ile bulunup düzeltilen hatanın AYNISI;
+   * bu ekranda uygulanmamıştı. `null` = ölçülmedi, `[]` = ölçüldü ve boş.
+   */
+  const measuredSkus = isEmpty ? [] : (skus.envelope?.data ?? null);
+  const skuRows = measuredSkus ?? [];
   /* FR-0046 v1 Opportunity'de `category` YOK — reklam/genel ayrımını sürecek
      bir kaynak alan kalmadı, ayrım UYDURULMAZ (UI-ADR-106). Tüm fırsatlar
      §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
      domain alanı sorusu 13-...md §17'de (FR-0042 fingerprint'i zaten
      (domain, recommendation_type, …) kullanıyor — alan gelirse ayrım döner). */
-  const feedOpportunities = isEmpty ? [] : (opportunities.envelope?.data ?? []);
+  const measuredOpportunities = isEmpty
+    ? []
+    : (opportunities.envelope?.data ?? null);
+  const feedOpportunities = measuredOpportunities ?? [];
 
   /* ODIN sözlüğü (UI-ADR-128). `unknown` BU LİSTEYE GİRMEZ: hızı
      ölçülemeyen bir SKU riskli değildir, ÖLÇÜLMEMİŞTİR — ikisini
@@ -251,8 +270,12 @@ export function AmazonDirector({
               )
             }
             getRowId={(r) => r.sku}
-            emptyTitle="SKU yok"
-            emptyDescription="SP-API'den aktif SKU gelmedi."
+            emptyTitle={measuredSkus === null ? "SKU verisi ölçülmedi" : "SKU yok"}
+            emptyDescription={
+              measuredSkus === null
+                ? "Kaynak bağlı değil ya da yanıt vermedi — bu, aktif SKU olmadığı anlamına GELMEZ."
+                : "SP-API'den aktif SKU gelmedi."
+            }
           />
           {selectedSkuId && (
             <Text size="sm" tone="tertiary" className="mt-2">
@@ -269,7 +292,7 @@ export function AmazonDirector({
           loadingCount={4}
           error={error}
           onRetry={reloadAll}
-          empty={atRisk.length === 0}
+          empty={measuredSkus !== null && atRisk.length === 0}
           emptyTitle="Stok riski yok"
           emptyDescription="Hiçbir SKU riskli ya da kritik durumda değil."
         >
@@ -354,7 +377,7 @@ export function AmazonDirector({
           loadingCount={2}
           error={error}
           onRetry={reloadAll}
-          empty={feedOpportunities.length === 0}
+          empty={measuredOpportunities !== null && feedOpportunities.length === 0}
           emptyTitle="Fırsat üretilmedi"
           emptyDescription="Bu dönem için ölçülmüş bir ürün/fiyat fırsatı yok."
         >
@@ -404,7 +427,7 @@ export function AmazonDirector({
           loadingCount={3}
           error={error}
           onRetry={reloadAll}
-          empty={losingBuyBox.length === 0}
+          empty={measuredSkus !== null && losingBuyBox.length === 0}
           emptyTitle="BuyBox kaybı yok"
           emptyDescription={`Oranı raporlanan SKU'ların hepsi %${BUY_BOX_RISK_BELOW} üzerinde.`}
           emptySuggestion="Oranı hiç raporlanmayan SKU'lar bu listeye giremez — kaynağı doğrulanmalı (13-...md §4)."

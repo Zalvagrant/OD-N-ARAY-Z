@@ -10,8 +10,19 @@
  *
  * BUNLAR UYDURULMAZ. Her satır telemetry registry'ye bağlıdır; registry
  * hangi altsistemin GERÇEKTEN var olduğunun tek kaynağıdır (UI-ADR-083).
- * Kapalı kanal "Online" yazmaz — "bağlı değil" yazar. Bir açılış ekranının
- * altı yeşil tik göstermesi kolaydır; ODIN'de o tikler ölçüme dayanır.
+ *
+ * ⚠️ AMA BU BİR CANLILIK ÖLÇÜMÜ DEĞİLDİR — UI-ADR-155 (bağımsız denetim).
+ * Bu satırın eski hâli *"ODIN'de o tikler ölçüme dayanır"* diyordu; oysa
+ * `isChannelAvailable` yalnız registry'deki STATİK `available:` alanını
+ * okur, hiçbir çalışma zamanı durumuna bakmaz. ODIN tamamen kapalıyken
+ * de ekran aynı üç satırı yeşil "hazır" gösteriyordu — kural 2'nin en
+ * doğrudan ihlali: uydurulmuş bir sayı değil, uydurulmuş bir CANLILIK.
+ *
+ * Kanal listesi bir YETENEK BEYANIDIR, sağlık raporu değil. Etiket de
+ * artık onu söylüyor: "tanımlı" / "tanımlı değil". Canlılık gerçekten
+ * ölçülmek istenirse kaynağı `useOdinDirectors` gibi bir sağlık yayınıdır
+ * ve o zaman bu bileşen o veriye bağlanır — etiketi değiştirmek bedava,
+ * uydurmak pahalıdır.
  *
  * Popup yok, ses yok: satırlar sessizce, sırayla belirir (§2 kuralı).
  * Toplam gecikme 6 × 0,12 sn = 0,72 sn — 3 saniyelik bütçenin içinde.
@@ -44,10 +55,11 @@ export function SystemReadiness() {
   return (
     <ul
       className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs"
-      aria-label="Sistem hazırlık durumu"
+      aria-label="Tanımlı telemetri kanalları — canlılık ölçümü değildir"
     >
       {ROWS.map((row, i) => {
-        const ready = isChannelAvailable(row.channel);
+        /* `tanimli` — "hazır" DEĞİL: registry'nin statik beyanı. */
+        const tanimli = isChannelAvailable(row.channel);
         return (
           <motion.li
             key={row.id}
@@ -58,13 +70,13 @@ export function SystemReadiness() {
           >
             <span
               aria-hidden="true"
-              className={ready ? "text-success" : "text-content-tertiary"}
+              className={tanimli ? "text-success" : "text-content-tertiary"}
             >
-              {ready ? "●" : "○"}
+              {tanimli ? "●" : "○"}
             </span>
             <span className="text-content-secondary">{row.label}</span>
-            <span className={ready ? "text-success" : "text-content-tertiary"}>
-              {ready ? "hazır" : "bağlı değil"}
+            <span className={tanimli ? "text-success" : "text-content-tertiary"}>
+              {tanimli ? "tanımlı" : "tanımlı değil"}
             </span>
           </motion.li>
         );

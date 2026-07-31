@@ -127,9 +127,20 @@ export function AIPulse({
                         />
                         <dt className="text-content-secondary">{channel.label}</dt>
                         <dd className="text-content-tertiary">
-                          {state.active
-                            ? `çalışıyor · yük ${Math.round(state.load)}`
-                            : "boşta"}
+                          {/* ÖLÇÜLMEMİŞ YÜK "0" DEĞİLDİR — UI-ADR-155.
+                              `load` null iken `Math.round(null)` = 0 basıyor,
+                              undefined iken "NaN" yazıyordu. Aynı dosyadaki
+                              `rotationSeconds` (satır 45) `load`u
+                              `number | null | undefined` kabul edip
+                              `Number.isFinite` ile koruyor — yani null
+                              BEKLENEN bir değer; metin onu korumuyordu.
+                              Halka doğru şekilde en yavaş dönerken yazının
+                              "yük 0" demesi, ölçülmemişi ölçülmüş gösterir. */}
+                          {!state.active
+                            ? "boşta"
+                            : Number.isFinite(state.load)
+                              ? `çalışıyor · yük ${Math.round(state.load)}`
+                              : "çalışıyor · yük ölçülmedi"}
                         </dd>
                       </div>
                     ))}

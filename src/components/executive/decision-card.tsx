@@ -124,6 +124,28 @@ function DecisionView({
 
       <CardBody>
         <div className="flex flex-col gap-4">
+          {/**
+           * AÇIKLANABİLİRLİK KAPISI GÖVDEYE DE UYGULANIR — UI-ADR-155.
+           *
+           * `recOk` hesaplanıyordu ama YALNIZ aşağıdaki açılır bölümde
+           * kullanılıyordu. Gövde koşulsuz olarak öneri metnini, güven
+           * skorunu ve kanıt sayısını basıyordu: kart üstte skoru
+           * gösterip altta "açıklanabilirlik şartını sağlamıyor" diyordu.
+           * ADR-0085 kanıtsız bir güven skorunun gösterilmemesini ister;
+           * yarısı bastırılmış bir kart o şartı sağlamaz.
+           *
+           * Ayrıca `evidence` taşımada düşerse `rec.evidence.length`
+           * TypeError atıp kartı çökertiyordu — bu dosyanın 20. satırı
+           * tam olarak o durumu yakalamak için yazılmıştı.
+           */}
+          {!recOk ? (
+            <Text size="sm" tone="tertiary">
+              Bu kararın önerisi açıklanabilirlik şartını sağlamıyor
+              (ADR-0085); güven skoru ve kanıt sayısı GÖSTERİLMİYOR —
+              kanıtı doğrulanamayan bir skor, skor değildir.
+            </Text>
+          ) : (
+            <>
           <Text tone="secondary">{rec.recommendation}</Text>
 
           <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3 [&>div]:min-w-0">
@@ -144,8 +166,12 @@ function DecisionView({
               </dd>
             </div>
           </dl>
+            </>
+          )}
 
-          {/* Alternatifler — KARARIN alanı, en az 2 (şema minItems). */}
+          {/* Alternatifler — KARARIN alanı, en az 2 (şema minItems).
+              Kapının DIŞINDA: alternatifler kararın kendi kaydıdır,
+              önerinin açıklanabilirliğine bağlı değildir. */}
           <div>
             <p className="text-xs uppercase tracking-wide text-content-tertiary">
               Alternatifler

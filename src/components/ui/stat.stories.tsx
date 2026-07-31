@@ -25,11 +25,31 @@ export default meta;
 
 type Story = StoryObj<typeof Stat>;
 
+/**
+ * `Stat` bir `<dl>` ÖĞESİDİR (`<dt>`+`<dd>` üretir); tek başına render
+ * edilirse HTML geçersizdir ve axe `dlitem` ile düşer. Story bileşeni
+ * GEÇERLİ bağlamında göstermeli — aksi hâlde üretimde asla oluşmayan bir
+ * kusuru raporlar.
+ *
+ * ⚠️ Yalnız `args` ile çalışan story'lere veriliyor: kendi `<dl>`sini
+ * kuran story'ye de eklemek İÇ İÇE `<dl>` üretir ve aynı kuralı bu kez
+ * ters yönden ihlal eder (ilk denemede tam olarak bu oldu).
+ */
+const dlIcinde: Story["decorators"] = [
+  (Story) => (
+    <dl>
+      <Story />
+    </dl>
+  ),
+];
+
 export const Default: Story = {
+  decorators: dlIcinde,
   args: { label: "Sağlıklı Director", value: 12, note: "ODIN status: healthy" },
 };
 
 export const DuzSayiSatirIcindedir: Story = {
+  decorators: dlIcinde,
   name: "Düz sayı satır içi sarılır — sağa hizalama etiketten koparmaz",
   args: { label: "Telemetri kanalı", value: "3 / 7", note: "açık / tanımlı" },
   play: async ({ canvasElement }) => {
@@ -45,6 +65,7 @@ export const DuzSayiSatirIcindedir: Story = {
 };
 
 export const DugumDegerOlduguGibiGecer: Story = {
+  decorators: dlIcinde,
   name: "Düğüm değer olduğu gibi geçer — bileşen sayı uydurmaz",
   args: {
     label: "AI Readiness",

@@ -103,6 +103,39 @@ export const executiveKpiSchema = z
   })
   /* UI-ADR-093: ölçeği bildirilmemiş yüzde, 0,18 mi %18 mi belli değildir.
      Tahmin edilirse 100 kat hata sessizce ekrana çıkar. */
+  /**
+   * BEYAN İLE DEĞER ÇELİŞİYORSA SAYI BASILMAZ — UI-ADR-155.
+   *
+   * Bağımsız denetim gerçek bir 100 KAT hata buldu: ODIN
+   * `amazon_director.py:541` yüzdeyi `* 100` ile üretiyor (0-100) ama
+   * `amazon_api.py:134` onu `scale="0-1"` diye BEYAN ediyor. Arayüz
+   * beyana güveniyor, `Intl` `style:"percent"` bir kez daha 100 ile
+   * çarpıyor: satış %12,5 düştüyse ekranda **"−%1.250,0"** yazıyor.
+   *
+   * UI-ADR-093 "ölçeği tahmin etme, bildirilsin" diyordu — ama yanlış
+   * BİLDİRİLEN ölçeğe karşı bir şey söylemiyordu. Bu refine o boşluğu
+   * kapatır: `0-1` beyanıyla gelen bir değerin mutlak değeri 1,5'i
+   * aşamaz (%150 bir oran değil, ölçek hatasıdır). Çelişkide sayı
+   * göstermek yerine SÖZLEŞME HATASI vermek dürüsttür — yanlış bir
+   * yüzde, eksik bir yüzdeden tehlikelidir çünkü makul görünür.
+   *
+   * Kök neden ODIN'de; `backend-istekleri.md`ye madde yazıldı. Bu kapı
+   * o düzelene kadar yanlış sayının ekrana çıkmasını engeller.
+   */
+  .refine(
+    (k) =>
+      k.unit !== "percent" ||
+      k.scale !== "0-1" ||
+      k.value === null ||
+      k.value === undefined ||
+      Math.abs(k.value) <= 1.5,
+    {
+      message:
+        "ÖLÇEK ÇELİŞKİSİ: scale=\"0-1\" bildirildi ama değer 1,5'i aşıyor — " +
+        "yayın büyük olasılıkla 0-100 üretiyor. Sayı basılmadı (UI-ADR-155).",
+      path: ["value"],
+    }
+  )
   .refine((k) => k.unit !== "percent" || !!k.scale, {
     message: "unit=percent ise scale zorunlu (0-1 | 0-100)",
     path: ["scale"],

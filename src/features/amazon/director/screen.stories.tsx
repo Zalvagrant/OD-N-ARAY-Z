@@ -104,6 +104,36 @@ export const Bos: StoryObj = {
   },
 };
 
+/**
+ * UI-ADR-155 — ÖLÇÜLMEDİYSE "YOK" DENMEZ.
+ *
+ * Bağımsız denetim bulgusu: `skus.envelope?.data ?? []` yüzünden kaynak
+ * bağlı değilken bölümler "Stok riski yok" ve "BuyBox kaybı yok" diye
+ * ÖLÇÜM iddia ediyordu. Hata durumu bu ayrımın en keskin hâlidir: veri
+ * gelmedi, o hâlde risk hakkında SÖYLENECEK BİR ŞEY YOK.
+ */
+export const HataOlcumIddiaEtmez: StoryObj = {
+  name: "Hata hâlinde 'risk yok' DENMEZ (ölçülmeyen şey yok sayılmaz)",
+  render: () => (
+    <div className="bg-bg p-6">
+      <AmazonDirector demo="error" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findAllByRole("alert", {}, BEKLE);
+
+    /* ASIL İDDİA — YOKLUK. Bu üç cümle birer ölçümdür; veri yokken
+       hiçbiri yazılamaz. Biri bile görünürse sahip, ölçülmemiş bir işi
+       "sağlıklı" sanır. */
+    await expect(canvas.queryByText(/Stok riski yok/i)).toBeNull();
+    await expect(canvas.queryByText(/BuyBox kaybı yok/i)).toBeNull();
+    await expect(
+      canvas.queryByText(/Hiçbir SKU riskli ya da kritik durumda değil/i)
+    ).toBeNull();
+  },
+};
+
 export const Hata: StoryObj = {
   render: () => (
     <div className="bg-bg p-6">

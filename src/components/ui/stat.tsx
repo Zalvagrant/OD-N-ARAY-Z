@@ -74,7 +74,14 @@ export function Stat({
           value
         )}
       </dd>
-      {note && <p className="text-xs text-content-tertiary">{note}</p>}
+      {/* NOT İKİNCİ BİR `<dd>` — `<p>` DEĞİL (UI-ADR-155).
+          `<dl>` doğrudan yalnız `<dt>`/`<dd>` grupları, `<script>`,
+          `<template>` ve `<div>` içerebilir; `<div>` sarmalayıcının içinde
+          de yalnız `dt`/`dd` olabilir. Buradaki `<p>` HTML'i geçersiz
+          kılıyordu ve axe `definition-list` ile 12 story'de düşüyordu.
+          Bir `<dt>`nin BİRDEN ÇOK `<dd>`si olması geçerlidir ve anlamca
+          da doğrusudur: not, aynı terimin ikinci açıklamasıdır. */}
+      {note && <dd className="text-xs text-content-tertiary">{note}</dd>}
     </div>
   );
 }

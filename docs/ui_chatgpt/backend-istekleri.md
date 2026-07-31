@@ -425,3 +425,56 @@ gerekmez.
 
 `src/features/amazon/presentation/thresholds.ts` **silinir**. Dosyanın
 başlığı bunu zaten yazıyor: "bu dosyadaki her sayı bir borçtur".
+
+
+---
+
+## `sales_change_pct` olcek beyani YANLIS - 100 kat hata (1 Agu 2026)
+
+**Aciliyet: yuksek.** Ekranda gorunuyordu, sayi makul degil ama makul
+GORUNUYOR - yani sessiz degil, YANILTICI.
+
+### Olculen celiski
+
+`odin/amazon_director.py:541` yuzdeyi **0-100** olcedinde uretiyor:
+
+```python
+pct = round((recent - prior) / prior * 100, 1) if prior > 0 else None
+```
+
+`odin/amazon_api.py:133-134` ayni degeri **`scale="0-1"`** diye beyan ediyor:
+
+```python
+kpi("sales_change_pct", "Satis degisimi", trend.get("pct_change"),
+    "percent", scale="0-1", ...)
+```
+
+### Sonuc
+
+Arayuz beyana guveniyor (UI-ADR-093: "olcegi tahmin etme, bildirilsin"),
+`percentFactor("0-1") = 1` doner ve deger olduğu gibi `Intl`in
+`style:"percent"` bicimlendiricisine giriyor - o da 100 ile carpiyor.
+
+**Satis %12,5 dustuyse KPI kartinda "-%1.250,0" yaziyordu.**
+
+Ayni listedeki `acos` GERCEKTEN 0-1 orani (`avg_acos = spend / sales`) ve
+dogru beyan edilmis. Yani ayni sozlesmeden gelen iki yuzde, biri dogru biri
+yanlis - bu, hatayi gozle yakalamayi da zorlastiriyor.
+
+### Talep
+
+`amazon_api.py:134`te **`scale="0-100"`**. Alternatif olarak
+`amazon_director.py:541`de `* 100` kaldirilip deger 0-1 olarak uretilebilir;
+hangisi ODIN'in kanonik tercihiyse. Arayuz ikisini de dogru cizer - tek
+istedigi BEYANIN DEGERLE UYUSMASI.
+
+### Arayuz tarafinda ne yapildi
+
+`executiveKpiSchema`ya savunma kapisi kondu (UI-ADR-155):
+`scale="0-1"` beyaniyla gelen bir degerin mutlak degeri **1,5**'i asamaz
+(%150 bir oran degil, olcek hatasidir). Celiski halinde sayi basilmaz,
+sozlesme hatasi verilir.
+
+Yani bu duzeltilene kadar `sales_change_pct` ekranda **"Veri
+dogrulanamadi"** olarak gorunecek. Bu bilincli: yanlis bir yuzde, eksik bir
+yuzdeden tehlikelidir.
