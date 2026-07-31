@@ -21,7 +21,7 @@ import type { Decision } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
 import { relativeTime, useNow } from "@/lib/clock/tick";
-import { useOdinOpportunities } from "@/lib/data/odin-state";
+import { useOdinAlerts, useOdinOpportunities } from "@/lib/data/odin-state";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
@@ -157,7 +157,11 @@ export function ExecutiveBriefing({
 
   const hero = useMockData("briefing.hero");
   const decisions = useMockData("briefing.decisions");
-  const risks = useMockData("briefing.risks");
+  /* CANLI — `/api/state.alerts` (S10 · G3). `useOdinAlerts` bu mock
+     anahtarının tayin edilmiş karşılığıydı ve zaten yazılıydı; yeni
+     kanca yazılmadı. Liste bugün BOŞ ve doğru cevap bu: çalışma
+     zamanında alarm yok. `risks` AYRI bir kavram, buraya girmez. */
+  const risks = useOdinAlerts();
   /* CANLI — ODIN ADR-0154 (UI-ADR-141). Fırsat AYRI KAYIT DEĞİL: ODIN
      mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM yayınlıyor. Filtre
      (`detected` + uygulanabilir adım) ve sıralama ODIN'de; arayüz ikisini
@@ -176,7 +180,7 @@ export function ExecutiveBriefing({
   const reloadAll = () => {
     hero.reload();
     decisions.reload();
-    risks.reload();
+    risks.refetch();
     opportunities.refetch();
     kpis.reload();
     brief.reload();
@@ -260,7 +264,7 @@ export function ExecutiveBriefing({
           {/* Kart başlığı FİLTRE KURALINI söyler; boş bırakılırsa kartın
               üstünde boş bir şerit kalır ve eleme kuralı görünmez olur. */}
           <AlertStack
-            env={isEmpty ? empty(risks.data) : risks.data}
+            env={isEmpty ? empty(risks.envelope) : risks.envelope}
             title="Aksiyon gerektirenler"
           />
         </Section>

@@ -15,6 +15,7 @@
 import { z } from "zod";
 
 import type { DataEnvelope } from "@/types/data-envelope";
+import type { IntelligenceCategory, IntelligenceItem } from "@/types/screens";
 import { httpLoad } from "./client";
 import { IS_MOCK } from "./mode";
 import {
@@ -275,6 +276,75 @@ export function useOdinOpportunities(): OdinQueryResult<Opportunity[]> {
               evidence: o.evidence,
               category: o.category ?? null,
               priorityLevel: o.priority_level ?? null,
+            }))
+          );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Intelligence Feed — `/api/state.timeline` (S10 · G3)
+   -------------------------------------------------------------------------- */
+
+const timelineStateSchema = z.object({
+  generated_at: z.string(),
+  timeline: z.array(
+    z.object({
+      seq: z.number(),
+      ts: z.string(),
+      event: z.string(),
+      actor: z.string(),
+    })
+  ),
+});
+
+/** ODIN olay adının ALAN kısmı → arayüz kategorisi.
+ *
+ *  Yalnız gerekçelendirilebilen eşlemeler burada. Bir Amazon olayını
+ *  `amazon_anomaly` saymak gibi bir şey YOK: ODIN'in `amazon.*` olayı bir
+ *  anomali değil, sadece Amazon alanında olan bir şey. Eşleşmeyen her olay
+ *  `director_activity` olur — tipin kendi tanımı "olayı üreten Director /
+ *  modül" ve `actor` alanı gerçek kaynağı zaten taşıyor, yani hiçbir şey
+ *  gizlenmiyor ya da yanlış etiketlenmiyor. */
+const EVENT_DOMAIN_CATEGORY: Record<string, IntelligenceCategory> = {
+  risk: "critical_risk",
+  recommendation: "ai_recommendation",
+  knowledge: "new_knowledge",
+  decision: "pending_approval",
+  execution: "pending_approval",
+  secrets: "security_event",
+};
+
+/** ODIN olaylarında ÖNCELİK YOKTUR ve uydurulmayacak.
+ *
+ *  `IntelligenceItem.priority` sıralamayı sürüyor (1 en üstte) ve bileşen
+ *  eşitlikte "yeni olan üstte" diyor. Hepsine aynı değeri vermek, akışı
+ *  KRONOLOJİK yapar — verinin desteklediği tek sıralama budur. Kategoriden
+ *  öncelik türetmek (risk=1, onay=2 …) ODIN'de karşılığı olmayan bir
+ *  aciliyet sırası icat etmek olurdu. */
+const NO_PRIORITY_SIGNAL = 3 as const;
+
+export function useOdinFeed(): OdinQueryResult<IntelligenceItem[]> {
+  return useOdinQuery({
+    key: ["odin", "feed"],
+    module: "default",
+    schema: z.array(z.custom<IntelligenceItem>()),
+    load: IS_MOCK
+      ? async () => loadMock("feed.items")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = timelineStateSchema.parse(raw);
+          return envelope(
+            parsed.generated_at,
+            parsed.timeline.map((e) => ({
+              id: String(e.seq),
+              category:
+                EVENT_DOMAIN_CATEGORY[e.event.split(".")[0]] ??
+                "director_activity",
+              title: e.event,
+              at: e.ts,
+              priority: NO_PRIORITY_SIGNAL,
+              actor: e.actor,
             }))
           );
         },
