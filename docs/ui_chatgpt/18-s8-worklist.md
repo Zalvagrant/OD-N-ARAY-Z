@@ -77,7 +77,13 @@ eski Alert/KPI şemaları · `goalsMock`.
 - **İki modda tarayıcı:** mock → bölümler dolu, rozet var;
   gerçek → rozet yok, sayaçlar `—` + "kaynak bağlı değil", konsol hatasız
 - **Responsive** (spesifikasyon §9.4: hedef 1366–3840; tablet/mobil
-  "gelecek"): 1366 → taşma 0, KPI 4 sütun · 1920 → taşma 0, 8 bölüm
+  "gelecek"): Mission Control 1366 → taşma 0, KPI 4 sütun · 1920 → taşma 0.
+  **`/goals` ayrıca üç genişlikte ölçüldü** — 1366 · **1440** · 1920:
+  yatay taşma 0, 8 satır, **kardeş hücre binmesi 0**, hata kutusu 0.
+  1440 bilerek ölçüldü: S6 kapanışında en kötü hâl 1920'de değil ARADAKİ
+  genişlikte çıkmıştı (PPC kartı 1440'ta 45 px iç içeydi). Uzun hedef
+  metninin ilerleme sütununa binmesi bu ekranın en olası kusuruydu;
+  binmedi.
 
 ### Kapıların kapı olduğu ayrıca ölçüldü
 
