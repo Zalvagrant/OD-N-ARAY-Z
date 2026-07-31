@@ -40,7 +40,11 @@ hepsi yeşil. Lint 0, `tsc` 0.
 
 ## 2. SIRADAKİ İŞ — buradan devam et
 
-Görev listesi araçta (`TaskList`) duruyor. Öncelik sırası:
+> ⚠️ Önceki oturumun görev listesi (`TaskList`) **oturuma özeldi ve
+> kayboldu**. Aşağısı onun yerine geçer — kanıtlar buraya taşındı, başka
+> yere bakma.
+
+Öncelik sırası:
 
 ### 2.1 · Kalan büyük bileşenler (task #11)
 
@@ -92,6 +96,56 @@ kaybolacağı için "ekranı yalnız `app/` import eder" kuralı
   kullanmıyor.
 - `kpi()` fabrikası `mocks/amazon.ts:338` ve `mocks/briefing.ts:404`'te aynı.
 - `envelope()` `odin-state.ts:49` ve `odin-amazon.ts:82`'de aynı.
+- `toISOString().slice(0,10)` üç ayrı yerde.
+- **Etiket-değer gösterimi dört ayrı uygulama:** `ui/stat.tsx:38` (`Stat`),
+  `ui/typography.tsx:196` (`Num`), `executive/director-card.tsx:34`
+  (yerel `Metric` — `Stat`'ın satır satır kopyası), ve ham `<dt>/<dd>`
+  (`decision-card.tsx:249`, `council-view.tsx:39`,
+  `runtime-director-card.tsx:83`, `ai-recommendation-card.tsx:117`).
+- `<Num value={toPercentUnit(...)} format="percent" fractionDigits={1}>`
+  **9 kez** tekrarlanıyor.
+- **Export edilmemiş sihirli-dize birlikleri** (çağıran elle yeniden
+  yazıyor): `avatar.tsx:45,47` · `badge.tsx:47` size · `stat.tsx:50` ·
+  `typography.tsx:212` · `timeline.tsx:36` · `tooltip.tsx:36` ·
+  `modal.tsx:169,185`. `chart.tsx:47` `ChartProps` **export edilmemiş**
+  olmasına rağmen üç bileşen onu alıyor. `director-card.tsx:42`
+  `NumFormat`'ı elle yeniden tanımlıyor (oysa `typography.tsx:153`'te
+  export edilmiş).
+
+### 2.5 · Test edilmeyen "test edilebilir" yardımcılar
+
+Yedi fonksiyon *"tek yerde, test edilebilir"* yorumuyla export edilmiş ve
+**hiçbirinin testi yok** (repoda `src/lib` + `src/mocks` + `src/features`
+dışında birim testi yok):
+`activity-feed.tsx:49 sortIntelligence` · `alert-stack.tsx:42
+actionableAlerts` · `campaign-intelligence.tsx:49 sortCampaigns` ·
+`decision-queue.tsx:31 sortDecisions` · `monitored-decisions-board.tsx:36
+dueDeferrals` ve `:45 monitoredDecisions` · `ai-pulse.tsx:45
+rotationSeconds` · `simulation-panel.tsx:33 canRenderSimulation`.
+
+UI-ADR-130'da `atRiskSkus`/`losingBuyBoxSkus` için yapılan tam olarak
+budur: JSX'ten çıkar, saf fonksiyon yap, davranışı kilitle. Aynı kalıp
+bu yediye uygulanabilir.
+
+### 2.6 · Tüketicisi olmayan modüller — **önce sahibe sor**
+
+Hiçbir yerden import edilmiyor (hikâyeler hariç):
+`ui/chart.tsx` (357) · `ui/modal.tsx` (195, tek focus-trap uygulaması) ·
+`ui/tabs.tsx` · `ui/tooltip.tsx` · `ui/filter.tsx` · `ui/icon.tsx` ·
+`ui/avatar.tsx` · `ui/sparkline.tsx` · `executive/telemetry-bar.tsx`.
+
+Bunlar **tasarım sistemi envanteri mi, ölü kod mu** — karar sahibindir,
+kendiliğinden silme. `10-component-library.md` §10 envanteri kanonik
+kaynaktır, önce oraya bak.
+
+### 2.7 · Storybook boşlukları
+
+Hiç hikâyesi olmayanlar: `ui/no-data.tsx` · `ui/stat.tsx` (hiçbir story
+dosyasında geçmiyor) · `executive/confidence-breakdown.tsx` ·
+`executive/data-guard.tsx` · `executive/disclosure.tsx` ·
+`executive/meter.tsx` · `executive/monitored-decisions-board.tsx`
+(179 satır, `/mission-control`'ün ANA odak alanı) ·
+`executive/threshold-note.tsx`.
 
 ### 2.4 · Kalan erişilebilirlik (task #8 içinde açık bırakıldı)
 
