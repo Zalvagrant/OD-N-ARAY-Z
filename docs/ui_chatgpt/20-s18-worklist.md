@@ -193,6 +193,51 @@ panonun kaynaklardan türediğini doğrular (**nihai otorite**).
 > `operational` hâlâ 4 eksen; C-2'nin işi duruyor, yalnız gerekçesi kanıtlandı.
 - **Modül:** `briefing.py`'de kalır (iki skor mantığı/iki sözleşme oluşmasın); eksen hesaplayıcıları saf `_measure_<eksen>()` fonksiyonları olur
 
+#### B4.1 — Consumer doğrulaması  *(§8'in kararı: daraltıldı, ayrı blok değil)*
+
+**Kabul kriteri (sahip kararı):**
+
+> C-2 kapsamında eklenen **her yeni `/api/state` alanı** için en az bir
+> doğrulanmış consumer bulunmalıdır. Consumer yoksa alan **"orphan"** olarak
+> raporlanmalı ve sprint kapanışında **görünür** olmalıdır.
+
+Her yeni alan için sorulacaklar — hepsi bu, fazlası değil:
+
+| Soru | Cevap |
+|---|---|
+| `/api/state` yayınlıyor mu? | ✓ / ✗ |
+| Dashboard okuyor mu? | ✓ / ✗ |
+| Briefing okuyor mu? | ✓ / ✗ |
+| Director kullanıyor mu? | ✓ / ✗ |
+| Testi var mı? | ✓ / ✗ |
+
+Sonuç iki değerlidir: **`✓ consumer var`** veya **`ORPHAN`**.
+
+**KAPSAM DIŞI — açıkça:** 39 anahtarın tamamı için consumer grafiği
+çıkarmak. O iş `UI → API → Agent → Dashboard → Docs` zincirinin tamamını
+açar ve **başlı başına bir sprint konusudur** (S19'un yayın–tüketim
+envanteri). B4.1 yalnız C-2'nin **eklediği** alanlara bakar.
+
+**Gerekçe (S8'de birebir yaşandı):** producer ✅ · endpoint ✅ · test ✅ ·
+consumer ❌. `httpLoad` ve `useOdinQuery`'nin hiçbir ekran çağıranı yoktu,
+ekranda tek bir canlı ODIN değeri görünmüyordu, ve **testlerin geçmesi bunu
+gizledi**. API yayınlıyor ama kimse okumuyorsa o alan fiilen yoktur.
+
+> ⚠️ **Çözülen tasarım gerilimi.** "Raporlasın ama yaptırım olmasın" bu
+> repoda tehlikelidir: hiç kırmızı yanamayan bir kapı, kapı değildir
+> (UI-ADR-152'nin KRİTİK 1'i tam buydu). Ama yaptırım koymak da S18'in
+> "görünürlük" ilkesini deler.
+>
+> **Çözüm — alt sınır örüntüsünü tekrar kullan:** orphan listesi commit'li
+> bir kabul listesidir. Kapı, orphan **varlığında** değil, listede
+> **olmayan yeni bir orphan belirdiğinde** kırmızı yanar. Bugünkü
+> orphan'lar kabul edilmiş sayılır ve görünür kalır; sessizce yenisi
+> eklenemez.
+>
+> Bu, `verify-tests.mjs`'in alt sınır mekanizmasının aynısıdır (FLOOR 140'ta
+> unutulunca 53 test sessizce kaybolabiliyordu). Yeni mekanizma değil,
+> çalıştığı kanıtlanmış olanın ikinci kullanımı.
+
 ### B5 — Session Lease Detection  *(YALNIZ TESPİT)*
 
 - **Girdi (ölçülmüş risk, varsayım değil):** bu hazırlık oturumu sırasında
@@ -364,7 +409,18 @@ gerçeğini değil, `origin/main`'in gerçeğini yazmalı.
 
 ---
 
-## 8. AÇIK SORU — `/api/state` envanteri kapsamda mı?
+## 8. ~~AÇIK SORU~~ → KAPANDI: 3. seçenek onaylandı
+
+> **SAHİP KARARI (1 Ağu 2026): B4'ün içine daraltıldı — `B4.1 Consumer
+> doğrulaması`.** Altıncı blok açılmadı, S19'a da tamamen bırakılmadı.
+> Gerekçe: altıncı blok `/api/state`'in 39 anahtarı için tam consumer
+> grafiği demektir ve bu başlı başına bir sprint konusudur; S19'a tamamen
+> bırakmak ise S8'de ölçülmüş gerçek riski bir sprint boyunca açık tutardı.
+> Kabul kriteri ve kapsam sınırı **B4.1**'de.
+
+Aşağıdaki tartışma kaydı, kararın nasıl alındığını gösterdiği için duruyor.
+
+### Sorunun kaydı
 
 Sahibin kilitlediği beş blok listesinde **`/api/state` yayın–tüketim
 envanteri yok.** Bu hazırlığın ilk sürümünde dördüncü blok oydu. Sessizce
@@ -392,4 +448,4 @@ bugün **BİLİNMİYOR** (meclis de sayı tahmin etmeyi reddetti).
 3. **B4'ün içine daralt** — yalnız C-2'nin eklediği alanların ekran
    karşılığı doğrulansın, 39 anahtarın tamamı değil
 
-Sahip cevabı beklemede. Cevaplanana kadar S18 **beş bloktur**.
+**Karar: 3. seçenek.** Yukarıdaki kutuya bakın — B4.1 olarak kapandı.
