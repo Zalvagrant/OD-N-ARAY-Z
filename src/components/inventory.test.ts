@@ -13,11 +13,13 @@
  * Hikâyesi olmayan ve çağıranı da olmayan bir dosya envanter değildir —
  * hiç kimsenin bakmadığı koddur.
  *
- * KURAL: **çağıranı yoksa hikâyesi olacak.** İkisi birden yoksa test düşer.
+ * KURAL (iki kollu):
+ *   1. **Çağıranı yoksa hikâyesi olacak.**
+ *   2. **O hikâye bir DAVRANIŞ kanıtlayacak** (en az bir `play`) —
+ *      UI-ADR-142'de eklendi, gerekçesi aşağıda.
  *
  * Bu kural KASITLI OLARAK DAR: çağıranı OLAN bileşen için hikâye zorunlu
- * değildir (§2.7'de hâlâ yedi eksik var, onlar ayrı bir iş). Burada
- * kilitlenen şey yalnızca envanter kararının bedelidir.
+ * değildir. Burada kilitlenen şey yalnızca envanter kararının bedelidir.
  */
 
 import { describe, expect, it } from "vitest";
@@ -70,7 +72,6 @@ const components = all.filter(
 const productionImports = new Set(
   all.filter((f) => !isStory(f) && !isTest(f)).flatMap(importsOf)
 );
-const storyImports = new Set(all.filter(isStory).flatMap(importsOf));
 
 describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-140)", () => {
   const orphans = components.filter((f) => {
@@ -78,14 +79,47 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-140)
     return ![...productionImports].some((i) => i === id);
   });
 
+  /** Bir modülü import eden hikâye dosyaları. */
+  const storiesFor = (id: string) =>
+    all.filter(isStory).filter((f) => importsOf(f).includes(id));
+
   it.each(orphans.map((f) => moduleId(f)))(
     "%s — ekran tüketicisi yok, o hâlde hikâyesi olmalı",
     (id) => {
       expect(
-        [...storyImports].some((i) => i === id),
+        storiesFor(id).length > 0,
         `${id} ne bir ekrandan çağrılıyor ne de bir hikâyesi var. ` +
           `Envanter kararı (UI-ADR-140) GÖRÜLEBİLİR bileşenler içindir; ` +
           `hikâye yaz ya da dosyayı sil.`
+      ).toBe(true);
+    }
+  );
+
+  /**
+   * KAPININ AÇIĞI — UI-ADR-142 (gavadolar 2/2 buldu).
+   *
+   * "Hikâyesi var" yetmez: yalnız render eden bir story kapıyı BİÇİMSEL
+   * olarak geçer ama hiçbir davranış kanıtlamaz. O hâlde etiket yine tek
+   * başına ölü kodu meşrulaştırır — UI-ADR-140'ın engellemek için var
+   * olduğu şeyin ta kendisi.
+   *
+   * Ölçüldü: kapı yazıldığında envanterdeki DOKUZ bileşenin YEDİSİNİN
+   * hikâyesinde hiç `play` yoktu.
+   *
+   * Asgari koşul: en az bir `play` — yani bileşenin kamu davranışına dair
+   * en az bir iddia.
+   */
+  it.each(orphans.map((f) => moduleId(f)))(
+    "%s — hikâyesi bir DAVRANIŞ kanıtlamalı (en az bir `play`)",
+    (id) => {
+      const withPlay = storiesFor(id).filter((f) =>
+        /\bplay\s*:/.test(readFileSync(f, "utf8"))
+      );
+      expect(
+        withPlay.length > 0,
+        `${id} için hikâye var ama hiçbirinde \`play\` yok — yalnız render ` +
+          `ediyor. Envanter kararı (UI-ADR-140) DAVRANIŞI kanıtlanmış ` +
+          `bileşenler içindir; bir sözleşme iddiası yaz ya da dosyayı sil.`
       ).toBe(true);
     }
   );

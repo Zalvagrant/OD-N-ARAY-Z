@@ -3357,3 +3357,85 @@ gereksiz.
 ### Ölçüm
 
 `tsc` 0 · `lint` 0 hata · **60 dosya / 360 test** (+6 test).
+
+---
+
+## UI-ADR-142 — Story bir DAVRANIŞ kanıtlar; envanter kapısı bunu ister (S13)
+
+**Durum:** ✅ Dondurulmuş — ölçüldü
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-140 · UI-ADR-141 · gavadolar 2/2
+
+### Bulgu — kendi kapımdaki açık
+
+UI-ADR-140 "çağıranı yoksa hikâyesi olacak" kapısını kurmuştu. gavadolar
+sordu: *"Ama şimdi o kapıyı doldurmak için story yazıyorsun — bu kapıyı
+anlamsızlaştırmaz mı?"* Cevap **evet**: yalnız render eden bir story kapıyı
+BİÇİMSEL olarak geçer, hiçbir davranış kanıtlamaz ve etiket yine tek başına
+ölü kodu meşrulaştırır.
+
+Ölçüldü: envanterdeki **dokuz bileşenin YEDİSİNİN** hikâyesinde hiç `play`
+yoktu (`chart` · `tabs` · `tooltip` · `icon` · `avatar` · `sparkline` ·
+`telemetry-bar`).
+
+Kapıya ikinci kol eklendi: **hikâye en az bir `play` içerecek.** Yedisine
+de gerçek sözleşme testi yazıldı — hepsi bir YOKLUK iddiası taşıyor:
+rastgele avatar üretilmez · dekoratif ikon okunmaz · içeriksiz tooltip bağ
+kurmaz · iki noktadan az veri çizgi çizmez · **ölçülemeyen nokta 0 olarak
+çizilmez** (yol `d`sinde ikinci bir `M`) · kapalı telemetri kanalı ekranda
+hiç yoktur · açık ama değersiz kanal "0" değil "—" yazar.
+
+### §2.7 kapandı — yedi yeni story
+
+`no-data` · `data-guard` · `threshold-note` · `meter` · `disclosure` ·
+`confidence-breakdown` · `monitored-decisions-board`.
+
+**En kritik olanı `data-guard`.** gavadolar 2/2 kuralı: *"görünmüyor"
+yetmez, RENDER EDİLMEDİĞİ kanıtlanmalı* — görünmez bir çocuk yine de hesap
+yapar, istek atar, patlar. Test bir `fn()` casusu kullanıyor ve `null`,
+`undefined`, **meta'sız zarf** durumlarında çocuğun HİÇ ÇAĞRILMADIĞINI
+gösteriyor. (Meta'sız zarf sınır durumu ayrıca anlamlı: gerçek ama
+KAYNAKSIZ veri, uydurulmuş veriden daha sinsidir.)
+
+`threshold-note`ta üçüncü bir durum ortaya çıktı ve teste girdi:
+`provenance` YOKSA hiçbir iddia üretilmez — *"bilmiyorum"* ile
+*"onaylanmadı"* ayrı şeylerdir; ikincisini yazmak olmayan bir yönetişim
+bulgusu uydurmak olurdu.
+
+### Dosya düzeni — gavadolar'ın TEK çelişkisi
+
+terra "yedi ayrı dosya" (her sözleşme bağımsız), luna "dosya sınırı
+bileşen sayısına değil DAVRANIŞ ve RİSK sınırına konur" dedi. Sentez:
+anti-fake KAPISI olan üçü ayrı dosyada (`data-guard`, `threshold-note`,
+`monitored-decisions-board`); gösterim primitive'i olan üçü tek dosyada
+(`primitives.stories.tsx`) — reponun kendi emsali (`display.stories.tsx`
+dört primitive'i kapsar) bunu zaten kabul etmişti. Başarısızlık çıktısı
+yine ayrışıyor: her story'nin kendi adı var.
+
+### ♻️ UI-ADR-141'in "kök neden" iddiası YANLIŞTI
+
+141 `connectTimeout: 180_000`'i **proje** seviyesine yazmış ve tuzak #1'in
+kök nedeni bulundu demişti. Ölçüldü, yanlıştı: Vitest bu değeri
+`project.vitest.config.browser.connectTimeout ?? 6e4` ile **KÖK**
+config'ten okuyor; proje içindekini sessizce yok sayıyor.
+
+**Nasıl anlaşıldı:** proje seviyesine `connectTimeout: 1_000` konup
+koşuldu — test 25 saniyede GEÇTİ. Ayar uygulansaydı 1 sn'de düşmeliydi.
+Kaynak okundu, `?? 6e4` bulundu; gözlenen tüm düşüşlerin ~61 sn'de olması
+da bunu doğruladı. Değer köke taşındı ve **deneyle** doğrulandı (kökte
+1 sn ile anında düştü, 180 sn ile 50/50 geçti).
+
+Ders, bu oturumda beşinci kez aynı: **bir düzeltmenin işe yaradığını
+ölçmeden ilan etme.** Testin yeşil olması, düzeltmenin sebep olduğu
+anlamına gelmez.
+
+### Testin kendisi BEŞİNCİ kez yanlış çıktı
+
+`chart` testi `<circle>` sayısına bakıyordu; nokta işaretçisi yalnız
+klavye imleci için çiziliyor. Asıl değişmez yolun `d` niteliğindeydi.
+Bileşen doğru, test yanlıştı.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **65 dosya / 402 test** (unit 15/215 ·
+storybook 50/187). `ChartProps` de export edildi (§2.3 kalemi).

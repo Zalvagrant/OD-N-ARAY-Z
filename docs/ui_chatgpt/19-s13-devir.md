@@ -38,15 +38,16 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 | **139** | 8 saf fonksiyon nihayet test altında | 25 iddia; `decision-queue.tsx` başlığının kodla çeliştiği ortaya çıktı |
 | **140** | **SAHİP KARARI:** 9 tüketicisiz modül envanter olarak kalır | `inventory.test.ts` kapısı: çağıranı yoksa hikâyesi olacak — enjekte ihlalle denendi |
 | **141** | Erişilebilirlik: 5 açık kapandı + tuzak #1'in KÖK NEDENİ | ızgara adı · iconOnly derleme kapısı · modal labelledby · Escape kökte · search combobox; `connectTimeout` ile testler tek koşuda |
+| **142** | Story bir DAVRANIŞ kanıtlar; §2.7 kapandı | 7 yeni story + envanterdeki 7 bileşene `play`; kapıya ikinci kol; 141'in kök-neden iddiası düzeltildi |
 | — | `main` (S14) dala merge edildi | **UI-ADR-129 çakışması** çözüldü: main'inki dondurulmuş, bizimki 135'e taşındı |
 
 
-**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **60 dosya/360 test**
+**Test tabanı:** başlangıç 54 dosya/292 test → şimdi **65 dosya/402 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
-+4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den),
++4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den, +5 dosya/+42 test UI-ADR-142'den),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…141**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…142**.
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -154,15 +155,12 @@ Kapı: `src/components/inventory.test.ts` — **çağıranı yoksa hikâyesi
 olacak**, ve liste dokuz kalemden büyürse test düşer. Yeni bir bileşeni
 çağıranı olmadan eklemek isteyen önce hikâyesini yazar.
 
-### 2.7 · Storybook boşlukları
+### 2.7 · ~~Storybook boşlukları~~ ✅ KAPANDI
 
-Hiç hikâyesi olmayanlar: `ui/no-data.tsx` · ~~`ui/stat.tsx`~~ ✅ kapandı
-(`ui/stat.stories.tsx`, UI-ADR-136 — reponun `components/ui` altındaki
-ilk davranış testi) · `executive/confidence-breakdown.tsx` ·
-`executive/data-guard.tsx` · `executive/disclosure.tsx` ·
-`executive/meter.tsx` · `executive/monitored-decisions-board.tsx`
-(179 satır, `/mission-control`'ün ANA odak alanı) ·
-`executive/threshold-note.tsx`.
+**UI-ADR-142.** Yedisinin de story'si var ve hepsi `play` taşıyor.
+Ayrıca envanterdeki (UI-ADR-140) yedi bileşene de davranış testi yazıldı —
+gavadolar kapıdaki açığı buldu: "hikâyesi var" yetmez, yalnız render eden
+story hiçbir şey kanıtlamaz. Kapıya ikinci kol eklendi.
 
 ### 2.4 · ~~Kalan erişilebilirlik~~ ✅ KAPANDI
 
@@ -179,8 +177,11 @@ tam ARIA combobox (120 ms zamanlayıcı kalktı).
 1. ~~**Tam test paketinden önce dev sunucusunu KAPAT.**~~ **♻️ KÖK NEDEN
    BULUNDU — UI-ADR-141'de düzeltildi.** Dev sunucusuyla ilgisi yoktu.
    Sebep: 45 story dosyasının soğuk Vite dönüşümü varsayılan 30 sn'lik
-   `browser.connectTimeout`u aşıyordu. `vitest.config.ts`'te 180 sn'ye
-   çıkarıldı; storybook projesi artık **tek komutta 45/45** geçiyor,
+   `browser.connectTimeout`u aşıyordu. ⚠️ Ayar **KÖK** `test.browser`a
+   yazılmalı — proje içine yazılırsa Vitest onu SESSİZCE YOK SAYAR
+   (`project.vitest.config.browser.connectTimeout ?? 6e4`); UI-ADR-141
+   önce oraya yazdı ve düzeltme hiç etkili olmadı, UI-ADR-142'de
+   düzeltildi. Şimdi storybook projesi **tek komutta 50/50** geçiyor,
    parçalamaya (`--shard`) gerek yok.
    ⚠️ **AMA iki projeyi AYNI ANDA çalıştırma:** `unit` (node) ile
    `storybook` (tarayıcı) birlikte koşarsa node işçileri CPU'yu tutuyor ve
@@ -226,9 +227,9 @@ npm run lint              # 0 hata olmalı
 # Tam paketi TEK SEFERDE çalıştırma — tarayıcı bağlantısı zaman aşımına
 # uğruyor (tuzak #1, düzeltilmiş hâli). DİZİN bazında parçala; `--shard`
 # de işe yarar ama dizin bölmesi ölçümde daha kararlı çıktı:
-npx vitest run --project=unit        # 15 dosya / 206 test
-npx vitest run --project=storybook   # 45 dosya / 154 test  (TEK komut)
-#                            TOPLAM: 60 dosya / 360 test
+npx vitest run --project=unit        # 15 dosya / 215 test
+npx vitest run --project=storybook   # 50 dosya / 187 test  (TEK komut)
+#                            TOPLAM: 65 dosya / 402 test
 # ⚠️ `npx vitest run` (ikisi birden) KULLANMA — tuzak #1'e bak.
 
 # ÜRETİM DERLEMESİ + EKRAN DOĞRULAMASI (31 Tem'de yapıldı)

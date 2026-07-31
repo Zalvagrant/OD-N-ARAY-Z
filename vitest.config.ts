@@ -20,6 +20,22 @@ export default defineConfig({
     alias: { '@': path.join(dirname, 'src') },
   },
   test: {
+    /* TARAYICI BAĞLANTI ZAMAN AŞIMI — KÖKTE OLMAK ZORUNDA (UI-ADR-142).
+     *
+     * Vitest bu değeri `project.vitest.config.browser.connectTimeout ?? 6e4`
+     * ile okur: `vitest.config`, yani KÖK config. Proje içindeki
+     * `browser.connectTimeout` OKUNMAZ — oraya yazıldığında sessizce yok
+     * sayılır ve varsayılan 60 sn yürürlükte kalır.
+     *
+     * Nasıl anlaşıldı: proje seviyesine `connectTimeout: 1_000` konup
+     * koşuldu ve test 25 saniyede GEÇTİ. Ayar uygulansaydı 1 sn'de
+     * düşmesi gerekirdi. Kaynak okundu, `?? 6e4` bulundu — gözlenen tüm
+     * düşüşlerin ~61 sn'de olması da bunu doğruluyor.
+     *
+     * (UI-ADR-141 bu ayarı proje içine yazmış ve "kök neden bulundu"
+     * demişti; YANLIŞTI, UI-ADR-142'de düzeltildi. Bu oturumda dördüncü
+     * kez bir iddia ölçülmeden doğru sanıldı.) */
+    browser: { connectTimeout: 180_000 },
     projects: [
       {
         // Saf mantık testleri (chart ölçekleme gibi) — tarayıcı gerekmez.
@@ -61,23 +77,8 @@ export default defineConfig({
             headless: true,
             provider: playwright({}),
             instances: [{ browser: 'chromium' }],
-            /* KARARSIZLIK DÜZELTMESİ — UI-ADR-141.
-               Devir belgesi bunu "dev sunucusu açıkken testler düşer"
-               diye kaydetmişti; ÖLÇÜLDÜ, yanlış teşhisti (düşüşün olduğu
-               koşuda dev sunucusu BAŞKA bir worktree'ye aitti ve sunucu
-               açıkken de geçen koşular vardı).
-
-               Gerçek sebep: 45 story dosyasının soğuk Vite dönüşümü
-               varsayılan 30 sn'lik `connectTimeout`u aşıyor ve Vitest
-               tarayıcı oturumunu ÖLDÜ sayıyor. Kod hatası değil.
-
-               ⚠️ TEK BAŞINA YETMEZ: `unit` (node, 15 dosya) ile
-               `storybook` (tarayıcı, 45 dosya) AYNI ANDA koşarsa node
-               işçileri CPU'yu tutuyor ve bağlantı yine düşüyor — ölçüldü,
-               birleşik koşu 62 sn'de patladı. Bu yüzden iki proje AYRI
-               çalıştırılır (bkz. 19-s13-devir.md §5). Ayrı koşuda
-               45/45 iki kez üst üste geçti (2s22, 3s19). */
-            connectTimeout: 180_000,
+            /* `connectTimeout` BURAYA YAZILMAZ — kökte olmak zorunda,
+               yukarıdaki nota bak (UI-ADR-142). */
           },
         },
       },
