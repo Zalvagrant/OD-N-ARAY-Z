@@ -195,19 +195,22 @@ görünümü).
 | S5 Briefing + Mission Control · S5.5 Sözleşme Hizalama | ✅ `main`'de |
 | S6 Amazon Director | ✅ `main`'de (ADR-0143'e hizalandı) |
 | S7 State & Data Layer | ✅ `main`'de (UI-ADR-112…115) |
-| **S8 Amazon Canlı Bağlantı** | ⚠️ **dalda** — `feature/s8-amazon-live-v2`, UI-ADR-118…123. Meclis hükmü İKİYE AYRILDI: **teknik merge ✅**, **ürün kapanışı ❌** |
+| **S8 Amazon Canlı Bağlantı** | ⚠️ **dalda** — `feature/s8-amazon-live-v2`, UI-ADR-118…124. Meclis: **teknik merge ✅**. `/goals` ile **ilk canlı ODIN verisi ekranda** (üretim derlemesinde doğrulandı) |
 | S9 AI Gateway ve sonrası | ⬜ başlanmadı |
 
-**S8 neden "ürün kapanışı ❌":** boru, kapılar ve canlı vekil doğrulaması
-teslim edildi ama **ekranda tek bir canlı ODIN değeri yok** — `httpLoad`
-ve `useOdinQuery`'nin hiçbir ekran çağıranı yok. Sebebi kod eksikliği
-değil: ODIN gerekli sözleşmeleri henüz yayınlamıyor
-(`backend-istekleri.md`, 12 madde) ve bağlanabilir tek sözleşme olan
-`Goal`'ün arayüzdeki yeri **sahip kapsam kararı** bekliyor. Ayrıntı:
-`18-s8-worklist.md`.
+**S8 ne teslim etti:** veri borusu + kapılar + canlı vekil + **`/goals`
+ekranı**. Sahip Goal kapsam kararını verdi (gavadolar 2/2 → ayrı ekran,
+UI-ADR-124) ve `Hedefler` arayüzdeki **ilk canlı ODIN verisini**
+gösteriyor — 3 acil hedef ölçülen ilerlemeleriyle, 5 çeyreklik hedef
+"İlerleme ölçülmüyor" ile.
 
-**S9'a geçmeden önce** o kararın verilmesi gerekir; yoksa "canlı veri"
-katmanı hiç tüketilmeden AI katmanı onun üstüne kurulur.
+**Kalan sözleşmeler ODIN'de yayınlanmıyor** (KPI §2, Alert §1, karar
+kayıtları, `AgentHealth.verdict`, `sku_stats`, PPC) — kanıtlı 12 maddelik
+liste `backend-istekleri.md`'de. Her yeni uç nokta yayınlandıkça bir
+bölüm üçer satırla canlıya geçer.
+
+⚠️ **Dev modda hidrasyon durdu — ayrı borç.** Üretim derlemesi sorunsuz;
+sorun dev/Turbopack'e özgü. Ayrıntı `18-s8-worklist.md`.
 
 ### Her sprint sonunda
 

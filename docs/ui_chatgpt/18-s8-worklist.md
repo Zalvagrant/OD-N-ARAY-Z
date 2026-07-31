@@ -5,38 +5,38 @@
 
 ---
 
-## 0. ÖNCE DÜRÜST BAŞLIK — sprint adını bugün KARŞILAMIYOR
+## 0. DURUM — sprint adı KARŞILANDI (31 Tem, gün sonu)
 
-Sprintin adı "Amazon Canlı Veri". **Bugün ekranda tek bir canlı ODIN
-değeri yok ve bunu gizlemenin anlamı yok.**
+Bu bölüm gün içinde iki kez yazıldı. İlk hâli şuydu ve o an DOĞRUYDU:
 
-Ölçüm (iddia değil): `httpLoad` ve `useOdinQuery` için `src/` altında
-kendi modülleri ve yorumları dışında **çağıran yok**. Yani veri borusunun
-tamamı yazıldı, testlendi, canlı cockpit'e karşı doğrulandı — ama hiçbir
-ekran onu kullanmıyor.
+> "Sprintin adı 'Amazon Canlı Veri'. Ekranda tek bir canlı ODIN değeri
+> yok. Ölçüm: `httpLoad` ve `useOdinQuery` için çağıran YOK."
 
-İki sebebi var ve ikisi de kasıtlı:
+**Artık değil.** Sahip Goal kapsam kararını verdi (meclise havale etti,
+gavadolar 2/2 (c) dedi) ve `Hedefler` ekranı bağlandı: **`/goals`
+arayüzdeki İLK canlı ODIN verisini gösteriyor** — üretim derlemesinde,
+gerçek modda, tarayıcıda doğrulandı.
 
-1. **Tek bağlanabilir sözleşme `Goal`'dü ve bağlanmadı.** ODIN'in
-   `/api/state.goals`'u gerçek veri yayınlıyor (8 hedef ölçüldü). ADR-0143
-   §4 uydurma `Mission`'ı reddetti; `Goal` ise ODIN'in ayrı ve gerçek
-   varlığıdır (ADR-0034). gavadolar 2/2: **ikisi aynı şey değil, ama
-   Goal'ün arayüzdeki yeri ayrı bir SAHİP kapsam kararıdır.** Karar
-   gelmeden bağlamak, onaylanmamış bir bölüm icat etmek olurdu.
-2. **Geri kalan her sözleşme ODIN tarafında yayınlanmıyor.** KPI §2 zarfı,
-   Alert §1 zarfı, karar kayıtları, `AgentHealth.verdict`, `sku_stats`,
-   PPC — hiçbiri `/api/state`'te yok. Ayrıntı ve kanıt:
-   `backend-istekleri.md`.
+Ekranda görülen (gerçek cockpit yükü, mock DEĞİL):
+- 3 acil hedef, ölçülen ilerlemeleriyle: **%25** · %0 · %0
+- 5 çeyreklik hedef: **"İlerleme ölçülmüyor"** — `null` hiçbir yerde
+  `0`'a düşmedi (ADR-0143 §4)
+- Mock rozeti YOK · konsol hatasız · "Son senkron: az önce"
 
-**Bu bir başarısızlık değil, bir teşhis:** S8 planlanırken "veri hazır,
-bağla" varsayılıyordu. Ölçüldüğünde varsayım yanlış çıktı. Uydurulmuş bir
-"canlı" ekran teslim etmek, boş bir ekran teslim etmekten kat kat kötü
-olurdu — ürünün tamamının güvenilirliği ona bağlı.
+**Geri kalan sözleşmeler hâlâ yayınlanmıyor** (KPI §2 zarfı, Alert §1
+zarfı, karar kayıtları, `AgentHealth.verdict`, `sku_stats`, PPC) —
+kanıtlı liste `backend-istekleri.md`'de, 12 madde. Yani S8 canlı veriyi
+AÇTI; ODIN her yeni uç noktayı yayınladıkça bir bölüm daha üçer satırla
+canlıya geçer.
 
-**Teslim edilen gerçek değer:** boru + kapılar + kanıtlı talep listesi.
-ODIN bir uç nokta yayınladığı gün bir bölüm **üç satırla** canlıya geçer.
-
----
+⚠️ **AYRI BORÇ — dev modda hidrasyon durdu.** Ekranı önce
+doğrulayamadım: dev sunucusunda istemci hidrasyonu TÜM uygulamada
+çalışmıyordu (mock modda da, Mission Control'de de; "Daralt" düğmesi
+tepkisiz, hiçbir chunk düşmüyor, konsolda hata yok). "Ortamsal" deyip
+bırakmak yerine üretim derlemesinde denendi ve **orada sorunsuz
+hidrasyon oldu**. Teşhis: sorun dev/Turbopack'e özgü. Üretimi
+etkilemiyor ama geliştirme deneyimini bozuyor — ayrı bir iş olarak
+kayıtlı.
 
 ## 1. Neden dal yeniden kuruldu
 

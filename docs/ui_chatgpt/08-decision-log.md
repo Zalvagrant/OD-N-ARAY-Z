@@ -2207,13 +2207,29 @@ tamamı ölçülür: ham ODIN → `stateSchema` → `adaptGoals` → `goalSchema
 Ölçülen/ölçülmeyen ilerlemenin ayrı kaldığı ve `null`'ın `0`'a düşmediği
 ayrıca test edilir.
 
-**⚠️ TARAYICI DOĞRULAMASI YAPILAMADI — dürüst kayıt.** Ekran sunucuda
-doğru render ediliyor (başlık, üç grup, metinler) ve `useOdinGoals`
-`IS_MOCK=false` ile çalışıyor (sunucu logunda görüldü); vekil de sayfa
-bağlamından 8 gerçek hedef döndürüyor. **Ama istemci hidrasyonu bu
-oturumun sonunda tüm uygulamada durdu** — mock modda da, Mission
-Control'de de; "Daralt" düğmesi bile tepki vermiyor, hiçbir chunk
-düşmüyor, konsolda hata yok. Oturumun başında hidrasyon ÇALIŞIYORDU
-(mock veri ekrana gelmişti), dolayısıyla bu ortamsal bir bozulmadır, bu
-ekranın kusuru değil. **Ekranın canlı ODIN verisini gösterdiği
-DOĞRULANMAMIŞTIR** ve doğrulanana kadar öyle sayılmamalıdır.
+**✅ TARAYICIDA DOĞRULANDI — arayüzdeki İLK canlı ODIN verisi.**
+
+Önce doğrulayamamıştım: dev sunucusunda istemci hidrasyonu tüm uygulamada
+duruyordu (mock modda da, Mission Control'de de; "Daralt" düğmesi bile
+tepkisiz, chunk düşmüyor, konsol hatasız). "Ortamsal" deyip bırakmak
+yerine ÜRETİM derlemesinde denendi ve **hidrasyon orada sorunsuz çalıştı.**
+
+→ **Teşhis: hidrasyon kırılması dev/Turbopack'e özgüdür, üretimde yoktur.**
+Ayrı bir borç olarak kaydedildi (`18-s8-worklist.md`); bu ekranın kusuru
+değil.
+
+Üretim derlemesinde ölçülen (gerçek mod, cockpit 8765 açık):
+- `hidrasyon: true` · konsolda hata yok · **mock rozeti YOK**
+- Gerçek veri imzası ekranda: "ACIL: 8 urun icin tedarikci siparisi
+  **(stok krizi - momentum -%16 nedeni)**" — bu metin mock'ta YOKTUR,
+  yalnız canlı cockpit yükünde vardır
+- Ölçülen ilerleme çizildi: **%25** · %0 · %0
+- **5 çeyreklik hedef "İlerleme ölçülmüyor"** dedi — `null` hiçbir yerde
+  `0`'a düşmedi
+- "Son senkron: az önce"
+
+**Bir kusur bu ölçümle bulundu:** mock kayıtlar GERÇEK ODIN ID'lerini
+taşıyordu (`GOAL-ACIL-STOK-2026-07`). Paket kapısının imzası belirsiz
+kalıyordu (aynı dize hem mock'ta hem canlı veride) ve bir mock kaydın
+gerçek kimlik taşıması başlı başına yanıltıcıydı. ID'ler `GOAL-MOCK-*`
+oldu, kapı imzası da güncellendi.

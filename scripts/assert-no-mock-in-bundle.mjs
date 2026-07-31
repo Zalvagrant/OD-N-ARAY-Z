@@ -25,7 +25,7 @@ const SIGNATURES = [
   "snapshotMock",
   "feedMock",
   "goalsMock",
-  "GOAL-ACIL-STOK-2026-07",
+  "GOAL-MOCK-STOK",
 ];
 
 const ROOTS = [".next/static", ".next/server"];
