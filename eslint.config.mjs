@@ -86,23 +86,85 @@ const eslintConfig = defineConfig([...nextVitals, ...nextTs, {
   files: ["src/components/layout/theme-provider.tsx"],
   rules: { "react-hooks/set-state-in-effect": "off" },
 }, {
-  /* MOCK ERİŞİMİ TEK KAPIDAN — UI-ADR-123.
-     Bir ekran mock modülünü doğrudan import ederse modül üretim paketine
-     geri girer; `build:release` kapısı bunu yakalar ama derleme sonunda,
-     yani en geç. Kural aynı hatayı düzenleyicide yakalar.
-     Muafiyet: kayıt defterinin kendisi, hikâyeler ve testler (bunlar
-     üretim paketine girmez). */
+  /*
+   * KATMAN SINIRLARI — UI-ADR-130.
+   *
+   * NEDEN KURAL: sınırlar S13'te ELLE onarıldı (ölçüldü: `screens → mocks`
+   * 8 kenar, `layout → screens` 2 kenar, `mocks → components/ui` 1 kenar).
+   * Kural yazılmazsa aynı kenarlar geri gelir — bir sonraki oturum
+   * `import { skusMock } from "@/mocks/amazon"` yazdığında hiçbir şey
+   * itiraz etmez ve onarım baştan yapılır. Mimarinin dokümanda değil
+   * DERLEYİCİDE yaşaması gerekir.
+   *
+   * İZİNLİ YÖN — yukarıdan aşağı, asla ters:
+   *
+   *     app  →  features  →  components/{screens,executive,layout,ui}
+   *                       →  lib  →  types
+   *
+   * `app` kompozisyon köküdür: her şeyi tanır, kimse onu tanımaz.
+   */
   files: ["src/**/*.{ts,tsx}"],
-  ignores: [
-    "src/mocks/**",
-    "src/**/*.stories.tsx",
-    "src/**/*.test.{ts,tsx}",
-  ],
+  ignores: ["src/**/*.stories.tsx", "src/**/*.test.{ts,tsx}"],
+  rules: {
+    "no-restricted-imports": ["error", {
+      patterns: [
+        {
+          /* Mock erişimi TEK KAPIDAN — UI-ADR-123 · 129.
+             Kayıt defteri dışındaki her mock modülü yasak; doğrudan import
+             modülü üretim paketine geri sokar. */
+          group: ["@/mocks/*", "**/mocks/*", "!@/mocks/registry"],
+          message:
+            "Mock modülünü doğrudan import etme (UI-ADR-123): üretim paketine girer. Fixture için useOdinFixture(\"anahtar\") kullan — anahtarlar src/mocks/registry.ts'te.",
+        },
+        {
+          /* TERS BAĞIMLILIK: aşağıdaki katmanlar ekranı tanıyamaz.
+             Kabuk her feature'ı tanırsa hiçbir feature tek başına
+             taşınamaz; sağ panel bunun için slota çevrildi. */
+          group: ["@/components/screens/**", "**/components/screens/**"],
+          message:
+            "Ekranı yalnızca app/ kompozisyon kökü import eder (UI-ADR-130). Kabuk bir SLOT tanımlar, içeriği app/ verir — bkz. app/(shell)/context-panel.tsx.",
+        },
+      ],
+    }],
+  },
+}, {
+  /* `app/` kompozisyon köküdür — ekranları o birleştirir. */
+  files: ["src/app/**/*.{ts,tsx}"],
   rules: {
     "no-restricted-imports": ["error", {
       patterns: [{
-        group: ["@/mocks/amazon", "@/mocks/briefing", "@/mocks/feed", "**/mocks/amazon", "**/mocks/briefing", "**/mocks/feed"],
-        message: "Mock modülünü doğrudan import etme (UI-ADR-123): üretim paketine girer. useMockData(\"anahtar\") kullan — anahtarlar src/mocks/registry.ts'te.",
+        group: ["@/mocks/*", "**/mocks/*", "!@/mocks/registry"],
+        message: "Mock modülünü doğrudan import etme (UI-ADR-123).",
+      }],
+    }],
+  },
+}, {
+  /* Mock katmanı VERİ üretir; onu çizen bileşeni tanımaz.
+     `TimelineItem` tam olarak bu yüzden `types/`e taşındı (UI-ADR-130). */
+  files: ["src/mocks/**/*.{ts,tsx}"],
+  rules: {
+    "no-restricted-imports": ["error", {
+      patterns: [{
+        group: ["@/components/**", "**/components/**"],
+        message:
+          "Mock bir bileşeni import edemez (UI-ADR-130): veri şeklinin sahibi types/ katmanıdır, onu çizen bileşen değil.",
+      }],
+    }],
+  },
+}, {
+  /* Tasarım sistemi primitive'i uygulama katmanlarını tanımaz — tanısaydı
+     Storybook'ta tek başına render edilemezdi. */
+  files: ["src/components/ui/**/*.{ts,tsx}"],
+  ignores: ["src/components/ui/mock-badge.tsx", "src/**/*.stories.tsx"],
+  rules: {
+    "no-restricted-imports": ["error", {
+      patterns: [{
+        group: [
+          "@/components/screens/**", "@/components/executive/**",
+          "@/features/**", "@/mocks/**", "@/lib/store/**",
+        ],
+        message:
+          "ui/ primitive katmanıdır: feature, ekran, store ya da mock tanıyamaz (UI-ADR-130).",
       }],
     }],
   },

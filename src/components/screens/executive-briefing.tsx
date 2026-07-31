@@ -22,6 +22,7 @@ import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
 import { useNow } from "@/lib/clock/tick";
 import { MockBadge } from "@/components/ui/mock-badge";
+import { greeting } from "@/features/executive/presentation/greeting";
 import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
@@ -46,16 +47,6 @@ import { TrustSignal } from "@/components/executive/trust-signal";
 /* --------------------------------------------------------------------------
    Hero — 05-dashboard.md §3.1. Ekranın TEK Hero Element'i.
    -------------------------------------------------------------------------- */
-
-/** Saat istemciden gelir; gelmeden selamlama YAZILMAZ (uydurma yok). */
-function greeting(now: number | null): string | null {
-  if (now === null) return null;
-  const h = new Date(now).getHours();
-  if (h < 6) return "İyi geceler";
-  if (h < 12) return "Günaydın";
-  if (h < 18) return "İyi günler";
-  return "İyi akşamlar";
-}
 
 function HeroView({ hero, meta }: { hero: ExecutiveHero; meta: DataMeta }) {
   const now = useNow();

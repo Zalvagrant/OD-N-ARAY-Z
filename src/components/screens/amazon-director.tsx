@@ -59,8 +59,20 @@ import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { Meter } from "@/components/executive/meter";
 import { PPCOverviewCard, PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 import { SimulationPanel } from "@/components/executive/simulation-panel";
+import { ThresholdNote } from "@/components/executive/threshold-note";
 import { TrustSignal } from "@/components/executive/trust-signal";
-import { AMAZON_SKU_KIND, SKU_STATUS } from "./amazon-sku-panel";
+import {
+  AMAZON_SKU_KIND,
+  SKU_SCALE,
+  SKU_STATUS,
+} from "@/features/amazon/presentation/sku";
+import {
+  BUY_BOX_RISK_BELOW,
+  BUY_BOX_RISK_DESCRIPTION,
+  HEALTH_SCORE_GOOD_MIN,
+  UI_THRESHOLD_PROVENANCE,
+} from "@/features/amazon/presentation/thresholds";
+import { atRiskSkus, losingBuyBoxSkus } from "@/features/amazon/selectors";
 
 /* --------------------------------------------------------------------------
    Layer 1 — Executive Glance. §1.3: "Grafik karmaşası yok, sadece:"
@@ -88,7 +100,7 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
                 <Meter
                   value={s.healthScore}
                   label="Amazon sağlık skoru"
-                  tone={s.healthScore >= 80 ? "success" : "warning"}
+                  tone={s.healthScore >= HEALTH_SCORE_GOOD_MIN ? "success" : "warning"}
                   noDataReason="Sağlık skoru hesaplanmadı"
                 />
                 <Num value={s.healthScore} size="lg" noDataReason="Skor yok" />
@@ -262,7 +274,6 @@ function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
    SKU Health tablosu — sütunlar dar kolona sığacak kadar; gerisi sağ panelde
    -------------------------------------------------------------------------- */
 
-const SKU_SCALE = "0-100" as const;
 
 /* `now` PARAMETRESİ DÜŞTÜ: tabloda artık geri sayım yok — tükenme
    tarihi ODIN tarafından üretilmiyor (ADR-0149). Envanter bölümü
@@ -454,12 +465,8 @@ export function AmazonDirector({
      ölçülemeyen bir SKU riskli değildir, ÖLÇÜLMEMİŞTİR — ikisini
      karıştırmak 48'in 29'unu risk listesine doldurur ve liste anlamını
      yitirir. `no_movement` da ayrı bir bulgudur, stok riski değil. */
-  const atRisk = skuRows.filter(
-    (s) => s.status === "critical" || s.status === "warn"
-  );
-  const losingBuyBox = skuRows
-    .filter((s) => s.sales.buyBoxRate !== null && s.sales.buyBoxRate < 90)
-    .sort((a, b) => (a.sales.buyBoxRate ?? 0) - (b.sales.buyBoxRate ?? 0));
+  const atRisk = atRiskSkus(skuRows);
+  const losingBuyBox = losingBuyBoxSkus(skuRows);
 
   return (
     <div className="flex max-w-screen-2xl flex-col gap-8">
@@ -711,7 +718,7 @@ export function AmazonDirector({
 
         <Section
           title="BuyBox"
-          description="BuyBox oranı %90'ın altına inen SKU'lar."
+          description={BUY_BOX_RISK_DESCRIPTION}
           loading={loading}
           loadingLayout="list"
           loadingCount={3}
@@ -719,7 +726,7 @@ export function AmazonDirector({
           onRetry={reloadAll}
           empty={losingBuyBox.length === 0}
           emptyTitle="BuyBox kaybı yok"
-          emptyDescription="Oranı raporlanan SKU'ların hepsi %90 üzerinde."
+          emptyDescription={`Oranı raporlanan SKU'ların hepsi %${BUY_BOX_RISK_BELOW} üzerinde.`}
           emptySuggestion="Oranı hiç raporlanmayan SKU'lar bu listeye giremez — kaynağı doğrulanmalı (13-...md §4)."
         >
           <ul className="flex flex-col gap-2">
@@ -738,6 +745,9 @@ export function AmazonDirector({
               </li>
             ))}
           </ul>
+          {/* Eşik ODIN'den gelmiyor, arayüzde duruyor — bunu saklamak
+              uydurulmuş bir OTORİTE sunmak olurdu (UI-ADR-126 deseni). */}
+          <ThresholdNote provenance={UI_THRESHOLD_PROVENANCE} className="mt-3" />
         </Section>
 
         <Section

@@ -17,7 +17,7 @@
  * değil, istemcide çağrıldığında okunur (hydration güvenliği).
  */
 
-import type { TimelineItem } from "@/components/ui/timeline";
+import type { TimelineItem } from "@/types/screens";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type {
   AIRecommendation,

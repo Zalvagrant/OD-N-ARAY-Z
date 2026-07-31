@@ -25,10 +25,24 @@ import { ExecutiveTimeline } from "./executive-timeline";
 import { StatusBar } from "./status-bar";
 import { CommandPalette } from "./command-palette";
 import { Workspace } from "./workspace";
-import { IntelligenceFeed } from "@/components/screens/intelligence-feed";
-import { AMAZON_SKU_KIND, AmazonSkuPanel } from "@/components/screens/amazon-sku-panel";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+/**
+ * Sağ bağlam panelini dolduran sağlayıcı. Kabuk SLOTU tanımlar, içeriği
+ * bilmez — hangi ekranın hangi workspace'te çizileceği kompozisyon
+ * kökünün kararıdır (`app/(shell)/context-panel.tsx`, UI-ADR-130).
+ */
+export type ContextPanelSlot = (ctx: {
+  workspaceId: string | null;
+  selectedKind: string | null;
+}) => React.ReactNode;
+
+export function AppShell({
+  children,
+  contextPanel,
+}: {
+  children: React.ReactNode;
+  contextPanel?: ContextPanelSlot;
+}) {
   const pathname = usePathname();
   const workspace = findWorkspaceByPath(pathname);
   const group = workspace ? findGroupOf(workspace.id) : undefined;
@@ -84,17 +98,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             pathname={pathname}
           />
           <Workspace workspaceKey={pathname}>{children}</Workspace>
-          {/* Sağ panelin kabuğu sabittir; içerik sağlayıcısı workspace'e göre
-              değişir (03-...md §7). Executive Briefing'de akan istihbarat
-              paneli vardır (05-...md §6); Amazon'da seçili SKU'nun detayı.
-              Amazon'da SKU SEÇİLİ DEĞİLKEN sağlayıcı verilmez — kabuğun
-              kendi "seçili nesne yok" boş durumu doğru olandır. */}
+          {/* Kabuk sabittir; içeriği kompozisyon kökü verir (UI-ADR-130). */}
           <RightContextPanel workspaceLabel={workspace?.label ?? "ODIN"}>
-            {workspace?.id === "briefing" ? (
-              <IntelligenceFeed />
-            ) : workspace?.id === "amazon" && selectedKind === AMAZON_SKU_KIND ? (
-              <AmazonSkuPanel />
-            ) : undefined}
+            {contextPanel?.({
+              workspaceId: workspace?.id ?? null,
+              selectedKind,
+            })}
           </RightContextPanel>
         </div>
 

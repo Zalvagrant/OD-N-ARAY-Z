@@ -2588,3 +2588,102 @@ uygulamada değil, hayatta kalan yolda ölçülüyor —
 `/briefing` dokuz bölümüyle, `/amazon` Executive Glance + KPI şeridi +
 48 satırlık SKU tablosuyla, `/mission-control` Operational Status
 sayaçlarıyla render edildi. Konsolda hata yok.
+
+---
+
+## UI-ADR-130 — Katman sınırları kurala bağlandı; eşik meşrulaştırılmadı, görünür yapıldı (S13)
+
+**Durum:** ✅ Dondurulmuş — ekranda ölçüldü
+**Tarih:** 31 Temmuz 2026
+**Danışılan:** gavadolar (terra · luna) — iki görüş de aynı yönde
+**İlgili:** UI-ADR-111 · UI-ADR-123 · UI-ADR-126 · UI-ADR-129 ·
+`backend-istekleri.md` §14
+
+### 1. Sınırlar artık DERLEYİCİDE yaşıyor
+
+S13'te sınır ihlalleri elle onarıldı. Onarım kalıcı DEĞİLDİR: kural
+yazılmazsa bir sonraki oturum `import { skusMock } from "@/mocks/amazon"`
+yazar ve hiçbir şey itiraz etmez.
+
+`eslint.config.mjs`'e dört kapı eklendi. **Üçü de enjekte edilmiş ihlalle
+denendi ve üçü de ateşledi** — ateşlemeyen bir kural, kural olmamasından
+kötüdür çünkü güvence hissi verir.
+
+İzinli yön: `app → features → components → lib → types`.
+
+Denerken bir kural HATASI da bulundu: `@/components/*` deseni
+`@/components/ui/badge`'i YAKALAMAZ — tek `*` asla `/` geçmez. Desenler
+`**` yapıldı; yoksa kural yalnızca tek seviyeli yolları görürdü.
+
+Eskimiş bir blok da kaldırıldı: mesajı silinmiş `useMockData`'yı işaret
+ediyordu.
+
+### 2. `director-status-dot.tsx` SİLİNDİ
+
+Ölçülen sebepler, hepsi doğrulandı:
+
+- Tek çağıranı `beat={null}` geçiyordu → bileşen **sıfır piksel** çiziyordu.
+- İçindeki `isStale()` kuralı (`beatIntervalMs * 3`) UI-ADR-111'in
+  **açıkça emekliye ayırdığı** UI icadıydı.
+- Dayandığı `09-data-contracts.md` UI-ADR-098 ile kanonik olmaktan çıkmıştı.
+- `export type DirectorStatus` tanımlıyordu — `types/executive.ts:500` de
+  **aynı adla** başka bir tip tanımlıyor. İki farklı değer kümesi, tek ad.
+- Kanonik karşılığı zaten canlı: `RuntimeDirector` + `runtime-director-card`.
+
+Bu feature silmek değil; emekli bir politikayı taşıyan ölü kodu
+temizlemektir.
+
+### 3. Eşikler MEŞRULAŞTIRILMADI — tek yere alındı ve İŞARETLENDİ
+
+Meclisin en önemli düzeltmesi: eşiği JSX'ten alıp bir `domain/` klasörüne
+koymak onu **temizlemez, meşrulaştırır**. Uydurulmuş bir politika resmî
+bir katman adı kazanır ve zamanla gerçek sanılır.
+
+Bu yüzden iki gruba ayrıldı:
+
+**Grup A — gerçekten sunum (feature katmanına taşındı):**
+`SKU_STATUS` · `DIRECTION` · `SKU_SCALE` · `AMAZON_SKU_KIND` ·
+`greeting()`. Bunlar kanonik kodu görsele çevirir, eşik hesaplamaz.
+`SKU_SCALE` iki ekranda AYRI tanımlıydı — ölçek değişse birinin
+unutulması ekranda yüz kat sapmış bir yüzde demekti.
+
+**Grup B — ODIN'in işi, arayüzde duran borç:** `healthScore >= 80` ve
+`buyBoxRate < 90`. Tek dosyada toplandılar
+(`features/amazon/presentation/thresholds.ts`), `unapproved_default`
+damgalandılar ve BuyBox bölümü artık ekranda `ThresholdNote` basıyor.
+Talep `backend-istekleri.md` §14'e yazıldı; ODIN yayınladığı gün dosya
+**silinir**.
+
+`90` sayısı ayrıca İKİ YERDE düz metin olarak da yazılıydı ("%90'ın
+altına inen SKU'lar"). Metin artık sabitten üretiliyor — sayıyı
+değiştirenin metni de değiştirmesi gerektiğini hiçbir şey söylemiyordu.
+
+### 4. İki ters bağımlılık düzeltildi
+
+- **`layout → screens`:** kabuk sağ paneli doldurmak için iki EKRANI
+  import ediyordu. Kabuk her feature'ı tanırsa hiçbir feature tek başına
+  taşınamaz. Kabuk artık bir **slot** tanımlıyor (`ContextPanelSlot`),
+  içeriği kompozisyon kökü veriyor (`app/(shell)/context-panel.tsx`).
+  `03-information-architecture.md` §7 zaten böyle diyordu; kural doğruydu,
+  uygulaması kabuğun içine sızmıştı.
+- **`mocks → components/ui`:** `TimelineItem` bir bileşen dosyasında
+  tanımlıydı ve mock onu oradan alıyordu — veri üreten katman, kendisini
+  çizen bileşene bağımlıydı. Tip `types/screens.ts`'e taşındı.
+
+### 5. Kohort kuralları test edilebilir oldu
+
+`atRiskSkus` ve `losingBuyBoxSkus` JSX'in içindeydi, okunamıyordu,
+dolayısıyla test de edilemiyordu. Testler iki DAVRANIŞI kilitliyor:
+ölçülmemiş SKU risk sayılmaz, ve ölçülmemiş bir oran "en kötü" gibi
+sıralanmaz — eski kod `?? 0` ile sıralıyordu ve ölçülmemiş bir SKU
+listenin başında %0 gibi görünürdü.
+
+### Ölçüm
+
+Lint 0 hata · `tsc` 0 hata · 54 dosya / **295 test** yeşil (129'dan +3).
+Kenarlar: `screens → mocks` 0 · `layout → screens` 0 ·
+`mocks → components` 0.
+
+Dev sunucusunda `/amazon`: BuyBox listesi en kötüden sıralı
+(%62,0 · %71,3 · %78,4 · %88,0) ve altında onaylanmamış eşik uyarısı
+görünüyor.

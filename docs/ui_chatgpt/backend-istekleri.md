@@ -348,3 +348,45 @@ bilgilerdir ve ikincisi ekranda yok.
 
 **Bu bir ODIN talebi DEĞİL** — yayın zaten var. Arayüz tarafında bir
 sözleşme genişletmesi ve kendi kararını hak ediyor.
+
+---
+
+## 14. Amazon eşik politikası — arayüz iki sayı UYDURUYOR
+
+**Durum:** 🔴 Açık talep · UI-ADR-130 ile görünür hâle getirildi
+
+Arayüz iki eşiği kendi kafasından uyguluyor. İkisi de bir İŞ
+POLİTİKASIDIR ve sahibi ODIN olmalıdır:
+
+| Eşik | Bugünkü değer | Nerede kullanılıyor |
+|---|---|---|
+| Amazon genel sağlık skorunun "iyi" sınırı | `>= 80` | Executive Glance meter tonu |
+| BuyBox oranının "kaybediliyor" sınırı | `< 90` | BuyBox bölümünün tamamı |
+
+Bunlar `src/features/amazon/presentation/thresholds.ts` içinde TEK yerde
+toplandı ve `ThresholdProvenance = "unapproved_default"` ile
+işaretlendiler; BuyBox bölümü artık ekranda `ThresholdNote` basıyor
+(ODIN ADR-0146 / UI-ADR-126 deseni).
+
+**Neden arayüzde bir "domain katmanına" taşınıp kapatılmadı** (gavadolar
+2/2): eşiği JSX'ten alıp `domain/` klasörüne koymak onu temizlemez,
+MEŞRULAŞTIRIR — uydurulmuş bir politika resmî bir katman adı kazanır.
+Doğru kapanış ODIN'in yayınlamasıdır.
+
+### İstenen
+
+ODIN `/api/amazon` yükünde şu alanlardan birini yayınlarsa arayüz eşiği
+tamamen bırakır:
+
+- `health.tone` (ya da `health.status`) — skoru ODIN yorumlasın,
+- `sales.buy_box_target_percent` — sınırı ODIN beyan etsin,
+  veya doğrudan `sales.buy_box_at_risk: bool`.
+
+`threshold_provenance` alanı zaten var ve `owner_policy` değerini
+aldığında arayüzdeki uyarı notu kendiliğinden kaybolur — kod değişikliği
+gerekmez.
+
+### Kapanınca
+
+`src/features/amazon/presentation/thresholds.ts` **silinir**. Dosyanın
+başlığı bunu zaten yazıyor: "bu dosyadaki her sayı bir borçtur".

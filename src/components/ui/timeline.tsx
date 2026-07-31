@@ -15,10 +15,13 @@
  * ve odak halkası native gelir.
  */
 
-import type { ReactNode } from "react";
+
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { NoData } from "@/components/ui/no-data";
+import type { TimelineItem } from "@/types/screens";
+
+export type { TimelineItem };
 
 const TONE = {
   neutral: { dot: "bg-icon-muted", glyph: "○" },
@@ -28,17 +31,6 @@ const TONE = {
   danger: { dot: "bg-danger", glyph: "▲" },
   info: { dot: "bg-info", glyph: "i" },
 } as const;
-
-export interface TimelineItem {
-  id: string;
-  /** ISO 8601. Bilinmiyorsa null — tahmini zaman yazılmaz. */
-  at: string | null;
-  title: ReactNode;
-  description?: ReactNode;
-  tone?: keyof typeof TONE;
-  /** Olayı kimin ürettiği: "Amazon Director", "Sen", "Sistem". */
-  actor?: string;
-}
 
 function formatTime(iso: string): string {
   const d = new Date(iso);

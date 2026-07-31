@@ -22,46 +22,24 @@
  *    sahte bir yetenektir; çizilmez.
  */
 
-import type { MetricPeriod, SkuHealth } from "@/types/screens";
+import type { MetricPeriod } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { toPercentUnit } from "@/lib/format/percent";
 import { useUiStore } from "@/lib/store/ui";
 import { useAmazonSkus } from "@/lib/data/odin-amazon";
-import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
 import { Heading, Mono, Num, Text } from "@/components/ui/typography";
 import { Meter } from "@/components/executive/meter";
 import { PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
-
-/** Bu panelin çizildiği seçim türü. App Shell bu sabitle eşleştirir. */
-export const AMAZON_SKU_KIND = "sku";
-
-export const SKU_STATUS: Record<
-  SkuHealth["status"],
-  { label: string; variant: BadgeVariant }
-> = {
-  ok: { label: "Sağlıklı", variant: "success" },
-  warn: { label: "İzlemede", variant: "warning" },
-  critical: { label: "Kritik", variant: "danger" },
-  /* Stok VAR, satış YOK — kendi başına bir bulgu. `ok` saymak da
-     `critical` saymak da ayrı birer yalan olurdu. */
-  no_movement: { label: "Hareketsiz", variant: "info" },
-  /* Hızı ölçülemeyen SKU. Bugün 48'in 29'u bu — ve bu bir sağlık
-     durumu DEĞİL, bir ölçüm boşluğudur. */
-  unknown: { label: "Ölçülmedi", variant: "secondary" },
-};
-
-/** SKU yüzdeleri 0–100 ölçeğindedir; teklif sözleşmesinde bildirilmiştir. */
-const SKU_SCALE = "0-100" as const;
-
-/** Skor gerekçesinin yönü — renk tek başına anlam taşımaz (10a §0.2). */
-const DIRECTION = {
-  positive: { glyph: "▲", word: "olumlu" },
-  negative: { glyph: "▼", word: "olumsuz" },
-  neutral: { glyph: "■", word: "nötr" },
-} as const;
+import {
+  AMAZON_SKU_KIND,
+  DIRECTION,
+  SKU_SCALE,
+  SKU_STATUS,
+} from "@/features/amazon/presentation/sku";
 
 /**
  * Ölçüm penceresini yazar. Dönem artık ALAN ADINDA DEĞİL VERİDE (UI-ADR-104);
@@ -100,6 +78,9 @@ function Group({
     </section>
   );
 }
+
+/* Geriye uyumluluk: sabit artık feature katmanında yaşıyor. */
+export { AMAZON_SKU_KIND };
 
 export function AmazonSkuPanel() {
   const selected = useUiStore((s) => s.selectedEntity);
