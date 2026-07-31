@@ -201,7 +201,7 @@ export function DataTable<T>({
 
   return (
     <div className="overflow-hidden rounded-md border border-line">
-      {/* Kaydırma kabı — SADECE kaydırır. Izgara değildir (UI-ADR-141). */}
+      {/* Kaydırma kabı — SADECE kaydırır. Izgara değildir (UI-ADR-149). */}
       <div ref={scrollRef} className={`overflow-auto ${maxHeightClass}`}>
         <table
           className="w-full border-collapse text-base"

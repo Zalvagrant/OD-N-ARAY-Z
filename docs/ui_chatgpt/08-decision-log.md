@@ -3213,162 +3213,15 @@ doğru, test yanlıştı — bu oturumda üçüncü kez.
 
 `tsc` 0 · `lint` 0 hata · **59 dosya / 344 test** (+1 dosya / +25 test).
 
----
-
-## UI-ADR-140 — Tüketicisi olmayan dokuz bileşen tasarım sistemi envanteridir (SAHİP KARARI)
-
-**Durum:** ✅ Dondurulmuş — **sahip kararı**, 31 Temmuz 2026
-**İlgili:** UI-ADR-139 · CLAUDE.md §5 · `10-component-library.md` §10
-
-### Soru
-
-Dokuz modülün hiçbir ekran tüketicisi yoktu (hikâyeler hariç):
-`ui/chart` (357 satır) · `ui/modal` (195, reponun tek focus-trap
-uygulaması) · `ui/tabs` · `ui/tooltip` · `ui/filter` · `ui/icon` ·
-`ui/avatar` · `ui/sparkline` · `executive/telemetry-bar`.
-
-**Tasarım sistemi envanteri mi, ölü kod mu?** Bu bir mimari değil bir
-ÜRÜN sorusudur — arayüzün hangi bileşenlere sahip olmayı taahhüt ettiği
-sorusu — ve cevabı sahibindir.
-
-### Karar
-
-**Envanter olarak KALIRLAR. Silinmiyorlar.**
-
-Karar `10-component-library.md` §10 ile tutarlıdır: dokuzunun dokuzu da
-o envanterde adı geçen kalemlerdir (`Tabs` · `Tooltip` · `Modal` ·
-`Avatar` · `Icon` · `Chart` · `Sparkline` · `Filter` · `TelemetryBar`).
-Kararın temeli ölçüldü: **dokuzunun dokuzunun da hikâyesi var**, yani
-Storybook'ta render ediliyor, `addon-a11y` ile taranıyor ve test
-paketinde koşuyor. Görünmeyen kod değiller.
-
-### Kararın bedeli — ve onu ödeten kapı
-
-"Envanter" bir ETİKETTİR ve etiket tek başına ölü kodu meşrulaştırır.
-Bugün doğru olan bir karar, altı ay sonra çağıranı olmayan her dosyanın
-arkasına saklandığı bir gerekçeye dönüşebilir.
-
-`src/components/inventory.test.ts` bunu engeller. Kural **kasıtlı olarak
-dar**:
-
-> **Bir bileşenin ekran tüketicisi yoksa, hikâyesi OLACAK.**
-> İkisi birden yoksa test düşer.
-
-Çağıranı OLAN bileşen için hikâye zorunlu değildir (§2.7'de hâlâ yedi
-eksik var; o ayrı bir iş). Burada kilitlenen tek şey envanter kararının
-bedelidir: envanter, GÖRÜLEBİLİR bileşenler içindir.
-
-İkinci kol bir satır içi anlık görüntüdür: liste dokuz kalemden
-BÜYÜRSE test düşer. Sahibin kararı bu dokuz kalem içindi, çağıranı
-olmayan her yeni dosya için açık uçlu bir izin değil.
-
-**Denendi ve ateşledi:** `ui/olu-kod-denemesi.tsx` enjekte edildi; iki
-kol da düştü, mesaj *"hikâye yaz ya da dosyayı sil"* dedi. İhlal geri
-alındı, 10/10 yeşil.
-
-`stories.fixtures.ts` taramadan hariç: hikâye verisi bir bileşen
-değildir, tüketicisinin yalnız hikâyeler olması onun DOĞRU hâlidir.
-
-### Ölçüm
-
-`tsc` 0 · `lint` 0 hata · **60 dosya / 354 test** (+1 dosya / +10 test).
-
----
-
-## UI-ADR-141 — Erişilebilirlik sözleşmesi yorumdan çıkıp KAPIYA bağlandı (S13)
-
-**Durum:** ✅ Dondurulmuş — beşi de testle kilitlendi
-**Tarih:** 31 Temmuz 2026
-**İlgili:** UI-ADR-132 · UI-ADR-140 · gavadolar 2/2
-
-Beş açık ölçülmüştü. Ortak yanları: **hiçbiri fareyle fark edilmez** ve
-üçü zaten bir yorumla "korunuyordu".
-
-### 1 · `table.tsx` — ızgara ilişkisi KOPUKTU
-
-`role="grid"` KAYDIRMA KABINDAYDI ve içinde gerçek bir `<table>` (örtük
-`role=table`) duruyordu. Satırlardaki `aria-rowindex` / `aria-selected`
-ızgaraya değil, **ızgaranın içindeki ayrı bir tabloya** aitti: ekran
-okuyucu "ızgara" diyor ama satır numarasını bulamıyordu. Gerçek tablonun
-hiçbir adı da yoktu.
-
-Izgara `<table>`'a taşındı (`role="grid"` + `aria-rowcount` + `tabIndex`);
-kaydırma kabı yalnızca kaydırıyor. Ad `<caption class="sr-only">`tan
-geliyor — `aria-label` ile ikisini birden yazmak adı çiftlerdi.
-
-### 2 · `button.tsx` — "ZORUNLU" diyen yorum hiçbir şeyi zorlamıyordu
-
-`iconOnly` artık ayrık birlik tipiyle `aria-label` (ya da
-`aria-labelledby`) İSTİYOR. Adsız bir ikon butonu ekran okuyucuda yalnız
-"buton" diye okunur ve ne yaptığı asla anlaşılmaz.
-
-**Denendi ve ateşledi:** `<Button iconOnly icon={…} />` enjekte edildi,
-`tsc` reddetti. Yorumla korunan bir kural, korunmayan bir kuraldır.
-
-### 3 · `modal.tsx` — ad ÇİFTLENMİŞ, açıklama BAĞLANMAMIŞ
-
-`aria-label={title}` görünür `<h2>`yi tekrarlıyordu: iki metin ayrı ayrı
-yaşıyordu, biri değişse diğeri kalırdı. `aria-labelledby` ikisini tek
-kaynağa bağladı. `description` ise hiçbir şeye bağlı değildi — yani
-**yalnız gören kullanıcı için vardı**; `aria-describedby` ile bağlandı,
-açıklama yoksa öznitelik hiç yazılmıyor (var olmayan bir id'ye işaret
-etmek, hiç işaret etmemekten kötüdür).
-
-### 4 · `filter.tsx` — Escape odak listeye girince ölü tuş
-
-`onKeyDown` yalnız tetikleyicideydi. Odak Checkbox'lara geçtiği an klavye
-kullanıcısı açtığı paneli KAPATAMIYORDU. Escape köke taşındı ve kapanınca
-**odak tetikleyiciye geri veriliyor** — aksi halde odak silinen düğümde
-kalır, sonraki Tab belgenin başına atlar. (Bunun için `Button` React 19
-`ref` prop'unu tipinde beyan etmek zorunda kaldı.)
-
-### 5 · `search.tsx` — 120 ms'lik blur zamanlayıcısı bir YARIŞTI
-
-Üç kusur birdeydi: liste `role="listbox"` değildi, ok tuşu yoktu, ve
-kapanma **saate** bağlıydı — odağın nereye gittiğine değil. Yavaş bir
-makinede tıklama zamanlayıcıdan sonra gelir ve seçim kaybolur.
-
-ARIA combobox kalıbına geçildi: `role="combobox"` + `aria-expanded` +
-`aria-controls` + `aria-activedescendant`, öğeler `role="option"`,
-ArrowUp/Down/Home/End sarmalı, ve **iki adımlı Escape** (önce liste,
-sonra metin — tek adımda ikisi, sadece listeyi kapatmak isteyenin
-yazdığını da silerdi). Zamanlayıcı kaldırıldı; kapanma kökün
-`onBlur`unda `relatedTarget` ile ÖLÇÜLÜYOR.
-
-Odak kutuda kalır, imleç `aria-activedescendant` ile taşınır: odağı
-listeye taşımak yazmaya devam etmeyi imkânsız kılardı.
-
-### Tuzak #1'in KÖK NEDENİ bulundu — testler artık tek koşuda
-
-Devir belgesi *"tam test paketinden önce dev sunucusunu kapat"* diyordu.
-Yanlış teşhis: düşüşün olduğu koşuda dev sunucusu BAŞKA bir worktree'ye
-aitti ve sunucu açıkken geçen koşular da vardı.
-
-**Gerçek sebep:** 45 story dosyasının soğuk Vite dönüşümü varsayılan
-30 sn'lik `browser.connectTimeout`u aşıyor; Vitest tarayıcı oturumunu ölü
-sayıyor. `connectTimeout: 180_000` yazıldı ve storybook projesi **tek
-komutta 45/45** geçti (iki kez üst üste, 2s22 ve 3s19).
-
-İkinci koşul ölçüldü: `unit` ile `storybook` AYNI ANDA koşarsa node
-işçileri CPU'yu tutuyor ve bağlantı yine düşüyor (birleşik koşu 62 sn'de
-patladı). İki proje **ayrı** çalıştırılır. Parçalama (`--shard`) artık
-gereksiz.
-
-### Ölçüm
-
-`tsc` 0 · `lint` 0 hata · **60 dosya / 360 test** (+6 test).
-
----
-
 ## UI-ADR-142 — Story bir DAVRANIŞ kanıtlar; envanter kapısı bunu ister (S13)
 
 **Durum:** ✅ Dondurulmuş — ölçüldü
 **Tarih:** 31 Temmuz 2026
-**İlgili:** UI-ADR-140 · UI-ADR-141 · gavadolar 2/2
+**İlgili:** UI-ADR-148 · UI-ADR-149 · gavadolar 2/2
 
 ### Bulgu — kendi kapımdaki açık
 
-UI-ADR-140 "çağıranı yoksa hikâyesi olacak" kapısını kurmuştu. gavadolar
+UI-ADR-148 "çağıranı yoksa hikâyesi olacak" kapısını kurmuştu. gavadolar
 sordu: *"Ama şimdi o kapıyı doldurmak için story yazıyorsun — bu kapıyı
 anlamsızlaştırmaz mı?"* Cevap **evet**: yalnız render eden bir story kapıyı
 BİÇİMSEL olarak geçer, hiçbir davranış kanıtlamaz ve etiket yine tek başına
@@ -3412,7 +3265,7 @@ anti-fake KAPISI olan üçü ayrı dosyada (`data-guard`, `threshold-note`,
 dört primitive'i kapsar) bunu zaten kabul etmişti. Başarısızlık çıktısı
 yine ayrışıyor: her story'nin kendi adı var.
 
-### ♻️ UI-ADR-141'in "kök neden" iddiası YANLIŞTI
+### ♻️ UI-ADR-149'in "kök neden" iddiası YANLIŞTI
 
 141 `connectTimeout: 180_000`'i **proje** seviyesine yazmış ve tuzak #1'in
 kök nedeni bulundu demişti. Ölçüldü, yanlıştı: Vitest bu değeri
@@ -3681,7 +3534,7 @@ davranış değiştirmedi, yalnız tekrar sildi).
 
 **Durum:** ✅ Dondurulmuş — ölçüldü
 **Tarih:** 31 Temmuz 2026
-**İlgili:** UI-ADR-140…145 · yazılımcılar meclisi
+**İlgili:** UI-ADR-148…145 · yazılımcılar meclisi
 
 S13 kapanmadan önce yazılımcılara nihai denetim yaptırıldı. Beş bulgu
 geldi; **hepsi kaynaktan doğrulandı** (meclis-önce-doğrula kuralı) ve
@@ -3809,3 +3662,157 @@ hücrenin dar olduğunu BİLDİĞİ için açar.
 `/mission-control` tarayıcıda okundu: sekiz metrik hücresinin sekizinde de
 `text-transform: uppercase` uygulanmış, `truncate` ve `min-w-0` yerinde,
 "veri yok" tireleri korunmuş, konsol hatasız.
+
+---
+
+> ⚠️ **Numara çakışması — altıncı ve yedinci.** Bu iki blok S13 dalında
+> **UI-ADR-140 ve 141** olarak yazılmıştı. Dal açıkken `main` S15 ve S16'yı
+> aldı ve aynı iki numarayı DONDURDU (140 = ölçüm penceresi, 141 = fırsat
+> görünümü). Merge edilmiş ve yayında olan kazanır; lokal olan taşınır —
+> aynı kural 129 → 135 için de uygulanmıştı. Kod yorumlarındaki 14
+> dosyalık referans da güncellendi.
+
+## UI-ADR-148 — Tüketicisi olmayan dokuz bileşen tasarım sistemi envanteridir (SAHİP KARARI)
+
+**Durum:** ✅ Dondurulmuş — **sahip kararı**, 31 Temmuz 2026
+**İlgili:** UI-ADR-139 · CLAUDE.md §5 · `10-component-library.md` §10
+
+### Soru
+
+Dokuz modülün hiçbir ekran tüketicisi yoktu (hikâyeler hariç):
+`ui/chart` (357 satır) · `ui/modal` (195, reponun tek focus-trap
+uygulaması) · `ui/tabs` · `ui/tooltip` · `ui/filter` · `ui/icon` ·
+`ui/avatar` · `ui/sparkline` · `executive/telemetry-bar`.
+
+**Tasarım sistemi envanteri mi, ölü kod mu?** Bu bir mimari değil bir
+ÜRÜN sorusudur — arayüzün hangi bileşenlere sahip olmayı taahhüt ettiği
+sorusu — ve cevabı sahibindir.
+
+### Karar
+
+**Envanter olarak KALIRLAR. Silinmiyorlar.**
+
+Karar `10-component-library.md` §10 ile tutarlıdır: dokuzunun dokuzu da
+o envanterde adı geçen kalemlerdir (`Tabs` · `Tooltip` · `Modal` ·
+`Avatar` · `Icon` · `Chart` · `Sparkline` · `Filter` · `TelemetryBar`).
+Kararın temeli ölçüldü: **dokuzunun dokuzunun da hikâyesi var**, yani
+Storybook'ta render ediliyor, `addon-a11y` ile taranıyor ve test
+paketinde koşuyor. Görünmeyen kod değiller.
+
+### Kararın bedeli — ve onu ödeten kapı
+
+"Envanter" bir ETİKETTİR ve etiket tek başına ölü kodu meşrulaştırır.
+Bugün doğru olan bir karar, altı ay sonra çağıranı olmayan her dosyanın
+arkasına saklandığı bir gerekçeye dönüşebilir.
+
+`src/components/inventory.test.ts` bunu engeller. Kural **kasıtlı olarak
+dar**:
+
+> **Bir bileşenin ekran tüketicisi yoksa, hikâyesi OLACAK.**
+> İkisi birden yoksa test düşer.
+
+Çağıranı OLAN bileşen için hikâye zorunlu değildir (§2.7'de hâlâ yedi
+eksik var; o ayrı bir iş). Burada kilitlenen tek şey envanter kararının
+bedelidir: envanter, GÖRÜLEBİLİR bileşenler içindir.
+
+İkinci kol bir satır içi anlık görüntüdür: liste dokuz kalemden
+BÜYÜRSE test düşer. Sahibin kararı bu dokuz kalem içindi, çağıranı
+olmayan her yeni dosya için açık uçlu bir izin değil.
+
+**Denendi ve ateşledi:** `ui/olu-kod-denemesi.tsx` enjekte edildi; iki
+kol da düştü, mesaj *"hikâye yaz ya da dosyayı sil"* dedi. İhlal geri
+alındı, 10/10 yeşil.
+
+`stories.fixtures.ts` taramadan hariç: hikâye verisi bir bileşen
+değildir, tüketicisinin yalnız hikâyeler olması onun DOĞRU hâlidir.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **60 dosya / 354 test** (+1 dosya / +10 test).
+
+---
+
+## UI-ADR-149 — Erişilebilirlik sözleşmesi yorumdan çıkıp KAPIYA bağlandı (S13)
+
+**Durum:** ✅ Dondurulmuş — beşi de testle kilitlendi
+**Tarih:** 31 Temmuz 2026
+**İlgili:** UI-ADR-132 · UI-ADR-148 · gavadolar 2/2
+
+Beş açık ölçülmüştü. Ortak yanları: **hiçbiri fareyle fark edilmez** ve
+üçü zaten bir yorumla "korunuyordu".
+
+### 1 · `table.tsx` — ızgara ilişkisi KOPUKTU
+
+`role="grid"` KAYDIRMA KABINDAYDI ve içinde gerçek bir `<table>` (örtük
+`role=table`) duruyordu. Satırlardaki `aria-rowindex` / `aria-selected`
+ızgaraya değil, **ızgaranın içindeki ayrı bir tabloya** aitti: ekran
+okuyucu "ızgara" diyor ama satır numarasını bulamıyordu. Gerçek tablonun
+hiçbir adı da yoktu.
+
+Izgara `<table>`'a taşındı (`role="grid"` + `aria-rowcount` + `tabIndex`);
+kaydırma kabı yalnızca kaydırıyor. Ad `<caption class="sr-only">`tan
+geliyor — `aria-label` ile ikisini birden yazmak adı çiftlerdi.
+
+### 2 · `button.tsx` — "ZORUNLU" diyen yorum hiçbir şeyi zorlamıyordu
+
+`iconOnly` artık ayrık birlik tipiyle `aria-label` (ya da
+`aria-labelledby`) İSTİYOR. Adsız bir ikon butonu ekran okuyucuda yalnız
+"buton" diye okunur ve ne yaptığı asla anlaşılmaz.
+
+**Denendi ve ateşledi:** `<Button iconOnly icon={…} />` enjekte edildi,
+`tsc` reddetti. Yorumla korunan bir kural, korunmayan bir kuraldır.
+
+### 3 · `modal.tsx` — ad ÇİFTLENMİŞ, açıklama BAĞLANMAMIŞ
+
+`aria-label={title}` görünür `<h2>`yi tekrarlıyordu: iki metin ayrı ayrı
+yaşıyordu, biri değişse diğeri kalırdı. `aria-labelledby` ikisini tek
+kaynağa bağladı. `description` ise hiçbir şeye bağlı değildi — yani
+**yalnız gören kullanıcı için vardı**; `aria-describedby` ile bağlandı,
+açıklama yoksa öznitelik hiç yazılmıyor (var olmayan bir id'ye işaret
+etmek, hiç işaret etmemekten kötüdür).
+
+### 4 · `filter.tsx` — Escape odak listeye girince ölü tuş
+
+`onKeyDown` yalnız tetikleyicideydi. Odak Checkbox'lara geçtiği an klavye
+kullanıcısı açtığı paneli KAPATAMIYORDU. Escape köke taşındı ve kapanınca
+**odak tetikleyiciye geri veriliyor** — aksi halde odak silinen düğümde
+kalır, sonraki Tab belgenin başına atlar. (Bunun için `Button` React 19
+`ref` prop'unu tipinde beyan etmek zorunda kaldı.)
+
+### 5 · `search.tsx` — 120 ms'lik blur zamanlayıcısı bir YARIŞTI
+
+Üç kusur birdeydi: liste `role="listbox"` değildi, ok tuşu yoktu, ve
+kapanma **saate** bağlıydı — odağın nereye gittiğine değil. Yavaş bir
+makinede tıklama zamanlayıcıdan sonra gelir ve seçim kaybolur.
+
+ARIA combobox kalıbına geçildi: `role="combobox"` + `aria-expanded` +
+`aria-controls` + `aria-activedescendant`, öğeler `role="option"`,
+ArrowUp/Down/Home/End sarmalı, ve **iki adımlı Escape** (önce liste,
+sonra metin — tek adımda ikisi, sadece listeyi kapatmak isteyenin
+yazdığını da silerdi). Zamanlayıcı kaldırıldı; kapanma kökün
+`onBlur`unda `relatedTarget` ile ÖLÇÜLÜYOR.
+
+Odak kutuda kalır, imleç `aria-activedescendant` ile taşınır: odağı
+listeye taşımak yazmaya devam etmeyi imkânsız kılardı.
+
+### Tuzak #1'in KÖK NEDENİ bulundu — testler artık tek koşuda
+
+Devir belgesi *"tam test paketinden önce dev sunucusunu kapat"* diyordu.
+Yanlış teşhis: düşüşün olduğu koşuda dev sunucusu BAŞKA bir worktree'ye
+aitti ve sunucu açıkken geçen koşular da vardı.
+
+**Gerçek sebep:** 45 story dosyasının soğuk Vite dönüşümü varsayılan
+30 sn'lik `browser.connectTimeout`u aşıyor; Vitest tarayıcı oturumunu ölü
+sayıyor. `connectTimeout: 180_000` yazıldı ve storybook projesi **tek
+komutta 45/45** geçti (iki kez üst üste, 2s22 ve 3s19).
+
+İkinci koşul ölçüldü: `unit` ile `storybook` AYNI ANDA koşarsa node
+işçileri CPU'yu tutuyor ve bağlantı yine düşüyor (birleşik koşu 62 sn'de
+patladı). İki proje **ayrı** çalıştırılır. Parçalama (`--shard`) artık
+gereksiz.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata · **60 dosya / 360 test** (+6 test).
+
+---

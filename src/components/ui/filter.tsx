@@ -42,7 +42,7 @@ function FilterDropdown({
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   /**
-   * Escape KÖKTE yakalanır, tetikleyicide değil — UI-ADR-141.
+   * Escape KÖKTE yakalanır, tetikleyicide değil — UI-ADR-149.
    *
    * `onKeyDown` yalnız `<Button>`daydı: odak listeye (Checkbox'lara)
    * geçtiği anda Escape ölü tuşa dönüyordu ve klavye kullanıcısı açtığı

@@ -49,10 +49,11 @@ tekrar/şişkinlik/sınır ihlali ara, daha iyisi varsa öncekini değiştir."*
 
 **Test tabanı:** başlangıç 54 dosya/292 test → şimdi **66 dosya/413 test**
 (+1 dosya/+5 test main'in S14'ünden, +1 dosya/+4 test UI-ADR-136'dan,
-+4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-140'tan, +6 test UI-ADR-141'den, +5 dosya/+42 test UI-ADR-142'den, +1 dosya/+9 test UI-ADR-144'ten),
++4 test UI-ADR-137'den, +1 test UI-ADR-138'den, +1 dosya/+25 test UI-ADR-139'dan, +1 dosya/+10 test UI-ADR-148'tan, +6 test UI-ADR-149'den, +5 dosya/+42 test UI-ADR-142'den, +1 dosya/+9 test UI-ADR-144'ten),
 hepsi yeşil. Lint 0 hata, `tsc` 0.
 
-⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…147**.
+⚠️ **Numara haritası değişti:** S13'ün kararları artık **130…139 + 142…149**
+(140 ve 141 `main`'e gitti: S15 ölçüm penceresi, S16 fırsat görünümü).
 Eski lokal `UI-ADR-129` = bugünkü **135**. `main`'in `UI-ADR-129`'u
 S14'ün runtime alarmlarıdır, başka bir karardır.
 
@@ -149,7 +150,7 @@ ayrım: **"yükleniyor" ile "ölçüldü ve sıfır" ile "ölçülmedi" ÜÇ AYR
 
 ### 2.6 · ~~Tüketicisi olmayan modüller~~ ✅ SAHİP KARAR VERDİ
 
-**UI-ADR-140: envanter olarak KALIRLAR, silinmiyorlar.** Dokuzunun
+**UI-ADR-148: envanter olarak KALIRLAR, silinmiyorlar.** Dokuzunun
 dokuzu da `10-component-library.md` §10 envanterinde adı geçen
 kalemlerdir ve dokuzunun da hikâyesi vardır.
 
@@ -160,13 +161,13 @@ olacak**, ve liste dokuz kalemden büyürse test düşer. Yeni bir bileşeni
 ### 2.7 · ~~Storybook boşlukları~~ ✅ KAPANDI
 
 **UI-ADR-142.** Yedisinin de story'si var ve hepsi `play` taşıyor.
-Ayrıca envanterdeki (UI-ADR-140) yedi bileşene de davranış testi yazıldı —
+Ayrıca envanterdeki (UI-ADR-148) yedi bileşene de davranış testi yazıldı —
 gavadolar kapıdaki açığı buldu: "hikâyesi var" yetmez, yalnız render eden
 story hiçbir şey kanıtlamaz. Kapıya ikinci kol eklendi.
 
 ### 2.4 · ~~Kalan erişilebilirlik~~ ✅ KAPANDI
 
-**UI-ADR-141.** Beşi de düzeltildi ve her biri `play` testiyle kilitlendi:
+**UI-ADR-149.** Beşi de düzeltildi ve her biri `play` testiyle kilitlendi:
 ızgara `<table>`'a taşındı + `<caption>` adı · `iconOnly` → `aria-label`
 DERLEMEDE zorunlu (enjekte ihlalle denendi) · modal `aria-labelledby` +
 `aria-describedby` · filter Escape kökte + odak geri veriliyor · search
@@ -177,11 +178,11 @@ tam ARIA combobox (120 ms zamanlayıcı kalktı).
 ## 3. TUZAKLAR — bunları tekrar keşfetme
 
 1. ~~**Tam test paketinden önce dev sunucusunu KAPAT.**~~ **♻️ KÖK NEDEN
-   BULUNDU — UI-ADR-141'de düzeltildi.** Dev sunucusuyla ilgisi yoktu.
+   BULUNDU — UI-ADR-149'de düzeltildi.** Dev sunucusuyla ilgisi yoktu.
    Sebep: 45 story dosyasının soğuk Vite dönüşümü varsayılan 30 sn'lik
    `browser.connectTimeout`u aşıyordu. ⚠️ Ayar **KÖK** `test.browser`a
    yazılmalı — proje içine yazılırsa Vitest onu SESSİZCE YOK SAYAR
-   (`project.vitest.config.browser.connectTimeout ?? 6e4`); UI-ADR-141
+   (`project.vitest.config.browser.connectTimeout ?? 6e4`); UI-ADR-149
    önce oraya yazdı ve düzeltme hiç etkili olmadı, UI-ADR-142'de
    düzeltildi. Şimdi storybook projesi **tek komutta 50/50** geçiyor,
    parçalamaya (`--shard`) gerek yok.
@@ -297,7 +298,7 @@ S17 de merge edilmemiş; 142 için sıra kararı sahibindir.
 `CLAUDE.md` · `08-decision-log.md` · `src/components/screens/executive-briefing.tsx`
 
 ⚠️ **Üçüncüsü metin çakışması değil, REGRESYON riskidir.**
-`main`'de (S16 / UI-ADR-141) fırsat yuvası **canlı**:
+`main`'de (S16 / UI-ADR-149) fırsat yuvası **canlı**:
 `useOdinOpportunities()` + ODIN ADR-0154 görünümü. S13 dalı aynı yuvayı
 `useOdinFixture("briefing.opportunities")` yapıyor ve `AIRecommendationView`
 ile basıyor — oysa `main`'in oradaki yorumu bu bileşeni **açıkça
@@ -311,7 +312,7 @@ S13'ten; **fırsat bloğunun tamamı `main`'den.** `screenState`'in
 
 ### 6.4 §4 tablosunun iki satırı bayat
 
-- ~~`chart.tsx` sahip kararı bekliyor~~ → **UI-ADR-140 karar verdi:**
+- ~~`chart.tsx` sahip kararı bekliyor~~ → **UI-ADR-148 karar verdi:**
   dokuzu da envanter olarak kalır. Satır kapatılmalı.
 - ~~"7 yardımcı hiç test edilmiyor"~~ → **UI-ADR-139 kapattı** (8 yardımcı,
   25 iddia).

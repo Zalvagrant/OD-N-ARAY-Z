@@ -105,7 +105,7 @@ export function Search({
   const showHistory = historyOpen && !query && history.length > 0;
 
   /**
-   * KLAVYE — UI-ADR-141. Öncesi ölçüldü ve üç ayrı kusur vardı:
+   * KLAVYE — UI-ADR-149. Öncesi ölçüldü ve üç ayrı kusur vardı:
    *
    *  1. Geçmiş listesi `role="listbox"` DEĞİLDİ, öğeler `option` değildi:
    *     ekran okuyucu "5 seçenekli liste" diye duyurmuyordu.

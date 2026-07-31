@@ -67,7 +67,7 @@ export const Disabled: StoryObj = {
 };
 
 /* --------------------------------------------------------------------------
-   KLAVYE SÖZLEŞMESİ — UI-ADR-141.
+   KLAVYE SÖZLEŞMESİ — UI-ADR-149.
    Görsel değil DAVRANIŞ testi: klavye yolu sessizce kaybolan türden bir
    özelliktir. Fareyle bakan üç kusurun hiçbirini fark etmez.
    -------------------------------------------------------------------------- */

@@ -79,14 +79,14 @@ interface ButtonBase
   /**
    * React 19'da `ref` sıradan bir prop'tur, ama TİPİ beyan edilmezse
    * çağıran onu geçiremez. Gerekli: bir açılır paneli kapatan kod odağı
-   * tetikleyiciye GERİ VERMEK zorundadır (`filter.tsx`, UI-ADR-141) —
+   * tetikleyiciye GERİ VERMEK zorundadır (`filter.tsx`, UI-ADR-149) —
    * yoksa odak silinen düğümde kalır ve sonraki Tab belgenin başına atlar.
    */
   ref?: Ref<HTMLButtonElement>;
 }
 
 /**
- * `iconOnly` → `aria-label` DERLEMEDE zorunlu (UI-ADR-141).
+ * `iconOnly` → `aria-label` DERLEMEDE zorunlu (UI-ADR-149).
  *
  * Burada bir yorum vardı: *"Yalnız ikon — `aria-label` ZORUNLU."* — ve
  * hiçbir şey onu zorlamıyordu. Yorumla korunan bir kural, korunmayan bir

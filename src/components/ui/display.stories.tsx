@@ -90,7 +90,7 @@ export const Icons: StoryObj = {
 /* --------------------------------------------------------------------------
    DAVRANIŞ TESTLERİ — UI-ADR-142.
 
-   Bu üçü UI-ADR-140'ta "tasarım sistemi envanteri" olarak KALMAYA karar
+   Bu üçü UI-ADR-148'ta "tasarım sistemi envanteri" olarak KALMAYA karar
    verilen dokuz bileşenden. gavadolar 2/2 kapıdaki açığı buldu: "hikâyesi
    var" yetmez, yalnız render eden bir story hiçbir şey kanıtlamaz ve
    etiket yine ölü kodu meşrulaştırır. Aşağısı o açığı kapatıyor.

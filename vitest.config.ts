@@ -32,7 +32,7 @@ export default defineConfig({
      * düşmesi gerekirdi. Kaynak okundu, `?? 6e4` bulundu — gözlenen tüm
      * düşüşlerin ~61 sn'de olması da bunu doğruluyor.
      *
-     * (UI-ADR-141 bu ayarı proje içine yazmış ve "kök neden bulundu"
+     * (UI-ADR-149 bu ayarı proje içine yazmış ve "kök neden bulundu"
      * demişti; YANLIŞTI, UI-ADR-142'de düzeltildi. Bu oturumda dördüncü
      * kez bir iddia ölçülmeden doğru sanıldı.) */
     browser: { connectTimeout: 180_000 },

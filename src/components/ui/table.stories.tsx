@@ -282,7 +282,7 @@ export const Error: StoryObj = {
 };
 
 /**
- * UI-ADR-141 — IZGARA ADI VE YAPISI.
+ * UI-ADR-149 — IZGARA ADI VE YAPISI.
  *
  * Önce `role="grid"` KAYDIRMA KABINDAYDI ve içinde gerçek bir `<table>`
  * (örtük `role=table`) duruyordu: satırlardaki `aria-rowindex` /

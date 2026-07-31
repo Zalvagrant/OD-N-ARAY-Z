@@ -1,5 +1,5 @@
 /**
- * ENVANTER KAPISI — UI-ADR-140 (sahip kararı).
+ * ENVANTER KAPISI — UI-ADR-148 (sahip kararı).
  *
  * Dokuz bileşenin hiçbir ekran tüketicisi yok (`ui/chart` · `ui/modal` ·
  * `ui/tabs` · `ui/tooltip` · `ui/filter` · `ui/icon` · `ui/avatar` ·
@@ -73,7 +73,7 @@ const productionImports = new Set(
   all.filter((f) => !isStory(f) && !isTest(f)).flatMap(importsOf)
 );
 
-describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-140)", () => {
+describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-148)", () => {
   const orphans = components.filter((f) => {
     const id = moduleId(f);
     return ![...productionImports].some((i) => i === id);
@@ -89,7 +89,7 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-140)
       expect(
         storiesFor(id).length > 0,
         `${id} ne bir ekrandan çağrılıyor ne de bir hikâyesi var. ` +
-          `Envanter kararı (UI-ADR-140) GÖRÜLEBİLİR bileşenler içindir; ` +
+          `Envanter kararı (UI-ADR-148) GÖRÜLEBİLİR bileşenler içindir; ` +
           `hikâye yaz ya da dosyayı sil.`
       ).toBe(true);
     }
@@ -100,7 +100,7 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-140)
    *
    * "Hikâyesi var" yetmez: yalnız render eden bir story kapıyı BİÇİMSEL
    * olarak geçer ama hiçbir davranış kanıtlamaz. O hâlde etiket yine tek
-   * başına ölü kodu meşrulaştırır — UI-ADR-140'ın engellemek için var
+   * başına ölü kodu meşrulaştırır — UI-ADR-148'ın engellemek için var
    * olduğu şeyin ta kendisi.
    *
    * Ölçüldü: kapı yazıldığında envanterdeki DOKUZ bileşenin YEDİSİNİN
@@ -118,7 +118,7 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-140)
       expect(
         withPlay.length > 0,
         `${id} için hikâye var ama hiçbirinde \`play\` yok — yalnız render ` +
-          `ediyor. Envanter kararı (UI-ADR-140) DAVRANIŞI kanıtlanmış ` +
+          `ediyor. Envanter kararı (UI-ADR-148) DAVRANIŞI kanıtlanmış ` +
           `bileşenler içindir; bir sözleşme iddiası yaz ya da dosyayı sil.`
       ).toBe(true);
     }

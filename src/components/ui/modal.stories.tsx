@@ -71,7 +71,7 @@ export const DrawerPanel: StoryObj = {
 };
 
 /**
- * UI-ADR-141 — AD GÖRÜNÜR BAŞLIKTAN GELİR, TEKRAR EDİLMEZ.
+ * UI-ADR-149 — AD GÖRÜNÜR BAŞLIKTAN GELİR, TEKRAR EDİLMEZ.
  *
  * Önce `aria-label={title}` vardı ve aşağıdaki `<h2>` aynı metni
  * taşıyordu: ad ile görünen başlık ayrı ayrı yaşıyordu (biri değişse

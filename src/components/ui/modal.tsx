@@ -128,7 +128,7 @@ function DialogShell({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        /* AD GÖRÜNÜR BAŞLIKTAN GELİR, tekrar EDİLMEZ — UI-ADR-141.
+        /* AD GÖRÜNÜR BAŞLIKTAN GELİR, tekrar EDİLMEZ — UI-ADR-149.
            Önce `aria-label={title}` vardı ve aşağıdaki `<h2>` aynı metni
            taşıyordu: ekran okuyucu başlığı iki kez okuyor, dahası ad ile
            görünen başlık ayrı ayrı yaşıyordu (biri değişse diğeri
