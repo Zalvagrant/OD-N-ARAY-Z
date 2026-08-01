@@ -20,6 +20,7 @@
  */
 
 import type { ExecutiveKPI, MetricReportPeriod } from "@/types/executive";
+import { formatDate } from "@/lib/format/date";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import { PERCENT_SCALE_MISSING, percentFactor } from "@/lib/format/percent";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
@@ -140,14 +141,20 @@ function KPIView({ kpi, meta }: { kpi: ExecutiveKPI; meta: DataMeta }) {
  */
 function periodLabel(p: MetricReportPeriod | null | undefined): string | null {
   if (!p) return null;
-  const d = (iso: string) =>
-    new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" }).format(
-      new Date(iso)
-    );
+  /* Geçersiz tarih ÇÖKERTMEZ — `formatDate` null döner (UI-ADR-158). */
+  const d = (iso: string) => formatDate(iso, { day: "2-digit", month: "short" });
   if (p.basis === "as_of" || p.at) return "anlık";
-  if (typeof p.windowDays === "number" && p.end)
-    return `son ${p.windowDays} gün · ${d(p.end)}'e kadar`;
-  if (p.start && p.end) return `${d(p.start)} – ${d(p.end)}`;
+  if (typeof p.windowDays === "number" && p.end) {
+    const bitis = d(p.end);
+    /* Tarih okunamıyorsa pencere yine de söylenir — sayı ölçülmüştür,
+       yalnız damgası bozuktur. Tamamen susmak bilgiyi de götürürdü. */
+    return bitis ? `son ${p.windowDays} gün · ${bitis}'e kadar` : `son ${p.windowDays} gün`;
+  }
+  if (p.start && p.end) {
+    const a = d(p.start);
+    const b = d(p.end);
+    return a && b ? `${a} – ${b}` : null;
+  }
   if (p.end) return `${d(p.end)}'e kadar`;
   return null;
 }

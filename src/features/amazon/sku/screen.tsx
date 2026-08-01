@@ -23,6 +23,7 @@
  */
 
 import type { MetricPeriod } from "@/types/screens";
+import { formatDate } from "@/lib/format/date";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { useUiStore } from "@/lib/store/ui";
 import { useAmazonSkus } from "@/lib/data/odin-amazon";
@@ -45,12 +46,13 @@ import {
  * etiketlere "(30 gün)" gömmek, pencere değiştiği gün etiketi yalancı yapardı.
  * Gün sayısı HESAPLANMAZ — pencerenin kendisi yazılır.
  */
-function periodLabel(p: MetricPeriod): string {
-  const d = (iso: string) =>
-    new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "2-digit" }).format(
-      new Date(iso)
-    );
-  return `${d(p.from)} – ${d(p.to)}`;
+function periodLabel(p: MetricPeriod): string | null {
+  /* Geçersiz tarih ÇÖKERTMEZ — `formatDate` null döner (UI-ADR-158).
+     Dönen null, "pencere yazılmaz" demektir; uydurulmuş bir aralık değil. */
+  const d = (iso: string) => formatDate(iso, { day: "2-digit", month: "2-digit" });
+  const a = d(p.from);
+  const b = d(p.to);
+  return a && b ? `${a} – ${b}` : null;
 }
 
 function Group({
@@ -68,7 +70,10 @@ function Group({
       <Heading level={3} size={4}>
         {title}
       </Heading>
-      {period && (
+      {/* Pencere okunamıyorsa satır HİÇ çizilmez — boş bir "Dönem:"
+          etiketinin altında hiçbir şey olmaması, damganın bozuk olduğunu
+          değil verinin olmadığını düşündürürdü (UI-ADR-158). */}
+      {period && periodLabel(period) && (
         <p className="mt-1 text-xs text-content-tertiary">
           Dönem: <span className="odin-num">{periodLabel(period)}</span>
         </p>

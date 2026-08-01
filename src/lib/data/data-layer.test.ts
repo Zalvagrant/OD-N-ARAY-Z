@@ -462,3 +462,42 @@ describe("ölçek çelişkisi — UI-ADR-155", () => {
     ).not.toThrow();
   });
 });
+
+/* ------------------------------------------------------------------ 10 */
+
+describe("fail-total yerine fail-partial — UI-ADR-158", () => {
+  it("as_of NULL olan KPI listeyi KARARTMAZ", () => {
+    /* ODIN bu alanı provenance'tan doldurur; kayıt promote edilmemişse
+       `None` yayınlar. `z.string()` zorunluydu ve tek bir null TÜM KPI
+       listesini VE aynı yükten beslenen ALARM listesini birden
+       karartıyordu. "Bu metriğin veri anı yok" ODIN'in kasıtlı ifadesidir,
+       bozukluk değil. */
+    const damgasiz = {
+      id: "orders_units",
+      label: "Satılan adet",
+      status: "data_required" as const,
+      value: null,
+      unit: "count" as const,
+      reason: "sipariş kaydı yayınlanmadı",
+      asOf: null,
+    };
+    expect(() => executiveKpiSchema.parse(damgasiz)).not.toThrow();
+    expect(executiveKpiSchema.parse(damgasiz).asOf).toBeNull();
+  });
+
+  it("damgasız kayıt SAYI taşıyamaz — anti-fake korunur", () => {
+    /* Nullable yapmak "damgasız sayı serbest" demek DEĞİL: değer varsa
+       status `available` olur ve o zaman kaydın bir veri anı vardır.
+       Buradaki gevşeme yalnız ÖLÇÜLMEMİŞ kayıtlar içindir. */
+    const parsed = executiveKpiSchema.parse({
+      id: "x",
+      label: "X",
+      status: "available" as const,
+      value: 42,
+      unit: "count" as const,
+      asOf: "2026-07-31T10:00:00Z",
+    });
+    expect(parsed.value).toBe(42);
+    expect(parsed.asOf).not.toBeNull();
+  });
+});

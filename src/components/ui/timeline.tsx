@@ -19,6 +19,7 @@
 
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { formatDate } from "@/lib/format/date";
 import { LoadingState } from "@/components/ui/loading-state";
 import { NoData } from "@/components/ui/no-data";
 import { Pressable } from "@/components/ui/pressable";
@@ -36,15 +37,19 @@ const TONE = {
 } as const;
 
 function formatTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
+  /* Tek doğrulama noktası — UI-ADR-158. Bu dosya geçerliliği ZATEN
+     kontrol ediyordu; iki kardeşi (kpi kartı, sku paneli) etmiyordu.
+     Üçü de aynı yardımcıya bağlandı ki bir daha ayrışmasınlar. */
+  return (
+    formatDate(iso, {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }) ?? ""
+  );
 }
+
 
 export function Timeline({
   items,

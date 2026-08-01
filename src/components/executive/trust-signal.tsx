@@ -13,7 +13,11 @@
  */
 
 import { useNow, relativeTime } from "@/lib/clock/tick";
-import type { DataMeta, Freshness } from "@/types/data-envelope";
+import {
+  computeFreshness,
+  type DataMeta,
+  type Freshness,
+} from "@/types/data-envelope";
 
 const SOURCE_LABEL: Record<DataMeta["source"], string> = {
   "sp-api": "Amazon SP-API",
@@ -36,6 +40,7 @@ export function TrustSignal({
   meta,
   refreshFailed,
   className = "",
+  modul,
 }: {
   meta: DataMeta;
   /**
@@ -47,10 +52,28 @@ export function TrustSignal({
    */
   refreshFailed?: string;
   className?: string;
+  /** Tazelik eşiği modüle göre değişir (`FRESHNESS_THRESHOLDS_MS`).
+      Ad `module` DEĞİL: o, TS ortamında global bir tiple çakışıyor. */
+  modul?: string;
 }) {
   const now = useNow();
   const age = relativeTime(meta.lastUpdated, now);
-  const fresh = FRESHNESS[meta.freshness] ?? FRESHNESS.stale;
+
+  /**
+   * TAZELİK YENİDEN HESAPLANIR — UI-ADR-158.
+   *
+   * `meta.freshness` fetch anında bir kez hesaplanıp React Query
+   * önbelleğinde DONUYOR. Yaş ise `useNow` ile canlı tazeleniyordu; sonuç
+   * aynı satırda **"● canlı · 50 dk önce"** yazabilmesiydi (`staleTime`
+   * 5 dk ama `refetchInterval` 60 dk). Çelişen iki işaret, hiç işaret
+   * olmamasından kötüdür: kullanıcı hangisine inanacağını bilemez ve
+   * TrustSignal'ın tek işi o güveni kurmaktır.
+   *
+   * Saat gelmemişse (`now === null`) zarftaki değer korunur — tahmin yok.
+   */
+  const canliTazelik =
+    now === null ? meta.freshness : computeFreshness(meta.lastUpdated, modul ?? "default", now);
+  const fresh = FRESHNESS[canliTazelik] ?? FRESHNESS.stale;
 
   return (
     <p className={`flex flex-wrap items-center gap-2 text-xs text-content-tertiary ${className}`}>

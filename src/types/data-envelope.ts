@@ -75,10 +75,21 @@ export const FRESHNESS_THRESHOLDS_MS: Record<string, { live: number; recent: num
 
 export function computeFreshness(
   lastUpdated: string,
-  module: keyof typeof FRESHNESS_THRESHOLDS_MS = "default"
+  module: keyof typeof FRESHNESS_THRESHOLDS_MS = "default",
+  /**
+   * Şimdi — MERKEZİ SAATTEN (UI-ADR-089). Verilmezse `Date.now()`.
+   *
+   * Parametre UI-ADR-158'de eklendi: `TrustSignal` tazeliği YENİDEN
+   * hesaplayabilsin diye. Damga fetch anında bir kez hesaplanıp React
+   * Query önbelleğinde DONUYORDU; `staleTime` 5 dk ama `refetchInterval`
+   * 60 dk olduğu için ekranda AYNI SATIRDA "● canlı · 50 dk önce"
+   * yazabiliyordu. Yaş canlı, etiket ölüydü — ve ikisi çelişince
+   * kullanıcı hangisine inanacağını bilemez.
+   */
+  now: number = Date.now()
 ): Freshness {
   const t = FRESHNESS_THRESHOLDS_MS[module] ?? FRESHNESS_THRESHOLDS_MS.default;
-  const age = Date.now() - new Date(lastUpdated).getTime();
+  const age = now - new Date(lastUpdated).getTime();
   if (age <= t.live) return "live";
   if (age <= t.recent) return "recent";
   return "stale";

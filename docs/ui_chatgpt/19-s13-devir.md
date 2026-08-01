@@ -427,7 +427,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 
 | Nerede | Ne |
 |---|---|
-| `executive-kpi-card.tsx:143` - `amazon/sku/screen.tsx:49` | `Intl.DateTimeFormat.format(new Date(iso))` gecersiz tarihte **RangeError**. `report_period` alanlari semada yalniz `z.string()`, `isoDate` uygulanmamis |
 | `lib/data/odin-amazon.ts:251` | `toPeriod`: gecersiz `end` -> `toISOString()` RangeError; `window_days: 0` -> `from > to` |
 | `ui/chart.tsx:140` - `ui/sparkline.tsx:52` | `NaN`/`Infinity` tip olarak `number`dir: chart "NaN" basar, sparkline `d="M NaN,NaN"` uretir |
 
@@ -455,8 +454,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 
 | Nerede | Ne |
 |---|---|
-| `lib/data/odin-amazon.ts:58` - `schemas.ts:100` | Tek bir provenance boslugu (`as_of: null`) ya da reklam gated iken (`currency` yok) **tum Amazon KPI ve alarm listesi** kararir. `parse` yerine kayit-basina `safeParse` gerekir - bugunku davranis fail-closed degil **fail-total** |
-| `lib/data/client.ts:73` - `trust-signal.tsx:53` | Tazelik yalniz fetch aninda hesaplanip onbellekte DONUYOR -> 50. dakikada "canli - 50 dk once" yan yana yazar |
 | `lib/data/odin-state.ts:184,258` | Duz `Error` -> `classifyError` "unknown" der, kullanici "kaynagi UYDURULMADI" gorur; oysa sebep tam olarak biliniyor (`:122` dogru yapmis) |
 | `lib/data/odin-amazon.ts:270` | `adaptSkus` `status` bos olan satiri sessizce DUSURUYOR: reklam harcamasi OLCULMUS bir SKU tablodan tamamen kaybolur, "N satir dusuruldu" bilgisi yok |
 | `lib/store/navigation.ts:60` | `rememberSelection` `entry`yi yaymadigi icin `expandedIds` duser - satir secilince acik kartlar kapanir (`rememberScroll` ayni dosyada dogru yazilmis) |

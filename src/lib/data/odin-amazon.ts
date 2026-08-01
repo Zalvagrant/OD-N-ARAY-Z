@@ -55,7 +55,20 @@ const rawKpiSchema = z.object({
   currency: z.string().nullable(),
   scale: z.string().nullable(),
   reason: z.string().nullable(),
-  as_of: z.string(),
+  /**
+   * `as_of` NULL OLABİLİR — UI-ADR-158.
+   *
+   * `z.string()` idi ve bu, ODIN'in TASARLADIĞI bir durumu reddediyordu:
+   * `amazon_api.py:108` bu alanı `(prov or {}).get("collection_date")`
+   * ile dolduruyor; kayıt henüz promote edilmemişse `None` döner. Aynı
+   * KPI'ın gerekçesi zaten "sipariş kaydı yayınlanmadı" diyor — yani
+   * ODIN "bu metrik yok" demeyi biliyor, arayüz onu duymuyordu.
+   *
+   * Bedeli tek bir alanla sınırlı DEĞİLDİ: yük TEK PARÇA parse edildiği
+   * için bir kaydın `as_of`u null olduğunda TÜM KPI listesi VE aynı
+   * yükten beslenen ALARM listesi birden kararıyordu (fail-total).
+   */
+  as_of: z.string().nullable(),
   threshold_provenance: z.string().optional(),
   /* ADR-0138: kaydın KENDİ bildirdiği pencere. Şekli kaynağa göre
      değişiyor (kayan pencere / anlık / sabit aralık), o yüzden gevşek. */

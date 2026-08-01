@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { percentFactor, toPercentUnit } from "./percent";
+import { formatDate, parseIso } from "./date";
 
 describe("percentFactor", () => {
   it("bildirilmemiş ölçek null döner — tahmin YOK", () => {
@@ -32,5 +33,34 @@ describe("toPercentUnit", () => {
 
   it("sıfır geçerli bir ölçümdür, null değildir", () => {
     expect(toPercentUnit(0, "0-100")).toBe(0);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+
+describe("formatDate — geçersiz tarih ÇÖKERTMEZ (UI-ADR-158)", () => {
+  it("geçerli ISO biçimlenir", () => {
+    const out = formatDate("2026-07-31T10:00:00Z", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+    expect(out).not.toBeNull();
+    expect(out).toContain("07");
+  });
+
+  it("GEÇERSİZ dize null döner — RangeError ATMAZ", () => {
+    /* `Intl.DateTimeFormat.format(new Date(x))` geçersiz tarihte istisna
+       FIRLATIR ve render sırasında ekranın tamamını götürür. `report_period`
+       alanları şemada yalnız `z.string()`; "2026-W30" bugün de gelebilir. */
+    expect(() => formatDate("2026-W30", { day: "2-digit" })).not.toThrow();
+    expect(formatDate("2026-W30", { day: "2-digit" })).toBeNull();
+    expect(formatDate("", { day: "2-digit" })).toBeNull();
+    expect(formatDate(null, { day: "2-digit" })).toBeNull();
+    expect(formatDate(undefined, { day: "2-digit" })).toBeNull();
+  });
+
+  it("parseIso aynı kuralı paylaşır", () => {
+    expect(parseIso("2026-07-31")).toBeInstanceOf(Date);
+    expect(parseIso("bozuk")).toBeNull();
   });
 });

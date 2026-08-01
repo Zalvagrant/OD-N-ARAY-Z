@@ -160,8 +160,18 @@ export interface ExecutiveKPI {
   scale?: PercentScale;
   /** `status !== "available"` ise ZORUNLU — neden ölçülemediği de bilgidir. */
   reason?: string | null;
-  /** ISO 8601 — metriğin veri anı. */
-  asOf: string;
+  /**
+   * ISO 8601 — metriğin veri anı. **NULL OLABİLİR** (UI-ADR-158).
+   *
+   * ODIN bu alanı provenance'tan doldurur ve kayıt henüz promote
+   * edilmemişse `None` yayınlar — yani "bu metriğin veri anı YOK" demek
+   * ODIN'in kasıtlı bir ifadesidir, bozukluk değil. Zorunlu tutmak, o
+   * ifadeyi reddedip TÜM listeyi karartıyordu.
+   *
+   * Böyle bir kayıt zaten `status !== "available"` gelir ve `reason`u
+   * neden ölçülemediğini söyler; damgasız bir SAYI göstermiyoruz.
+   */
+  asOf: string | null;
   /**
    * Metriğin ÖLÇÜM PENCERESİ — ODIN ADR-0138/0147 (UI-ADR-140).
    *

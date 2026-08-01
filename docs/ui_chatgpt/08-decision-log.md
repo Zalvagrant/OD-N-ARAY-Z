@@ -4768,3 +4768,76 @@ ancak icteki kapandiktan sonra anlamli.
 `npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
 **unit 16 dosya / 238 test**, **storybook 53 dosya / 199 test**,
 atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-158 - Fail-total, donmus damga ve gecersiz tarih (S13 kapanis)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-115 - 137 - 155 - 157
+
+Ucuncu denetimin acik listesinden **uc agir bulgu** daha kapatildi.
+
+### 1 - Gecersiz tarih EKRANIN TAMAMINI goturuyordu
+
+`Intl.DateTimeFormat.format(new Date(x))` gecersiz bir tarihte **RangeError
+FIRLATIR** - sessizce bos donmez. Bu render sirasinda olur ve bolumu degil
+ekranin tamamini `error.tsx` sinirina kadar goturur.
+
+Girdi guvenli DEGIL: `report_period` alanlari (`start`/`end`/`at`) semada
+yalniz `z.string()`; `isoDate` dogrulayicisi onlara uygulanmamis
+(`asOf`/`createdAt`a uygulanmis). ODIN bu alanlari provenance'tan aynen
+tasiyor ve icerik serbest bir sozluk - `"2026-W30"` bugun de gelebilir.
+
+**Uc dosya ayni yardimciyi ayri ayri yazmisti** (`executive-kpi-card`,
+`amazon/sku/screen`, `timeline`) ve **yalniz `timeline` gecerliligi kontrol
+ediyordu.** Uc kopya, birinin korunup ikisinin korunmamasi demekti.
+`lib/format/date.ts` acildi: `formatDate` gecersizde `null` doner (bos dize
+DEGIL - cagiran "tarih yok" ile "tarih bos"u ayirabilsin).
+
+Cagiranlar da duzeltildi: pencere okunamiyorsa `sku` panelinde satir HIC
+cizilmiyor (bos bir "Donem:" etiketi, damganin bozuk oldugunu degil verinin
+olmadigini dusundururdu); KPI kartinda ise pencere gun sayisiyla yine
+soyleniyor - sayi olculmustur, yalniz damgasi bozuktur.
+
+### 2 - Tek bir alan boslugu TUM Amazon ekranini karartiyordu (fail-total)
+
+`as_of: z.string()` zorunluydu. Ama `amazon_api.py:108` bu alani
+`(prov or {}).get("collection_date")` ile dolduruyor ve kayit henuz promote
+edilmemisse **`None`** doner. Yani "bu metrigin veri ani YOK" ODIN'in
+KASITLI ifadesi - bozukluk degil; ayni KPI'in `reason`u zaten "siparis
+kaydi yayinlanmadi" diyor.
+
+Bedeli tek alanla sinirli DEGILDI: yuk TEK PARCA parse edildigi icin bir
+kaydin `as_of`u null oldugunda **tum KPI listesi VE ayni yukten beslenen
+ALARM listesi** birden krariyordu. Kullanici olculmus alti KPI yerine
+"Veri dogrulanamadi" goruyordu.
+
+`asOf` kanonik tipte de semada da nullable yapildi. **Gevseme yalniz
+OLCULMEMIS kayitlar icindir:** deger varsa `status: "available"` olur ve o
+zaman kaydin bir veri ani vardir - damgasiz bir SAYI hala gecmez, test
+bunu ayrica kilitliyor.
+
+### 3 - Tazelik damgasi onbellekte DONUYORDU
+
+`computeFreshness` yalniz `queryFn` icinde, fetch aninda bir kez kosuyor ve
+sonuc zarfla birlikte React Query onbelleginde donuyordu. `TrustSignal`
+`meta.freshness`i okuyor ama YASI `useNow` ile canli tazeliyordu.
+
+`default` modulde `staleTime` 5 dk, `refetchInterval` 60 dk. Yani 50.
+dakikada ekranda **AYNI SATIRDA** su yaziyordu:
+
+> ● canli · ODIN cekirdegi · 50 dk once
+
+**Celisen iki isaret, hic isaret olmamasindan kotudur** - kullanici
+hangisine inanacagini bilemez ve `TrustSignal`in TEK isi o guveni kurmaktir.
+`computeFreshness` artik `now` parametresi aliyor (UI-ADR-089: render'da
+`Date.now()` yok) ve `TrustSignal` tazeligi yeniden hesapliyor. Saat henuz
+gelmemisse (`now === null`) zarftaki deger korunur - tahmin yok.
+
+### Olcum
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 243 test**, **storybook 53 dosya / 200 test**,
+atlanan 0, dusen 0.

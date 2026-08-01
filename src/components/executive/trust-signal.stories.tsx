@@ -1,5 +1,6 @@
 /** S4 · 8 — TrustSignal */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, within } from "storybook/test";
 import { TrustSignal } from "./trust-signal";
 import { ago, meta as fixtureMeta } from "./stories.fixtures";
 
@@ -51,4 +52,39 @@ export const TumKaynaklar: StoryObj = {
       ))}
     </div>
   ),
+};
+
+/**
+ * UI-ADR-158 — TAZELİK ÖNBELLEKTE DONMAZ.
+ *
+ * `meta.freshness` fetch anında bir kez hesaplanıp React Query
+ * önbelleğinde donuyordu; yaş ise `useNow` ile canlı tazeleniyordu.
+ * Sonuç: aynı satırda **"● canlı · 50 dk önce"**. Çelişen iki işaret, hiç
+ * işaret olmamasından kötüdür — kullanıcı hangisine inanacağını bilemez
+ * ve `TrustSignal`ın TEK işi o güveni kurmaktır.
+ */
+export const DonmusDamgaDuzeltilir: StoryObj = {
+  name: "Zarf 'canlı' dese bile YAŞ bayatsa bayat yazılır",
+  render: () => (
+    <TrustSignal
+      meta={{
+        source: "internal",
+        /* 50 dakika önce — `default` modülde `recent` eşiği 60 dk,
+           `live` eşiği 5 dk. Yani gerçek tazelik "yakın", "canlı" DEĞİL. */
+        lastUpdated: new Date(Date.now() - 50 * 60_000).toISOString(),
+        /* Zarf YALAN söylüyor: adaptör fetch anında "live" damgalamıştı. */
+        freshness: "live",
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    /* ASIL İDDİA: zarftaki donmuş damga DEĞİL, ölçülen yaş kazanır. */
+    await expect(canvas.queryByText("canlı")).toBeNull();
+    await expect(canvas.getByText("yakın")).toBeInTheDocument();
+
+    /* Ve yaş ile etiket ARTIK ÇELİŞMİYOR. */
+    await expect(canvas.getByText(/50 dk önce/)).toBeInTheDocument();
+  },
 };

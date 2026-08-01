@@ -69,7 +69,7 @@ export const executiveKpiSchema = z
     currency: z.string().length(3).optional(),
     scale: z.enum(["0-1", "0-100"]).optional(),
     reason: z.string().nullable().optional(),
-    asOf: isoDate,
+    asOf: isoDate.nullable(),
     /* ODIN'in kayıt-başına bildirdiği pencere (ADR-0138). Şekil kaynağa
        göre değişir; `looseObject` çünkü ODIN alan ekleyebilmeli ve
        arayüz pencereyi normalleştirmez. `null` = beyan yok. */
@@ -183,7 +183,7 @@ export const opportunitySchema = z.object({
   /* Aksiyon öneremeyen kayıt Opportunity DEĞİLDİR (ADR-0143 §3) —
      ODIN onu zaten düşürüyor, şema da kabul etmez. */
   suggestedAction: z.string().min(1),
-  asOf: isoDate,
+  asOf: isoDate.nullable(),
   evidence: z.array(z.string()),
   category: z.string().nullable().optional(),
   priorityLevel: z.string().nullable().optional(),
