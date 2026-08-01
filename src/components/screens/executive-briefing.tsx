@@ -21,7 +21,15 @@ import type { Decision } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
 import { relativeTime, useNow } from "@/lib/clock/tick";
-import { useOdinOpportunities } from "@/lib/data/odin-state";
+import {
+  useOdinAlerts,
+  useOdinDirectors,
+  useOdinFeed,
+  useOdinHealthKpis,
+  useOdinHero,
+  useOdinPulse,
+  useOdinOpportunities,
+} from "@/lib/data/odin-state";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
@@ -39,7 +47,7 @@ import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { DecisionQueue } from "@/components/executive/decision-queue";
 import type { VerdictInput } from "@/components/executive/decision-card";
-import { DirectorCard } from "@/components/executive/director-card";
+import { RuntimeDirectorCard } from "@/components/executive/runtime-director-card";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { SystemReadiness } from "@/components/executive/system-readiness";
 import { TrustSignal } from "@/components/executive/trust-signal";
@@ -155,34 +163,53 @@ export function ExecutiveBriefing({
   const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
   const now = useNow();
 
-  const hero = useMockData("briefing.hero");
+  /* CANLI — `/api/state.health_score` (S10 · G3). Özet ODIN'in KENDİ
+     `critical[].label` cümlelerinden aktarılıyor; arayüz cümle kurmuyor.
+     `todaysMission`/`currentFocus` ODIN'de kavram olarak YOK → null. */
+  const hero = useOdinHero();
   const decisions = useMockData("briefing.decisions");
-  const risks = useMockData("briefing.risks");
+  /* CANLI — `/api/state.alerts` (S10 · G3). `useOdinAlerts` bu mock
+     anahtarının tayin edilmiş karşılığıydı ve zaten yazılıydı; yeni
+     kanca yazılmadı. Liste bugün BOŞ ve doğru cevap bu: çalışma
+     zamanında alarm yok. `risks` AYRI bir kavram, buraya girmez. */
+  const risks = useOdinAlerts();
   /* CANLI — ODIN ADR-0154 (UI-ADR-141). Fırsat AYRI KAYIT DEĞİL: ODIN
      mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM yayınlıyor. Filtre
      (`detected` + uygulanabilir adım) ve sıralama ODIN'de; arayüz ikisini
      de icat etmiyor. */
   const opportunities = useOdinOpportunities();
-  const kpis = useMockData("briefing.kpis");
+  /* CANLI — `/api/state.health_score.components` (S10 · G3). Altı iş
+     bileşeni; ölçülemeyen `value: null` + gerekçe ile geliyor. */
+  const kpis = useOdinHealthKpis();
   const brief = useMockData("briefing.brief");
-  const directors = useMockData("briefing.directors");
-  const timeline = useMockData("briefing.timeline");
-  const pulse = useMockData("briefing.pulse");
+  /* CANLI — `/api/state.directors` (S10 · G3). `agents` SIFIR kayıt
+     taşıyor, `directors` 8; bu yüzden AgentHealth yerine runtime
+     direktörleri gösteriliyor — mission-control'ün UI-ADR-127'de
+     verdiği kararın aynısı, yeni bir tasarım değil. */
+  const directors = useOdinDirectors();
+  /* CANLI — `/api/state.timeline` (S10 · G3). YENİ KANCA YOK: `useOdinFeed`
+     zaten aynı yükü okuyor, burada yalnız TimelineItem şekline eşleniyor.
+     `tone` ATANMIYOR — ODIN olayında ton yok, uydurulmaz. */
+  const timeline = useOdinFeed();
+  /* CANLI — `/api/state` (S10 · G3). ODIN hiçbir AI kanalı için durum
+     yayınlamıyor; boş kanal kümesi eksiklik değil ÖLÇÜM, ve AIPulse onu
+     "Ölçülebilir kanal yok" diye basıyor — halka çizilmiyor. */
+  const pulse = useOdinPulse();
 
   const loading = demo === "loading" || hero.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    hero.reload();
+    hero.refetch();
     decisions.reload();
-    risks.reload();
+    risks.refetch();
     opportunities.refetch();
-    kpis.reload();
+    kpis.refetch();
     brief.reload();
-    directors.reload();
-    timeline.reload();
-    pulse.reload();
+    directors.refetch();
+    timeline.refetch();
+    pulse.refetch();
   };
 
   /* Verdict S7'de POST /api/command'a bağlanacak (ER-0025). Şimdilik
@@ -197,7 +224,7 @@ export function ExecutiveBriefing({
       <WorkspaceHeader
         title="Executive Briefing"
         context="Bugün neye karar vermeliyim?"
-        lastSync={hero.data?.meta.lastUpdated ?? null}
+        lastSync={hero.envelope?.meta.lastUpdated ?? null}
         actions={
           <>
             <MockBadge />
@@ -217,7 +244,7 @@ export function ExecutiveBriefing({
       ) : error ? (
         <Section title="Executive Summary" error={error} onRetry={reloadAll} />
       ) : (
-        <DataGuard env={hero.data} reason="Brifing özeti üretilmedi">
+        <DataGuard env={hero.envelope} reason="Brifing özeti üretilmedi">
           {(data, meta) => <HeroView hero={data} meta={meta} />}
         </DataGuard>
       )}
@@ -260,7 +287,7 @@ export function ExecutiveBriefing({
           {/* Kart başlığı FİLTRE KURALINI söyler; boş bırakılırsa kartın
               üstünde boş bir şerit kalır ve eleme kuralı görünmez olur. */}
           <AlertStack
-            env={isEmpty ? empty(risks.data) : risks.data}
+            env={isEmpty ? empty(risks.envelope) : risks.envelope}
             title="Aksiyon gerektirenler"
           />
         </Section>
@@ -338,8 +365,11 @@ export function ExecutiveBriefing({
             768px'te ölçüldü (S6 görsel incelemesi) — bu yüzden ikinci kolon
             `md` değil `lg`de açılır. */}
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {kpis.data?.data.map((k) => (
-            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.data!.meta }} />
+          {kpis.envelope?.data.map((k) => (
+            <ExecutiveKPICard
+              key={k.id}
+              env={{ data: k, meta: kpis.envelope!.meta }}
+            />
           ))}
         </div>
       </Section>
@@ -371,10 +401,10 @@ export function ExecutiveBriefing({
         emptyDescription="Heartbeat servisi bağlı değil."
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {directors.data?.data.map((d) => (
-            <DirectorCard
-              key={d.agentId}
-              env={{ data: d, meta: directors.data!.meta }}
+          {directors.envelope?.data.map((d) => (
+            <RuntimeDirectorCard
+              key={d.id}
+              env={{ data: d, meta: directors.envelope!.meta }}
             />
           ))}
         </div>
@@ -391,9 +421,20 @@ export function ExecutiveBriefing({
           error={error}
           onRetry={reloadAll}
         >
-          <Timeline items={isEmpty ? [] : (timeline.data?.data ?? [])} />
-          {timeline.data && !isEmpty && (
-            <TrustSignal meta={timeline.data.meta} className="mt-3" />
+          <Timeline
+            items={
+              isEmpty
+                ? []
+                : (timeline.envelope?.data ?? []).map((e) => ({
+                    id: e.id,
+                    at: e.at,
+                    title: e.title,
+                    actor: e.actor,
+                  }))
+            }
+          />
+          {timeline.envelope && !isEmpty && (
+            <TrustSignal meta={timeline.envelope.meta} className="mt-3" />
           )}
         </Section>
 
@@ -406,7 +447,7 @@ export function ExecutiveBriefing({
           error={error}
           onRetry={reloadAll}
         >
-          <AIPulse env={isEmpty ? null : pulse.data} />
+          <AIPulse env={isEmpty ? null : pulse.envelope} />
         </Section>
       </div>
     </div>

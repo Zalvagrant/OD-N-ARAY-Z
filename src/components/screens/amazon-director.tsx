@@ -26,7 +26,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { AmazonSnapshot } from "@/types/executive";
+import type { AIRecommendation, AmazonSnapshot } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { SkuHealth } from "@/types/screens";
 import { remainingTime, useNow } from "@/lib/clock/tick";
@@ -410,15 +410,29 @@ export function AmazonDirector({
   const kpis = useAmazonKpis();
   const alerts = useAmazonAlerts();
 
-  const snapshot = useMockData("amazon.snapshot");
+  /* ODIN KARŞILIĞI YOK — mock kaldırıldı (S10 · G3). AmazonSnapshot
+     ZORUNLU alanlarının çoğu yayınlanmıyor: revenue · orders · tacos ·
+     buyBoxRate · inventoryHealth · inventoryValue · intelligence. Yayında
+     olanlar (units_sold, acos, roas, ad_spend, ad_sales, net_after_ads,
+     critical_stock_skus) ZATEN Executive KPI Strip ve SKU tablosunda
+     canlı gösteriliyor — Glance ve Intelligence bölümleri gerekçeli
+     "veri yok" basıyor. */
   /* CANLI — ODIN ADR-0149 (UI-ADR-128). 48 SKU: kimlik, stok,
      gün-kapsamı, satılan adet, reklam, fiyat. Skor YOK ve
      türetilmiyor; durum kendi eşik provenance'ıyla geliyor. */
   const skus = useAmazonSkus();
-  const ppc = useMockData("amazon.ppc");
-  const campaigns = useMockData("amazon.campaigns");
+  /* ODIN KARŞILIĞI YOK — mock kaldırıldı, bölümler gerekçeli "veri yok"
+     basıyor (S10 · G3). Ölçüm:
+     · PPCOverview `health` zorunlu; ODIN PPC sağlık skoru yayınlamıyor.
+       Diğer altı alanın (spend/sales/acos/roas/profitAfterAds) verisi VAR
+       ve zaten Executive KPI Strip'te canlı gösteriliyor — kayıp yok.
+     · CampaignIntelligence `aiSummary` + `suggestedActions` istiyor;
+       ODIN kampanya satırı yayınlıyor, AI anlatısı üretmiyor.
+     · Fırsatlar `AIRecommendation` istiyor (confidence, 8 bileşenli
+       confidenceBreakdown, risks, assumptions, flipConditions,
+       consensusScore); ODIN `opportunities` bunların hiçbirini taşımıyor.
+     Eksik zorunlu alanları doldurmak uydurma olurdu. */
   const simulations = useMockData("amazon.simulations");
-  const opportunities = useMockData("amazon.opportunities");
 
   /* Canlı bölümün hatası SUSTURULMAZ (S8 dersi, main CLAUDE.md kural 6):
      bir bölüm gerçek uç noktadan besleniyorsa, o uç nokta düştüğünde
@@ -427,19 +441,15 @@ export function AmazonDirector({
   const sectionError = (live: { toErrorState: () => SectionError } | null) =>
     demo === "error" ? DEMO_ERROR : (live?.toErrorState() ?? null);
 
-  const loading = demo === "loading" || snapshot.loading;
+  const loading = demo === "loading" || kpis.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    snapshot.reload();
     kpis.refetch();
     skus.refetch();
-    ppc.reload();
-    campaigns.reload();
     simulations.reload();
     alerts.refetch();
-    opportunities.reload();
   };
 
   const skuRows = isEmpty ? [] : (skus.envelope?.data ?? []);
@@ -448,7 +458,7 @@ export function AmazonDirector({
      §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
      domain alanı sorusu 13-...md §17'de (FR-0042 fingerprint'i zaten
      (domain, recommendation_type, …) kullanıyor — alan gelirse ayrım döner). */
-  const feedOpportunities = isEmpty ? [] : (opportunities.data?.data ?? []);
+  const feedOpportunities: AIRecommendation[] = [];
 
   /* ODIN sözlüğü (UI-ADR-128). `unknown` BU LİSTEYE GİRMEZ: hızı
      ölçülemeyen bir SKU riskli değildir, ÖLÇÜLMEMİŞTİR — ikisini
@@ -471,7 +481,7 @@ export function AmazonDirector({
            "senkron yok" diyordu. Önce gerçekten bağlı olan kaynağın zamanı
            yazılır; ikisi de yoksa `—` kalır ve bu dürüsttür. */
         lastSync={
-          kpis.envelope?.meta.lastUpdated ?? snapshot.data?.meta.lastUpdated ?? null
+          kpis.envelope?.meta.lastUpdated ?? null
         }
         actions={
           <>
@@ -497,7 +507,10 @@ export function AmazonDirector({
       ) : error ? (
         <Section title="Executive Glance" error={error} onRetry={reloadAll} />
       ) : (
-        <DataGuard env={isEmpty ? null : snapshot.data} reason="Amazon anlık görüntüsü üretilmedi">
+        <DataGuard<AmazonSnapshot>
+          env={null}
+          reason="Amazon anlık görüntüsü üretilmedi"
+        >
           {(s, meta) => <GlanceView s={s} meta={meta} />}
         </DataGuard>
       )}
@@ -656,7 +669,7 @@ export function AmazonDirector({
           error={error}
           onRetry={reloadAll}
         >
-          <PPCOverviewCard env={isEmpty ? null : ppc.data} />
+          <PPCOverviewCard env={null} />
         </Section>
 
         <Section
@@ -700,11 +713,7 @@ export function AmazonDirector({
           onRetry={reloadAll}
         >
           <AIBrief
-            env={
-              isEmpty || !snapshot.data
-                ? null
-                : { data: snapshot.data.data.intelligence, meta: snapshot.data.meta }
-            }
+            env={null}
             title="Amazon Executive Intelligence"
           />
         </Section>
@@ -768,7 +777,7 @@ export function AmazonDirector({
         onRetry={reloadAll}
       >
         <div className="grid gap-8 xl:grid-cols-3 [&>*]:min-w-0">
-          <CampaignIntelligenceList env={isEmpty ? empty(campaigns.data) : campaigns.data} />
+          <CampaignIntelligenceList env={null} />
 
           <div className="flex flex-col gap-4">
             <Text size="sm" tone="secondary">

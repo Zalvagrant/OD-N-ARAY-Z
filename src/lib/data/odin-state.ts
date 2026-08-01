@@ -15,10 +15,18 @@
 import { z } from "zod";
 
 import type { DataEnvelope } from "@/types/data-envelope";
+import type { PulseChannelStates } from "@/types/executive";
+import type {
+  ExecutiveHero,
+  IntelligenceCategory,
+  IntelligenceItem,
+} from "@/types/screens";
 import { httpLoad } from "./client";
 import { IS_MOCK } from "./mode";
 import {
   alertSchema,
+  executiveKpiSchema,
+  type ExecutiveKpiParsed,
   goalSchema,
   opportunitySchema,
   runtimeDirectorSchema,
@@ -277,6 +285,210 @@ export function useOdinOpportunities(): OdinQueryResult<Opportunity[]> {
               priorityLevel: o.priority_level ?? null,
             }))
           );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Intelligence Feed — `/api/state.timeline` (S10 · G3)
+   -------------------------------------------------------------------------- */
+
+const timelineStateSchema = z.object({
+  generated_at: z.string(),
+  timeline: z.array(
+    z.object({
+      seq: z.number(),
+      ts: z.string(),
+      event: z.string(),
+      actor: z.string(),
+    })
+  ),
+});
+
+/** ODIN olay adının ALAN kısmı → arayüz kategorisi.
+ *
+ *  Yalnız gerekçelendirilebilen eşlemeler burada. Bir Amazon olayını
+ *  `amazon_anomaly` saymak gibi bir şey YOK: ODIN'in `amazon.*` olayı bir
+ *  anomali değil, sadece Amazon alanında olan bir şey. Eşleşmeyen her olay
+ *  `director_activity` olur — tipin kendi tanımı "olayı üreten Director /
+ *  modül" ve `actor` alanı gerçek kaynağı zaten taşıyor, yani hiçbir şey
+ *  gizlenmiyor ya da yanlış etiketlenmiyor. */
+const EVENT_DOMAIN_CATEGORY: Record<string, IntelligenceCategory> = {
+  risk: "critical_risk",
+  recommendation: "ai_recommendation",
+  knowledge: "new_knowledge",
+  decision: "pending_approval",
+  execution: "pending_approval",
+  secrets: "security_event",
+};
+
+/** ODIN olaylarında ÖNCELİK YOKTUR ve uydurulmayacak.
+ *
+ *  `IntelligenceItem.priority` sıralamayı sürüyor (1 en üstte) ve bileşen
+ *  eşitlikte "yeni olan üstte" diyor. Hepsine aynı değeri vermek, akışı
+ *  KRONOLOJİK yapar — verinin desteklediği tek sıralama budur. Kategoriden
+ *  öncelik türetmek (risk=1, onay=2 …) ODIN'de karşılığı olmayan bir
+ *  aciliyet sırası icat etmek olurdu. */
+const NO_PRIORITY_SIGNAL = 3 as const;
+
+export function useOdinFeed(): OdinQueryResult<IntelligenceItem[]> {
+  return useOdinQuery({
+    key: ["odin", "feed"],
+    module: "default",
+    schema: z.array(z.custom<IntelligenceItem>()),
+    load: IS_MOCK
+      ? async () => loadMock("feed.items")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = timelineStateSchema.parse(raw);
+          return envelope(
+            parsed.generated_at,
+            parsed.timeline.map((e) => ({
+              id: String(e.seq),
+              category:
+                EVENT_DOMAIN_CATEGORY[e.event.split(".")[0]] ??
+                "director_activity",
+              title: e.event,
+              at: e.ts,
+              priority: NO_PRIORITY_SIGNAL,
+              actor: e.actor,
+            }))
+          );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Executive KPI şeridi — `/api/state.health_score.components` (S10 · G3)
+   -------------------------------------------------------------------------- */
+
+const healthScoreStateSchema = z.object({
+  generated_at: z.string(),
+  health_score: z.object({
+    components: z.array(
+      z.object({
+        name: z.string(),
+        value: z.number().nullable(),
+        detail: z.string(),
+      })
+    ),
+  }),
+});
+
+export function useOdinHealthKpis(): OdinQueryResult<ExecutiveKpiParsed[]> {
+  return useOdinQuery({
+    key: ["odin", "health-kpis"],
+    module: "default",
+    schema: z.array(executiveKpiSchema),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.kpis")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = healthScoreStateSchema.parse(raw);
+          return envelope(
+            parsed.generated_at,
+            parsed.health_score.components.map((c) => ({
+              id: c.name,
+              label: c.name,
+              /* ODIN ölçemediğinde `value: null` yayınlıyor ve gerekçesini
+                 `detail`de söylüyor — zarf zaten ADR-0143 şeklinde. */
+              status: c.value === null ? ("data_required" as const)
+                                       : ("available" as const),
+              value: c.value,
+              /* Bileşenler 0-100 arası bir bileşik skorun parçası. */
+              unit: "score" as const,
+              reason: c.detail,
+              asOf: parsed.generated_at,
+              /* ODIN sağlık bileşenleri için pencere BEYAN ETMİYOR —
+                 arayüz pencere uydurmaz (UI-ADR-140). */
+              reportPeriod: null,
+            }))
+          );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Executive Hero — `/api/state.health_score` (S10 · G3)
+   -------------------------------------------------------------------------- */
+
+const heroStateSchema = z.object({
+  generated_at: z.string(),
+  health_score: z
+    .object({
+      score: z.number().nullable(),
+      coverage: z.string(),
+      critical: z
+        .array(z.object({ label: z.string() }))
+        .nullable()
+        .optional(),
+    })
+    .nullable(),
+});
+
+export function useOdinHero(): OdinQueryResult<ExecutiveHero> {
+  return useOdinQuery({
+    key: ["odin", "hero"],
+    module: "default",
+    schema: z.custom<ExecutiveHero>(),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.hero")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = heroStateSchema.parse(raw);
+          if (parsed.health_score === null) {
+            throw new Error("ODIN şirket sağlık skorunu okuyamadı");
+          }
+          const hs = parsed.health_score;
+          /* Özet ODIN'in KENDİ cümleleridir — `critical[].label` ölçülmüş
+             durumları kendi kelimeleriyle yayınlıyor ("Likidite riski:
+             nakit akışı -70,188 TL/ay, runway 1.3 ay"). Arayüz onları
+             AKTARIR; cümle KURMAZ. Kritik durum yoksa geriye yalnız
+             yayınlanmış sayılar kalır. */
+          const labels = (hs.critical ?? []).map((c) => c.label);
+          return envelope(parsed.generated_at, {
+            executiveSummary:
+              labels.length > 0
+                ? labels.join(" · ")
+                : `Şirket sağlığı ${hs.score ?? "ölçülmedi"} · kapsam ${hs.coverage}`,
+            /* ODIN'de "günün hedefi" / "şu anki odak" diye bir kavram YOK.
+               `goals` sekiz kayıt taşıyor ama hiçbiri "bugün" demiyor —
+               birini seçmek arayüzün öncelik icat etmesi olurdu. */
+            todaysMission: null,
+            currentFocus: null,
+            systemHealthScore: hs.score,
+            /* 13-backend-recommendations.md §14.1 — karşılığı YOK. */
+            aiReadiness: null,
+          });
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   AI Pulse — `/api/state` (S10 · G3)
+   -------------------------------------------------------------------------- */
+
+const pulseStateSchema = z.object({ generated_at: z.string() });
+
+export function useOdinPulse(): OdinQueryResult<PulseChannelStates> {
+  return useOdinQuery({
+    key: ["odin", "pulse"],
+    module: "default",
+    schema: z.custom<PulseChannelStates>(),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.pulse")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = pulseStateSchema.parse(raw);
+          /* ODIN hiçbir AI kanalı için durum YAYINLAMIYOR: `processing`,
+             `memory_knowledge` ve `prediction` registry'de açık ama
+             karşılıklarında ölçülen bir yük yok, `ai_queue`/`ai_cost` ise
+             zaten kapalı (UI-ADR-141 §5 — kuyruk kavramı ve fiyat tablosu
+             yok). Boş kanal kümesi bir eksiklik değil, ÖLÇÜMÜN KENDİSİ:
+             AIPulse bunu "Ölçülebilir kanal yok" diye basıyor ve halka
+             ÇİZİLMİYOR. Zarfın zamanı ODIN'den geliyor, yani "şu an
+             itibarıyla" iddiası gerçek. */
+          return envelope(parsed.generated_at, {} as PulseChannelStates);
         },
   });
 }
