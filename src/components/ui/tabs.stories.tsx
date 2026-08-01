@@ -59,17 +59,26 @@ export const KlavyeGezinmesi: StoryObj = {
   name: "Ok tuşlarıyla gezilir, odak seçili sekmede TOPLANIR",
   render: function Render() {
     const [value, setValue] = useState<Tab>("health");
+    /* Panelsiz `Tabs` render etmek GERÇEKÇİ DEĞİL: seçili sekmenin
+       `aria-controls`u var olmayan bir kimliğe işaret eder (axe yalnız
+       seçili olanı bildirir; seçilmemişler tembel render için hoş
+       görülür). UI-ADR-164'ün tüm konusu bu ikilinin AYNI `scope`u
+       paylaşmasıydı — story de öyle kurulur. */
+    const ids: Tab[] = ["health", "performance", "security"];
     return (
-      <Tabs
-        label="Görünüm"
-        value={value}
-        onChange={setValue}
-        items={[
-          { id: "health", label: "Health" },
-          { id: "performance", label: "Performance" },
-          { id: "security", label: "Security" },
-        ]}
-      />
+      <div>
+        <Tabs
+          label="Görünüm"
+          value={value}
+          onChange={setValue}
+          items={ids.map((id) => ({ id, label: id }))}
+        />
+        {ids.map((id) => (
+          <TabPanel key={id} id={id} active={value === id}>
+            {id}
+          </TabPanel>
+        ))}
+      </div>
     );
   },
   play: async ({ canvasElement }) => {

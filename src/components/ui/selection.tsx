@@ -142,7 +142,16 @@ export function Toggle({
   readOnly?: boolean;
 }) {
   return (
+    /* `aria-disabled` — UI-ADR-165. `Checkbox`/`Radio` bunu istemiyor
+       çünkü onların denetimi gerçek bir `<input disabled>`; Toggle'ınki
+       ise `<button role="switch">` ve etiketin devre dışı olduğunu
+       söyleyen HİÇBİR ŞEY yoktu. Ekran okuyucu yanındaki metni etkin bir
+       seçenek gibi okuyordu; solgun görünmek yalnız GÖREN kullanıcıya
+       bilgi verir. WCAG 1.4.3 etkin olmayan bileşenleri kontrast
+       şartından muaf tutar ve axe da aynı muafiyeti uygular — ama önce
+       bileşenin devre dışı OLDUĞUNU bilmesi gerekir. */
     <label
+      aria-disabled={disabled || undefined}
       className={`inline-flex items-center gap-3 text-base text-content ${
         disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer"
       }`}

@@ -1,8 +1,28 @@
 import type { Preview } from "@storybook/nextjs-vite";
 import { useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { MotionGlobalConfig } from "framer-motion";
 import { makeQueryClient } from "../src/lib/data/query";
 import "../src/app/globals.css";
+
+/**
+ * TEST KOŞUCUSUNDA animasyon atlanır — UI-ADR-165. Storybook'un kendi
+ * arayüzünde HİÇBİR ŞEY DEĞİŞMEZ; koşul yalnız Vitest tarayıcı modunda
+ * doğrudur.
+ *
+ * Sebep: `addon-a11y` axe'i `afterEach`te koşturur. Giriş animasyonu o an
+ * hâlâ opaklığı 0'dan 1'e taşıyorsa axe YARIM KAREYİ ölçer ve "kontrast
+ * 1.07" der. Ekranda o renk hiç durmaz — bu bir tasarım kusuru değil, bir
+ * YARIŞ. Ve yarış olduğu ölçüldü: aynı kod iki koşuda 3 ve 6 test düşürdü.
+ *
+ * Önce `reducedMotion: 'reduce'` denendi ve YETMEDİ: bileşenler o kipte
+ * hareketi kaldırıyor ama çapraz geçişi koruyor (`disclosure.tsx:10` bunu
+ * bilerek yapıyor — "hareket kalkar, bilgi kalmaz değil"). Doğru olan da
+ * budur; düzeltilmesi gereken üretim değil, ölçüm anıydı.
+ */
+if ((globalThis as { __vitest_browser__?: boolean }).__vitest_browser__) {
+  MotionGlobalConfig.skipAnimations = true;
+}
 
 const preview: Preview = {
   parameters: {
@@ -18,30 +38,23 @@ const preview: Preview = {
       // 'error' - fail CI on a11y violations
       // 'off' - skip a11y checks entirely
       /**
-       * ⚠️ `todo` — ve bu bir EKSİKLİK, tercih değil (UI-ADR-154).
+       * ✅ `error` — kapı KAPALI (UI-ADR-165). Bir zamanlar `todo` idi.
        *
-       * `error`e çevrildi ve ÖLÇÜLDÜ: **107 story düşüyor, 609 ihlal.**
-       * Dağılım:
-       *   582  color-contrast      ← %96
-       *    12  definition-list
-       *    10  dlitem
-       *     2  landmark-unique · 2 label · 1 aria-valid-attr-value
+       * Ölçüm o zaman **107 story / 609 ihlal** demişti ve 582'si (%96)
+       * TEK token'dan geliyordu: `--odin-text-tertiary` = `#64748B`.
+       * Karanlık temanın BEŞ zemininin hiçbirine karşı WCAG AA'yı
+       * geçmiyordu (3.16 – 4.14). Token `#8593A5`'e açıldı; en kötü
+       * zemine (`surface-floating` #1B2739) karşı 4.81 verir.
        *
-       * 582'nin neredeyse tamamı TEK TOKEN: `#64748b`
-       * (`text-content-tertiary`). Beş zemine karşı ölçülen en kötü oran
-       * **3.73:1**; WCAG AA küçük metin için 4.5:1 istiyor.
+       * ⚠️ İlk aday listem EKSİK ÖLÇÜLMÜŞTÜ: `surface-floating` ve
+       * `surface-elevated` zeminleri sayılmamıştı, bu yüzden `#7c8899`
+       * "4.93 geçer" görünüyordu — gerçekte 4.18 ile KALIYOR. Bir
+       * kontrast iddiası, ölçüldüğü zemin kümesi kadar doğrudur.
        *
-       * Yani bu bir "yüzlerce hata" değil, BİR tasarım dili kararı:
-       * tek token açılırsa ihlallerin ~%96'sı kapanır. Aday tonlar
-       * (en kötü zemine göre): #7c8899 → 4.93 · #8593a5 → 5.67 ·
-       * #94a3b8 → 6.92.
-       *
-       * Token değiştirmek arayüzün TAMAMININ görünümünü etkiler ve
-       * SAHİBİN kararıdır — sessizce yapılmaz. Karar verilip sıfırlanana
-       * kadar `todo`da kalıyor. Çevirmeden önce ölç: sayı burada yazılı,
-       * tahmine gerek yok.
+       * Bundan sonra erişilebilirlik ihlali eklemek CI'yı düşürür.
+       * `todo`ya geri çevirmek bir düzeltme değil, kapıyı sökmektir.
        */
-      test: "todo",
+      test: "error",
     },
 
     backgrounds: { disable: true },

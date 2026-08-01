@@ -21,6 +21,12 @@
   --odin-gray-200: #E2E8F0;
   --odin-gray-300: #CBD5E1;
   --odin-gray-400: #94A3B8;
+  /* UI-ADR-165 — karanlık temada üçüncül metnin WCAG AA'yı geçmesi için
+     eklendi. `gray-500` (#64748B) en açık koyu zemine (#1B2739, dropdown)
+     karşı 3.16:1 veriyordu; AA küçük metin için 4.5 ister. `gray-400`
+     yeterdi ama o `text-secondary` — ikisini eşitlemek üçüncül/ikincil
+     hiyerarşisini SİLERDİ. Bu ton ikisinin arasında durur ve geçer. */
+  --odin-gray-450: #8593A5;
   --odin-gray-500: #64748B;
   --odin-gray-600: #475569;
   --odin-gray-700: #334155;
@@ -120,7 +126,23 @@
   /* --- Metin --- */
   --odin-text-primary:   var(--odin-gray-100);
   --odin-text-secondary: var(--odin-gray-400);
-  --odin-text-tertiary:  var(--odin-gray-500);
+  /**
+   * ÜÇÜNCÜL METİN — UI-ADR-165 (erişilebilirlik düzeltmesi).
+   *
+   * `gray-500` (#64748B) idi ve karanlık temanın ALTI zemininin
+   * HİÇBİRİNE karşı WCAG AA'yı (4.5:1) geçmiyordu: 3.16 – 4.14 arası.
+   * Bu, ölçülen 609 axe ihlalinin 582'sinin (%96) tek kaynağıydı.
+   *
+   * Bu bir görünüm tercihi DEĞİL, bir kusurdur: repo erişilebilirlik
+   * temellerini pazarlık dışı sayar. Asgari geçen değer seçildi —
+   * `#8593A5` en kötü zemine karşı 4.81 verir; daha açık adaylar
+   * (`gray-400`, 5.87) hiyerarşiyi ikincil metne yaklaştırırdı.
+   *
+   * AYDINLIK TEMA DEĞİŞMEDİ: orada `gray-500` zaten geçiyor
+   * (#FFFFFF 4.76 · #F8FAFC 4.55) ve geçen bir şeyi değiştirmek
+   * gereksiz bir görünüm değişikliği olurdu.
+   */
+  --odin-text-tertiary:  var(--odin-gray-450);
   --odin-text-inverse:   var(--odin-gray-950);
 
   /* --- Kenarlık --- */
@@ -135,7 +157,14 @@
   --odin-icon-muted:   var(--odin-gray-600);
 
   /* --- DURUM RENKLERİ (semantiği ADR-069'da dondurulmuş) --- */
-  --odin-danger:      var(--odin-red-500);      /* gerçek kriz — SADECE */
+  /* UI-ADR-165 — `red-500` (#EF4444) idi ve YAZI olarak hiçbir koyu
+     zeminde WCAG AA'yı geçmiyordu: düz zeminde en kötü 4.00, kendi
+     `danger-bg` tonunda 3.68. Rozet metni bu yüzden 11 yerde düşüyordu.
+     `red-400` zaten palette vardı — yeni ton uydurmaya gerek yok:
+     yazı olarak en kötü 5.00, `bg-danger` üstünde koyu yazı yönünde de
+     5.23'ten 7.12'ye çıkar. Uyarının kendisi bir erişilebilirlik
+     kusuruysa, uyaramaz. */
+  --odin-danger:      var(--odin-red-400);      /* gerçek kriz — SADECE */
   --odin-danger-bg:   rgba(239, 68, 68, 0.10);
   --odin-warning:     var(--odin-amber-500);    /* bekleyen risk */
   --odin-warning-bg:  rgba(245, 158, 11, 0.10);

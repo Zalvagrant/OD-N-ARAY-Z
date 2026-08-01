@@ -29,10 +29,16 @@ export function MinorityOpinionBanner({
   const list = (opinions ?? []).filter((o) => o.trim().length > 0);
   if (list.length === 0) return null;
 
+  /* UI-ADR-165 — `aria-label="Azınlık görüşü"` taşıyan bir `<aside>` idi,
+     yani SAYFA SEVİYESİ bir landmark. Ama bu bileşen karar kartının
+     İÇİNDE yaşar ve `DecisionQueue` üç kart birden basar: aynı adı
+     taşıyan üç `complementary` landmark oluşuyordu ve ekran okuyucunun
+     landmark listesi hangisinin hangi karara ait olduğunu söyleyemiyordu.
+     Bir kart içi not, sayfanın gezinme iskeletine ait değildir.
+     Aşağıdaki başlık zaten "Azınlık görüşü" diyor. */
   return (
-    <aside
+    <div
       className={`rounded-sm border border-line bg-bg-secondary p-3 ${className}`}
-      aria-label="Azınlık görüşü"
     >
       <p className="flex flex-wrap items-center gap-2 text-xs text-content-tertiary">
         <span aria-hidden="true">◂</span>
@@ -49,6 +55,6 @@ export function MinorityOpinionBanner({
           </li>
         ))}
       </ul>
-    </aside>
+    </div>
   );
 }

@@ -10,8 +10,10 @@
  * ölü kodu meşrulaştırır. Onu dürüst tutan tek şey, bileşenin GÖRÜLEBİLİR
  * ve ÇALIŞTIRILABİLİR olmasıdır: hikâyesi olan bir bileşen Storybook'ta
  * render edilir ve test paketinde koşar.
- * (addon-a11y taraması `todo` modunda — GÖSTERİR ama CI'ı DÜŞÜRMEZ;
- * yanlış bir güven vermemek için bu satırdan çıkarıldı, UI-ADR-154.)
+ * (addon-a11y taraması artık `error` modunda — UI-ADR-165. Yani bu
+ * cümle bir kez daha doğrulandı: envanter bileşeninin hikâyesi yalnız
+ * KOŞMUYOR, erişilebilirlik taramasından da GEÇİYOR. Bu satır bir zamanlar
+ * `todo`ya işaret ediyordu ve o kip yanlış bir güven veriyordu.)
  * Hikâyesi olmayan ve çağıranı da olmayan bir dosya envanter değildir —
  * hiç kimsenin bakmadığı koddur.
  *

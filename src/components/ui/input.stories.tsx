@@ -68,10 +68,14 @@ export const Variants: StoryObj = {
     <div className="flex max-w-md flex-col gap-4">
       <Input placeholder="Default" />
       <Input variant="inline" placeholder="Inline — tablo içi düzenleme" />
-      <Input readOnly value="Read only" />
+      {/* `Input` adlandırmayı ÇAĞIRANA bırakır; üretimde bunu `Field`
+          yapar (aşağıdaki story). Buradaki çıplak varyantların çoğu
+          `placeholder` sayesinde adlanıyor — bu ikisinin ise hiçbir adı
+          yoktu. Story'nin yapay bağlamı, gerçek bir kusur değil. */}
+      <Input readOnly value="Read only" aria-label="Salt okunur" />
       <Input disabled placeholder="Disabled" />
       <Input aria-invalid placeholder="Invalid (aria-invalid)" />
-      <Input type="number" defaultValue={1234} />
+      <Input type="number" defaultValue={1234} aria-label="Sayı" />
     </div>
   ),
 };

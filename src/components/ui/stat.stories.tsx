@@ -119,20 +119,23 @@ export const TonSozlugu: Story = {
 export const TruncateYerlesimGuvencesidir: Story = {
   name: "truncate — dar hücrede etiket KIRPILIR, varsayılan KAPALI",
   render: () => (
+    /* `data-testid` taşıyan sarmalayıcı `div`'ler VARDI ve `<dl>`i
+       geçersiz kılıyordu: `Stat` zaten kendi `div`ini basar, yani
+       `dl > div > div > dt` oluşuyordu — HTML `dl > div > dt`ye yalnız
+       TEK kat izin verir. Kırpma davranışını sınamak için `<dl>`i bozmak
+       gerekmiyor; hücreler sırayla da bulunur. */
     <dl className="grid w-48 grid-cols-2 gap-4">
-      <div data-testid="off">
-        <Stat label="Çok uzun bir metrik etiketi" value={12} />
-      </div>
-      <div data-testid="on">
-        <Stat label="Çok uzun bir metrik etiketi" value={12} truncate />
-      </div>
+      <Stat label="Çok uzun bir metrik etiketi" value={12} />
+      <Stat label="Çok uzun bir metrik etiketi" value={12} truncate />
     </dl>
   ),
   play: async ({ canvasElement }) => {
-    const dt = (id: string) =>
-      canvasElement.querySelector(`[data-testid="${id}"] dt`)!;
+    /* 0 = truncate KAPALI, 1 = AÇIK — yukarıdaki sıra. */
     const wrapper = (id: string) =>
-      canvasElement.querySelector(`[data-testid="${id}"] dt`)!.parentElement!;
+      canvasElement.querySelectorAll("dl > div")[
+        id === "off" ? 0 : 1
+      ] as HTMLElement;
+    const dt = (id: string) => wrapper(id).querySelector("dt")!;
 
     /* VARSAYILAN KAPALI. `truncate` `white-space: nowrap` demektir ve iki
        satıra sarabilen bir etiketi tek satıra kırpar; açık gelseydi

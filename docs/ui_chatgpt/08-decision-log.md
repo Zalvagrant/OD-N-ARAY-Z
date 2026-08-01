@@ -5270,3 +5270,96 @@ ortusuyor.
 `npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
 **unit 16 dosya / 241 test**, **storybook 54 dosya / 206 test**,
 atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-165 — Erişilebilirlik kapısı KAPANDI: 609 ihlalden 0'a
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-142 · 153 · 154 · 164
+
+S13'ün açık bıraktığı son madde. `addon-a11y` `test: "todo"` idi: ihlalleri
+GÖSTERİYOR ama hiçbir testi düşürmüyordu. `error`e çevrildiğinde ölçüm
+**107 story / 609 ihlal**di. Artık **0** ve kapı kapalı.
+
+### Yol: 609 → 27 → 6 → 1 → 0
+
+**Adım 1 — tek token, ihlallerin %96'sı.** `--odin-text-tertiary`
+(`gray-500`, `#64748B`) karanlık temanın BEŞ zemininin hiçbirine karşı
+AA'yı geçmiyordu (3.16 – 4.14). Aydınlık tema DEĞİŞTİRİLMEDİ: orada zaten
+geçiyor (4.55 – 4.76) ve geçen bir şeyi değiştirmek gereksiz bir görünüm
+değişikliğidir.
+
+⚠️ **Sahibe verdiğim ilk aday listesi YANLIŞTI.** `#7c8899 → 4.93` demişim;
+o ölçüm yalnız üç zemin görüyordu. `surface-elevated` (#16202F) ve
+`surface-floating` (#1B2739) katılınca aynı ton **4.18'e düşüyor ve
+KALIYOR.** Bir kontrast iddiası, ölçüldüğü zemin kümesi kadar doğrudur.
+Geçen asgari ton `#8593A5` (`gray-450`); `gray-400`ü kullanmak yeterdi ama
+o `text-secondary` — ikisini eşitlemek üçüncül/ikincil hiyerarşisini SİLERDİ.
+
+**Adım 2 — danger kırmızısı kendi uyarısını okunmaz yapıyordu.**
+`--odin-danger` = `red-500` (#EF4444): tonlu rozet zemininde 3.68, DÜZ
+zeminde bile 4.00. `red-400` zaten palette vardı — yeni ton uydurulmadı.
+Yazı olarak en kötü 5.00'e, `bg-danger` üstünde koyu yazı yönünde
+5.23'ten 7.12'ye çıkar. **Uyarının kendisi bir erişilebilirlik kusuruysa,
+uyaramaz.**
+
+**Adım 3 — story'nin yarattığı bağlam, bileşenin kusuru değildir.** Dört
+ihlal bileşen GERÇEKTE HİÇ BULUNMADIĞI bir bağlamdan geliyordu ve
+düzeltme story'de yapıldı: `Stat` `<dl>` içine iki kat sarılmıştı
+(`dl > div > div > dt` — HTML tek kata izin verir) · `Tabs` panelsiz
+render ediliyordu (seçili sekmenin `aria-controls`u var olmayan kimliğe
+işaret ediyordu) · iki çıplak `Input` `Field`sız, yani adsızdı.
+
+Bir ihlal ise **gerçek bir kusurdu**: `MinorityOpinionBanner` sayfa
+seviyesi bir `<aside aria-label="Azınlık görüşü">` basıyordu ama karar
+kartının İÇİNDE yaşıyor ve `DecisionQueue` üç kart birden basıyor — aynı
+adı taşıyan üç `complementary` landmark. Bir kart içi not, sayfanın
+gezinme iskeletine ait değildir; `<div>` oldu.
+
+**Adım 4 — üç ihlal bir TASARIM kusuru değil, bir YARIŞTI.** axe
+`afterEach`te koşuyor; giriş animasyonu o an hâlâ opaklığı taşıyorsa axe
+YARIM KAREYİ ölçüyor ve "kontrast 1.06" diyor. Ekranda o renk hiç durmaz.
+Ve yarış olduğu ÖLÇÜLDÜ: aynı kod iki koşuda **3 ve 6** test düşürdü —
+yani bu testler yalnız yanlış değil, KARARSIZDI.
+
+Önce `reducedMotion: 'reduce'` denendi ve **yetmedi**: bileşenler o kipte
+hareketi kaldırıyor ama çapraz geçişi koruyor — ve bu DOĞRUDUR
+(`disclosure.tsx:10`: "hareket kalkar, bilgi kalmaz değil"). Düzeltilmesi
+gereken üretim değil, ölçüm anıydı: test koşucusunda
+`MotionGlobalConfig.skipAnimations`. Storybook arayüzünde hiçbir şey
+değişmez.
+
+**Adım 5 — devre dışı olduğunu söylemeyen bir kontrol.** Son ihlal
+`Toggle`ın solgun etiketiydi. WCAG 1.4.3 etkin olmayan bileşenleri
+kontrast şartından muaf tutar ve axe da aynı muafiyeti uygular — ama
+axe'in muafiyet sorgusu `input, select, textarea` arıyor (kaynaktan
+okundu: `color-contrast-matches`), `Toggle`ın denetimi ise
+`<button role="switch">`. Yani muafiyet uygulanmıyordu.
+
+Kuralı kapatmak yerine EKSİK OLAN SÖYLENDİ: etikete `aria-disabled`.
+Çünkü asıl kusur kontrast değildi — ekran okuyucu o metni etkin bir
+seçenek gibi okuyordu. **Solgun görünmek yalnız GÖREN kullanıcıya bilgi
+verir.** (`Checkbox`/`Radio` bunu istemiyor: onların denetimi gerçek bir
+`<input disabled>`. `SegmentedControl` de sağlam — her butonu `disabled`,
+klavye yolu da kapalı; ölçüldü, dokunulmadı.)
+
+### Kapı sökülemez
+
+`test: "error"` → `"todo"` tek kelimelik bir düzenlemedir ve **206 testin
+hepsini yeşil bırakarak erişilebilirlik kapsamının tamamını kapatır.** Ne
+alt sınır ne kimlik kontrolü bunu görür: ikisi de SAYIYA bakar, sayı hiç
+değişmez. Bu, UI-ADR-154'ün kapattığı "commit A'da test ekle, commit B'de
+kapıyı sil" oyununun aynısıdır — bir ayar satırıyla.
+
+`verify-tests.mjs` artık `storybook` projesinde `preview.tsx`i okuyup
+`test: "error"` arıyor. Bilinçli geri çevirme hâlâ mümkün; ama artık o
+satırı da düzenlemeyi, yani kapıyı sökmeye NİYET etmeyi gerektiriyor.
+(Kilit sınandı: `todo` ve `off` ikisi de kırmızı.)
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 206 test**,
+atlanan 0, düşen 0, **a11y ihlali 0** (`test: "error"`).

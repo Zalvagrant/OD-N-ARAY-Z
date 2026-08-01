@@ -122,6 +122,26 @@ if (process.argv.includes("--self-check")) {
   process.exit(0);
 }
 
+/* A11Y KAPISI SÖKÜLEMEZ — UI-ADR-165.
+   `addon-a11y` `test: "todo"` iken ihlalleri GÖSTERİR ama hiçbir testi
+   düşürmez. Yani tek kelimelik bir düzenleme (`error` → `todo`) 206 testin
+   hepsini yeşil bırakarak erişilebilirlik kapsamının TAMAMINI kapatır ve
+   ne alt sınır ne kimlik kontrolü bunu görür — ikisi de SAYIYA bakıyor,
+   sayı hiç değişmiyor. Bu, UI-ADR-154'ün kapattığı "commit A'da test ekle,
+   commit B'de kapıyı sil" oyununun aynısıdır, bir ayar satırıyla.
+   Bilinçli bir geri çevirme mümkündür — ama bu satırı da düzenlemeyi,
+   yani kapıyı sökmeye NİYET etmeyi gerektirir. */
+if (PROJECT === "storybook") {
+  const preview = new URL("./../.storybook/preview.tsx", import.meta.url);
+  const kaynak = readFileSync(preview, "utf8");
+  if (!/^\s*test:\s*"error",\s*$/m.test(kaynak)) {
+    throw new Error(
+      'storybook kapısı KAPALI: .storybook/preview.tsx içinde a11y `test: "error"` yok. ' +
+      '`todo`/`off` ihlalleri raporlar ama CI\'ı düşürmez — kapı sökülmüş olur (UI-ADR-165).',
+    );
+  }
+}
+
 const abs = new URL(`./../${REPORT}`, import.meta.url).pathname.replace(/^\//, "");
 rmSync(REPORT, { force: true });
 mkdirSync(dirname(REPORT), { recursive: true });
