@@ -570,5 +570,33 @@ güvende; paylaşılan dal kıpırdamadı.
    a11y kanıtı 213/213.
 4. **Mimariye uygun mu?** 10 ADR, hepsi ölçümlü; kurul durma kriteri
    karşılandı (UI-ADR-172).
-5. **Merge'e hazır mı?** **Teknik olarak evet — ama merge ÖNERMİYORUM**
-   dal iki oturumun işini taşıdığı ve `83c84ac` doğrulanmadığı sürece.
+5. **Merge'e hazır mı?** ⬆️ **GÜNCELLENDİ — paralel oturum işini
+   bitirdi ve BİRLEŞİK DURUM ÖLÇÜLDÜ.**
+
+   Önceki cevap *"teknik olarak evet ama merge önermiyorum"* idi ve
+   gerekçesi doğruydu: dalda o oturumun YARIM işi duruyordu
+   (`inventory.test.ts` kırmızıydı ve atıf kanıtlanmıştı). O iş
+   `fac88e7` ile commit'lendi; artık yarım bir şey yok.
+
+   **Birleşik dal üzerinde tam kapı koşturuldu:**
+
+   | kapı | sonuç |
+   |---|---|
+   | `tsc` | 0 |
+   | `lint` | 0 hata, 0 uyarı |
+   | **unit** | **17 dosya / 270 test** (alt sınır 255) |
+   | **storybook** | **56 dosya / 213 test** (alt sınır 208) |
+   | atlanan · düşen | 0 · 0 |
+   | a11y ihlali · kanıt | **0** · 213/213 |
+
+   **Teknik olarak MERGE'E HAZIR.** Dal `3fc1558`'de; commit sırası
+   `3ca04cd → d133203 (benim) → fac88e7 (paralel oturum) → 51520bb →
+   3fc1558 (benim)`.
+
+   ⚠️ **AMA PUSH EDİLMEDİ ve merge kararı SAHİBİN.** Paralel oturumun
+   `fac88e7`'si de push'lanmamış; iterek onların yayın kararını
+   üstlenmem. İşim `yedek/s13-ui-adr-174` dalında güvende (`3fc1558`),
+   paylaşılan dal `3ca04cd`'de kıpırdamadı.
+
+   Kapanış için gereken tek şey: o oturum kendi commit'ini push etsin
+   ya da sahip "it" desin — sonrası tek komut.
