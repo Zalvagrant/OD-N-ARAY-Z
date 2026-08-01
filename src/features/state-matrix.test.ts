@@ -72,11 +72,21 @@ function beyanEdilenDurumlar(kaynak: string): string[] {
      Gerçek beyan satır başında (girintiden sonra) durur; JSDoc satırları
      `*` ile başlar ve artık eşleşemez. Yorumu yeniden yazmak geçici
      çözümdü — imler metnin içinde de imdir, ayrıştırıcı düzeltilir. */
-  const m = kaynak.match(/^\s*demo\?:\s*([^;\n]+)/m);
+  /* `[^;}]` — ÇOK SATIRLI union için (kurul bulgusu). Eski `[^;\n]`
+     satır sonunda kesiyordu, yani
+         demo?:
+           | "loading"
+           | "empty"
+     yazımında BOŞ dönüyor ve ekran sessizce muaf kalıyordu. `}` sınırı
+     satır içi tip literallerinde bir sonraki prop'a taşmayı engelliyor. */
+  const m = kaynak.match(/^\s*demo\?:\s*([^;}]+)/m);
   if (!m) return [];
   const tip = m[1].trim();
-  if (/DemoState/.test(tip)) return ["loading", "empty", "error"];
-  return [...tip.matchAll(/"(loading|empty|error)"/g)].map((x) => x[1]);
+  /* `\b` ŞART: çapasız `/DemoState/` bir gün `DemoStateish` diye bir tipi
+     de yakalar ve o ekrandan yanlışlıkla üç story ister (kurul bulgusu). */
+  if (/\bDemoState\b/.test(tip)) return ["loading", "empty", "error"];
+  /* Tek tırnak da geçerli TS: `demo?: 'loading'` eskiden kaçıyordu. */
+  return [...tip.matchAll(/['"](loading|empty|error)['"]/g)].map((x) => x[1]);
 }
 
 const demoScreens = screens.filter(

@@ -6282,3 +6282,82 @@ alır. Bu iş sırasında düzenlemelerim iki kez sessizce silindi.
 `vitest --project storybook` (loading-state + intelligence-feed): **4/4**.
 Kapı enjekte ihlalle sınandı: `demo` zorlaması kalkınca kırmızı.
 Tam `test:ci` paralel oturum çekilince koşturulacak.
+
+---
+
+## UI-ADR-175 — Yazılımcılar denetimi: sayı hatam, kırılgan ayrıştırıcı, kırılgan iddia
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-173 · 174
+
+`ask_yazilimcilar` **2/4** cevap verdi (Qwen zaman aşımı, DeepSeek 529).
+Üç gerçek kusur buldular; üçü de kapandı. **Bir önerileri ise deneyle
+çürüdü** — bu oturumda üçüncü kez.
+
+### 1 — KENDİ SAYIM HATAM (en utandırıcısı)
+
+Kapanış kaydına *"50 ayrık dosya (43'ü üretim, 3'ü ekran)"* yazmıştım.
+terra: **"43 + 3 aritmetik olarak 46 eder."** Haklı — ifade okuyanı
+yanlış toplama götürüyordu. Yeniden sayıldı:
+
+| tür | adet |
+|---|---|
+| ekran | 3 |
+| diğer üretim bileşeni | 40 |
+| story | 7 |
+| **toplam** | **50** |
+
+Üretim dosyası **43'tür ve üçü ekrandır** (43 + 3 değil). Sayılar
+doğruydu, **cümle yanlıştı** — ve bu repoda yanlış cümle yanlış sayı
+kadar zararlıdır. Ayrıca kurulun terim uyarısı kayda geçti: *"etkilenen
+dosya" ile "tüketici" aynı şey değildir* — ikisi artık ayrı satırda.
+
+### 2 — Beyan ayrıştırıcısı üç geçerli TS yazımında yanılıyordu
+
+UI-ADR-174'ün `beyanEdilenDurumlar`'ı kırılgandı. Ölçüldü ve düzeltildi:
+
+| yazım | eski | yeni |
+|---|---|---|
+| `demo?: 'loading'` (tek tırnak) | **kaçıyordu** | ✅ |
+| çok satırlı union | **kaçıyordu** (`[^;
+]` satırda kesiyor) | ✅ |
+| `demo?: DemoStateish` | **YANLIŞ POZİTİF** (üç story isterdi) | ✅ |
+| `demo?: DemoState \| undefined` | ✅ | ✅ |
+
+`[^;}]` (çok satır) · `DemoState` (çapa) · `['"]` (iki tırnak).
+Altı vakanın altısı doğrulandı.
+
+**Alınmayan öneri:** kurul AST (`ts.createSourceFile`) ya da açık bir
+`export const supportedDemoStates` sözleşmesi önerdi. İkisi de daha
+sağlam ve haklılar — ama regex'in bugün ölçülen üç kaçağı kapandı ve
+AST'ye geçiş bu kapının kapsamını aşan bir yeniden yazımdır. **Sınır
+yazıldı:** `demo?: Props["demo"]` ve tip takma adları hâlâ kaçar.
+
+### 3 — CSS sınıfına bağlı iddia
+
+`count`un yerleşimi belirlediğini `.border-line-subtle` sınıfını sayarak
+kanıtlıyordum. terra: *"görsel bir refactor, davranış hiç değişmeden
+testi düşürür."* Kanca açık hâle geldi (`data-slot="loading-state-line"`)
+ve bir iddia eklendi: satırlar **dekoratif** (`aria-hidden`) — ekran
+okuyucuya altı boş kutu okutmak, "yükleniyor" demekten kötüdür.
+
+### 4 — ÇÜRÜTÜLEN ÖNERİ: `toHaveAccessibleName`
+
+Kurul *"`getByText(label)` erişilebilir adı kanıtlamaz, `toHaveAccessibleName`
+kullan"* dedi. **Denendi ve kırmızı verdi:** `role="status"` bir "name
+from content" rolü değildir ve `SkeletonRegion` `aria-label` basmıyor —
+ad **boş**.
+
+Ve bu, bileşen için DOĞRU olan: bir canlı bölgeye ekran okuyucu ad
+vermez, **içeriğini duyurur**. Aranan şey bu yüzden duyurulan metnin
+kendisidir. `aria-label` eklemek bölgeye ad verirdi ama **gerçek bir
+ekran okuyucuyla çift duyuru yapıp yapmayacağını burada ölçemem** —
+ölçemediğim bir iyileştirmeyi paylaşılan bir primitife uygulamıyorum.
+Kural 2'nin aynısı: kanıtsız iddia yazılmaz.
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0 hata 0 uyarı ·
+`state-matrix` **12/12** · `loading-state` + `intelligence-feed`
+story'leri **4/4** · ayrıştırıcı altı vakada doğrulandı.

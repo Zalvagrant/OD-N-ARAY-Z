@@ -500,10 +500,27 @@ göre bu kısım **altyapı işidir ve öyle etiketleniyor.**
 | `--odin-text-tertiary` (#64748B → #8593A5) | 45 |
 | `danger` ailesi (red-500 → red-400) | 13 |
 | `chart-negative` (→ red-300) | 2 |
-| **birleşik ayrık dosya** | **50** (43'ü üretim, 3'ü ekran) |
+| **birleşik ayrık dosya** | **50** |
+
+Bu 50'nin dağılımı — ⚠️ **ilk yazımda "43 üretim, 3 ekran" demiştim ve
+bu okuyanı 46'ya götürüyordu; kurul yakaladı, yeniden sayıldı:**
+
+| tür | adet |
+|---|---|
+| ekran (`features/*/screen.tsx`) | 3 |
+| diğer üretim bileşeni | 40 |
+| story dosyası | 7 |
+| **toplam** | **50** |
+
+Yani üretim dosyası 43'tür ve **üçü ekrandır** (43 + 3 DEĞİL). Kalan 7
+story'dir ve tüketici sayılmaz.
 
 Kullanıcıya görünen sonuç: **609 axe ihlali → 0.** Bu, "test geçti"
 değil ekranda değişen piksel; S8'in aradığı türden bir teslimat.
+
+**Terim ayrımı (kurul uyarısı):** "etkilenen dosya" ile "tüketici" aynı
+şey değildir ve burada ayrı ayrı yazılıyor — kapının DOĞRUDAN tüketicisi
+0, düzeltmeden ETKİLENEN dosya 50.
 
 **C) Ekran durum kapsamı:** `demo` zorlaması alan ekran **3 → 5**
 (`goals` ve `intelligence-feed` eklendi). Altıncı ekran `amazon/sku`

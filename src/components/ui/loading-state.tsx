@@ -37,6 +37,13 @@ export function LoadingState({
           {Array.from({ length: count }, (_, i) => (
             <div
               key={i}
+              /* `data-slot` — UI-ADR-175 (kurul bulgusu). Story `count`un
+                 gerçekten yerleşimi belirlediğini kanıtlıyor ve bunu
+                 ÖNCE `.border-line-subtle` sınıfını sayarak yapıyordu:
+                 görsel bir refactor, davranış hiç değişmeden testi
+                 düşürürdü. Kanca açık olsun, sınıf değil. */
+              data-slot="loading-state-line"
+              aria-hidden="true"
               className="flex items-center gap-3 rounded-sm border border-line-subtle p-3"
             >
               <Skeleton className="h-6 w-6" rounded="rounded-full" />
