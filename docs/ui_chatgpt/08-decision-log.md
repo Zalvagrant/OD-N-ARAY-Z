@@ -7339,3 +7339,123 @@ alması zor işlerde meclis zaten yetkili değildir.
 Kod değiştirilmedi. Kapı UI-ADR-187'deki hâliyle:
 `tsc` 0 · `lint` 0/0 · unit 18 dosya / 321 test · storybook 58 dosya /
 226 test · atlanan 0 · düşen 0 · a11y ihlali 0, koşum kanıtı 226/226.
+
+---
+
+## UI-ADR-190 — 13. boyut ölçüldü: beş riskin dördü YAPI GEREĞİ kapalı
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-115 · 184 · 187 · 189
+
+Yazılımcılar meclisi 12 boyutun **"durum geçişi ve veri yaşam döngüsü
+doğruluğu"nu** ölçmediğini söyledi ve beş risk saydı. Bu tur **yalnızca
+ölçüm** yapıldı — kod değiştirilmedi, kapı eklenmedi.
+
+⚠️ Sahip bu boyutu 12'ye eklemeye karar VERMEDİ (UI-ADR-189: kapsam
+kararı). Buradaki ölçüm, o kararın önüne kanıt koymak içindir.
+
+### Meclis ölçülebilirlikte BÖLÜNDÜ
+
+- **terra:** beş riskten yalnız 3'ün store alt-invariantı ölçülebilir;
+  kalanı hook render / kontrollü gecikme / gerçek sunucu ister.
+- **luna:** yeni story senaryolarıyla (gecikmeli A/B mock) çoğu ölçülebilir.
+
+terra'nın okuması benim kısıtlarıma daha yakın: `unit` node ortamında
+(jsdom yok, hook render edilemez), story tek kez render edilir
+(unmount/remount yok). luna'nın yöntemi **yeni senaryo yazmayı** gerektirir
+ve bu "ölçüm" değil "test inşası"dır — kapsam dışı.
+
+Bu yüzden **statik denetim** yapıldı, ikisinin de verdiği somut desenlerle.
+Reponun 1 numaralı kuralı gereği: ölçülmemiş olan, ölçülmüş gibi
+yazılmadı.
+
+### Sonuç
+
+| # | risk | hüküm | kanıt |
+|---|---|---|---|
+| 1 | cache izolasyonu / invalidation | **kapalı — yapı gereği** | `queryKey: [DATA_MODE, universeId, ...key]` · manuel cache işlemi **SIFIR** |
+| 2 | async yarış / stale response | **kısmen kapalı · ÖLÇÜLMEDİ** | iptal zinciri tam, async `useEffect`+`setState` deseni **sıfır** — ama gerçek yarış koşturulmadı |
+| 3 | route değişiminde temizlik | **kapalı** | `app-shell.tsx:61` türetilmiş `workspace?.id`'ye bağlı |
+| 4 | retry sonrası doğru state | **kapalı — politika** | `retryable` sözleşme hatasını dışlıyor · `screenState` gerçek hata TAŞIMIYOR |
+| 5 | evren sızıntısı | **kapalı** (yetki boyutu **N/A**) | `placeholderData`/`keepPreviousData`/`initialData` **sıfır** |
+
+### Neden bir bug SINIFI hiç oluşamıyor
+
+İki sayı, iki tam sıfır:
+
+    invalidateQueries · setQueryData · removeQueries · getQueryData  → 0
+    placeholderData · keepPreviousData · initialData                → 0
+
+Birincisi: **elle cache'e dokunan hiçbir yer yok.** Meclisin en çok
+uyardığı kusur — "invalidate anahtarı üretim anahtarıyla uyuşmuyor" —
+oluşabilmesi için elle bir invalidate çağrısı gerekir; hiç yok. Her şey
+anahtar-güdümlü: evren değişince `queryKey` değişir, yeni sorgu kurulur,
+eskisi `gcTime` ile düşer. Doğruluk bir disipline değil, **yapıya** bağlı.
+
+İkincisi: eski verinin yeni bağlamda görünmesinin en sık yolu bu üç
+seçenektir. Hiçbiri kullanılmıyor.
+
+### Üç ayrı yerde beklediğimden iyi çıktı
+
+**Route temizliği (risk 3).** terra'nın endişesi *"`resetContextPanelOnNavigate`
+tüm `push`/`replace`/`pop` yollarında çağrılıyor mu?"* idi. Cevap: hiçbir
+router olayına bağlı DEĞİL —
+
+    useEffect(() => { resetContextPanel(); }, [workspace?.id, resetContextPanel]);
+
+Türetilmiş workspace kimliğine bağlı, yani navigasyonun NASIL yapıldığı
+fark etmiyor: `push`, `replace`, tarayıcı geri/ileri, hatta doğrudan URL.
+Router olayına bağlamaktan **daha güçlü**, çünkü unutulacak bir yol yok.
+
+**Retry (risk 4).** terra *"`screenState` eski hatayı yeni veriye tercih
+edebilir"* dedi. Ölçüldü: `screenState.error` **gerçek hata taşımıyor** —
+
+    error: demo === "error" ? error : null
+
+Yalnızca Storybook demo zorlaması. Gerçek hatalar bölüm bazında
+`sectionError(live.error)` ile geliyor (S8 dersi, UI-ADR-115). Yani
+"ekran geneli bayat hata" diye bir şey mimaride yok.
+
+**İptal zinciri (risk 2).** `client.ts:96` `AbortSignal.any([signal,
+timeout])` ile çağıranın sinyalini zaman aşımıyla birleştiriyor ve
+`errors.ts:121` iptali `signal.reason` KİMLİĞİYLE ayırt ediyor — ada göre
+değil. İptal, hata olarak `screenState`e sızmıyor.
+
+### Kapatılmayan tek şey — dürüst kayıt
+
+**Risk 2 ÖLÇÜLMEDİ.** Desenler temiz ve iptal zinciri tam, ama *"B önce
+döndü, sonra A geldi, ekran A'ya geri dönmedi"* iddiası **koşturulmadı**.
+Bunu ölçmek gecikmeli A/B mock'lu yeni bir story senaryosu ister. Statik
+kanıt "risk düşük" der, "risk yok" DEMEZ — ve aradaki fark bu reponun
+1 numaralı kuralıdır.
+
+### Yetki boyutu: bugün N/A, yarın kapı
+
+`queryKey`de kimlik/kullanıcı/tenant boyutu yok. Ölçüldü: **sistemde
+kimlik ya da yetki katmanı hiç yok** (tarandı; bütün `role=` eşleşmeleri
+ARIA rolü). Localhost'ta tek kullanıcı çalışıyor.
+
+⚠️ **Ama bu bir muafiyet değil, bir bağımlılıktır:** kimlik eklendiği gün
+`queryKey` bir kimlik boyutu kazanmak ZORUNDA, yoksa bir kullanıcının
+verisi diğerinin ekranında görünür. Bugün doğru olan şey, yarın sessizce
+yanlış olur. Not `13-backend-recommendations.md`ye değil buraya düşüldü
+çünkü bu bir ARAYÜZ sözleşmesidir.
+
+### Hüküm: boyut ayrı mı, 8/10'un içinde mi
+
+Meclis 2/2 "ayrı olmalı" dedi ve ölçüm onları **kısmen** doğruluyor: bu
+turda bulunan hiçbir şey boyut 8 (performans) ya da 10 (test kapsamı)
+merceğinden görünmezdi — ikisi de "manuel cache işlemi sıfır" ya da
+"`screenState` gerçek hata taşımıyor" demez.
+
+**Ama bulunan şey kusur değil, sağlamlık.** Bu boyutun kalıcı bir kapıya
+dönüşmesi için önce risk 2'nin ölçülebilir hâle gelmesi gerekir; ölçülemeyen
+bir kapı, açık olduğunu ayarından çıkaran bir kapıdır. **Sahibin kapsam
+kararına kanıt olarak sunulur; kapı eklenmedi.**
+
+### Ölçüm
+
+Kod değiştirilmedi. Kapı UI-ADR-187'deki hâliyle:
+`tsc` 0 · `lint` 0/0 · unit 18 dosya / 321 test · storybook 58 dosya /
+226 test · atlanan 0 · düşen 0 · a11y ihlali 0, koşum kanıtı 226/226.
