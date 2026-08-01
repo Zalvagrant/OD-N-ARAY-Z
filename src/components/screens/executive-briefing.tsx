@@ -21,7 +21,12 @@ import type { Decision } from "@/types/executive";
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
 import { relativeTime, useNow } from "@/lib/clock/tick";
-import { useOdinAlerts, useOdinOpportunities } from "@/lib/data/odin-state";
+import {
+  useOdinAlerts,
+  useOdinDirectors,
+  useOdinFeed,
+  useOdinOpportunities,
+} from "@/lib/data/odin-state";
 import { MockBadge } from "@/mocks/mock-badge";
 import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
@@ -39,7 +44,7 @@ import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { DecisionQueue } from "@/components/executive/decision-queue";
 import type { VerdictInput } from "@/components/executive/decision-card";
-import { DirectorCard } from "@/components/executive/director-card";
+import { RuntimeDirectorCard } from "@/components/executive/runtime-director-card";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { SystemReadiness } from "@/components/executive/system-readiness";
 import { TrustSignal } from "@/components/executive/trust-signal";
@@ -169,8 +174,15 @@ export function ExecutiveBriefing({
   const opportunities = useOdinOpportunities();
   const kpis = useMockData("briefing.kpis");
   const brief = useMockData("briefing.brief");
-  const directors = useMockData("briefing.directors");
-  const timeline = useMockData("briefing.timeline");
+  /* CANLI — `/api/state.directors` (S10 · G3). `agents` SIFIR kayıt
+     taşıyor, `directors` 8; bu yüzden AgentHealth yerine runtime
+     direktörleri gösteriliyor — mission-control'ün UI-ADR-127'de
+     verdiği kararın aynısı, yeni bir tasarım değil. */
+  const directors = useOdinDirectors();
+  /* CANLI — `/api/state.timeline` (S10 · G3). YENİ KANCA YOK: `useOdinFeed`
+     zaten aynı yükü okuyor, burada yalnız TimelineItem şekline eşleniyor.
+     `tone` ATANMIYOR — ODIN olayında ton yok, uydurulmaz. */
+  const timeline = useOdinFeed();
   const pulse = useMockData("briefing.pulse");
 
   const loading = demo === "loading" || hero.loading;
@@ -184,8 +196,8 @@ export function ExecutiveBriefing({
     opportunities.refetch();
     kpis.reload();
     brief.reload();
-    directors.reload();
-    timeline.reload();
+    directors.refetch();
+    timeline.refetch();
     pulse.reload();
   };
 
@@ -375,10 +387,10 @@ export function ExecutiveBriefing({
         emptyDescription="Heartbeat servisi bağlı değil."
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {directors.data?.data.map((d) => (
-            <DirectorCard
-              key={d.agentId}
-              env={{ data: d, meta: directors.data!.meta }}
+          {directors.envelope?.data.map((d) => (
+            <RuntimeDirectorCard
+              key={d.id}
+              env={{ data: d, meta: directors.envelope!.meta }}
             />
           ))}
         </div>
@@ -395,9 +407,20 @@ export function ExecutiveBriefing({
           error={error}
           onRetry={reloadAll}
         >
-          <Timeline items={isEmpty ? [] : (timeline.data?.data ?? [])} />
-          {timeline.data && !isEmpty && (
-            <TrustSignal meta={timeline.data.meta} className="mt-3" />
+          <Timeline
+            items={
+              isEmpty
+                ? []
+                : (timeline.envelope?.data ?? []).map((e) => ({
+                    id: e.id,
+                    at: e.at,
+                    title: e.title,
+                    actor: e.actor,
+                  }))
+            }
+          />
+          {timeline.envelope && !isEmpty && (
+            <TrustSignal meta={timeline.envelope.meta} className="mt-3" />
           )}
         </Section>
 
