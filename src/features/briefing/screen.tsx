@@ -33,7 +33,7 @@ import { useOdinFixture } from "@/lib/data/odin-fixture";
 /* CANLI fırsat görünümü main'den (S16 / UI-ADR-141) — mock'a GERİ
    DÖNDÜRÜLMEDİ. `useMockData` ve `@/mocks/mock-badge` ise S13'ün tek veri
    borusuyla (UI-ADR-135) değiştirildi: main o borudan önceki hâldeydi. */
-import { useOdinOpportunities } from "@/lib/data/odin-state";
+import { useOdinOpportunities, useOdinTimeline } from "@/lib/data/odin-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
@@ -172,7 +172,10 @@ export function ExecutiveBriefing({
   const kpis = useOdinFixture("briefing.kpis");
   const brief = useOdinFixture("briefing.brief");
   const directors = useOdinFixture("briefing.directors");
-  const timeline = useOdinFixture("briefing.timeline");
+  /* CANLI — ODIN `/api/state.timeline` (40 kayıtlık pencere, sunucuda
+     kesiliyor). `tone` ve `description` BOŞ: ODIN olay için ton
+     yayınlamıyor ve arayüz onu türetmez (UI-ADR-111 eşik yasağı). */
+  const timeline = useOdinTimeline();
   const pulse = useOdinFixture("briefing.pulse");
 
   const { loading, error, isEmpty, reloadAll } = screenState({

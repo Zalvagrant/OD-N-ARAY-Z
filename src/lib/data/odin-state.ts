@@ -23,7 +23,9 @@ import {
   goalSchema,
   opportunitySchema,
   runtimeDirectorSchema,
+  timelineEventSchema,
 } from "./schemas";
+import type { TimelineItem } from "@/types/screens";
 import { useOdinQuery, type OdinQueryResult } from "./use-odin-query";
 import { loadMock } from "@/mocks/registry";
 
@@ -275,6 +277,60 @@ export function useOdinOpportunities(): OdinQueryResult<Opportunity[]> {
               evidence: o.evidence,
               category: o.category ?? null,
               priorityLevel: o.priority_level ?? null,
+            }))
+          );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Timeline — ODIN `/api/state.timeline`
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in olay akışı — 40 kayıtlık pencere, sunucuda kesiliyor.
+ *
+ * `tone` ve `description` YAZILMAZ. İkisi de `TimelineItem`de opsiyonel ve
+ * ODIN ikisini de yayınlamıyor: bir olaya "uyarı" tonu vermek arayüzün
+ * hüküm üretmesi olurdu ve o hükmü ODIN gerekçelendiremez (UI-ADR-111 aynı
+ * sebeple eşik tutmayı yasakladı). Boş bırakılan alan, uydurulan alandan
+ * her zaman dürüsttür.
+ *
+ * `title` olayın KENDİ adıdır (`runtime.monitor`), yeniden yazılmaz —
+ * çeviri veya güzelleştirme, kaydın gerçek adını aramayı imkânsız kılar.
+ */
+const timelineStateSchema = z.object({
+  generated_at: z.string(),
+  timeline: z.array(timelineEventSchema).nullable(),
+});
+
+export function useOdinTimeline(): OdinQueryResult<TimelineItem[]> {
+  return useOdinQuery({
+    key: ["odin", "timeline"],
+    module: "default",
+    schema: z.array(
+      z.object({
+        id: z.string(),
+        at: z.string().nullable(),
+        title: z.string(),
+        actor: z.string().optional(),
+      })
+    ),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.timeline")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = timelineStateSchema.parse(raw);
+          if (parsed.timeline === null) {
+            throw contractError("/api/state", "ODIN olay akışını okuyamadı");
+          }
+          return internalEnvelope(
+            parsed.generated_at,
+            parsed.timeline.map((e) => ({
+              id: String(e.seq),
+              at: e.ts,
+              title: e.event,
+              actor: e.actor,
             }))
           );
         },

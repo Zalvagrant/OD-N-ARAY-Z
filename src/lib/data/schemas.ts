@@ -339,3 +339,23 @@ export const skuHealthSchema = z
     message: "healthScore doluysa healthScoreExplanation zorunlu",
     path: ["healthScoreExplanation"],
   });
+
+/* --------------------------------------------------------------------------
+   TimelineItem — ODIN `/api/state.timeline` (UI-ADR-130'un veri şekli)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in olay akışı — `{seq, ts, event, actor, payload}`.
+ *
+ * `TimelineItem`in `description` ve `tone` alanları OPSİYONELDİR ve burada
+ * DOLDURULMAZ: ODIN olay için bir ton (`warning`/`success`) yayınlamıyor ve
+ * arayüz onu türetirse, kullanıcının gördüğü "uyarı" ODIN'in
+ * gerekçelendirebildiği bir hüküm olmaktan çıkar (UI-ADR-111'in eşik
+ * yasağıyla aynı sebep). Alanı olmayan şey çizilmez; uydurulmaz.
+ */
+export const timelineEventSchema = z.object({
+  seq: z.number(),
+  ts: isoDate,
+  event: z.string().min(1),
+  actor: z.string().min(1),
+});
