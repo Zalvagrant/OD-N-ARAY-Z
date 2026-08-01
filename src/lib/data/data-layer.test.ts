@@ -270,17 +270,48 @@ describe("iptal: zaman aşımı ile çağıranın iptali ayrılır", () => {
   });
 
   it("AĞ HATASI iptal bayrağının arkasına SAKLANMAZ", async () => {
-    /* Meclis ikinci turu: yalnız `signal.aborted` bakılsaydı, ağ kopması
-       kullanıcının iptaliyle aynı ana denk geldiğinde hata YUTULUR ve
-       ekran sessizce boş kalırdı. Hata TİPİ de kontrol edilir. */
+    /*
+     * Meclis ikinci turunun kapısı — İSTEK BİRLEŞTİRME ile birlikte
+     * GÜÇLENDİRİLDİ, gevşetilmedi.
+     *
+     * Eskiden tek çağıran vardı ve soru "iptal bayrağı ağ hatasını yutar
+     * mı?" idi. Artık aynı yola giden çağrılar tek isteği paylaşıyor, yani
+     * gerçek senaryo şu: BİRİ ekrandan ayrılıp iptal ederken ÖTEKİ hâlâ
+     * bekliyor. Korunması gereken şey, bekleyenin ağ hatasını GÖRMESİ.
+     *
+     * Bu test onu ölçüyor: iptal eden çağıran iptalini alır (hata kutusu
+     * açılmaz), bekleyen çağıran `OdinError` alır (hata gizlenmez). Eski
+     * hâli yalnız ikinci yarıyı kontrol ediyordu.
+     */
     vi.stubGlobal("fetch", () =>
       new Promise((_res, rej) => setTimeout(() => rej(new TypeError("fetch failed")), 5))
     );
-    const p = httpLoad("/api/state", { signal: AbortSignal.abort(), timeoutMs: 50 });
-    await expect(p).rejects.toBeInstanceOf(OdinError);
+    const bekleyen = httpLoad("/api/state", { timeoutMs: 50 });
+    const ayrilan = httpLoad("/api/state", { signal: AbortSignal.abort(), timeoutMs: 50 });
+
+    await expect(ayrilan).rejects.not.toBeInstanceOf(OdinError);
+    await expect(bekleyen).rejects.toBeInstanceOf(OdinError);
     vi.unstubAllGlobals();
   });
 
+  it("BİRİNİN İPTALİ ötekinin isteğini ÖLDÜRMEZ", async () => {
+    /* Birleştirmenin en tehlikeli kırılma biçimi: paylaşılan isteğe
+       çağıranın sinyali verilirse, A route değiştirdiğinde B'nin verisi de
+       ölür ve B ekranda sebepsiz "veri yok" görür. */
+    vi.stubGlobal("fetch", () =>
+      new Promise((res) =>
+        setTimeout(() => res(new Response(JSON.stringify({ ok: 1 }))), 5)
+      )
+    );
+    const ac = new AbortController();
+    const ayrilan = httpLoad("/api/state", { signal: ac.signal, timeoutMs: 5_000 });
+    const bekleyen = httpLoad("/api/state", { timeoutMs: 5_000 });
+    ac.abort();
+
+    await expect(ayrilan).rejects.toBeDefined();
+    await expect(bekleyen).resolves.toEqual({ ok: 1 });
+    vi.unstubAllGlobals();
+  });
   it("ÇAĞIRAN İPTAL ETTİYSE zaman aşımı da dolmuş olsa hata üretilmez", async () => {
     /*
      * UI-ADR-121'in gerçek yarışı. İKİSİ DE abort olmuş durumda yakalanır:
@@ -309,6 +340,85 @@ describe("iptal: zaman aşımı ile çağıranın iptali ayrılır", () => {
     const p = httpLoad("/api/state", { signal: ac.signal, timeoutMs: 30_000 });
     ac.abort();
     await expect(p).rejects.toSatisfy((e: unknown) => !(e instanceof OdinError));
+    vi.unstubAllGlobals();
+  });
+
+});
+
+/* ------------------------------------------------------------------ 5b */
+
+describe("istek birleştirme: aynı yola tek istek", () => {
+  it("SEKİZ eşzamanlı çağrı TEK fetch yapar — ölçülen 8,6 sn'lik sorunun kökü", async () => {
+    /*
+     * Sekiz kanca (`useOdinGoals`, `useOdinDirectors`, `useOdinAlerts`,
+     * `useOdinOpportunities`, `useOdinFeed`, `useOdinHealthKpis`,
+     * `useOdinHero`, `useOdinPulse`) aynı `/api/state` yükünü okur ama her
+     * biri kendi `queryKey`ine sahip olduğu için React Query onları
+     * tekilleştiremez. ÖLÇÜLDÜ: tek istek 1,2 sn, sekiz eşzamanlı 8,6 sn.
+     *
+     * Bu testin kapı olduğu doğrulandı: birleştirme kaldırılınca 8 sayar.
+     */
+    let cagri = 0;
+    vi.stubGlobal("fetch", () => {
+      cagri += 1;
+      return new Promise((res) =>
+        setTimeout(() => res(new Response(JSON.stringify({ ok: 1 }))), 5)
+      );
+    });
+
+    const hepsi = await Promise.all(
+      Array.from({ length: 8 }, () => httpLoad("/t/sekiz", { timeoutMs: 5_000 }))
+    );
+
+    expect(cagri).toBe(1);
+    expect(hepsi.every((r) => JSON.stringify(r) === '{"ok":1}')).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it("FARKLI yollar birleşmez", async () => {
+    /* Birleştirme yola göredir; `/api/amazon` ile `/api/state` aynı yanıtı
+       paylaşırsa bir ekran ötekinin verisini gösterirdi. */
+    const gorulen: string[] = [];
+    vi.stubGlobal("fetch", (url: string) => {
+      gorulen.push(url);
+      return Promise.resolve(new Response(JSON.stringify({ ok: 1 })));
+    });
+
+    await Promise.all([httpLoad("/t/a"), httpLoad("/t/b")]);
+
+    expect(gorulen).toHaveLength(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("İSTEK BİTİNCE kayıt silinir — sonraki çağrı BAYAT yanıt almaz", async () => {
+    /* Bu bir önbellek değil: birinci istek bittikten sonra gelen çağrı
+       YENİ istek açmalı. Silinmezse ekran sonsuza kadar ilk yanıtı
+       gösterir ve "yenile" hiçbir şey yapmaz. */
+    let sayac = 0;
+    vi.stubGlobal("fetch", () =>
+      Promise.resolve(new Response(JSON.stringify({ n: ++sayac })))
+    );
+
+    await expect(httpLoad("/t/silme")).resolves.toEqual({ n: 1 });
+    await expect(httpLoad("/t/silme")).resolves.toEqual({ n: 2 });
+    vi.unstubAllGlobals();
+  });
+
+
+  it("HATADAN SONRA da kayıt silinir — yol kalıcı kilitlenmez", async () => {
+    /* Yukarıdaki silme testinin ikizi: reddedilen bir istekten SONRA da
+       kayıt temizlenmeli, yoksa bir kez oluşan ağ hatası o yolu sonsuza
+       kadar aynı reddedilmiş promise'e bağlar ve "yeniden dene" ölür. */
+    let sayac = 0;
+    vi.stubGlobal("fetch", () => {
+      sayac += 1;
+      return sayac === 1
+        ? Promise.reject(new TypeError("fetch failed"))
+        : Promise.resolve(new Response(JSON.stringify({ n: sayac })));
+    });
+
+    await expect(httpLoad("/api/state")).rejects.toBeInstanceOf(OdinError);
+    await expect(httpLoad("/t/silme")).resolves.toEqual({ n: 2 });
     vi.unstubAllGlobals();
   });
 });
