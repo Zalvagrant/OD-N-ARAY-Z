@@ -102,15 +102,34 @@ Arayüz ODIN'in sözleşmesine **uyduruldu**; backend'de tek satır değişmedi.
 | `lib/data/use-verdict.ts` | `useMutation` · `verdictArgv` · `retry: false` · optimistic YOK |
 | `components/executive/verdict-status.tsx` | altı sonucu ayrı gösterir; ODIN'in red metni **değiştirilmeden** |
 
-Ölçülen davranışlar — **24 test** (17 unit + 7 story):
+| dosya | ne yapar |
+|---|---|
+| `lib/data/command.test.ts` | 17 sözleşme testi (ayrıştırma · istek biçimi · taşıma hataları) |
+| `lib/data/verdict-mutation.test.ts` | 8 politika testi (loading · retry · iptal · refused≠hata) |
+| `components/executive/verdict-status.stories.tsx` | 7 durum testi |
+| `components/executive/decision-card.stories.tsx` | +7 gönderim durumu, gerçek bileşimiyle |
 
-- ✅ `useMutation` · loading · pending · success
+Ölçülen davranışlar — **39 test** (25 unit + 14 story):
+
+- ✅ `useMutation` · **loading** (`isPending` gerçekten dönüyor) · success
 - ✅ **refused verdict** — `exit != 0`, metin aynen, "yeniden dene" **sunulmaz**
+- ✅ **refused bir HATA DEĞİL** — `isError: false`, veri `refused`; gönderim
+  başarılı, KARAR reddedildi (ikisi farklı şey)
 - ✅ **whitelist rejection** — `exit` yok, "bu bir arayüz hatası" denir
 - ✅ **timeout** — "kaydedilip kaydedilmediği **belirsiz**, tekrar gönderme"
+- ✅ **retry** — otomatik YOK (`mutationFn` bir kez çağrılıyor), elle ikinci
+  gönderim çalışıyor
+- ✅ **iptal** — sinyal gerçekten bağlı; iptal edilmiş sinyalde abort hatası
+  `OdinError`e çevrilmiyor (terk edilmiş gönderim sessizce ölür)
 - ✅ network · server (400/413) · contract hataları ayrı ayrı
 - ✅ `--revisit` atlanmıyor (ADR-0131 tarihsiz ertelemeyi reddeder)
 - ✅ boş gerekçe **eklenmiyor** (boş string "verilmiş gerekçe" sayılırdı)
+
+**İptal politikası — kullanıcıya "İptal" düğmesi SUNULMAZ.** Ayrım zaman
+aşımıyla aynı mantıkta: istemcinin iptali, sunucunun kaydı yazmasını geri
+almaz. Bir "İptal" düğmesi tutulamayacak bir vaat verirdi. İptal yalnız
+**unmount**'ta çalışır — kullanıcı ekranı terk etti, sonucu gösterecek
+yüzey kalmadı (UI-ADR-121'in aynı kuralı).
 
 **Optimistic update REDDEDİLDİ — gerekçeli.** İyimser güncelleme
 "kaydedildi" der, sonra geri alır; burada geri alınacak şey sahibin
@@ -128,6 +147,49 @@ sessizce tekrar denemek aynı kararı iki kez kaydedebilir ve karar defteri
 `[DATA_MODE, universeId, "odin", …]`, yani `"odin"` bir önek değil ÜÇÜNCÜ
 parça. Sessizce hiçbir şey tazelenmez, ekran bayat kalır, hata görünmezdi.
 Anahtarsız çağrıya çevrildi.
+
+#### ✅ RUNTIME DOĞRULAMASI — çalışan ODIN sunucusuna gerçek `POST`
+
+Önceki turda bu raporun kendi uyarısı şuydu: *"sözleşmenin iki ucu da test
+edildi ama **uçtan uca birlikte hiç koşmadılar**."* O boşluk kapandı.
+
+`127.0.0.1:8765` üzerinde çalışan gerçek ODIN sunucusuna `POST
+/api/command` atıldı (2 Ağu 2026). **İki yanıt biçimi de canlı teyit
+edildi:**
+
+```
+A) {"argv":["ceoo","verdict","x","approved"]}
+   → {"ok": false, "error": "'ceoo' is not an ODIN command. Allowed: …"}
+     exit anahtarı VAR MI: False          ← beyaz liste reddi ✅
+
+B) {"argv":["ceo","verdict","rec-DOES-NOT-EXIST","deferred"]}
+   → {"ok": false, "exit": 1,
+      "output": "\nREDDEDİLDİ: 'deferred' bir tarih ister (--revisit
+                 YYYY-MM-DD): tarihsiz erteleme sessiz bir hayirdir,
+                 kimse geri donmez\n"}
+     exit VAR: True · exit = 1 · REDDED içeriyor: True   ← reddedilmiş verdict ✅
+```
+
+Bu tam olarak `command.ts: ayirtEt()`in ayırdığı iki durumdur ve ayrım
+**canlı** doğrulanmıştır — kaynaktan çıkarım değil.
+
+Canlı ölçüm bir düzeltme de getirdi: story fixture'ımdaki red metni
+**yaklaşıktı**. Gerçek metin iki cümle ve ikincisi kuralın NEDENİNİ
+söylüyor (*"tarihsiz erteleme sessiz bir hayirdir, kimse geri donmez"*).
+`decision-card.stories.tsx` gerçek metinle güncellendi; baştaki `\n` de
+gerçektir ve `VerdictStatus` onu `.trim()` ile temizliyor.
+
+⚠️ **BAŞARI YOLU CANLI KOŞTURULMADI — bilerek.** Gerçek bir onay
+göndermek, silinmeyen deftere (ODIN ADR-0005) **kalıcı bir kayıt** düşürür
+ve bu sahibin verisidir. Yukarıdaki iki yol **hiçbir şey yazmaz**
+(beyaz liste reddi hiç spawn etmez; reddedilmiş verdict `lifecycle.verdict`
+yazmadan `ValueError` atar). Başarı yolunun ayrıştırması `exit === 0`
+koşuluna dayanıyor ve **B'de aynı `exit` alanının okunduğu kanıtlandı** —
+kalan risk yalnızca "sunucu 0 döndürür mü" sorusudur ve onu backend'in
+kendi 7 yeşil testi kapsıyor.
+
+**Sahip isterse tek komutla canlı onay denemesi yapılabilir** — ama bu bir
+veri yazma işlemidir ve ayrı onay ister.
 
 ### B2 — Eksi işareti düşüyordu ✅ KAPANDI (UI-ADR-191)
 
@@ -459,7 +521,7 @@ LCP/CLS **ölçülmedi** → bu üç kalem **UNKNOWN**.
 
 ### Accessibility — TAM
 
-**233/233 story gerçek axe raporu taşıyor · ihlal 0.** Bu bir ayar değil
+**240/240 story gerçek axe raporu taşıyor · ihlal 0.** Bu bir ayar değil
 koşum kanıtıdır: `.artifacts/storybook-vitest.json` içindeki
 `meta.reports`'tan okunur, yani kapının açık olduğu değil **koştuğu**
 ölçülür.
@@ -473,15 +535,21 @@ koşum kanıtıdır: `.artifacts/storybook-vitest.json` içindeki
 |---|---|
 | `tsc` | 0 hata |
 | `eslint` | 0 hata · 0 uyarı (`--max-warnings 0`, `noInlineConfig`) |
-| unit | **19 dosya / 338 test** |
-| storybook | **59 dosya / 233 test** |
+| unit | **20 dosya / 346 test** |
+| storybook | **59 dosya / 240 test** |
 | atlanan · düşen | **0 · 0** |
 
 Dördü de fail-closed ve alt sınırlı: bir test sessizce kaybolursa kapı
-düşer. Bu turda **+24 test** eklendi (17 unit sözleşme + 7 story).
+düşer. ER-0025 entegrasyonu için **+39 test** eklendi (25 unit + 14 story).
 
-⚠️ E2E akış testi **yok** — gerçek test ortamı gerektirir (sahte veri
-yasağı). Sonraki sprint.
+**Entegrasyon dikişi CANLI doğrulandı** (§1 B1): çalışan ODIN sunucusuna
+gerçek `POST /api/command` atıldı, iki yanıt biçimi de teyit edildi. Bu,
+"iki taraf da kendi testinde haklıydı ama birlikte hiç koşmadılar"
+sınıfını kapatır.
+
+⚠️ **Tam kullanıcı akışı E2E'si hâlâ yok** — tarayıcıda "kartı aç →
+gerekçe yaz → gönder → sonucu gör" zinciri uçtan uca koşturulmadı.
+Sözleşme dikişi kanıtlı, akış değil. Sonraki sprint.
 
 ### Critical Blockers — **0**
 
@@ -513,19 +581,19 @@ koddan doğrulandı).
 | Görüntü doğruluğu | 5 | **PASS** ✅ *(önce FAIL)* |
 | Yetkilendirme | 20 | **N/A** — kimlik katmanı yok, tasarım kararı |
 | Hata kurtarma | 15 | **PASS** ✅ *(önce 12/15 — `global-error` eklendi)* |
-| Test ve kalite kapıları | 15 | **KISMİ 13/15** — E2E yok |
+| Test ve kalite kapıları | 15 | **KISMİ 14/15** — entegrasyon dikişi canlı doğrulandı; tam akış E2E'si yok |
 | Üretim performansı | 10 | **KISMİ 7/10** — paket bütçesi ve LCP/CLS ölçülmedi |
 | Operasyon / izlenebilirlik | 10 | **FAIL 2/10** — hata raporlama yok, log yok |
 
 ```
 Uygulanabilir ağırlık (N/A hariç)  = 80
-Kazanılan                          = 15 + 10 + 5 + 15 + 13 + 7 + 2 = 67
+Kazanılan                          = 15 + 10 + 5 + 15 + 14 + 7 + 2 = 68
 
-Kontrol tamamlanma oranı = 67 / 80 = %84      (önceki ölçüm: %61)
+Kontrol tamamlanma oranı = 68 / 80 = %85      (ilk ölçüm %61 → %84 → %85)
 ```
 
-> **%84, "üretime %84 hazır" DEMEK DEĞİLDİR.** Tanımlı kontrollerin
-> %84'ünün kanıtla geçtiği anlamına gelir. Karar yüzdeden değil, **açık
+> **%85, "üretime %85 hazır" DEMEK DEĞİLDİR.** Tanımlı kontrollerin
+> %85'inin kanıtla geçtiği anlamına gelir. Karar yüzdeden değil, **açık
 > blocker olup olmamasından** gelir.
 
 ---
@@ -553,6 +621,11 @@ susturulamıyor.
 görev. Ve bu ölçüm bir önceki ADR'nin **kendi iddiasını düzeltti** — bu
 raporun sayılarına güvenilmesinin sebebi de budur.
 
+**4b. Entegrasyon dikişi canlı doğrulandı.** Önceki turda bu raporun kendi
+uyarısı *"iki uç birlikte hiç koşmadı"* idi; çalışan ODIN sunucusuna gerçek
+`POST` atıldı ve iki yanıt biçimi de teyit edildi. Doğrulama bir düzeltme de
+getirdi: story fixture'ındaki red metni yaklaşıktı, gerçeğiyle değiştirildi.
+
 **5. Kalan iki major kalem release'i engellemez.** M1 bir ürün kapsamı
 kararıdır (kullanılmayan bileşenler kullanıcıya görünmez). M2 gerçek bir
 boşluktur ama mevcut kapılar (338 + 233 test, a11y 233/233) bileşen
@@ -569,10 +642,16 @@ eklendiğinde `queryKey` bir kimlik boyutu kazanmak **zorundadır**, yoksa
 bir kullanıcının verisi diğerinin ekranında görünür. B4 kapanmadı —
 **uygulanamaz** durumda; şartlar değişirse yeniden açılır.
 
-### Release öncesi tavsiye edilen tek adım
+### Release öncesi kalan tek adım — sahibin onayına bağlı
 
-Üretimde çalıştırmadan önce ODIN sunucusu ayakta olmalı ve **bir gerçek
-karar gönderimi elle denenmelidir**. Sözleşmenin iki ucu da test edildi
-(backend 7 yeşil, arayüz 24 yeşil) ama **uçtan uca birlikte hiç
-koşmadılar** — bu raporun bulduğu en pahalı hatanın sınıfı tam olarak
-buydu.
+Sözleşmenin **yazmayan iki yolu** canlı doğrulandı (beyaz liste reddi ve
+reddedilmiş verdict). **Başarı yolu bilerek koşturulmadı**: gerçek bir onay
+göndermek, silinmeyen deftere (ODIN ADR-0005) kalıcı bir kayıt düşürür ve
+bu sahibin verisidir.
+
+Başarı yolunun ayrıştırması `exit === 0` koşuluna dayanıyor ve **aynı `exit`
+alanının canlı okunduğu kanıtlandı**; kalan risk yalnızca "sunucu 0 döndürür
+mü" sorusudur ve onu backend'in kendi 7 yeşil testi kapsıyor.
+
+**Sahip isterse tek komutla canlı onay denemesi yapılabilir.** Bu bir veri
+yazma işlemidir ve ayrı onay ister.

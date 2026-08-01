@@ -19,6 +19,7 @@
  * geri gönderir.
  */
 
+import { useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { VerdictInput } from "@/components/executive/verdict-form";
@@ -73,10 +74,33 @@ export function verdictArgv({ decisionId, input }: VerdictSubmission): string[] 
 export function useVerdictMutation() {
   const qc = useQueryClient();
 
+  /**
+   * İPTAL — YALNIZ unmount'ta, kullanıcıya "İptal" düğmesi SUNULMAZ.
+   *
+   * Ayrım kasıtlı ve zaman aşımıyla aynı mantıkta: istemcinin isteği
+   * iptal etmesi, sunucunun kaydı YAZMASINI geri almaz. Bir "İptal"
+   * düğmesi, basıldığında kararın kaydedilmediğini VAAT EDER ve bu vaadi
+   * tutamaz — sahte gösterge (repo kuralı 2). Kullanıcı iptal ettiğini
+   * sanıp yeniden gönderirse, silinmeyen deftere (ODIN ADR-0005) iki
+   * kayıt düşer.
+   *
+   * Unmount'ta iptal ise farklı: kullanıcı ekranı terk etti, sonucu
+   * gösterecek bir yüzey kalmadı. `httpLoad`taki UI-ADR-121 kuralının
+   * aynısı — terk edilmiş bir isteğin hata kutusu açılmaz. Sunucudaki
+   * kayıt yine de yazılabilir ve bu doğru: sahip komutu vermişti.
+   */
+  const iptal = useRef<AbortController | null>(null);
+  useEffect(() => () => iptal.current?.abort(), []);
+
   return useMutation<CommandOutcome, OdinError, VerdictSubmission>({
     mutationKey: ["odin", "ceo", "verdict"],
     retry: false,
-    mutationFn: (submission) => runCommand(verdictArgv(submission)),
+    mutationFn: (submission) => {
+      /* Her gönderim kendi denetleyicisini alır: bir öncekinin iptali
+         yenisini öldürmemeli. */
+      iptal.current = new AbortController();
+      return runCommand(verdictArgv(submission), { signal: iptal.current.signal });
+    },
     onSuccess: (outcome) => {
       /* YALNIZ gerçekten kaydedildiyse tazele. Reddedilmiş bir verdict
          hiçbir şeyi değiştirmedi; tazelemek sunucuya boş yük bindirir ve
