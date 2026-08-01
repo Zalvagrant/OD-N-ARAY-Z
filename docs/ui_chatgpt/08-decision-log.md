@@ -5887,3 +5887,82 @@ yeniden yazıldı.
 atlanan 0, düşen 0, **a11y kanıtı 207/207**, `numTotal` 207 = geçen 207,
 ölçülen kural **en düşük 2 / en yüksek 35**.
 `--self-check`: **11 + 39 senaryo.**
+
+---
+
+## UI-ADR-171 — Her kural bir ÖRNEKLE değil, SINIFLA doğrulanır
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-169 · 170
+
+Yedinci bağımsız denetim, altı yol daha. Teşhisi tek cümleydi ve yedi
+turun ortak kusurunu adlandırıyor:
+
+> **Her kural bir örnekle doğrulanıyor, sınıfla değil.**
+
+- İzin listesi `'@'` GİRİŞİNİ doğruluyordu, "TEK giriş" olduğunu değil →
+  `alias: { '@': …, 'axe-core': './sahte.ts' }` yeşil geçiyordu
+  (`[^}]*` kardeş anahtarı yutuyordu). `[^:{}]*` oldu.
+- Yutma imzası "blok YOK" hâlini doğruluyordu, "bir blok EKSİK" hâlini
+  değil → dosyaya sağlam görünen tek bir yem blok koymak imzayı
+  tamamen susturuyordu.
+- Kapsam eşiği 1'di ve `runOnly: ["image-alt"]` **birebir 1** üretiyor.
+
+### Ayrıştırıcı: regex → karakter taraması
+
+Yutmanın kökü, yorum boşaltıcının dizgeleri bilmemesiydi. İmza eklemek
+yerine **sınıf ortadan kaldırıldı**: boşaltıcı artık karakter tarıyor ve
+dizge/şablon içindeki yorum imini yorum saymıyor. **Yutma OLUŞAMIYOR**,
+imza satırı silindi — ve yorum içindeki ÖRNEKLERİ gerçek sanıp meşru
+dosyaları düşürme kusuru da (kanaryanın belgesi iki kez kurban olmuştu)
+aynı düzenlemeyle kapandı. Ayrıca `)//`, `]//`, `}//` sonrası yorumlar
+artık doğru boşaltılıyor.
+
+*Bir sınıfı ortadan kaldırmak, o sınıfı tespit etmeye çalışmaktan iyidir.*
+
+### Asıl sinyal hacim değil, KAÇ KURAL
+
+Ölçüldü (207 rapor): hacim (`passes + violations`) **2–35**, yani
+içeriğe bağlı ve saldırgan onu seçebiliyor. Kural TOPLAMI
+(`+ incomplete + inapplicable`) ise **87–88** — içerikten neredeyse
+bağımsız. `runOnly`/`config.rules`/sahte axe bunu 0–1'e düşürür.
+Eşik 80.
+
+Bedava ikinci sinyal: **axe kullanılan seçenekleri rapora yazıyor.**
+Temiz koşuda `toolOptions` yalnız `{ reporter }`; daraltma kendi izini
+bırakıyor.
+
+Üçüncüsü: **toplam taranan düğüm**, `context` daraltmasının tek görünür
+izi. Ölçüldü 12.425 (207 story, ortalama 60); eşik story başına 20.
+Mutlak değil ORANTILI — ilk hâli sabit 9000'di ve kapının kendi
+self-check'i onu anında çürüttü (tek story'lik fixture 9000 düğüm
+üretemez). Tek tek story'lere sınır KOYULAMAZ: gerçek minimum 2 düğüm ve
+o meşru.
+
+**Kanıt:** `afterEach` ile `runOnly: ["image-alt"]` daraltması enjekte
+edildi — UI-ADR-170 bunu göremiyordu, kapı şimdi **207 story için
+kırmızı**.
+
+### Alt sınır 190 → 205
+
+Ölçüm 207, sınır 190 → **17 story sessizce silinebiliyordu** ve hiçbir
+kontrol görmüyordu. Sentetik raporla doğrulandı: 190 geçenli koşu yeşil,
+189 kırmızı.
+
+### Düzeltilen bir YANLIŞ İDDİA
+
+169 ve 170 *"`todo` kipi `warning` yazar"* diyordu. Kaynak:
+`status: hasViolations ? getMode() : "passed"` — **ihlal yoksa kip ne
+olursa olsun "passed".** Yani bugün temiz olan bir story'yi `todo`ya
+çevirmek raporda hiçbir iz bırakmaz; çalışma zamanı kanıtı `todo`yu
+ancak zaten ihlal varken yakalar — oysa korunmak istenen şey YARINKİ
+regresyondur. `todo`ya karşı tek savunma metin kilidi ve kanaryadır.
+Yorum düzeltildi.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 16 dosya / 241 test**, **storybook 55 dosya / 207 test**
+(alt sınır 205), atlanan 0, düşen 0, a11y kanıtı 207/207.
+`--self-check`: **11 + 48 senaryo.**

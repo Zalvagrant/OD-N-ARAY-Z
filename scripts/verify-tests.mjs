@@ -37,7 +37,14 @@ const REPORT = `.artifacts/${PROJECT}-vitest.json`;
    **53 testin sessizce kaybolmasına izin vermek** demekti — kapı açık
    görünürken kapsamın üçte biri buharlaşabilirdi. Sınır ölçümün hemen
    altında durmalı ki gerçekten bir şey korusun; 190 küçük dalgalanmaya
-   pay bırakır, kayba bırakmaz. */
+   pay bırakır, kayba bırakmaz.
+
+   **190 → 205 (UI-ADR-171).** Denetim ölçtü: ölçüm 207, sınır 190 →
+   **17 story sessizce silinebiliyordu** ve hiçbir kontrol görmüyordu
+   (`ZORUNLU.storybook` yalnız kanaryayı arıyor, diğer 54 dosya
+   korumasız). Sentetik raporla doğrulandı: 190 geçenli koşu YEŞİL,
+   189 kırmızı. Sınır ölçümün HEMEN altında durmalı; 17'lik pay
+   "dalgalanma" değil, kayıp payıdır. */
 const FLOOR = Number(process.argv[3] ?? 190);
 
 /* ponytail: kapı testlerin SAYISINI doğruluyor, KİMLİKLERİNİ değil. Meclis
@@ -81,10 +88,48 @@ const ZORUNLU = {
  * Satır sonları korunur ki hata mesajlarındaki satır sayısı kaymasın.
  */
 function yorumBosalt(k) {
-  const bosluk = (m) => m.replace(/[^\n]/g, " ");
-  return k
-    .replace(/\/\*[\s\S]*?\*\//g, bosluk)
-    .replace(/(^|[\s;,(])\/\/[^\n]*/g, (m, on) => on + bosluk(m.slice(on.length)));
+  let cikti = "";
+  let i = 0;
+  while (i < k.length) {
+    const c = k[i];
+    const d = k[i + 1];
+
+    /* DİZGE — İÇERİĞİ KORUNUR. Korunmak zorunda: kilit `'@'`,
+       `"@storybook/addon-a11y"` ve `test: "error"` dizgelerini okuyor.
+       Ama dizgenin İÇİ artık kod değil: oradaki bir yorum imi yorum
+       AÇMAZ. Yutma saldırısı tam olarak bunu istismar ediyordu. */
+    if (c === '"' || c === "'" || c === "`") {
+      cikti += c;
+      i += 1;
+      while (i < k.length) {
+        if (k[i] === "\\") { cikti += k[i] + (k[i + 1] ?? ""); i += 2; continue; }
+        cikti += k[i];
+        if (k[i] === c) { i += 1; break; }
+        i += 1;
+      }
+      continue;
+    }
+
+    if (c === "/" && d === "/") {
+      while (i < k.length && k[i] !== "\n") { cikti += " "; i += 1; }
+      continue;
+    }
+
+    if (c === "/" && d === "*") {
+      cikti += "  ";
+      i += 2;
+      while (i < k.length && !(k[i] === "*" && k[i + 1] === "/")) {
+        cikti += k[i] === "\n" ? "\n" : " ";
+        i += 1;
+      }
+      if (i < k.length) { cikti += "  "; i += 2; }
+      continue;
+    }
+
+    cikti += c;
+    i += 1;
+  }
+  return cikti;
 }
 
 export function a11yBloklari(kaynak) {
@@ -159,20 +204,19 @@ export function a11ySorunlari({ main, preview, vitestConfig = "", storyler = [] 
   const denetle = (ad, kaynak, zorunlu) => {
     const bos = yorumBosalt(kaynak);
     const bloklar = a11yBloklari(bos);
-    /* YUTMA İMZASI — UI-ADR-170. Yorum boşaltıcı dizge/şablon/regex
-       literallerini bilmiyor: `const A = "/*"; … const B = "*` + `/";`
-       arasındaki HER ŞEY boşluğa dönüyor ve aradaki gerçek `a11y` bloğu
-       GÖRÜNMEZ oluyor. Denetimde ölçüldü, bir story dosyası bu yolla
-       `test: "todo"` gizledi. Ayrıştırıcıya dizge farkındalığı eklemek
-       yerine YUTMA GİRİŞİMİNİN İZİNİ arıyoruz: ham metinde `a11y` geçiyor
-       ama boşaltılmışta hiç blok yoksa, orada bir şey kayboldu. */
-    if (/["']?a11y["']?\s*:\s*[({]/.test(kaynak) && bloklar.length === 0) {
-      sorunlar.push(
-        `${ad}: ham metinde \`a11y\` geçiyor ama blok bulunamadı — bir dizge ya da ` +
-        "yorum bloğu yutmuş olabilir (UI-ADR-170)",
-      );
-      return;
-    }
+    /* ⓘ Burada bir "YUTMA İMZASI" VARDI ve UI-ADR-171'de KALDIRILDI.
+       Yorum boşaltıcı regex tabanlıyken bir dizgenin içindeki yorum imi
+       gerçek yorum sanılıyor, aradaki `a11y` bloğu görünmez oluyordu;
+       imza da "hiç blok yoksa kırmızı" diyerek bunu yakalamaya
+       çalışıyordu. İki kusuru vardı: (a) dosyaya SAĞLAM görünen tek bir
+       yem blok koymak imzayı tamamen susturuyordu — "blok yok" hâlini
+       doğruluyordu, "bir blok EKSİK" hâlini değil; (b) yorum içindeki
+       ÖRNEKLERİ gerçek sanıp meşru dosyaları düşürüyordu (kanaryanın
+       kendi belgesi iki kez kurban oldu).
+       Boşaltıcı artık karakter tarıyor ve dizgeyi tanıyor: **yutma
+       OLUŞAMIYOR**, dolayısıyla imzaya da gerek yok. Bir sınıfı
+       tamamen ortadan kaldırmak, o sınıfı tespit etmeye çalışmaktan
+       iyidir. */
     if (zorunlu && bloklar.length === 0) {
       sorunlar.push(`${ad}: \`a11y: { … }\` bloğu bulunamadı`);
       return;
@@ -222,7 +266,18 @@ export function a11ySorunlari({ main, preview, vitestConfig = "", storyler = [] 
      başına kırmızıdır — tek istisna bugünkü meşru kullanım (`'@'` →
      `src`). Yeni bir alias gerçekten gerekirse bu satır da güncellenir;
      yani kapıyı gevşetmek bilinçli bir düzenleme gerektirir. */
-  const IZINLI_ALIAS = /alias\s*:\s*\{\s*['"]@['"]\s*:\s*[^}]*\}/g;
+  /* `[^:{}]*` — UI-ADR-171. Önceki hâli `[^}]*` idi ve **kardeş anahtar
+     yutuyordu**: `'@'` ilk sırada olduğu sürece aynı süslü parantezin
+     içine `'axe-core': './sahte.ts'` eklemek kilidi yeşil bırakıyordu.
+     İzin listesi `'@'` GİRİŞİNİ doğruluyordu ama "TEK giriş" olduğunu
+     değil. `:` de yasak sınıfa girince ikinci anahtar imkânsız hâle
+     geliyor; gerçek değer (`path.join(dirname, 'src')`) iki nokta
+     içermediği için yanlış kırmızı vermiyor.
+     ⚠️ Bu izin listesi KASITLI OLARAK DAR: `'@'` ikinci sıraya alınırsa
+     ya da Vite'ın dizi biçimi kullanılırsa kırmızı olur. Meşru bir
+     ikinci alias gerekirse bu satır da güncellenir — yani kapıyı
+     gevşetmek bilinçli bir düzenleme gerektirir. */
+  const IZINLI_ALIAS = /alias\s*:\s*\{\s*['"]@['"]\s*:\s*[^:{}]*\}/g;
   for (const [ad, kaynak] of [["vitest.config.ts", vitestConfig], ["main.ts", main]]) {
     if (!kaynak) continue;
     const kalan = yorumBosalt(kaynak).replace(IZINLI_ALIAS, "");
@@ -261,7 +316,12 @@ export function a11ySorunlari({ main, preview, vitestConfig = "", storyler = [] 
  *   · addon `main.ts`ten çıkarılırsa rapor hiç yazılmaz
  *   · `disable`/`manual`/`ghostStories`/`context.exclude` — `shouldRun`
  *     düşer, `addReport` hiç çağrılmaz
- *   · `todo` kipi `status: "warning"` yazar, `passed` değil
+ *   · `todo` kipi — ⚠️ YALNIZ İHLAL VARKEN. Addon
+ *     `status: hasViolations ? getMode() : "passed"` yazıyor, yani
+ *     BUGÜN TEMİZ olan bir story'yi `todo`ya çevirmek raporda HİÇBİR iz
+ *     bırakmaz. Çalışma zamanı kanıtı `todo`yu ancak zaten ihlal varken
+ *     yakalar — oysa korunmak istenen şey YARINKİ regresyondur.
+ *     `todo`ya karşı tek savunma metin kilidi + kanaryadır.
  *   · `afterEach`te DOM boşaltmak ya da parametreyi ezmek — UI-ADR-168'in
  *     "AÇIK KALIYOR" diye kaydettiği delik; kanaryadan SONRA koşuyordu
  *     ama rapordan önce değil
@@ -279,6 +339,24 @@ function a11yKanitiEksikOlanlar(report) {
       const raporlar = (a.meta?.reports ?? []).filter((r) => r?.type === "a11y");
       const gecerli = raporlar.filter((r) => {
         if (r.status !== "passed") return false;
+        const rr = r.result ?? {};
+        /* KAÇ KURAL DEĞERLENDİRİLDİ — UI-ADR-171'in ASIL sinyali.
+           Önceki eşik "passes + violations >= 1" idi ve ölçüldü:
+           `runOnly: ["image-alt"]` tam olarak **1** üretiyor, yani eşiği
+           birebir aşıyor. Hacim story'nin İÇERİĞİNE bağlı (bu depoda
+           2–35) — saldırgan onu seçebiliyor.
+           Kural TOPLAMI ise içerikten neredeyse bağımsız: ölçüldü,
+           **207 story'de 87–88.** `runOnly`/`config.rules`/sahte axe
+           modülü bunu 0–1'e düşürür. 80 eşiği rahat pay bırakır. */
+        const kural = ["passes", "violations", "incomplete", "inapplicable"]
+          .reduce((t, k) => t + (rr[k]?.length ?? 0), 0);
+        if (kural < 80) return false;
+        /* axe KULLANILAN SEÇENEKLERİ RAPORA YAZIYOR — bedava ikinci
+           sinyal. Temiz koşuda `{ reporter: "v1" }`; `runOnly` ya da
+           `rules` verilince onlar da görünür. Yani daraltma, kendi izini
+           bırakıyor ve bunu okumak tek satır. */
+        const opt = Object.keys(rr.toolOptions ?? {}).filter((k) => k !== "reporter");
+        if (opt.length > 0) return false;
         /* HACİM — UI-ADR-170. `status: "passed"` yalnız "ihlal bulunmadı"
            demektir; addon `hasViolations ? getMode() : "passed"` yazıyor.
            Yani HİÇBİR ŞEY TARAMAMAK da "passed"tir. Ölçüldü (playwright +
@@ -288,8 +366,11 @@ function a11yKanitiEksikOlanlar(report) {
            DEĞERLENDİRİLDİ. Bu depoda gerçek dağılım 2–7 (ölçüldü); eşik 1,
            yani yalnız "sıfır ölçüm" kırmızıdır — yanlış kırmızı payı
            bilerek geniş, çünkü asıl saldırı sıfırdır. */
-        const r0 = r.result ?? {};
-        return (r0.passes?.length ?? 0) + (r0.violations?.length ?? 0) >= 1;
+        /* HACİM — artık İKİNCİL. `context` daraltması kural sayısını
+           bozmadan hacmi düşürebiliyor (`#storybook-root p` → 2, yani
+           deponun ölçülen minimumu). Tek başına yeterli değil, ama
+           sıfır/bir hacmi elemek bedava. */
+        return (rr.passes?.length ?? 0) + (rr.violations?.length ?? 0) >= 2;
       });
       if (gecerli.length === 0) {
         eksik.push(a.fullName ?? a.title ?? String(f.name ?? "?"));
@@ -330,6 +411,36 @@ export function evaluate(report, { runFailed = false, floor = FLOOR, zorunlu = [
     }
   }
   if (a11yKaniti) {
+    /* TOPLAM TARANAN DÜĞÜM — UI-ADR-171. `context` daraltmasının
+       (`include: "#storybook-root p"`) kural sayısını bozmayan tek
+       görünür izi budur. Ölçüldü: 207 story'de **12.425 düğüm**. Genel
+       bir daraltma bunu birkaç yüze çökertir. Bu bir KALİBRASYON
+       değeridir, tercih değil: story eklendikçe yükselir, DÜŞÜRMEK bir
+       karardır — düşürüyorsan aynı commit'te nedenini yaz. */
+    let dugum = 0;
+    for (const f of report.testResults ?? []) {
+      for (const a of f.assertionResults ?? []) {
+        for (const r of a.meta?.reports ?? []) {
+          if (r?.type !== "a11y") continue;
+          for (const k of ["passes", "violations", "incomplete"]) {
+            for (const n of r.result?.[k] ?? []) dugum += (n.nodes?.length ?? 0);
+          }
+        }
+      }
+    }
+    /* Eşik MUTLAK değil, story başına ORANTILI. İlk hâli sabit 9000'di
+       ve kapının kendi self-check'i onu anında çürüttü: tek story'lik bir
+       fixture 9000 düğüm üretemez. Ölçülen gerçek ortalama **60**
+       (12.425 / 207); eşik 20'de, yani üçte bir. Genel bir daraltma
+       story başına 2–3 düğüme çöker (ölçüldü) → toplam ~500, sınırın çok
+       altında. Tek tek story'lere alt sınır KOYULAMAZ: gerçek minimum 2
+       düğüm ve o meşru. Toplam bakılır, tek tek değil. */
+    const dugumSiniri = passed * 20;
+    if (dugum > 0 && dugum < dugumSiniri) {
+      problems.push(
+        `taranan düğüm ${dugum} < ${dugumSiniri} (story başına 20) — axe kapsamı daraltılmış olabilir`,
+      );
+    }
     const eksik = a11yKanitiEksikOlanlar(report);
     if (eksik.length > 0) {
       problems.push(
@@ -459,20 +570,35 @@ backgrounds: { disable: true },` }).length, 0);
   assert.ok(a11y({ main: MAIN + ' viteFinal: (c) => ({ resolve: { alias: { "axe-core": "./f.ts" } } })' }).length > 0);
   // Gercek vitest.config.ts'teki mesru alias yanlis kirmizi vermemeli.
   /* CALISMA ZAMANI KANITI — her story kendi taramasini kanitlar. */
-  const rp = (st, hacim = 3) => ({ numPassedTests: 1, numTotalTests: 1, numFailedTests: 0,
+  const rp = (st, hacim = 3, kural = 87, opt = { reporter: "v1" }) => ({
+    numPassedTests: 1, numTotalTests: 1, numFailedTests: 0,
     numPendingTests: 0, numTodoTests: 0,
     testResults: [{ name: 'x', assertionResults: [{ status: 'passed', fullName: 'S',
-      meta: st === null ? {} : { reports: [{ type: 'a11y', status: st,
-        result: { passes: new Array(hacim).fill({}), violations: [] } }] } }] }] });
+      meta: st === null ? {} : { reports: [{ type: 'a11y', status: st, result: {
+        passes: new Array(hacim).fill({ nodes: new Array(60).fill({}) }),
+        violations: [],
+        inapplicable: new Array(Math.max(0, kural - hacim)).fill({}),
+        toolOptions: opt } }] } }] }] });
   const K = { floor: 1, a11yKaniti: true };
   assert.equal(evaluate(rp('passed'), K).problems.length, 0);
-  assert.ok(evaluate(rp('warning'), K).problems.length > 0);   // todo kipi, ihlalli
+  assert.ok(evaluate(rp('warning'), K).problems.length > 0);   // ihlalli todo kipi
   assert.ok(evaluate(rp(null), K).problems.length > 0);        // axe hic kosmadi
-  /* HACIM — UI-ADR-170. "passed" ama SIFIR kural degerlendirilmis:
-     `context:{include:"head"}` daraltmasi ve sahte axe modulu tam olarak
-     boyle gorunur. Olculdu: gercek dagilim 2-7, sifir asla. */
+  /* HACIM — "passed" ama neredeyse hicbir sey olculmemis. */
   assert.ok(evaluate(rp('passed', 0), K).problems.length > 0);
-  assert.equal(evaluate(rp('passed', 1), K).problems.length, 0);
+  assert.ok(evaluate(rp('passed', 1), K).problems.length > 0);
+  /* KURAL SAYISI — UI-ADR-171'in ASIL sinyali. `runOnly` kural
+     toplamini 87'den 1'e dusuruyor; hacim esigi bunu goremiyordu. */
+  assert.ok(evaluate(rp('passed', 2, 1), K).problems.length > 0);
+  assert.ok(evaluate(rp('passed', 2, 79), K).problems.length > 0);
+  assert.equal(evaluate(rp('passed', 2, 87), K).problems.length, 0);
+  /* toolOptions — daraltma kendi izini birakiyor. */
+  assert.ok(evaluate(rp('passed', 3, 87, { reporter: "v1", runOnly: {} }), K).problems.length > 0);
+  /* TARANAN DUGUM — `context` daraltmasinin tek gorunur izi. */
+  assert.ok(evaluate(rp('passed', 3, 87, { reporter: "v1" }), { ...K }).problems.length === 0);
+  const az = rp('passed');
+  az.testResults[0].assertionResults[0].meta.reports[0].result.passes =
+    new Array(3).fill({ nodes: [{}] });
+  assert.ok(evaluate(az, K).problems.length > 0);
   assert.equal(evaluate(rp(null), { floor: 1 }).problems.length, 0);  // unit projesi etkilenmez
   /* TOPLAM = GECEN — sayaclara girmeyen test. */
   assert.ok(evaluate({ ...rp('passed'), numTotalTests: 5 }, K).problems.length > 0);
@@ -486,7 +612,7 @@ backgrounds: { disable: true },` }).length, 0);
   assert.equal(a11y({ vitestConfig: gercek("vitest.config.ts") }).length, 0);
 
 
-  console.log(`self-check: 11 + 39 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
+  console.log(`self-check: 11 + 48 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 
