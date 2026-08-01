@@ -20,6 +20,8 @@ import { httpLoad } from "./client";
 import { IS_MOCK } from "./mode";
 import {
   alertSchema,
+  executiveKpiSchema,
+  type ExecutiveKpiParsed,
   goalSchema,
   opportunitySchema,
   runtimeDirectorSchema,
@@ -345,6 +347,56 @@ export function useOdinFeed(): OdinQueryResult<IntelligenceItem[]> {
               at: e.ts,
               priority: NO_PRIORITY_SIGNAL,
               actor: e.actor,
+            }))
+          );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Executive KPI şeridi — `/api/state.health_score.components` (S10 · G3)
+   -------------------------------------------------------------------------- */
+
+const healthScoreStateSchema = z.object({
+  generated_at: z.string(),
+  health_score: z.object({
+    components: z.array(
+      z.object({
+        name: z.string(),
+        value: z.number().nullable(),
+        detail: z.string(),
+      })
+    ),
+  }),
+});
+
+export function useOdinHealthKpis(): OdinQueryResult<ExecutiveKpiParsed[]> {
+  return useOdinQuery({
+    key: ["odin", "health-kpis"],
+    module: "default",
+    schema: z.array(executiveKpiSchema),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.kpis")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = healthScoreStateSchema.parse(raw);
+          return envelope(
+            parsed.generated_at,
+            parsed.health_score.components.map((c) => ({
+              id: c.name,
+              label: c.name,
+              /* ODIN ölçemediğinde `value: null` yayınlıyor ve gerekçesini
+                 `detail`de söylüyor — zarf zaten ADR-0143 şeklinde. */
+              status: c.value === null ? ("data_required" as const)
+                                       : ("available" as const),
+              value: c.value,
+              /* Bileşenler 0-100 arası bir bileşik skorun parçası. */
+              unit: "score" as const,
+              reason: c.detail,
+              asOf: parsed.generated_at,
+              /* ODIN sağlık bileşenleri için pencere BEYAN ETMİYOR —
+                 arayüz pencere uydurmaz (UI-ADR-140). */
+              reportPeriod: null,
             }))
           );
         },

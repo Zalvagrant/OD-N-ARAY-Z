@@ -25,6 +25,7 @@ import {
   useOdinAlerts,
   useOdinDirectors,
   useOdinFeed,
+  useOdinHealthKpis,
   useOdinOpportunities,
 } from "@/lib/data/odin-state";
 import { MockBadge } from "@/mocks/mock-badge";
@@ -172,7 +173,9 @@ export function ExecutiveBriefing({
      (`detected` + uygulanabilir adım) ve sıralama ODIN'de; arayüz ikisini
      de icat etmiyor. */
   const opportunities = useOdinOpportunities();
-  const kpis = useMockData("briefing.kpis");
+  /* CANLI — `/api/state.health_score.components` (S10 · G3). Altı iş
+     bileşeni; ölçülemeyen `value: null` + gerekçe ile geliyor. */
+  const kpis = useOdinHealthKpis();
   const brief = useMockData("briefing.brief");
   /* CANLI — `/api/state.directors` (S10 · G3). `agents` SIFIR kayıt
      taşıyor, `directors` 8; bu yüzden AgentHealth yerine runtime
@@ -194,7 +197,7 @@ export function ExecutiveBriefing({
     decisions.reload();
     risks.refetch();
     opportunities.refetch();
-    kpis.reload();
+    kpis.refetch();
     brief.reload();
     directors.refetch();
     timeline.refetch();
@@ -354,8 +357,11 @@ export function ExecutiveBriefing({
             768px'te ölçüldü (S6 görsel incelemesi) — bu yüzden ikinci kolon
             `md` değil `lg`de açılır. */}
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {kpis.data?.data.map((k) => (
-            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.data!.meta }} />
+          {kpis.envelope?.data.map((k) => (
+            <ExecutiveKPICard
+              key={k.id}
+              env={{ data: k, meta: kpis.envelope!.meta }}
+            />
           ))}
         </div>
       </Section>
