@@ -471,3 +471,87 @@ degildir.* Duzeltmeler de denetlenir.
 ### Devam eden tek acik: erisilebilirlik token karari
 
 Bkz. §6.7 — sahip karari bekliyor.
+
+---
+
+## S13 KAPANIŞ KAYDI — UI-ADR-165…174 (1 Ağustos 2026)
+
+Kurul (`ask_gavadolar` 2/2) sprint kapanışında **dört atlanmış iş**
+adlandırdı. Üçü tamamlandı, biri sahibin. Aşağısı kanıtlarıyla.
+
+### S8'İN ALTINCI SORUSU — hiç cevaplanmamıştı
+
+> *"Bu sprintin adını karşılayan çıktının KAÇ GERÇEK EKRAN TÜKETİCİSİ var?"*
+> Sıfırsa sprint **altyapı işidir**, adının vaat ettiği teslimat değildir —
+> ve öyle etiketlenir.
+
+Bu ADR zincirinin çıktısı **iki ayrı türde** ve dürüst cevap ikisini
+ayırmayı gerektiriyor:
+
+**A) Kapı altyapısı** — `a11y-gate.ts` · `verify-tests.mjs` kilidi ·
+kanarya story. **Gerçek ekran tüketicisi: 0.** Bunlar ekran çizmez;
+`preview.tsx` ve kanarya dışında çağıranı yok (ölçüldü). S8 kuralına
+göre bu kısım **altyapı işidir ve öyle etiketleniyor.**
+
+**B) O kapının ZORLADIĞI düzeltme** — asıl teslimat burada:
+
+| Değişen | Etkilenen ayrık dosya |
+|---|---|
+| `--odin-text-tertiary` (#64748B → #8593A5) | 45 |
+| `danger` ailesi (red-500 → red-400) | 13 |
+| `chart-negative` (→ red-300) | 2 |
+| **birleşik ayrık dosya** | **50** (43'ü üretim, 3'ü ekran) |
+
+Kullanıcıya görünen sonuç: **609 axe ihlali → 0.** Bu, "test geçti"
+değil ekranda değişen piksel; S8'in aradığı türden bir teslimat.
+
+**C) Ekran durum kapsamı:** `demo` zorlaması alan ekran **3 → 5**
+(`goals` ve `intelligence-feed` eklendi). Altıncı ekran `amazon/sku`
+prop almıyor ama dört durum story'siyle kapsanmış — kapı beyan edileni
+istiyor, simetri değil (UI-ADR-174).
+
+**Hüküm:** kapı kısmı altyapıdır; erişilebilirlik düzeltmesi ve durum
+kapsamı **50 dosyada görünür teslimattır.** İkisi ayrı ayrı raporlanıyor,
+tek sayıya yuvarlanmıyor.
+
+### ADR denetimi — 10/10
+
+`UI-ADR-165…174`'ün **onunda da** Durum · Tarih · **Ölçüm** · **Kanıt**
+var (betikle tarandı). Beşinde ayrıca açıkça çürütülmüş/alınmamış öneri
+kayıtlı; kalanlarda "kapatmadığı yollar" bölümü var. **Kara kutu karar
+yok.**
+
+### Sahte veri denetimi — temiz
+
+`git diff 3ca04cd..d133203 -- '*.tsx'` eklenen satırlarda
+`mock|placeholder|lorem|dummy|fake` taraması: **sıfır eşleşme.**
+
+### ⚠️ KURUL ÇELİŞKİSİ — kayda geçiyor
+
+terra *"temiz aday için `d133203`'ü uzak ucun üstüne cherry-pick et"*
+dedi; luna *"cherry-pick de yapma, yedek dalda tut"*. **luna'nınki
+alındı:** cherry-pick bu worktree'de dal değiştirmeyi gerektirir ve
+paralel oturumun yarım işini bozar. İş `yedek/s13-ui-adr-174`'te
+güvende; paylaşılan dal kıpırdamadı.
+
+### SAHİBİN KARARINA KALAN ÜÇ MADDE — kurul üçünü de doğruladı
+
+1. **Paylaşılan dala push.** Zincir paralel oturumun PUSH'LANMAMIŞ
+   `83c84ac`'si üzerinde. terra: *"push, doğrulamadığın commit'i de
+   yayımlar ve başka oturumun yayın sorumluluğunu üstlenir."*
+2. **Metin rampası.** Ölçüm sunuldu, token DEĞİŞTİRİLMEDİ. Aday rampa
+   "uygulanmamış öneri" olarak burada: primary `#F1F5F9` · secondary
+   `~#B6C2D2` · tertiary `#8593A5` (bugünkü ΔL* 29.9 / 6.1).
+3. **`main`'e merge.** Teknik durum aşağıda; **merge kararı sahibin.**
+
+### Beş kapanış sorusuna kanıtlı cevap
+
+1. **Çalışıyor mu?** unit 251 ✅ · storybook 56 dosya / 213 test ✅
+   (paralel oturumun yarım `inventory.test.ts`'i hariç — atıf kanıtlandı)
+2. **Responsive mi?** Bu zincir yerleşim değiştirmedi; token ve kapı işi.
+3. **Hata var mı?** `tsc` 0 · `lint` 0/0 · a11y ihlali **0** ·
+   a11y kanıtı 213/213.
+4. **Mimariye uygun mu?** 10 ADR, hepsi ölçümlü; kurul durma kriteri
+   karşılandı (UI-ADR-172).
+5. **Merge'e hazır mı?** **Teknik olarak evet — ama merge ÖNERMİYORUM**
+   dal iki oturumun işini taşıdığı ve `83c84ac` doğrulanmadığı sürece.
