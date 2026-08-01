@@ -370,7 +370,20 @@ Aşağısı tarihsel kayıt:
    Bu oturumda UC KEZ denendi ve MCP araclari yoktu; [[council-session-bound]]
    uyarinca bu ancak YENI bir oturumda cozulur, yeniden baslatmakla degil.
 
-### 6.7 ERISILEBILIRLIK KAPISI - KAPANDI (UI-ADR-165)
+### 6.7 ERISILEBILIRLIK KAPISI - KAPANDI (UI-ADR-165 -> 166 -> 167)
+
+> ⚠️ **165 TEK BASINA OKUNMAZ.** Kapiyi kapatti ama kendi kilidi
+> YETERSIZDI ve iki tur bagimsiz denetim bunu olctu: 166 dort sokme yolu
+> kapatti, 167 alti tane daha. Kilit artik YASAK listesi degil IZIN
+> listesi. Ayrintisi `08-decision-log.md` UI-ADR-166 ve 167'de.
+>
+> **Kilide dokunacaksan once onlari oku** — ozellikle su iki ders:
+> yasak kelime listesi sonsuza kadar eksik kalir · self-check GERCEK
+> dosyalari da okumali (uydurma girdiyle yazilmis 17 senaryo yesilken
+> kilit yururlukteki DOGRU yapilandirmayi dusuruyordu).
+>
+> Ve: **"sokulemez" yazma.** Iki kez yazildi, iki kez yanlis cikti.
+
 
 Bu bolum bir zamanlar "SAHIP KARARI BEKLEYEN TEK MADDE" idi ve **iki kez
 birden yaziliydi** (eski bir betik iki kez kosmus; tek kayda indirildi).
