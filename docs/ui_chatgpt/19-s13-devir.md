@@ -435,7 +435,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 
 | Nerede | Ne |
 |---|---|
-| `ui/modal.tsx:57` | Escape `document` capture'da `stopPropagation` ile yakalaniyor; ayni dugumdeki digerini durdurmaz -> **ic ice diyalogda ikisi birden kapanir**. Ayni kok neden: `table`/`search`/`filter` Escape'leri modal ICINDE hic calismaz |
 | `ui/modal.tsx:47` | `useEffect` bagimliliginda `onClose`; satir ici ok fonksiyonu verilirse her render'da odak Kapat butonuna siciyor |
 | `layout/command-palette.tsx:114` | `aria-modal="true"` diyor ama odak tuzagi ve kaydirma kilidi YOK; Escape yalniz input'ta; `listRef` tanimli ama hic okunmuyor (imlec gorunmez pencereye kayar) |
 | `layout/right-context-panel.tsx:95` | Panel kapaninca odak `<body>`ye duser. `ui/filter.tsx:55` tam bu hatayi adiyla anip duzeltmis |

@@ -20,7 +20,14 @@
  * ReadOnly — bunlar modalın İÇERİĞİNİN durumudur, kabuğun değil.
  */
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { motion as fm, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
@@ -41,11 +48,50 @@ const DRAWER_SIZE = {
   lg: "w-1/2",
 } as const;
 
-function useDialogBehavior(open: boolean, onClose: () => void) {
+/**
+ * AÇIK DİYALOG YIĞINI — UI-ADR-156.
+ *
+ * İki kusur birden vardı ve ikisi de `document` üstündeki CAPTURE
+ * dinleyicisinden geliyordu:
+ *
+ *  1. **İç içe diyalogda Escape İKİSİNİ BİRDEN kapatıyordu.** Her diyalog
+ *     dinleyicisini AYNI düğüme (`document`) ekliyor; `stopPropagation()`
+ *     aynı düğümdeki diğer dinleyiciyi DURDURMAZ (onun için
+ *     `stopImmediatePropagation` gerekir). Drawer içinden onay Modal'ı
+ *     açıp Escape'e basmak ikisini birden kapatıyordu.
+ *
+ *  2. **İçerideki Escape'ler HİÇ çalışmıyordu.** Capture fazı hedeften
+ *     ÖNCE koştuğu için `table`/`search`/`filter`ın kendi Escape'leri
+ *     modal içinde hiç devreye giremiyordu: modal önce kapanıyordu.
+ *
+ * Çözüm iki parça: (a) yığın — yalnız EN ÜSTTEKİ diyalog Escape'e cevap
+ * verir; (b) KABARMA fazı — içerideki bileşen önce görür ve isterse
+ * `stopPropagation` ile sahiplenir. "En içteki açık şey kapanır" kuralı
+ * kullanıcının beklediği davranıştır.
+ */
+/**
+ * İç içelik DERİNLİĞİ — effect sırası DEĞİL.
+ *
+ * İlk çözüm bir dizi kullanıp "son eklenen en üsttedir" varsaydı ve
+ * YANLIŞTI: React çocuk effect'lerini EBEVEYNDEN ÖNCE koşturur, yani
+ * içteki modal önce, dıştaki drawer sonra ekleniyordu — dizinin sonundaki
+ * DIŞTAKİ oluyordu ve Escape onu kapatıp içindekini de götürüyordu.
+ * Test bunu yakaladı (beklenen 1 diyalog, kalan 0).
+ *
+ * Derinlik context ile taşınır: her diyalog çocuklarına `depth + 1` verir.
+ * En içteki, DERİNLİĞİ EN BÜYÜK olandır — bu, mount sırasından ve DOM
+ * portal sırasından bağımsızdır.
+ */
+const DialogDepth = createContext(0);
+const openDepths = new Set<number>();
+
+function useDialogBehavior(open: boolean, onClose: () => void, depth: number) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+
+    openDepths.add(depth);
 
     const opener = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
@@ -55,7 +101,8 @@ function useDialogBehavior(open: boolean, onClose: () => void) {
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        e.stopPropagation();
+        /* Yalnız EN İÇTEKİ (en derin) diyalog kapanır. */
+        if (depth !== Math.max(...openDepths)) return;
         onClose();
         return;
       }
@@ -77,13 +124,24 @@ function useDialogBehavior(open: boolean, onClose: () => void) {
       }
     };
 
-    document.addEventListener("keydown", onKey, true);
+    /* Tab tuzağı capture ister (odak taşınmadan önce yakalanmalı),
+       Escape ise KABARMA — içerideki bileşen önce sahiplenebilsin. */
+    const onTab = (e: KeyboardEvent) => {
+      if (e.key === "Tab") onKey(e);
+    };
+    document.addEventListener("keydown", onTab, true);
+    document.addEventListener("keydown", onKey, false);
     return () => {
-      document.removeEventListener("keydown", onKey, true);
-      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", onTab, true);
+      document.removeEventListener("keydown", onKey, false);
+      openDepths.delete(depth);
+      /* Gövde kaydırması yalnız SON diyalog kapanınca serbest kalır;
+         iç içe diyalogda dıştaki hâlâ açıkken kilidi açmak sayfayı
+         diyalogun arkasında kaydırılabilir yapardı. */
+      if (openDepths.size === 0) document.body.style.overflow = overflow;
       opener?.focus();
     };
-  }, [open, onClose]);
+  }, [open, onClose, depth]);
 
   return panelRef;
 }
@@ -109,7 +167,8 @@ function DialogShell({
   panelClass: string;
   enter: { initial: Record<string, number>; animate: Record<string, number> };
 }) {
-  const panelRef = useDialogBehavior(open, onClose);
+  const depth = useContext(DialogDepth) + 1;
+  const panelRef = useDialogBehavior(open, onClose, depth);
   const reduced = useReducedMotion();
   const titleId = useId();
   const descId = useId();
@@ -164,7 +223,9 @@ function DialogShell({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+          <DialogDepth.Provider value={depth}>{children}</DialogDepth.Provider>
+        </div>
 
         {footer && (
           <div className="flex shrink-0 items-center justify-end gap-2 border-t border-line px-6 py-4">

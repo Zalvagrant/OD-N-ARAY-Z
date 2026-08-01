@@ -4702,3 +4702,69 @@ atlanan 0, dusen 0.
 `aria-modal` diyor ama modal degil, tek provenance boslugunun tum Amazon
 KPI'larini karartmasi (fail-total parse), tazelik damgasinin onbellekte
 donmasi.
+
+---
+
+## UI-ADR-157 - Escape sozlesmesi: en ICTEKI kapanir (S13 kapanis)
+
+**Durum:** DONDURULDU - test enjekte ihlalle degil, GERCEK hatayla dogrulandi
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-149 - 156
+
+### Bulgu
+
+`useDialogBehavior` dinleyicisini `document` uzerine CAPTURE fazinda
+ekliyordu. Iki ayri kusur ureiyordu:
+
+1. **Ic ice diyalogda Escape IKISINI BIRDEN kapatiyordu.** Her diyalog
+   dinleyicisini AYNI dugume ekliyor; `stopPropagation()` ayni dugumdeki
+   diger dinleyiciyi DURDURMAZ (onun icin `stopImmediatePropagation`
+   gerekir). Drawer icinden onay Modal'i acip Escape'e basmak ikisini
+   birden kapatiyordu - kullanici farkinda olmadan bir baglami kaybediyor.
+
+2. **Icerideki Escape'ler HIC calismiyordu.** Capture fazi hedeften ONCE
+   kostugu icin `table`in secim birakmasi, `search`in listesini kapatmasi
+   ve `filter`in panelini kapatmasi modal icinde hic devreye giremiyordu:
+   modal once kapaniyordu.
+
+### Cozum - iki parca
+
+**(a) Kabarma fazi.** Escape artik `document`te KABARMA fazinda dinleniyor;
+icerideki bilesen once gorur ve isterse `stopPropagation` ile sahiplenir.
+Tab tuzagi capture'da kaldi (odak tasinmadan once yakalanmali).
+
+**(b) Derinlik.** Yalniz EN ICTEKI diyalog Escape'e cevap verir.
+
+### Ilk cozum YANLISTI ve testi yakaladi
+
+Once bir dizi (`dialogStack`) kullanildi ve *"son eklenen en ustedir"*
+varsayildi. **React cocuk effect'lerini EBEVEYNDEN ONCE kosturur**: icteki
+modal once, distaki drawer sonra ekleniyordu - dizinin sonundaki DISTAKI
+oluyordu ve Escape onu kapatip icindekini de goturuyordu. Test bunu
+yakaladi (beklenen 1 diyalog, kalan 0).
+
+Dogrusu mount/effect sirasi degil **gercek ic icelik derinligi**: her
+diyalog cocuklarina bir context ile `depth + 1` verir; en icteki, derinligi
+en buyuk olandir. Bu, effect sirasindan da portal DOM sirasindan da
+bagimsizdir.
+
+*Sira bir varsayimdir; derinlik bir olgudur.*
+
+### Yan duzeltme - govde kaydirma kilidi
+
+Kilit yalniz SON diyalog kapaninca serbest kaliyor. Once her diyalog
+kapanista kilidi aciyordu: ic modal kapaninca distaki hala aciktı ama sayfa
+diyalogun arkasinda kaydirilabilir hale geliyordu.
+
+### Testin ogrettigi bir sey daha
+
+`getByRole("dialog", { name: "Dis panel" })` icteki modal acikken
+BULAMIYOR - ve bu DOGRUDUR: acik bir `aria-modal` diyalog, disindaki her
+seyi erisilebilirlik agacindan gizler. Iddia DOM'dan kuruldu; rol sorgusu
+ancak icteki kapandiktan sonra anlamli.
+
+### Olcum
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 238 test**, **storybook 53 dosya / 199 test**,
+atlanan 0, dusen 0.

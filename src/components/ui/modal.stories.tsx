@@ -1,7 +1,7 @@
 /** S3 · 9 — Modal / Drawer (glass yalnızca overlay katmanında) */
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Drawer, Modal } from "./modal";
 import { Button } from "./button";
 import { Text } from "./typography";
@@ -198,5 +198,63 @@ export const OdakTuzagi: StoryObj = {
     await userEvent.keyboard("{Escape}");
     await expect(body.queryByRole("dialog")).toBeNull();
     await expect(trigger).toHaveFocus();
+  },
+};
+
+/**
+ * UI-ADR-156 — İÇ İÇE DİYALOGDA ESCAPE YALNIZ EN ÜSTTEKİNİ KAPATIR.
+ *
+ * Her diyalog dinleyicisini AYNI düğüme (`document`) ekliyordu ve
+ * `stopPropagation()` aynı düğümdeki diğer dinleyiciyi DURDURMAZ — Escape
+ * ikisini birden kapatıyordu. Kullanıcının beklediği davranış "en içteki
+ * açık şey kapanır"dır: yanlış kapanma, farkında olmadan bir bağlamı
+ * kaybettirir.
+ */
+export const IcIceEscape: StoryObj = {
+  name: "İç içe diyalog — Escape yalnız EN ÜSTTEKİNİ kapatır",
+  render: function Render() {
+    /* İkisi de AÇIK başlar: test edilen değişmez tıklama akışı değil,
+       Escape'in hangi diyaloga gittiğidir. */
+    const [dis, setDis] = useState(true);
+    const [ic, setIc] = useState(true);
+    return (
+      <Drawer open={dis} onClose={() => setDis(false)} title="Dış panel">
+        <Text>Dış gövde.</Text>
+        <Modal open={ic} onClose={() => setIc(false)} title="İç modal">
+          <Text>Onay gövdesi.</Text>
+        </Modal>
+      </Drawer>
+    );
+  },
+  play: async () => {
+    const body = within(document.body);
+    await body.findByRole("dialog", { name: "İç modal" }, { timeout: 10_000 });
+
+    /* NOT: dıştaki panel şu an ERİŞİLEBİLİRLİK AĞACINDA GÖRÜNMEZ — açık
+       bir `aria-modal` diyalog dışındaki her şeyi gizler ve bu DOĞRUDUR.
+       Bu yüzden varlığı DOM'dan doğrulanıyor; rol sorgusu ancak içteki
+       kapandıktan sonra anlamlı olur. */
+    await expect(
+      document.querySelectorAll('[role="dialog"]')
+    ).toHaveLength(2);
+
+    /* ASIL İDDİA: bir Escape, BİR diyalog kapatır. Önce en üstteki.
+       Eskiden ikisi birden kapanıyordu — `stopPropagation()` AYNI düğüme
+       (document) eklenmiş diğer dinleyiciyi durdurmaz. */
+    await userEvent.keyboard("{Escape}");
+
+    /* BİR Escape = BİR diyalog. Eskiden ikisi birden kapanıyordu. */
+    await waitFor(async () => {
+      await expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+    });
+    /* Kalan DIŞTAKİ olmalı — içteki değil. */
+    await expect(
+      document.querySelector('[role="dialog"]')!.textContent
+    ).toMatch(/Dış/);
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(async () => {
+      await expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(0);
+    });
   },
 };
