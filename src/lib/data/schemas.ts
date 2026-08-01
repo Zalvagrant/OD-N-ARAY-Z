@@ -359,3 +359,22 @@ export const timelineEventSchema = z.object({
   event: z.string().min(1),
   actor: z.string().min(1),
 });
+
+
+/* --------------------------------------------------------------------------
+   PPCOverview — ODIN `/api/amazon` reklam KPI'ları (ADR-0112)
+   -------------------------------------------------------------------------- */
+
+/** `health` ODIN'de ÜRETİLMİYOR; `null` geçerli tek değerdir. */
+export const ppcOverviewSchema = z.object({
+  percentScale: z.enum(["0-1", "0-100"]),
+  health: z.number().nullable(),
+  /* FAIL-CLOSED: adaptör bu ikisini `available` değilse hiç üretmez, hata
+     atar — bu yüzden şema da `null` KABUL ETMEZ. Yarım bir PPC kartı,
+     hangi sayının ölçüldüğünü okunamaz hâle getirir. */
+  spend: z.object({ amount: z.number(), currency: z.string().min(1) }),
+  sales: z.object({ amount: z.number(), currency: z.string().min(1) }),
+  acos: z.number(),
+  roas: z.number(),
+  profitAfterAds: moneySchema.nullable(),
+});

@@ -24,11 +24,22 @@ import { z } from "zod";
 import { parseIso } from "@/lib/format/date";
 
 import { internalEnvelope } from "@/types/data-envelope";
-import type { Money, ThresholdProvenance } from "@/types/executive";
+import type {
+  Money,
+  PercentScale,
+  PPCOverview,
+  ThresholdProvenance,
+} from "@/types/executive";
 import type { MetricPeriod, SkuHealth } from "@/types/screens";
 import { httpLoad } from "./client";
+import { contractError } from "./errors";
 import { IS_MOCK } from "./mode";
-import { alertSchema, executiveKpiSchema, skuHealthSchema } from "./schemas";
+import {
+  alertSchema,
+  executiveKpiSchema,
+  ppcOverviewSchema,
+  skuHealthSchema,
+} from "./schemas";
 import { useOdinQuery, type OdinQueryResult } from "./use-odin-query";
 import { loadMock } from "@/mocks/registry";
 
@@ -369,6 +380,66 @@ export function useAmazonSkus(): OdinQueryResult<SkuHealth[]> {
       : async (signal) => {
           const raw = amazonSkusSchema.parse(await httpLoad(AMAZON_PATH, { signal }));
           return internalEnvelope(raw.generated_at, adaptSkus(raw));
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   PPC — ODIN `/api/amazon` reklam KPI'ları (ADR-0112 / FR-0026)
+   -------------------------------------------------------------------------- */
+
+/**
+ * PPC özeti, KPI listesindeki BEŞ reklam kaleminden kurulur:
+ * `ad_spend` · `ad_sales` · `acos` · `roas` · `net_after_ads`. Hepsi bugün
+ * ODIN'de `status: "available"` ve kaynağı `KO-ads-ads_report-*`.
+ *
+ * HESAP YOK. ACOS `0.082` olarak GELDİĞİ GİBİ taşınır; ölçeği ODIN'in kendi
+ * `scale` alanından okunur (`"0-1"`). Yüzdeye çevirmek arayüzün sayıyı
+ * yeniden yazması olurdu ve kartın `scale` prop'u tam bu iş için var.
+ *
+ * FAIL-CLOSED: beş kalemden biri `available` değilse kart YARIM ÇİZİLMEZ,
+ * hata döner. Yarısı gerçek yarısı boş bir PPC kartı, hangi sayının
+ * ölçüldüğünü okunamaz hâle getirir — `directors`/`alerts` ile aynı kural.
+ *
+ * `health` YOK ve UYDURULMAZ: ODIN PPC skoru üretmiyor (bkz. tip notu).
+ */
+export function useAmazonPpc(): OdinQueryResult<PPCOverview> {
+  return useOdinQuery({
+    key: ["odin", "amazon", "ppc"],
+    module: "amazon",
+    schema: ppcOverviewSchema,
+    load: IS_MOCK
+      ? async () => loadMock("amazon.ppc")
+      : async (signal) => {
+          const raw = amazonSchema.parse(await httpLoad(AMAZON_PATH, { signal }));
+          const need = (id: string) => {
+            const k = raw.kpis.find((x) => x.id === id);
+            if (!k || k.status !== "available" || typeof k.value !== "number") {
+              throw contractError(
+                AMAZON_PATH,
+                `PPC kalemi "${id}" ölçülmedi (${k?.status ?? "yayınlanmadı"})`
+              );
+            }
+            return k;
+          };
+          const money = (id: string) => {
+            const k = need(id);
+            if (!k.currency) {
+              throw contractError(AMAZON_PATH, `"${id}" para birimsiz geldi`);
+            }
+            return { amount: k.value as number, currency: k.currency };
+          };
+          const acos = need("acos");
+          return internalEnvelope(raw.generated_at, {
+            /* ODIN'in kendi beyanı; varsayılan uydurulmaz. */
+            percentScale: (acos.scale ?? "0-1") as PercentScale,
+            health: null,
+            spend: money("ad_spend"),
+            sales: money("ad_sales"),
+            acos: acos.value as number,
+            roas: need("roas").value as number,
+            profitAfterAds: money("net_after_ads"),
+          });
         },
   });
 }

@@ -455,7 +455,15 @@ export interface AmazonSnapshot {
 export interface PPCOverview {
   /** UI-ADR-093 — `acos` bu ölçektedir. SAPMA, AmazonSnapshot ile aynı gerekçe. */
   percentScale: PercentScale;
-  health: number;
+  /**
+   * SAPMA (`profitAfterAds` ile aynı gerekçe): ODIN bir PPC sağlık skoru
+   * ÜRETMİYOR. Beş metrik (`ad_spend`/`ad_sales`/`acos`/`roas`/
+   * `net_after_ads`) kaynağıyla geliyor, skor gelmiyor — ve arayüz onu
+   * türetirse kullanıcının gördüğü "71" ODIN'in gerekçelendiremediği bir
+   * sayı olurdu. `null` gelir, kartta gerekçesiyle boş görünür.
+   * (`ppc-overview.tsx` bunu zaten `Number.isFinite` ile karşılıyordu.)
+   */
+  health: number | null;
   spend: Money;
   sales: Money;
   acos: number;

@@ -57,11 +57,20 @@ export function PPCOverviewCard({
               <Stat
                 label="PPC Health"
                 note={
-                  Number.isFinite(ppc.health) ? `${Math.round(ppc.health)} / 100` : undefined
+                  /* `health` artık `number | null` (ODIN PPC skoru üretmiyor).
+                     `Number.isFinite` TypeScript'te DARALTMA yapmaz; null
+                     kontrolü açıkça yazılır. */
+                  ppc.health !== null && Number.isFinite(ppc.health)
+                    ? `${Math.round(ppc.health)} / 100`
+                    : undefined
                 }
                 value={
                   <Meter
-                    value={Number.isFinite(ppc.health) ? ppc.health : null}
+                    value={
+                      ppc.health !== null && Number.isFinite(ppc.health)
+                        ? ppc.health
+                        : null
+                    }
                     label="PPC sağlık skoru"
                     tone="ai"
                     noDataReason="PPC sağlık skoru üretilmedi"

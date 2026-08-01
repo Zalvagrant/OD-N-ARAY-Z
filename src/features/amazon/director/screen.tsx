@@ -38,6 +38,7 @@ import {
 import {
   useAmazonAlerts,
   useAmazonKpis,
+  useAmazonPpc,
   useAmazonSkus,
 } from "@/lib/data/odin-amazon";
 import { useOdinFixture } from "@/lib/data/odin-fixture";
@@ -116,7 +117,12 @@ export function AmazonDirector({
      gün-kapsamı, satılan adet, reklam, fiyat. Skor YOK ve
      türetilmiyor; durum kendi eşik provenance'ıyla geliyor. */
   const skus = useAmazonSkus();
-  const ppc = useOdinFixture("amazon.ppc");
+  /* CANLI — ODIN `/api/amazon` reklam KPI'ları (ADR-0112/FR-0026):
+     ad_spend · ad_sales · acos · roas · net_after_ads, hepsi
+     `KO-ads-ads_report-*` kaynaklı. PPC sağlık skoru ODIN'de ÜRETİLMİYOR,
+     kartta gerekçesiyle boş. Beş kalemden biri ölçülmemişse kart yarım
+     çizilmez, hata döner. */
+  const ppc = useAmazonPpc();
   const campaigns = useOdinFixture("amazon.campaigns");
   const simulations = useOdinFixture("amazon.simulations");
   const opportunities = useOdinFixture("amazon.opportunities");
