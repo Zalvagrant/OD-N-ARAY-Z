@@ -435,7 +435,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 | Nerede | Ne |
 |---|---|
 | `ui/modal.tsx:47` | `useEffect` bagimliliginda `onClose`; satir ici ok fonksiyonu verilirse her render'da odak Kapat butonuna siciyor |
-| `layout/command-palette.tsx:114` | `aria-modal="true"` diyor ama odak tuzagi ve kaydirma kilidi YOK; Escape yalniz input'ta; `listRef` tanimli ama hic okunmuyor (imlec gorunmez pencereye kayar) |
 | `layout/right-context-panel.tsx:95` | Panel kapaninca odak `<body>`ye duser. `ui/filter.tsx:55` tam bu hatayi adiyla anip duzeltmis |
 | `ui/selection.tsx:226` | `value` hicbir secenekle eslesmezse tum butonlar `tabIndex=-1` -> kontrole Tab'la ULASILAMAZ; `move()` odagi tasimiyor |
 | `ui/table.tsx:229` | `<table onKeyDown>` Enter'da `preventDefault` -> siralama basligi butonu Enter ile calismiyor (dosyanin 17. satiri "Enter/Space ile siralar" diyor) |

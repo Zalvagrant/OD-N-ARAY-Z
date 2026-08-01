@@ -162,7 +162,12 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-148)
   it("envanter listesi beklenenden BÜYÜMEDİ", () => {
     /* Sayı bir tavan, bir hedef değil. Büyüdüyse yeni bir bileşen
        çağıranı olmadan girmiş demektir — sahip kararı dokuz kalem
-       içindi, açık uçlu bir izin değil. */
+       içindi, açık uçlu bir izin değil.
+
+       ♻️ UI-ADR-159: liste DOKUZDAN SEKİZE indi. `ui/modal` artık yetim
+       değil — `command-palette` odak tuzağını ondan alıyor. Kapının
+       KÜÇÜLMEYİ de fark etmesi doğrudur: envanterden çıkan bir bileşen,
+       artık gerçek bir tüketicisi olan bileşendir ve bu iyi haberdir. */
     expect(orphans.map(moduleId).sort()).toMatchInlineSnapshot(`
       [
         "components/executive/telemetry-bar",
@@ -170,7 +175,6 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-148)
         "components/ui/chart",
         "components/ui/filter",
         "components/ui/icon",
-        "components/ui/modal",
         "components/ui/sparkline",
         "components/ui/tabs",
         "components/ui/tooltip",

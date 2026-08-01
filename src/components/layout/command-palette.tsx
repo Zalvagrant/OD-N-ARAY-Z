@@ -12,7 +12,11 @@
  * eklenecek — karşılığı olmayan komut listeye konmaz.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useDialogBehavior,
+  useDialogDepth,
+} from "@/components/ui/modal";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { NAV_GROUPS } from "@/lib/navigation/registry";
@@ -80,6 +84,23 @@ function Palette({ activeWorkspaceId }: { activeWorkspaceId: string | null }) {
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
+  const listId = useId();
+  const optionId = (i: number) => `${listId}-opt-${i}`;
+
+  /**
+   * ODAK TUZAĞI · KAYDIRMA KİLİDİ · ODAK GERİ VERME — UI-ADR-159.
+   *
+   * Palet `aria-modal="true"` diyordu ama ÜÇÜ DE YOKTU: son sonuçtan
+   * sonra Tab odağı perdenin arkasındaki uygulamaya kaçırıyor, kullanıcı
+   * hâlâ palette sanıp arkadaki ekrana tıklıyordu. `aria-modal` bir
+   * BEYANDIR; davranışı kurmayan bir beyan, ekran okuyucuya yalan söyler.
+   *
+   * Üçü de `modal.tsx`te zaten yazılıydı; ikinci kez yazmak yerine hook
+   * dışarı açıldı (CLAUDE.md §5). Escape de artık kökte — eskiden yalnız
+   * `<input>`taydı ve odak bir sonuca geçtiği an ölü tuşa dönüyordu.
+   */
+  const depth = useDialogDepth();
+  const panelRef = useDialogBehavior(true, () => setOpen(false), depth);
 
   const results = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("tr");
@@ -111,6 +132,23 @@ function Palette({ activeWorkspaceId }: { activeWorkspaceId: string | null }) {
   /* Sonuç listesi kısaldıysa imleç dışarı taşmasın. */
   const safeCursor = Math.min(cursor, Math.max(results.length - 1, 0));
 
+  /**
+   * İMLEÇ GÖRÜNÜR KALIR — UI-ADR-159.
+   *
+   * `listRef` tanımlıydı ama HİÇ OKUNMUYORDU: liste `max-h-96` ile
+   * kısıtlı ve 30 komutta ok tuşuyla ilerleyen imleç pencereden çıkıp
+   * görünmez oluyordu. Klavye kullanıcısı seçili olanı göremeden Enter'a
+   * basıyordu — sessiz ve tehlikeli.
+   */
+  useEffect(() => {
+    /* `listId` bağımlılıkta, `optionId` değil: türetilmiş bir fonksiyon
+       her render'da yeni kimliktir ve onu bağımlılığa koymak effect'i her
+       render'da koştururdu. Bağlı olduğu GERÇEK değer `listId`dir. */
+    listRef.current
+      ?.querySelector(`#${CSS.escape(`${listId}-opt-${safeCursor}`)}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [safeCursor, results.length, listId]);
+
   return (
     <div
       className="odin-overlay-scrim fixed inset-0 z-50 flex items-start justify-center p-16"
@@ -120,6 +158,7 @@ function Palette({ activeWorkspaceId }: { activeWorkspaceId: string | null }) {
       }}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Komut paleti"
@@ -134,11 +173,14 @@ function Palette({ activeWorkspaceId }: { activeWorkspaceId: string | null }) {
               setQuery(e.target.value);
               setCursor(0);
             }}
+            role="combobox"
+            aria-expanded
+            aria-controls={listId}
+            aria-activedescendant={
+              results.length > 0 ? optionId(safeCursor) : undefined
+            }
             onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                setOpen(false);
-              } else if (e.key === "ArrowDown") {
+              if (e.key === "ArrowDown") {
                 e.preventDefault();
                 setCursor((c) => Math.min(c + 1, results.length - 1));
               } else if (e.key === "ArrowUp") {
@@ -158,31 +200,42 @@ function Palette({ activeWorkspaceId }: { activeWorkspaceId: string | null }) {
           </kbd>
         </div>
 
-        <ul ref={listRef} className="max-h-96 overflow-y-auto p-2" role="listbox">
+        <ul
+          ref={listRef}
+          id={listId}
+          className="max-h-96 overflow-y-auto p-2"
+          role="listbox"
+          aria-label="Komutlar"
+        >
           {results.length === 0 && (
             <li className="px-3 py-6 text-center text-sm text-content-tertiary">
               Eşleşen komut yok.
             </li>
           )}
+          {/* Öğeler `role="option"` ve ODAK ALMAZ: odak kutuda kalır,
+              imleç `aria-activedescendant` ile taşınır. Önce `<li>` içine
+              sarılmış `<button role="option">` vardı — option'lar
+              listbox'ın DOĞRUDAN çocuğu olmadığı için ilişki kopuktu
+              (`ui/search.tsx` aynı kalıbı doğru kuruyor). */}
           {results.map((cmd, i) => (
-            <li key={cmd.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={i === safeCursor}
-                onMouseEnter={() => setCursor(i)}
-                onClick={() => run(cmd)}
-                className={`flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-base ${
-                  i === safeCursor
-                    ? "bg-surface-elevated text-content"
-                    : "text-content-secondary"
-                }`}
-              >
-                <span className="truncate">{cmd.label}</span>
-                <span className="ml-4 shrink-0 text-xs uppercase tracking-wide text-content-tertiary">
-                  {cmd.group}
-                </span>
-              </button>
+            <li
+              key={cmd.id}
+              id={optionId(i)}
+              role="option"
+              aria-selected={i === safeCursor}
+              onMouseEnter={() => setCursor(i)}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => run(cmd)}
+              className={`flex cursor-pointer items-center justify-between rounded-sm px-3 py-2 text-left text-base ${
+                i === safeCursor
+                  ? "bg-surface-elevated text-content"
+                  : "text-content-secondary"
+              }`}
+            >
+              <span className="truncate">{cmd.label}</span>
+              <span className="ml-4 shrink-0 text-xs uppercase tracking-wide text-content-tertiary">
+                {cmd.group}
+              </span>
             </li>
           ))}
         </ul>

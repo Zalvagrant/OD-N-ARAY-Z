@@ -4841,3 +4841,65 @@ gelmemisse (`now === null`) zarftaki deger korunur - tahmin yok.
 `npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
 **unit 16 dosya / 243 test**, **storybook 53 dosya / 200 test**,
 atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-159 - `aria-modal` bir BEYANDIR; davranisi kurmayan beyan yalan soyler (S13 kapanis)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-149 - 157 - 148 - CLAUDE.md §5
+
+`command-palette` `role="dialog" aria-modal="true"` yaziyordu ama **modal
+DEGILDI.** Bagimsiz denetim bes kusur buldu; hepsi yalniz klavyeyle
+gorulebilir turden - fareyle bakan hicbirini fark etmez.
+
+| Kusur | Sonucu |
+|---|---|
+| Odak tuzagi YOK | Son sonuctan sonra Tab, odagi perdenin ARKASINDAKI uygulamaya kacirıyordu; kullanici hala palette saniyor |
+| Govde kaydirma kilidi YOK | Palet acikken arka sayfa kayiyordu |
+| Escape yalniz `<input>`ta | Odak bir sonuca gectigi an olu tus |
+| `listRef` tanimli ama HIC OKUNMUYOR | Imlec `max-h-96` penceresinden cikip gorunmez oluyordu (30 komutta olculebilir); klavye kullanicisi secili olani goremeden Enter'a basiyordu |
+| `<li>` icine sarilmis `<button role="option">` | Option'lar listbox'in DOGRUDAN cocugu degildi; `aria-activedescendant` da yoktu, imlecin nerede oldugu duyurulmuyordu |
+
+### `aria-modal` yazmak, modal olmak degildir
+
+Bir ARIA ozniteligi ekran okuyucuya bir SOZ verir: "bu diyalog acikken
+disari cikamazsin". Davranis kurulmazsa o soz tutulmaz ve kullanici
+diyalogda oldugunu sanarak arkadaki ekranla etkilesir. Bu, sahte veri
+yasaginin (CLAUDE.md §2) erisilebilirlikteki karsiligidir: **karsiligi
+olmayan bir beyan cizilmez.**
+
+### Cozum - YENIDEN YAZMADAN
+
+Odak tuzagi, kaydirma kilidi ve odak geri verme `modal.tsx`te ZATEN
+yazilıydi. Ikinci kez yazmak, ikisinin bir gun ayrismasi demekti
+(CLAUDE.md §5). `useDialogBehavior` disari acildi ve palet onu kullaniyor
+- Escape'in derinlik kurali (UI-ADR-157) da boylece bedava geldi.
+
+Liste yapisi `ui/search.tsx`in combobox kalibina hizalandi: `role="combobox"`
++ `aria-expanded` + `aria-controls` + `aria-activedescendant`, ogeler
+dogrudan `role="option"`. `listRef` nihayet kullaniliyor:
+`scrollIntoView({ block: "nearest" })`.
+
+### Envanter DOKUZDAN SEKIZE indi
+
+`ui/modal` artik yetim degil - paletin gercek bir tuketicisi var.
+`inventory.test.ts` bunu yakaladi (anlik goruntü uyusmadi) ve bu
+**dogrudur**: kapinin kucuLMEYI de fark etmesi gerekir. Envanterden cikan
+bir bilesen, artik gercekten kullanilan bilesendir.
+
+### Kapi
+
+`command-palette.stories.tsx` - paletin ilk hikayesi. Arkada odaklanabilir
+bir hedef var: odak tuzagi kirilirsa Tab oraya kacar ve test yakalar.
+Dort iddia: imlec duyurulur ve ok tusuyla degisir - secenekler listbox'in
+dogrudan cocugudur ve isaret edilen id GERCEKTEN vardir - odak sonuc
+sayisindan fazla Tab'da bile disari cikmaz - Escape her odak durumunda
+calisir.
+
+### Olcum
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 201 test**,
+atlanan 0, dusen 0.

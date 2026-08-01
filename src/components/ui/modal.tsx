@@ -83,9 +83,22 @@ const DRAWER_SIZE = {
  * portal sırasından bağımsızdır.
  */
 const DialogDepth = createContext(0);
+
+/** Bir diyalogun iç içelik derinliği — çağıran bunu `useDialogBehavior`e verir. */
+export const useDialogDepth = () => useContext(DialogDepth) + 1;
 const openDepths = new Set<number>();
 
-function useDialogBehavior(open: boolean, onClose: () => void, depth: number) {
+/**
+ * DIŞARI AÇILDI — UI-ADR-159. `command-palette` `aria-modal="true"` diyor
+ * ama odak tuzağı, kaydırma kilidi ve odak geri verme YOKTU; üçü de
+ * burada zaten yazılı. İkinci kez yazmak, ikisinin bir gün ayrışması
+ * demekti (CLAUDE.md §5).
+ */
+export function useDialogBehavior(
+  open: boolean,
+  onClose: () => void,
+  depth: number
+) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -167,7 +180,7 @@ function DialogShell({
   panelClass: string;
   enter: { initial: Record<string, number>; animate: Record<string, number> };
 }) {
-  const depth = useContext(DialogDepth) + 1;
+  const depth = useDialogDepth();
   const panelRef = useDialogBehavior(open, onClose, depth);
   const reduced = useReducedMotion();
   const titleId = useId();
