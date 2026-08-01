@@ -20,6 +20,7 @@ import { contractError } from "./errors";
 import { IS_MOCK } from "./mode";
 import {
   alertSchema,
+  councilPanelSchema,
   goalSchema,
   opportunitySchema,
   runtimeDirectorSchema,
@@ -408,6 +409,49 @@ export function useOdinSystem(): OdinQueryResult<
             eventLogBytes: p.health.event_log_bytes,
             criticalCount: (p.health_score.critical ?? []).length,
           });
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Executive Council — ODIN `/api/state.panel_log`
+   -------------------------------------------------------------------------- */
+
+/**
+ * Koşmuş konsey panelleri: soru, model başına oy, öne çıkan seçenek ve
+ * uzlaşma/anlaşmazlık yüzdeleri. Altısı da GERÇEK ve bugüne kadar hiçbir
+ * ekran tarafından okunmuyordu.
+ *
+ * ARAYÜZ HESAP YAPMAZ: `consensus` ve `disagreement` ODIN'de hesaplanır
+ * (`odin/consensus.py`); oy sayısından yeniden türetmek, iki farklı sayının
+ * aynı ekranda çelişmesi demek olurdu.
+ *
+ * AZINLIK GÖRÜŞÜ YOK ve UYDURULMAZ: `panel_log` yalnız oyu taşır, gerekçeyi
+ * taşımaz. "Karşı oy" ile "kaydedilmiş azınlık görüşü" ayrı şeylerdir —
+ * ikincisini birinciden ÜRETMEK, kimsenin yazmadığı bir itirazı yazılmış
+ * göstermek olurdu (council-view story'sinin kilitlediği ayrım).
+ */
+const councilStateSchema = z.object({
+  generated_at: z.string(),
+  panel_log: z.array(councilPanelSchema).nullable(),
+});
+
+export type CouncilPanel = z.infer<typeof councilPanelSchema>;
+
+export function useOdinCouncil(): OdinQueryResult<CouncilPanel[]> {
+  return useOdinQuery({
+    key: ["odin", "council"],
+    module: "default",
+    schema: z.array(councilPanelSchema),
+    load: IS_MOCK
+      ? async () => loadMock("council.panels")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = councilStateSchema.parse(raw);
+          if (parsed.panel_log === null) {
+            throw contractError("/api/state", "ODIN panel kaydını okuyamadı");
+          }
+          return internalEnvelope(parsed.generated_at, parsed.panel_log);
         },
   });
 }

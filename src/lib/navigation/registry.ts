@@ -28,6 +28,7 @@ import {
   Settings,
   ShoppingCart,
   Target,
+  Users,
 } from "lucide-react";
 
 export interface NavChild {
@@ -119,6 +120,16 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/decisions",
         icon: Gauge,
         type: "operational",
+      },
+      /* 06-workspaces.md §5. `panel_log` altı koşmuş panel yayınlıyor ve
+         hiçbir ekran okumuyordu; Decision Center'dan AYRI çünkü panel bir
+         karar kaydı değil, bir oylama kaydıdır. */
+      {
+        id: "council",
+        label: "Executive Council",
+        href: "/council",
+        icon: Users,
+        type: "executive",
       },
       /* Hedefler EXECUTIVE altında ve Mission Control'den AYRI — UI-ADR-124.
          `Goal` ODIN'in kendi varlığıdır (ADR-0034); ADR-0143 §4'ün reddettiği

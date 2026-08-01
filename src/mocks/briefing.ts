@@ -764,3 +764,21 @@ export function systemHealthMock() {
     criticalCount: 2,
   });
 }
+
+/** ODIN `panel_log`un mock ikizi — alanlar birebir (oy var, gerekçe YOK). */
+export function councilPanelsMock() {
+  return mockEnvelope([
+    {
+      date: "2026-07-22",
+      question: "[CFO] OTICON-MARJ",
+      votes: [
+        { model: "gpt-oss-20b", vote: "B" },
+        { model: "llama-3.3-70b", vote: "B" },
+        { model: "openrouter-auto", vote: "A" },
+      ],
+      leading: "B",
+      consensus: 66.67,
+      disagreement: 33.3,
+    },
+  ]);
+}

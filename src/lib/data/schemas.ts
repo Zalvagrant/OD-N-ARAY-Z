@@ -406,3 +406,21 @@ export const systemHealthSchema = z.object({
   eventLogBytes: z.number().int().min(0),
   criticalCount: z.number().int().min(0),
 });
+
+/* --------------------------------------------------------------------------
+   CouncilPanel — ODIN `/api/state.panel_log`
+   -------------------------------------------------------------------------- */
+
+/**
+ * `vote` SERBEST metindir, enum DEĞİL: ODIN bugün "A"/"B" yazıyor ama
+ * seçenek adlarını yayınlamıyor. Enum'a kapatmak, ODIN üçüncü bir seçenek
+ * yayınladığı gün paneli sessizce reddederdi.
+ */
+export const councilPanelSchema = z.object({
+  date: z.string().min(1),
+  question: z.string().min(1),
+  votes: z.array(z.object({ model: z.string().min(1), vote: z.string().min(1) })),
+  leading: z.string().min(1),
+  consensus: z.number(),
+  disagreement: z.number(),
+});
