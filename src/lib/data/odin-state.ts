@@ -15,6 +15,7 @@
 import { z } from "zod";
 
 import type { DataEnvelope } from "@/types/data-envelope";
+import type { PulseChannelStates } from "@/types/executive";
 import type {
   ExecutiveHero,
   IntelligenceCategory,
@@ -459,6 +460,35 @@ export function useOdinHero(): OdinQueryResult<ExecutiveHero> {
             /* 13-backend-recommendations.md §14.1 — karşılığı YOK. */
             aiReadiness: null,
           });
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   AI Pulse — `/api/state` (S10 · G3)
+   -------------------------------------------------------------------------- */
+
+const pulseStateSchema = z.object({ generated_at: z.string() });
+
+export function useOdinPulse(): OdinQueryResult<PulseChannelStates> {
+  return useOdinQuery({
+    key: ["odin", "pulse"],
+    module: "default",
+    schema: z.custom<PulseChannelStates>(),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.pulse")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = pulseStateSchema.parse(raw);
+          /* ODIN hiçbir AI kanalı için durum YAYINLAMIYOR: `processing`,
+             `memory_knowledge` ve `prediction` registry'de açık ama
+             karşılıklarında ölçülen bir yük yok, `ai_queue`/`ai_cost` ise
+             zaten kapalı (UI-ADR-141 §5 — kuyruk kavramı ve fiyat tablosu
+             yok). Boş kanal kümesi bir eksiklik değil, ÖLÇÜMÜN KENDİSİ:
+             AIPulse bunu "Ölçülebilir kanal yok" diye basıyor ve halka
+             ÇİZİLMİYOR. Zarfın zamanı ODIN'den geliyor, yani "şu an
+             itibarıyla" iddiası gerçek. */
+          return envelope(parsed.generated_at, {} as PulseChannelStates);
         },
   });
 }

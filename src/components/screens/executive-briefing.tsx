@@ -27,6 +27,7 @@ import {
   useOdinFeed,
   useOdinHealthKpis,
   useOdinHero,
+  useOdinPulse,
   useOdinOpportunities,
 } from "@/lib/data/odin-state";
 import { MockBadge } from "@/mocks/mock-badge";
@@ -190,7 +191,10 @@ export function ExecutiveBriefing({
      zaten aynı yükü okuyor, burada yalnız TimelineItem şekline eşleniyor.
      `tone` ATANMIYOR — ODIN olayında ton yok, uydurulmaz. */
   const timeline = useOdinFeed();
-  const pulse = useMockData("briefing.pulse");
+  /* CANLI — `/api/state` (S10 · G3). ODIN hiçbir AI kanalı için durum
+     yayınlamıyor; boş kanal kümesi eksiklik değil ÖLÇÜM, ve AIPulse onu
+     "Ölçülebilir kanal yok" diye basıyor — halka çizilmiyor. */
+  const pulse = useOdinPulse();
 
   const loading = demo === "loading" || hero.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
@@ -205,7 +209,7 @@ export function ExecutiveBriefing({
     brief.reload();
     directors.refetch();
     timeline.refetch();
-    pulse.reload();
+    pulse.refetch();
   };
 
   /* Verdict S7'de POST /api/command'a bağlanacak (ER-0025). Şimdilik
@@ -443,7 +447,7 @@ export function ExecutiveBriefing({
           error={error}
           onRetry={reloadAll}
         >
-          <AIPulse env={isEmpty ? null : pulse.data} />
+          <AIPulse env={isEmpty ? null : pulse.envelope} />
         </Section>
       </div>
     </div>
