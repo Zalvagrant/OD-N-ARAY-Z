@@ -70,19 +70,32 @@ export function a11yCalismaZamaniSorunlari({
     );
   }
 
-  /* İZİN LİSTESİ: fazladan her anahtar taramayı daraltabilir
-     (`disable` · `manual` · `context.exclude` · `options.runOnly` ·
-     `config.checks`). Ne yaptığını bilmeye gerek yok — yarın icat
-     edilecek bir daraltma anahtarı da düşer.
-     ⚠️ `Object.keys` YETMEZ: bir denetim turu `Object.create({disable:
-     true})` ile prototipe saklamıştı. `in` zinciri de tarar. */
-  const fazla = [
-    ...Object.keys(a11y),
-    ...["disable", "manual", "context", "options", "config"].filter((k) => k in a11y),
-  ].filter((k, i, a) => !IZIN_VERILEN.includes(k) && a.indexOf(k) === i);
-  if (fazla.length > 0) {
+  /* İZİN LİSTESİ — BİÇİMİN TAMAMI, anahtar listesi DEĞİL (kurul önerisi,
+     `ask_yazilimcilar`).
+     İlk yazımda "şu beş tehlikeli anahtar prototipte var mı" diye
+     bakıyordum; bu YİNE bir yasak listeydi ve bilinmeyen bir anahtarı
+     kaçırırdı. Doğrusu nesnenin TAM BİÇİMİNİ istemek:
+       · prototipi `Object.prototype` ya da `null` (miras yok)
+       · TEK own anahtar, adı `test`
+       · değer bir veri özelliği, getter DEĞİL
+     Bu üç satır şunların hepsini birden kapatır ve hiçbirini adıyla
+     tanımaz: `Object.create({ yarinIcatEdilecek: 1 })` ·
+     `{ get test() { return "error" } }` · `{ [Symbol("gizli")]: 1 }`. */
+  const proto = Object.getPrototypeOf(a11y);
+  const anahtarlar = Reflect.ownKeys(a11y);
+  const tanim = Object.getOwnPropertyDescriptor(a11y, "test");
+  if (
+    (proto !== Object.prototype && proto !== null) ||
+    anahtarlar.length !== 1 ||
+    anahtarlar[0] !== IZIN_VERILEN[0] ||
+    tanim?.get !== undefined ||
+    tanim?.set !== undefined
+  ) {
     sorunlar.push(
-      `a11y bloğunda fazladan anahtar: ${fazla.join(", ")} — tek meşru içerik \`test: "error"\``,
+      `a11y bloğu TAM BİÇİMDE değil — tek meşru hâli \`{ test: "error" }\` ` +
+        `(own anahtar: ${anahtarlar.map(String).join(", ") || "yok"}` +
+        `${proto !== Object.prototype && proto !== null ? " · MİRAS ALIYOR" : ""}` +
+        `${tanim?.get || tanim?.set ? " · GETTER/SETTER" : ""})`,
     );
   }
 
@@ -106,4 +119,34 @@ export function a11yCalismaZamaniSorunlari({
   }
 
   return sorunlar;
+}
+
+/**
+ * Kapıdan GEÇTİKTEN SONRA parametreyi kilitler — UI-ADR-173.
+ *
+ * ⚠️ NEDEN GEREKLİ: kapı "atlanamaz" çünkü proje seviyesi `beforeEach`
+ * ÖNCE koşuyor. Ama madalyonun diğer yüzü şu — **story seviyesi
+ * `beforeEach` SONRA koşuyor ve AYNI `context` nesnesini alıyor**
+ * (`runtime.js` → `applyBeforeEach`, tek döngü: project → component →
+ * story). Yani bir story kapıyı geçirip ardından şunu yazabilirdi:
+ *
+ *     beforeEach({ parameters }) {
+ *       parameters.a11y = { test: "error", context: "#kucuk-parca" };
+ *     }
+ *
+ * Kapı yeşil, axe daraltılmış. Kurul (`ask_yazilimcilar`) bunu buldu ve
+ * doğrulandı: `beforeEach` sırası kaynaktan okundu.
+ *
+ * Doğrulamak yetmiyor; **kanonik değeri sabitlemek** gerekiyor.
+ * `writable: false, configurable: false` ile hem yeniden atama hem
+ * yeniden tanımlama sessizce değil, HATA ile düşer (modüller strict).
+ */
+export function a11yParametreleriniKilitle(parameters: unknown): void {
+  if (!parameters || typeof parameters !== "object") return;
+  Object.defineProperty(parameters, "a11y", {
+    value: Object.freeze({ test: "error" }),
+    writable: false,
+    configurable: false,
+    enumerable: true,
+  });
 }

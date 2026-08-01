@@ -6089,3 +6089,107 @@ değil. Kurulun kriterine göre bu, durma noktasıdır.
 **storybook 55 dosya / 210 test** (alt sınır 208),
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 210/210.
 `--self-check`: 11 + 48 senaryo. `a11y-gate.test.ts`: 17 senaryo.
+
+---
+
+## UI-ADR-173 — Doğrulamak yetmez: kapıdan SONRA da ezilebiliyordu
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-172
+
+`ask_yazilimcilar` **3/4 üye** cevap verdi (Qwen zaman aşımı). İki gerçek
+kusur buldular; ikisi de doğrulandı ve kapatıldı. **Ama iki öneri de
+kaynaktan ÇÜRÜDÜ — kaç cevap üzerinden karar verildiği ve hangilerinin
+elendiği yazılıyor.**
+
+### KUSUR 1 — kapı "atlanamaz"dı ama madalyonun diğer yüzü açıktı
+
+UI-ADR-172 şunu söylüyordu: proje seviyesi `beforeEach` ÖNCE koşar, yani
+bir story kapıyı atlayamaz. Doğru. Ama **aynı döngü** şunu da yapıyor
+(`runtime.js` → `applyBeforeEach`, tek dizi: project → component →
+story): story seviyesi `beforeEach` **SONRA** koşar ve **AYNI `context`
+nesnesini** alır. Yani:
+
+```ts
+beforeEach({ parameters }) {
+  parameters.a11y = { test: "error", context: "#kucuk-parca" };
+}
+```
+
+Kapı yeşil geçer, axe daraltılmış koşar. **Doğrulamak yetmiyor;
+kanonik değeri SABİTLEMEK gerekiyor.**
+
+`a11yParametreleriniKilitle()` — `defineProperty` ile
+`writable: false, configurable: false` + `Object.freeze`. Modüller strict
+olduğu için sessizce yutulmaz, **TypeError atar**.
+
+**Kanıt:** `goals` story'sine tam bu saldırı enjekte edildi. Ölçüldü:
+
+> `TypeError: Cannot assign to read only property 'a11y' of object`
+> — saldıran story DÜŞTÜ, diğer 4'ü geçti.
+
+### KUSUR 2 — prototip kontrolüm YİNE bir yasak listeydi
+
+172'de prototip zincirini `["disable","manual","context","options",
+"config"].filter(k => k in a11y)` ile tarıyordum. Bu **beş bilinen adı**
+arıyor — yani bu oturumun beş turdur tekrarlanan hatası, bir kez daha:
+**bilinmeyen bir anahtar kaçardı.**
+
+Doğrusu anahtar adı tanımak değil, **BİÇİMİN TAMAMINI** istemek:
+
+- prototip `Object.prototype` ya da `null` (miras yok)
+- **tek** own anahtar (`Reflect.ownKeys` — `Object.keys` Symbol görmez)
+- değer bir veri özelliği, **getter değil**
+
+Üç satır, ve hiçbirini adıyla tanımıyor. Kapattıkları:
+`Object.create({ yarinIcatEdilecekAyar: 1 })` ·
+`{ get test() { return "error" } }` · `{ [Symbol("gizli")]: 1 }`.
+Dördü de birim testinde.
+
+### ÇÜRÜTÜLEN İKİ ÖNERİ
+
+Kurul yanılabilir; ikisi kaynaktan sınandı:
+
+1. *"`parameters` birleşimi `beforeEach` çağrılmadan önce tamamlanmaz,
+   manuel birleştir"* — **YANLIŞ.** UI-ADR-172'nin enjeksiyon testi
+   bunun tersini kanıtlamıştı: `meta` seviyesinde hesaplanmış anahtarla
+   konan `todo` `beforeEach`te GÖRÜNDÜ ve 4/4 test düştü.
+2. *"`Object.keys(a11y).filter(k => k !== "test" && !a11y.hasOwnProperty(k))`
+   prototip zincirini yakalar"* — **YANLIŞ ve ölçüldü.** `Object.keys`
+   zaten yalnız own anahtarları döndürür, yani bu filtre **her zaman boş
+   dizi** verir. Çalıştırıldı, doğrulandı.
+
+Ayrıca *"atomik bileşenlerde 80 kural eşiği yanlış kırmızı üretir"*
+iddiası bu depo için ölçümle çürük: **207 story'nin tamamında 87–88**,
+ikon/rozet story'leri dahil. Kural sayısı DOM boyutundan bağımsız çünkü
+axe her kuralı `inapplicable` olarak da raporluyor.
+
+### Alınmayan öneri, gerekçesiyle
+
+- **"Metin kilidini AST'ye çevir."** Haklı bir yön (karakter tarayıcı
+  artık güvenlik-kritik kod) ama Katman 2 ve 3 aynı sınıfı zaten
+  çalışma zamanında kapatıyor; metin kilidi artık **hızlı teşhis**
+  katmanı. AST bir sonraki tetikleyici değişiklikte.
+- **"Üç katmanı ikiye indir."** Öneriyle gelen basitleştirme
+  (`content.includes('a11y: { test: "error" }')`) tam olarak DÖRT kez
+  kırılmış naif metin kontrolüydü. Alınmadı.
+
+### Kurulun kabul ettiği son sınır
+
+> Repo yazabilen kötü niyetli biri `verify-tests.mjs`i, CI komutunu ya da
+> JSON raporunu da değiştirebilir. Bu yapı **"yanlışlıkla veya kolay
+> bypass ile a11y ölçümünü kapatmayı"** engeller; **kriptografik güven
+> sınırı değildir.**
+
+Bu, UI-ADR-172'nin durma kriterinin 3. maddesiyle aynı yere çıkıyor ve
+kayda geçiyor. Gerçek sınır **branch protection**tır, kod değil.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 267 test** (alt sınır 255),
+**storybook 55 dosya / 210 test** (alt sınır 208),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 210/210.
+`a11y-gate.test.ts`: **25 senaryo.** Saldırı testi tarayıcıda ayrıca
+koşturuldu (enjekte → kırmızı → geri alındı → yeşil).

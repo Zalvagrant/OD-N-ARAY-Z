@@ -2,7 +2,10 @@ import type { Preview } from "@storybook/nextjs-vite";
 import { useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MotionGlobalConfig } from "framer-motion";
-import { a11yCalismaZamaniSorunlari } from "../src/lib/a11y-gate";
+import {
+  a11yCalismaZamaniSorunlari,
+  a11yParametreleriniKilitle,
+} from "../src/lib/a11y-gate";
 import { makeQueryClient } from "../src/lib/data/query";
 import "../src/app/globals.css";
 
@@ -51,6 +54,10 @@ const preview: Preview = {
         `A11Y KAPISI SÖKÜLMÜŞ (UI-ADR-172): ${sorunlar.join(" · ")}`,
       );
     }
+    /* Doğrulamak YETMEZ — UI-ADR-173. Story seviyesi `beforeEach` BUNDAN
+       SONRA koşuyor ve aynı `context`i alıyor; kapıyı geçip ardından
+       `parameters.a11y`yi daraltabilirdi. Kanonik değer sabitleniyor. */
+    a11yParametreleriniKilitle(parameters);
   },
 
   parameters: {

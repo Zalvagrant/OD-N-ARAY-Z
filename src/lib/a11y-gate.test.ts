@@ -8,7 +8,10 @@
  * koşuyor: `preview.tsx`in `beforeEach`i bu fonksiyona güveniyor.
  */
 import { describe, expect, it } from "vitest";
-import { a11yCalismaZamaniSorunlari } from "./a11y-gate";
+import {
+  a11yCalismaZamaniSorunlari,
+  a11yParametreleriniKilitle,
+} from "./a11y-gate";
 
 const SAGLAM = {
   parameters: { a11y: { test: "error" } },
@@ -104,5 +107,79 @@ describe("a11yCalismaZamaniSorunlari", () => {
         globals: {},
       }),
     ).toEqual([]);
+  });
+
+  /* TAM BİÇİM — UI-ADR-173, kurul önerisi. İlk yazımda "şu beş tehlikeli
+     anahtar prototipte var mı" diye bakıyordum; o YİNE bir yasak liste
+     olduğu için BİLİNMEYEN bir anahtarı kaçırırdı. Artık biçimin kendisi
+     isteniyor, anahtar adı hiç tanınmıyor. */
+  it("prototipte BİLİNMEYEN bir anahtar → KIRMIZI (yasak listede yok)", () => {
+    const gizli = Object.assign(Object.create({ yarinIcatEdilecekAyar: 1 }), {
+      test: "error",
+    });
+    expect(
+      a11yCalismaZamaniSorunlari({ ...SAGLAM, parameters: { a11y: gizli } })
+        .length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("getter ile gizlenen değer → KIRMIZI", () => {
+    const sinsi = {
+      get test() {
+        return "error";
+      },
+    };
+    expect(
+      a11yCalismaZamaniSorunlari({ ...SAGLAM, parameters: { a11y: sinsi } })
+        .length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("Symbol anahtar → KIRMIZI (`Object.keys` görmezdi)", () => {
+    const s: Record<string | symbol, unknown> = { test: "error" };
+    s[Symbol("gizli")] = true;
+    expect(
+      a11yCalismaZamaniSorunlari({ ...SAGLAM, parameters: { a11y: s } }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("`Object.create(null)` tabanlı temiz nesne GEÇER (yanlış kırmızı yok)", () => {
+    const temiz = Object.assign(Object.create(null), { test: "error" });
+    expect(
+      a11yCalismaZamaniSorunlari({ ...SAGLAM, parameters: { a11y: temiz } }),
+    ).toEqual([]);
+  });
+});
+
+/* KİLİT — kapıyı GEÇTİKTEN SONRA daraltma. Story seviyesi `beforeEach`
+   proje seviyesinden SONRA koşuyor ve aynı `context`i alıyor; doğrulamak
+   tek başına yetmiyordu. Tarayıcıda da sınandı: saldıran story
+   `TypeError: Cannot assign to read only property 'a11y'` ile düştü. */
+describe("a11yParametreleriniKilitle", () => {
+  it("yeniden atama TypeError ATAR", () => {
+    const p: Record<string, unknown> = { a11y: { test: "error" } };
+    a11yParametreleriniKilitle(p);
+    expect(() => {
+      p.a11y = { test: "error", context: "#kucuk" };
+    }).toThrow(TypeError);
+  });
+
+  it("yeniden TANIMLAMA da atar", () => {
+    const p: Record<string, unknown> = {};
+    a11yParametreleriniKilitle(p);
+    expect(() =>
+      Object.defineProperty(p, "a11y", { value: { test: "todo" } }),
+    ).toThrow(TypeError);
+  });
+
+  it("kilitlenen değer kapıdan geçer", () => {
+    const p: Record<string, unknown> = {};
+    a11yParametreleriniKilitle(p);
+    expect(a11yCalismaZamaniSorunlari({ parameters: p, globals: {} })).toEqual([]);
+  });
+
+  it("nesne olmayan girdide sessizce çıkar", () => {
+    expect(() => a11yParametreleriniKilitle(null)).not.toThrow();
+    expect(() => a11yParametreleriniKilitle("x")).not.toThrow();
   });
 });
