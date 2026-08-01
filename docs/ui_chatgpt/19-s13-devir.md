@@ -351,21 +351,39 @@ seçiyor, yani adının vaat ettiği durumu hiç göstermiyordu.
 
 Aşağısı tarihsel kayıt:
 
-1. **`features/*/screen.tsx` muafiyeti.** Durum matrisi kapısı
-   `demo?: DemoState` beyanına kilitli. `amazon/sku`, `goals`,
-   `intelligence-feed` bu prop'u ALMIYOR → matristen muaflar.
-   `amazon/sku/screen.stories.tsx`'te üç durum story'si var ve
-   **hiçbirinde `play` yok**; `goals` ile `intelligence-feed`'in hiç
-   hikâyesi yok. Muafiyeti daraltmak o ekranlara demo durumu EKLEMEYİ
-   gerektirir — kapanış düzeltmesi değil, yeni iş.
-2. **`inventory` kapısı dosya seviyesinde `play` arıyor.** Çok bileşenli
-   bir story dosyasındaki alakasız bir `play` yeni bir yetimi kapatabilir.
-   Bugün fiilen ihlal YOK (ölçüldü). `state-matrix`in blok ayrımı deseni
-   buraya da uygulanabilir.
-3. **`unit` projesi için alt sınır yok.** `state-matrix.test.ts`i
-   yeniden adlandırmak kapıyı sessizce buharlaştırır; `verify-storybook-
-   tests.mjs`in `evaluate()` mantığı `--project unit` raporuna da
-   uygulanabilir.
+⚠️ **BU UC MADDE 1 AGU 2026'DA YENIDEN OLCULDU: ikisi KAPANMIS,
+birincisi de buyuk olcude yanlis cikti.** Bayat bir "acik is" listesi,
+bir sonraki oturumu kapanmis isin pesinde kostururu — bu repoda tam
+olarak bu hata CLAUDE.md sprint panosunda iki kez yasandi.
+
+1. ⚠️ **BUYUK OLCUDE BAYAT.** Belge *"`amazon/sku`da uc durum story'si
+   var ve hicbirinde `play` yok; `goals` ile `intelligence-feed`in hic
+   hikayesi yok"* diyordu. Olcum (1 Agu):
+
+   | ekran | demo | story | play |
+   |---|---|---|---|
+   | `amazon/sku` | yok | 4 | **4** |
+   | `goals` | yok | 1 | **1** |
+   | `intelligence-feed` | yok | 1 | **1** |
+   | `amazon/director` | VAR | 6 | 6 |
+   | `briefing` | VAR | 4 | 4 |
+   | `mission-control` | VAR | 4 | 4 |
+
+   **Alti ekranin altisinin da hikayesi var ve her story'nin `play`i
+   var.** Geriye kalan gercek bosluk cok daha dar: uc ekran
+   `demo?: DemoState` BEYAN ETMEDIGI icin UC DURUM (yukleniyor · olculdu
+   ama bos · OLCULMEDI) zorunlulugundan muaf. Daraltmak o ekranlara demo
+   durumu EKLEMEYI gerektirir — hala yeni is, ama iddia edilenden cok
+   kucuk.
+
+2. ✅ **KAPANDI (UI-ADR-153).** `inventory.test.ts` artik blok bazli
+   (`inventory.test.ts:143` — *"Bloga ayir ve YALNIZ bu bileseni render
+   eden bloklara bak"*). Alakasiz bir `play` artik yetim kapatamaz.
+
+3. ✅ **KAPANDI (UI-ADR-153).** `package.json:10` →
+   `test:unit": "node scripts/verify-tests.mjs unit 230"`. `unit`
+   projesinin alt siniri VAR ve `evaluate()` mantigi ikisine de
+   uygulaniyor; `ZORUNLU.unit` kapi dosyalarini adlariyla ariyor.
 4. ⬜ **Meclis denetimi hâlâ ALINMADI** — `ask_yazilimcilar` yeni oturumda.
    Bu oturumda UC KEZ denendi ve MCP araclari yoktu; [[council-session-bound]]
    uyarinca bu ancak YENI bir oturumda cozulur, yeniden baslatmakla degil.
