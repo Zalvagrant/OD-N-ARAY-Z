@@ -24,6 +24,8 @@ import {
   decisionQueueItemSchema,
   executiveKpiSchema,
   goalSchema,
+  graphStatsSchema,
+  knowledgeObjectSchema,
   opportunitySchema,
   runtimeDirectorSchema,
   systemHealthSchema,
@@ -612,6 +614,91 @@ export function useOdinDecisionQueue(): OdinQueryResult<DecisionQueueItem[]> {
               occurrences: d.occurrences,
             }))
           );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Knowledge — ODIN `/api/state.knowledge` + `graph_stats`
+   -------------------------------------------------------------------------- */
+
+/**
+ * Promote edilmiş bilgi çekirdeği ve grafın sayıları.
+ *
+ * GRAF LİSTESİ ÇEKİLMİYOR: ölçüldü, `graph_entities` her kaydı bir KO'dan
+ * türetiyordu (`ENT-<KO-id>`) — yani bu listenin aynası. Grafın taşıdığı
+ * ASIL bilgi ilişkilerdir ve bugün **sıfır** ilişki kayıtlı; sayıyı
+ * göstermek, 36 bağlantısız düğümü graf diye çizmekten dürüsttür.
+ */
+const knowledgeStateSchema = z.object({
+  generated_at: z.string(),
+  knowledge: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.string(),
+        domain: z.string().nullable(),
+        title: z.string(),
+        topics: z.array(z.string()),
+        lifecycle_state: z.string(),
+        trust: z.number().nullable(),
+        promoted_at: z.string().nullable(),
+        approved_by: z.string().nullable(),
+        source: z.string().nullable(),
+      })
+    )
+    .nullable(),
+  graph_stats: graphStatsSchema.nullable(),
+  staging_stats: z.object({
+    count: z.number(),
+    avg_trust: z.number().nullable(),
+  }),
+});
+
+export type KnowledgeObject = z.infer<typeof knowledgeObjectSchema>;
+
+export type KnowledgeView = {
+  objects: KnowledgeObject[];
+  graph: z.infer<typeof graphStatsSchema> | null;
+  stagingCount: number;
+  stagingAvgTrust: number | null;
+};
+
+export function useOdinKnowledge(): OdinQueryResult<KnowledgeView> {
+  return useOdinQuery({
+    key: ["odin", "knowledge"],
+    module: "default",
+    schema: z.object({
+      objects: z.array(knowledgeObjectSchema),
+      graph: graphStatsSchema.nullable(),
+      stagingCount: z.number(),
+      stagingAvgTrust: z.number().nullable(),
+    }),
+    load: IS_MOCK
+      ? async () => loadMock("knowledge.core")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const p = knowledgeStateSchema.parse(raw);
+          if (p.knowledge === null) {
+            throw contractError("/api/state", "ODIN bilgi çekirdeğini okuyamadı");
+          }
+          return internalEnvelope(p.generated_at, {
+            objects: p.knowledge.map((k) => ({
+              id: k.id,
+              type: k.type,
+              domain: k.domain,
+              title: k.title,
+              topics: k.topics,
+              lifecycleState: k.lifecycle_state,
+              trust: k.trust,
+              promotedAt: k.promoted_at,
+              approvedBy: k.approved_by,
+              source: k.source,
+            })),
+            graph: p.graph_stats,
+            stagingCount: p.staging_stats.count,
+            stagingAvgTrust: p.staging_stats.avg_trust,
+          });
         },
   });
 }

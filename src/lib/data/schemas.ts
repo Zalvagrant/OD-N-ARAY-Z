@@ -474,3 +474,34 @@ export const decisionQueueItemSchema = z.object({
   /** Aynı önerinin kaç kez yazıldığı. 1 ile 696 aynı şey değildir. */
   occurrences: z.number().int().min(1),
 });
+
+/* --------------------------------------------------------------------------
+   KnowledgeObject — ODIN `/api/state.knowledge`
+   -------------------------------------------------------------------------- */
+
+/**
+ * PROMOTE EDİLMİŞ bilgi kaydı. Staging DEĞİL: karantinadaki kayıtlar
+ * `staged_pending` altındadır ve alıntılanamaz (ADR-0004).
+ *
+ * İçerik GÖVDESİ yok — bu bir envanterdir, doküman görüntüleyici değil.
+ */
+export const knowledgeObjectSchema = z.object({
+  id: z.string().min(1),
+  type: z.string().min(1),
+  domain: z.string().nullable(),
+  title: z.string().min(1),
+  topics: z.array(z.string()),
+  lifecycleState: z.string().min(1),
+  /** ODIN'in ölçtüğü güven; ölçülmemişse `null` — 0 DEĞİL. */
+  trust: z.number().nullable(),
+  promotedAt: isoDate.nullable(),
+  approvedBy: z.string().nullable(),
+  source: z.string().nullable(),
+});
+
+/** Graf SAYILARI — varlık listesi değil (o `knowledge`in aynası olurdu). */
+export const graphStatsSchema = z.object({
+  entities: z.number().int().min(0),
+  relationships: z.number().int().min(0),
+  evidence: z.number().int().min(0),
+});

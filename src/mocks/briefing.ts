@@ -811,3 +811,39 @@ export function decisionQueueMock() {
     },
   ]);
 }
+
+/** ODIN `knowledge` + `graph_stats`ın mock ikizi — alanlar birebir. */
+export function knowledgeCoreMock() {
+  return mockEnvelope({
+    objects: [
+      {
+        id: "KO-ads-ads_campaigns-2026-07-24",
+        type: "observation",
+        domain: "amazon-business",
+        title: "Ads ads_campaigns snapshot 2026-07-24T13:52 (21 kayit)",
+        topics: ["ads-api", "ads_campaigns"],
+        lifecycleState: "active",
+        trust: 85,
+        promotedAt: "2026-07-31T20:34:27.048259+00:00",
+        approvedBy: "human-owner",
+        source: "KO-ads-ads_campaigns-2026-07-24",
+      },
+      {
+        id: "KO-company-dna-0001",
+        type: "fact",
+        domain: "finans",
+        title: "Company DNA — misyon/vizyon/degerler (sahip beyani)",
+        topics: ["company-dna"],
+        lifecycleState: "active",
+        trust: 80,
+        promotedAt: "2026-07-28T10:00:00.000000+00:00",
+        approvedBy: "human-owner",
+        source: "ACR-0007",
+      },
+    ],
+    /* Sıfır ilişki GERÇEK ölçümdür, eksik mock değil. */
+    graph: { entities: 36, relationships: 0, evidence: 36 },
+    stagingCount: 340,
+    stagingAvgTrust: 56.1,
+  });
+}
