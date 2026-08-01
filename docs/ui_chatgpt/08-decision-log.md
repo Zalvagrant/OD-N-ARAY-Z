@@ -7088,3 +7088,110 @@ belgelendi, kod değiştirilmedi.
 **unit 18 dosya / 319 test** (alt sınır 316) ·
 **storybook 58 dosya / 225 test** (alt sınır 222) ·
 atlanan 0 · düşen 0 · **a11y ihlali 0, koşum kanıtı 225/225**.
+
+---
+
+## UI-ADR-187 — Kapanış denetimi: üç kusur, biri kendi mantığımla
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-161 · 182 · 184 · 186
+
+Yazılımcılar meclisinin kapanış denetimi **üç gerçek kusur** buldu. Üçü de
+kaynaktan doğrulandı ve kapatıldı. Bu turda meclis uydurmadı — geçen turun
+aksine (UI-ADR-185).
+
+### 1 · Bağlama testi — terra beni kendi argümanımla yakaladı
+
+`alert-stack` ve `timeline` için *"`Pressable` zaten testli"* demiştim.
+Ama **aynı turda** `Section`'ın `onRetry`'ı **iletmesini** test etmeyi
+kabul etmiştim — gerekçe birebir aynıydı ve buraya uygulamamıştım.
+
+Primitive'in testi şunların hiçbirini kanıtlamaz:
+
+1. `onSelect` verilmediğinde satırın **sarılmadığı**,
+2. geri çağrıya **doğru nesnenin** geçtiği — indeks ya da yanlış öğe
+   geçseydi sağ bağlam paneli BAŞKA bir olayın detayını açardı ve ekranda
+   her şey tutarlı göründüğü için kimse sorgulamazdı,
+3. erişilebilir adın **kimlik değil başlık** olduğu (UI-ADR-161).
+
+Üçüncüsü özellikle önemli: **axe adın VAR olduğunu görür, ANLAMLI olduğunu
+göremez.** `"evt-4821, buton"` diye okunan bir satır her a11y kapısından
+geçer ve ekran okuyucu kullanıcısına hiçbir şey söylemez.
+
+`Timeline`'ın `Default` hikâyesine karşı kutup kondu: `onSelect` YOKSA
+hiçbir satır tıklanabilir olmamalı. `AlertStack`'e **yeni** hikâye
+eklendi — mevcut hikâyeye `onSelect` vermek onun GÖRÜNÜMÜNÜ değiştirirdi
+ve bu görevin yasağı kapsamındaydı.
+
+### 2 · `universe` atlaması savunulamazdı
+
+UI-ADR-184'te *"26 satır, düz set delegasyonu, politikası yok"* diye
+atlamıştım. Meclis 2/2 itiraz etti ve haklıydılar: `universe.ts` kendi
+başlığında **neden var olduğunu** yazıyor — *"ÖNBELLEK ANAHTARININ
+parçasıdır."* Politika setter'ında değil, `use-odin-query.ts:72`de:
+
+    queryKey: [DATA_MODE, universeId, ...key]
+
+`universeId` o diziden düşerse iki evren **aynı önbellek girdisini
+paylaşır** ve A evreninin sayıları B evreninin ekranında görünür. Sayılar
+makul durur, kaynağı yanlıştır — 2 numaralı kuralın en sinsi hâli; hiçbir
+tip ve hiçbir a11y kapısı göremez.
+
+⚠️ **Neden kaynak taraması:** `useOdinQuery` bir hook ve `unit` projesi
+node ortamında koşuyor (jsdom kurulu değil). Anahtar üreticisini test için
+dışa çıkarmak **üretim kodunu teste göre değiştirmek** olurdu ve bu repo o
+yolu UI-ADR-182'de açıkça reddetti. Kaynaktan türeyen kapı burada yerleşik
+bir desendir (`mocks/registry.test.ts`). Zayıf yanı yorumda yazılı.
+
+### 3 · ⚠️ "0 döngü" iddiam YANLIŞTI — eksik grafikte ölçülmüştü
+
+Meclis kör nokta olduğunu söyledi ve ölçtüm: **haklıydılar, ama kör nokta
+ölü-kod taramasında değil KATMAN taramasındaydı.** Döngü DFS'im yalnız
+`@/` yollarını çözüyordu; **göreli import'ların tamamı** ve
+`mocks/registry.ts`teki **23 dinamik `await import()`** grafiğin
+dışındaydı.
+
+Tam grafik: **205 modül, 667 kenar** — ve **bir döngü**:
+
+    mocks/registry.ts → mocks/goals.ts → lib/data/odin-state.ts → mocks/registry.ts
+
+**Karakterizasyonu önemli — bu bir ÇALIŞMA ZAMANI döngüsü DEĞİL:**
+
+| kenar | tür | çalışma zamanında |
+|---|---|---|
+| `registry → goals` | `await import()` | ertelenmiş |
+| `goals → odin-state` | `import type` | **silinir** |
+| `odin-state → registry` | değer import'u | var |
+
+Bugün zararsız. **Ama** `goals.ts` bir gün `import type` yerine değer
+import'u yazarsa **gerçek döngü olur.** Bulgu belgelendi, kod
+değiştirilmedi: döngüyü kırmak mimari bir karardır, denetim işi değil.
+
+Doğru ifade terra'dan alındı: *"gerçekten ölü 0"* değil, **"taranan
+grafikte ölü 0"**.
+
+### Ölçülen ve BULUNMAYAN kör noktalar
+
+barrel/`index.ts` dosyası **yok** · `import.meta.glob` **yok** ·
+`require()` **yok** · repo dışı paket tüketicisi **yok**.
+
+`mock-badge` üretim ağacında (4 ekran) ve `lib/data/mode` okuyor — bu bir
+**ihlal değil, sahte-veri kuralının uygulaması**: veri mock'sa rozeti
+gösteren bileşenin modu bilmesi gerekir.
+
+### Kapatılmayan iki bulgu — gerekçeli
+
+- **E2E akış testi yok** (meclis 2/2 boşluk diyor). Yeni test altyapısı
+  demek, denetim kapsamı dışı; ayrıca terra'nın kendi uyarısı: gerçek test
+  ortamı olmadan önerilmez (sahte veri yasağı).
+- **"Durum geçişi / veri yaşam döngüsü" boyutu** (cache invalidation,
+  async yarışlar, route değişiminde temizlik) — 13. boyut önerisi,
+  **sahibin kapsam kararı.**
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0 · `lint` 0 hata 0 uyarı ·
+**unit 18 dosya / 321 test** (alt sınır 318) ·
+**storybook 58 dosya / 226 test** (alt sınır 223) ·
+atlanan 0 · düşen 0 · **a11y ihlali 0, koşum kanıtı 226/226**.
