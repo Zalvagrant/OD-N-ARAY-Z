@@ -15,7 +15,7 @@
  * içindeki sayılara bakar.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 
 /* PROJE VE ALT SINIR DIŞARIDAN — UI-ADR-153.
@@ -60,6 +60,80 @@ const ZORUNLU = {
   unit: ["state-matrix.test", "inventory.test"],
   storybook: [],
 };
+
+/**
+ * A11Y KAPISI SÖKÜLEMEZ — UI-ADR-165, **UI-ADR-166'da yeniden yazıldı.**
+ *
+ * `addon-a11y` `test: "todo"` iken ihlalleri GÖSTERİR ama hiçbir testi
+ * düşürmez. Yani tek kelimelik bir düzenleme 206 testin hepsini yeşil
+ * bırakarak erişilebilirlik kapsamının TAMAMINI kapatır — ne alt sınır ne
+ * kimlik kontrolü görür, ikisi de SAYIYA bakar, sayı hiç değişmez.
+ *
+ * ⚠️ İLK KİLİDİM YETERSİZDİ ve bunu bağımsız denetim ölçtü. Yalnız
+ * `preview.tsx`te `test: "error"` metnini arıyordu; kapı **niyet
+ * göstermeyen ÜÇ ayrı yoldan** sökülebiliyordu:
+ *
+ *   1. `main.ts`ten `"@storybook/addon-a11y"` satırını sil → axe HİÇ
+ *      yüklenmez. `preview.tsx` el değmeden durur, kilit YEŞİL kalırdı.
+ *      (Kapıyı taşıyan dosya, ayarı taşıyan dosya DEĞİLDİ.)
+ *   2. Bir story'ye `parameters: { a11y: { test: "todo" } }` yaz.
+ *      Storybook story > meta > project sırasıyla birleştirir; story
+ *      SON yazandır ve global `error`ü ezer.
+ *   3. `a11y` bloğuna `disable: true` ya da `manual: true` ekle —
+ *      `test: "error"` satırı yerinde kalır, tarama yine susar.
+ *
+ * Ayrıca regex `disable`li bir blokta da, salt biçim değişikliğinde
+ * (tek satıra sıkışma, sondaki virgülün düşmesi) YANLIŞ KIRMIZI veriyordu
+ * ve mesajı yanlış yeri gösteriyordu.
+ *
+ * Bu yüzden kilit artık **saf bir fonksiyon**: `evaluate()` gibi, dosya
+ * sistemi olmadan `--self-check` ile sınanabilir. Kendi testi olmayan bir
+ * kapı, kapı değildir — ilk kilidin en büyük kusuru buydu: `--self-check`
+ * satır 122'de `process.exit(0)` yaptığı için kilide HİÇ ULAŞMIYORDU.
+ */
+export function a11ySorunlari({ main, preview, storyler = [] }) {
+  const sorunlar = [];
+  /* Yorumlar SAYILMAZ: bir yorum içindeki `test: "error"` kapıyı açık
+     gösteriyordu — metin varlığı bir kanıt değildir. */
+  const yorumsuz = (s) =>
+    s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+
+  if (!/["']@storybook\/addon-a11y["']/.test(yorumsuz(main))) {
+    sorunlar.push(
+      "main.ts `addons` içinde @storybook/addon-a11y YOK — axe hiç yüklenmez, " +
+      "tarama sıfırdır (test sayısı değişmediği için alt sınır bunu göremez)",
+    );
+  }
+
+  const blok = yorumsuz(preview).match(/a11y\s*:\s*\{([\s\S]*?)\n\s*\},/);
+  if (!blok) {
+    sorunlar.push("preview.tsx içinde `a11y: { … }` bloğu bulunamadı");
+  } else {
+    if (!/test\s*:\s*"error"/.test(blok[1])) {
+      sorunlar.push(
+        'preview.tsx a11y.test "error" değil — "todo" raporlar ama düşürmez, "off" hiç koşmaz',
+      );
+    }
+    const susturucu = blok[1].match(/disable|manual|enabled\s*:\s*false/);
+    if (susturucu) {
+      sorunlar.push(
+        `preview.tsx a11y bloğunda susturucu anahtar: \`${susturucu[0]}\` — ` +
+        '`test: "error"` yerinde dursa bile tarama susar',
+      );
+    }
+  }
+
+  for (const { ad, kaynak } of storyler) {
+    if (/\ba11y\s*:/.test(yorumsuz(kaynak))) {
+      sorunlar.push(
+        `${ad}: story seviyesi \`a11y\` parametresi global kapıyı EZER ` +
+        "(Storybook story > meta > project sırasıyla birleştirir)",
+      );
+    }
+  }
+
+  return sorunlar;
+}
 
 export function evaluate(report, { runFailed = false, floor = FLOOR, zorunlu = [] } = {}) {
   const passed = report.numPassedTests ?? 0;
@@ -118,27 +192,48 @@ if (process.argv.includes("--self-check")) {
   assert.equal(
     evaluate({ ...ok, testResults: [{ name: "x/kapi.test.ts" }] },
              { ...F, zorunlu: ["kapi.test"] }).problems.length, 0);
-  console.log(`self-check: 11 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
+  /* A11Y KİLİDİ — sekiz senaryo. İlk kilidin HİÇ testi yoktu ve üç
+     sökme yolunu birden kaçırıyordu; bağımsız denetim ölçtü. */
+  const MAIN = 'addons: ["@storybook/addon-a11y"],';
+  const PRE = (govde) => `  parameters: {\n    a11y: {\n${govde}\n    },\n  },`;
+  const SAGLAM = PRE('      test: "error",');
+  const a11y = (o) => a11ySorunlari({ main: MAIN, preview: SAGLAM, ...o });
+
+  assert.equal(a11y({}).length, 0);                                   // sağlıklı
+  // 1. Biçim değişikliği YANLIŞ KIRMIZI vermemeli (eski regex veriyordu):
+  assert.equal(a11y({ preview: PRE('      test: "error"') }).length, 0);   // virgülsüz
+  assert.equal(a11ySorunlari({ main: MAIN, preview: 'a11y: {\n test: "error"\n },' }).length, 0);
+  // 2. Gerçek sökme yolları KIRMIZI olmalı:
+  assert.ok(a11y({ preview: PRE('      test: "todo",') }).length > 0);
+  assert.ok(a11y({ preview: PRE('      test: "off",') }).length > 0);
+  assert.ok(a11y({ preview: PRE('      test: "error",\n      disable: true,') }).length > 0);
+  assert.ok(a11y({ main: 'addons: ["@storybook/addon-vitest"],' }).length > 0);
+  assert.ok(a11y({ storyler: [{ ad: "x.stories.tsx", kaynak: 'parameters: { a11y: { test: "todo" } }' }] }).length > 0);
+  // 3. Yorum içindeki metin KANIT DEĞİLDİR (eski regex buna kanıyordu):
+  assert.ok(a11y({ preview: PRE('      /* test: "error", */\n      test: "todo",') }).length > 0);
+
+  console.log(`self-check: 11 + 9 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 
-/* A11Y KAPISI SÖKÜLEMEZ — UI-ADR-165.
-   `addon-a11y` `test: "todo"` iken ihlalleri GÖSTERİR ama hiçbir testi
-   düşürmez. Yani tek kelimelik bir düzenleme (`error` → `todo`) 206 testin
-   hepsini yeşil bırakarak erişilebilirlik kapsamının TAMAMINI kapatır ve
-   ne alt sınır ne kimlik kontrolü bunu görür — ikisi de SAYIYA bakıyor,
-   sayı hiç değişmiyor. Bu, UI-ADR-154'ün kapattığı "commit A'da test ekle,
-   commit B'de kapıyı sil" oyununun aynısıdır, bir ayar satırıyla.
-   Bilinçli bir geri çevirme mümkündür — ama bu satırı da düzenlemeyi,
-   yani kapıyı sökmeye NİYET etmeyi gerektirir. */
 if (PROJECT === "storybook") {
-  const preview = new URL("./../.storybook/preview.tsx", import.meta.url);
-  const kaynak = readFileSync(preview, "utf8");
-  if (!/^\s*test:\s*"error",\s*$/m.test(kaynak)) {
-    throw new Error(
-      'storybook kapısı KAPALI: .storybook/preview.tsx içinde a11y `test: "error"` yok. ' +
-      '`todo`/`off` ihlalleri raporlar ama CI\'ı düşürmez — kapı sökülmüş olur (UI-ADR-165).',
-    );
+  const oku = (p) => readFileSync(new URL(`./../${p}`, import.meta.url), "utf8");
+  const storyler = [];
+  const gez = (dizin) => {
+    for (const g of readdirSync(new URL(`./../${dizin}`, import.meta.url), { withFileTypes: true })) {
+      const yol = `${dizin}/${g.name}`;
+      if (g.isDirectory()) gez(yol);
+      else if (g.name.endsWith(".stories.tsx")) storyler.push({ ad: yol, kaynak: oku(yol) });
+    }
+  };
+  gez("src");
+  const sorunlar = a11ySorunlari({
+    main: oku(".storybook/main.ts"),
+    preview: oku(".storybook/preview.tsx"),
+    storyler,
+  });
+  if (sorunlar.length > 0) {
+    throw new Error(`storybook kapısı KAPALI (a11y sökülmüş): ${sorunlar.join(" · ")}`);
   }
 }
 
@@ -152,7 +247,15 @@ try {
     "npx",
     ["vitest", "run", "--project", PROJECT,
      "--reporter=json", `--outputFile=${REPORT}`],
-    { stdio: "inherit", shell: process.platform === "win32" },
+    { stdio: "inherit", shell: process.platform === "win32",
+      /* `VITEST_STORYBOOK` — DÖRDÜNCÜ sökme yolu, UI-ADR-166.
+         `addon-a11y` ihlali yalnız `import.meta.env.VITEST_STORYBOOK === "false"`
+         iken FIRLATIR; plugin bu değeri `process.env`den türetir. Yani CI
+         runner'ında ya da bir geliştiricinin kabuğunda `VITEST_STORYBOOK=1`
+         durursa ihlaller rapora yazılır ama HİÇBİR TEST DÜŞMEZ — ve depoda
+         hiçbir iz kalmaz. Kapı, korumasını dışarıdaki bir ortam
+         değişkenine emanet edemez; kendi ortamını sabitler. */
+      env: { ...process.env, VITEST_STORYBOOK: "false" } },
   );
 } catch {
   // Çıkış kodunu YUTMUYORUZ ama tek kanıt saymıyoruz: rapor yine de

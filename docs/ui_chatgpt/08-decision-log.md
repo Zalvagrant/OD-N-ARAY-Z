@@ -5363,3 +5363,138 @@ satırı da düzenlemeyi, yani kapıyı sökmeye NİYET etmeyi gerektiriyor.
 `npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
 **unit 16 dosya / 241 test**, **storybook 54 dosya / 206 test**,
 atlanan 0, düşen 0, **a11y ihlali 0** (`test: "error"`).
+
+---
+
+## UI-ADR-166 — "Kapı sökülemez" ölçülmemiş bir iddiaydı
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-154 · 164 · 165
+
+UI-ADR-165 erişilebilirlik kapısını kapattı ve **hiç denetlenmedi.**
+UI-ADR-164'ün dersi tam olarak buydu — *bir hatayı düzeltmek, yeni bir
+hata yapmamak demek değildir* — ve yine doğrulandı: iki bağımsız
+adversaryal denetim **2 kritik + 6 orta + 9 düşük** buldu, hepsi 165'in
+kendi içinde.
+
+Kurul (`ask_yazilimcilar`) bu oturumda dört kez denendi; MCP araçları
+oturuma hiç kayıtlı değil ([[council-session-bound]]). Denetim bağımsız
+ajanlara yaptırıldı. **Kaç kaynaktan karar verildiği yazılmalıdır: iki.**
+
+### KRİTİK 1 — kapı ÜÇ yoldan sökülebiliyordu, kilit hiçbirini görmüyordu
+
+165 şunu yazdı: *"Bilinçli bir geri çevirme mümkündür — ama bu satırı da
+düzenlemeyi, yani kapıyı sökmeye NİYET etmeyi gerektirir."* **Yanlıştı.**
+Kilit yalnız `preview.tsx`te `test: "error"` metnini arıyordu:
+
+1. **`main.ts`ten `"@storybook/addon-a11y"` satırını sil** → axe hiç
+   yüklenmez, tarama sıfır. Test SAYISI değişmez (axe ayrı test
+   üretmiyor), `preview.tsx` el değmeden durur → **kilit yeşil.**
+   Kapıyı taşıyan dosya, ayarı taşıyan dosya değildi.
+2. **Bir story'ye `parameters: { a11y: { test: "todo" } }` yaz.**
+   Storybook `project → meta → story` sırasıyla birleştirir; story SON
+   yazandır. Kilit `.stories.tsx` dosyalarını hiç açmıyordu.
+3. **`a11y` bloğuna `disable: true` ya da `manual: true` ekle** —
+   `test: "error"` satırı yerinde kalır, tarama yine susar.
+
+Ve **dördüncüsü koda hiç dokunmadan:** `VITEST_STORYBOOK=1`. İhlal yalnız
+`import.meta.env.VITEST_STORYBOOK === "false"` iken fırlatılıyor; kabukta
+ya da CI runner'ında bu değişken doluysa ihlaller rapora yazılır ama
+hiçbir test düşmez ve **depoda hiçbir iz kalmaz.**
+
+Üçü de kaynaktan doğrulandı (`@storybook/addon-a11y`,
+`@storybook/builder-vite`, `storybook/dist/preview/runtime.js`).
+
+**KİLİDİN EN BÜYÜK KUSURU: kendi testi yoktu.** `--self-check` bloğu
+`process.exit(0)` ile çıkıyordu ve kilit ondan SONRA geliyordu — yani
+kilit hiç sınanmıyordu. Commit mesajı "kilit sınandı" diyordu; elle, bir
+kez, kayıt bırakmadan. Bu dosyanın kendi felsefesi *"kapı, denenmeden
+kapı sayılmaz"*.
+
+Kilit artık `evaluate()` gibi **saf bir fonksiyon** (`a11ySorunlari`),
+dört vektörü de kapsıyor, yorumları saymıyor (bir yorum içindeki
+`test: "error"` kapıyı açık gösteriyordu) ve **dokuz self-check
+senaryosu** var — üçü "biçim değişikliğinde YANLIŞ KIRMIZI verme"yi
+sınıyor, çünkü eski regex sondaki virgülü zorunlu tutuyordu ve tek satıra
+sıkıştırılmış doğru bir yapılandırmayı yanlış bir teşhisle düşürüyordu.
+
+### KRİTİK 2 — `danger` ile `chart-negative` aynı renk oldu
+
+165 `--odin-danger`ı `red-400`e taşıdı. `--odin-chart-negative` zaten
+`red-400`dü. Aynı dosyada, **41 satır yukarıda** şu yazıyor:
+*"chart.positive/negative, success/danger'dan daha YUMUŞAK. Her düşen
+çizgi kriz gibi görünmesin."* O cümle sessizce öldü.
+
+Kırılma asimetrikti — yeşil taraf duruyordu:
+
+| çift | ΔL* önce | ΔL* sonra |
+|---|---|---|
+| `danger` ↔ `chart-negative` | 9.2 | **0.0** |
+| `success` ↔ `chart-positive` | 9.0 | 9.0 |
+
+`sparkline` düşen bir çizgiyi `chart-negative` ile çizerken yanındaki
+rozet `text-danger` basıyor; eskiden iki farklı kırmızıydı, artık aynı
+piksel. `red-300` eklendi (`success`↔`chart-positive` deseninin
+simetriği), ΔL* 12.1.
+
+### Kendi gerekçelerimin dürüstlüğü — üç düzeltme
+
+- **Hiyerarşi iddiası fazla söylüyordu.** `gray-400`ü "ikincile
+  yaklaştırır" diye reddettim; seçtiğim ton bunu **zaten yaptı**:
+  secondary↔tertiary ΔL* 18.1 → **6.1**, yani beşte bir. Erişilebilirlik
+  kazanıldı, hiyerarşi zayıfladı. Yorum artık bunu yazıyor. Rampayı
+  yeniden türetmek `secondary`yi de değiştirmek demek ve **o token
+  WCAG'ı zaten geçiyor** — yani artık bir kusur değil, bir görünüm
+  tercihi ve SAHİBİN kararı.
+- **`aria-disabled` "eksik olanı söylemek" değil, muafiyet açmaktı.**
+  Mekanik olarak axe `isDisabled()` ataya çıkıp Toggle'ın TÜM alt
+  ağacını color-contrast'tan muaf tutuyor; devre dışılık ekran okuyucuya
+  butonun kendi `disabled`ıyla zaten ulaşıyordu. Muafiyet meşru
+  (WCAG 1.4.3), ama muafiyet olduğu yazılmalı.
+- **Zemin sayısı yanlıştı: "ALTI" değil BEŞ.** Tezi *"bir iddia
+  ölçüldüğü zemin kümesi kadar doğrudur"* olan bir kararda, token
+  dosyasının kendisinde zemin SAYISININ yanlış olması kozmetik değildir.
+
+### `<aside>` düzeltmem fazla almıştı
+
+Landmark'ı kaldırmak doğruydu (üç kart → aynı adlı üç `complementary`).
+Ama düz `<div>`e indirince blokta ne rol, ne ad, ne başlık kaldı;
+yorumum "aşağıdaki BAŞLIK" diyordu, aşağıdaki bir `<p>`. **Bir fazlalığı
+düzeltirken bir eksiklik yarattım.** `role="group"` doğru katman:
+adlandırmayı destekler, landmark değildir. (Düz `<div>`e `aria-label`
+koymak kapıyı DÜŞÜRÜRDÜ — `aria-prohibited-attr`.)
+
+### Diğerleri
+
+`Toggle` butonundan `aria-label` kaldırıldı: saran `<label>` zaten
+adlandırıyor, yanında görünür `<span>` de duruyor — üç kaynak aynı metni
+veriyordu · `danger-bg` tonu `red-500` tabanlı kalmıştı, `red-400`e
+taşındı (danger'ın tek kaynak tonu) · `stat.stories` sarmalayıcıyı artık
+`dt`den YUKARI buluyor (`dl > div` bugün doğru elemanı buluyor ama arada
+bir sarmalayıcı belirirse sessizce yanlışını ölçerdi) · `tabs.stories`
+kendi dosyasının `scope` kuralını çiğniyordu.
+
+### Düzeltilmeyen iki bulgu — gerekçesiyle
+
+- **Aydınlık tema `-bg` token'ları eksik** ve karanlık `rgba`ları miras
+  alıyor; beyaz üstünde `Badge variant="danger"` 4.23 ile AA'yı geçmiyor.
+  **Bilerek düzeltilmedi:** tema `enabled: false` ve blok kendi başlığında
+  "taslak" diyor. Kapalı bir temaya ölçülmemiş değer uydurmak düzeltmek
+  değil tahmindir. `tokens.css`e ölçümlü uyarı kondu; temayı açan kişi
+  önce onu okuyacak.
+- **Tonlu zeminler (`danger-bg` vb.) üstünde üçüncül metnin payı 0.02–0.28.**
+  Bugün fiilen render edilen hiçbir kombinasyon 4.5'in altında değil
+  (doğrulandı) — ama `ErrorState`i bir popover'a taşımak sessizce
+  kırmızıya döndürür. Kapı bunu ancak o kombinasyon GERÇEKTEN
+  render edildiğinde görür; erken tahminle token değiştirmek yerine
+  ölçüm kayda geçirildi.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 206 test**,
+atlanan 0, düşen 0, **a11y ihlali 0**.
+`verify-tests.mjs --self-check`: **11 + 9 senaryo** yeşil.
+Kapı ayrıca enjekte ihlalle sınandı: token eski hâline döndürülünce tek
+story dosyasında **5/5 test kırmızı**.

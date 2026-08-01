@@ -142,14 +142,24 @@ export function Toggle({
   readOnly?: boolean;
 }) {
   return (
-    /* `aria-disabled` — UI-ADR-165. `Checkbox`/`Radio` bunu istemiyor
-       çünkü onların denetimi gerçek bir `<input disabled>`; Toggle'ınki
-       ise `<button role="switch">` ve etiketin devre dışı olduğunu
-       söyleyen HİÇBİR ŞEY yoktu. Ekran okuyucu yanındaki metni etkin bir
-       seçenek gibi okuyordu; solgun görünmek yalnız GÖREN kullanıcıya
-       bilgi verir. WCAG 1.4.3 etkin olmayan bileşenleri kontrast
-       şartından muaf tutar ve axe da aynı muafiyeti uygular — ama önce
-       bileşenin devre dışı OLDUĞUNU bilmesi gerekir. */
+    /* `aria-disabled` — UI-ADR-165, gerekçesi **UI-ADR-166'da
+       düzeltildi.**
+
+       WCAG 1.4.3 etkin olmayan bileşenleri kontrast şartından muaf tutar
+       ve axe da aynı muafiyeti uygular; ama axe'in muafiyet sorgusu
+       `input, select, textarea` arıyor ve Toggle'ın denetimi
+       `<button role="switch">`. `Checkbox`/`Radio` bu satıra ihtiyaç
+       duymuyor çünkü onlar etiketin içine gerçek bir `<input disabled>`
+       koyuyor; `SegmentedControl` da her butonu `disabled` yaptığı için
+       muaf. (Üçü de kaynaktan doğrulandı.)
+
+       ⚠️ NE YAPTIĞI KONUSUNDA DÜRÜST OL: UI-ADR-165 bunu "kuralı
+       kapatmak yerine eksik olanı söylemek" diye anlattı. Mekanik olarak
+       yaptığı şey KURALI KAPATMAKTIR — axe `isDisabled()` ataya çıkar,
+       bu niteliği bulur ve Toggle'ın TÜM alt ağacını color-contrast'tan
+       muaf tutar. Devre dışılık ekran okuyucuya zaten butonun kendi
+       `disabled`ıyla ulaşıyordu; bu satır AT'ye yeni bilgi vermiyor.
+       Meşru bir muafiyet, ama muafiyet olduğu yazılmalı. */
     <label
       aria-disabled={disabled || undefined}
       className={`inline-flex items-center gap-3 text-base text-content ${
@@ -160,7 +170,12 @@ export function Toggle({
         type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={label}
+        /* `aria-label={label}` VARDI ve kaldırıldı (UI-ADR-166): saran
+           `<label>` zaten bu butonu adlandırıyor (`<button>` labelable
+           bir elemandır) ve yanında görünür `<span>{label}</span>` de
+           duruyor. Üç kaynak aynı metni veriyordu; `Checkbox` bunu doğru
+           yapıyor — ad etiket metninden gelir. Tam bu elemanı devre dışı
+           semantiği için düzenlerken çiftlemeyi görmemiştim. */
         aria-readonly={readOnly || undefined}
         disabled={disabled}
         onClick={() => !readOnly && onChange(!checked)}

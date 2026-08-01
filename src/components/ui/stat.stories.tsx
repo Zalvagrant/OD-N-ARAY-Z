@@ -130,12 +130,14 @@ export const TruncateYerlesimGuvencesidir: Story = {
     </dl>
   ),
   play: async ({ canvasElement }) => {
-    /* 0 = truncate KAPALI, 1 = AÇIK — yukarıdaki sıra. */
-    const wrapper = (id: string) =>
-      canvasElement.querySelectorAll("dl > div")[
-        id === "off" ? 0 : 1
-      ] as HTMLElement;
-    const dt = (id: string) => wrapper(id).querySelector("dt")!;
+    /* 0 = truncate KAPALI, 1 = AÇIK — yukarıdaki sıra.
+       `dt`den YUKARI çıkılır, `dl`den AŞAĞI değil (UI-ADR-166): sarmalayıcı
+       böylece TANIM GEREĞİ `Stat`ın kendi `<div>`i olur. `dl > div` ile
+       aramak bugün aynı elemanı buluyor ama arada bir gün bir sarmalayıcı
+       belirirse sessizce YANLIŞ elemanı ölçerdi. */
+    const dt = (id: string) =>
+      canvasElement.querySelectorAll("dl dt")[id === "off" ? 0 : 1]!;
+    const wrapper = (id: string) => dt(id).parentElement!;
 
     /* VARSAYILAN KAPALI. `truncate` `white-space: nowrap` demektir ve iki
        satıra sarabilen bir etiketi tek satıra kırpar; açık gelseydi

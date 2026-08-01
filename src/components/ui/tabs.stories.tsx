@@ -64,18 +64,30 @@ export const KlavyeGezinmesi: StoryObj = {
        seçili olanı bildirir; seçilmemişler tembel render için hoş
        görülür). UI-ADR-164'ün tüm konusu bu ikilinin AYNI `scope`u
        paylaşmasıydı — story de öyle kurulur. */
-    const ids: Tab[] = ["health", "performance", "security"];
+    /* `scope` — UI-ADR-166. Bu dosyadaki `IkiTabsCakismaz` story'si tam
+       olarak "aynı sayfada iki `Tabs` farklı `scope` alır" kuralını
+       kilitliyor; ama `Default` ile bu story ikisi de kapsamsızdı ve
+       panel eklemek borcu `tabpanel-*` kimliklerine de yaymıştı. Bugün
+       test etkisi sıfır (her story ayrı render ediliyor, autodocs kapalı)
+       — yani kapı bunu YAPISAL OLARAK göremez. Kuralı yazan dosyanın
+       kendisi onu çiğnemesin. */
+    const items: { id: Tab; label: string }[] = [
+      { id: "health", label: "Health" },
+      { id: "performance", label: "Performance" },
+      { id: "security", label: "Security" },
+    ];
     return (
       <div>
         <Tabs
+          scope="kg-"
           label="Görünüm"
           value={value}
           onChange={setValue}
-          items={ids.map((id) => ({ id, label: id }))}
+          items={items}
         />
-        {ids.map((id) => (
-          <TabPanel key={id} id={id} active={value === id}>
-            {id}
+        {items.map((it) => (
+          <TabPanel key={it.id} scope="kg-" id={it.id} active={value === it.id}>
+            {it.label}
           </TabPanel>
         ))}
       </div>

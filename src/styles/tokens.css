@@ -58,6 +58,12 @@
   --odin-amber-600: #D97706;
 
   /* --- Red (DANGER — yalnızca gerçek kriz) --- */
+  /* UI-ADR-166 — `danger` red-400'e taşınınca `chart-negative` ile AYNI
+     renk olmuştu ve 41 satır aşağıdaki kural ("chart, danger'dan daha
+     YUMUŞAK") sessizce ölmüştü. `success`↔`chart-positive` farkı duruyordu
+     (ΔL* 9.0), kırmızı taraf çökmüştü (ΔL* 0.0). Bu ton simetriyi geri
+     verir: ΔL* 12.1. */
+  --odin-red-300: #FCA5A5;
   --odin-red-400: #F87171;
   --odin-red-500: #EF4444;
   --odin-red-600: #DC2626;
@@ -129,14 +135,29 @@
   /**
    * ÜÇÜNCÜL METİN — UI-ADR-165 (erişilebilirlik düzeltmesi).
    *
-   * `gray-500` (#64748B) idi ve karanlık temanın ALTI zemininin
+   * `gray-500` (#64748B) idi ve karanlık temanın BEŞ opak zemininin
    * HİÇBİRİNE karşı WCAG AA'yı (4.5:1) geçmiyordu: 3.16 – 4.14 arası.
+   * (Bu satırda bir ara "ALTI" yazıyordu — sayı yanlıştı. Tezi "bir iddia
+   * ölçüldüğü zemin kümesi kadar doğrudur" olan bir kararda, zemin
+   * SAYISININ yanlış olması kozmetik değildir; denetim yakaladı.)
    * Bu, ölçülen 609 axe ihlalinin 582'sinin (%96) tek kaynağıydı.
    *
    * Bu bir görünüm tercihi DEĞİL, bir kusurdur: repo erişilebilirlik
    * temellerini pazarlık dışı sayar. Asgari geçen değer seçildi —
-   * `#8593A5` en kötü zemine karşı 4.81 verir; daha açık adaylar
-   * (`gray-400`, 5.87) hiyerarşiyi ikincil metne yaklaştırırdı.
+   * `#8593A5` en kötü zemine karşı 4.81 verir.
+   *
+   * ⚠️ AMA BİR BEDELİ VAR ve burada dürüstçe yazılıyor (UI-ADR-166):
+   * `gray-400`ü "hiyerarşiyi ikincil metne yaklaştırır" diye reddettim;
+   * seçilen ton bunu ZATEN YAPTI. Ölçüm (CIE L*):
+   *     primary → secondary            ΔL* 29.9
+   *     secondary → tertiary ESKİ      ΔL* 18.1
+   *     secondary → tertiary YENİ      ΔL*  6.1   ← beşte bir
+   * Üç basamaklı metin ölçeği pratikte ikiye indi. `error-state.tsx`
+   * ve `top-header.tsx` etiket/değer ayrımını bu iki tonun farkıyla
+   * taşıyor. Erişilebilirlik kazanıldı, hiyerarşi zayıfladı.
+   * DÜZELTME YOLU rampayı yeniden türetmektir (secondary'yi de yukarı
+   * itmek) — ama `secondary` WCAG'ı zaten geçiyor, yani bu artık bir
+   * KUSUR değil bir GÖRÜNÜM tercihidir ve SAHİBİN kararıdır.
    *
    * AYDINLIK TEMA DEĞİŞMEDİ: orada `gray-500` zaten geçiyor
    * (#FFFFFF 4.76 · #F8FAFC 4.55) ve geçen bir şeyi değiştirmek
@@ -165,7 +186,10 @@
      5.23'ten 7.12'ye çıkar. Uyarının kendisi bir erişilebilirlik
      kusuruysa, uyaramaz. */
   --odin-danger:      var(--odin-red-400);      /* gerçek kriz — SADECE */
-  --odin-danger-bg:   rgba(239, 68, 68, 0.10);
+  /* UI-ADR-166 — `rgba(239,68,68,…)` yani red-500 tabanlıydı; ön plan
+     red-400'e taşınınca "danger"ın tek kaynak tonu kalmamıştı. Ölçüldü:
+     yeni tonda `text-danger` en kötü 4.77, geçer. */
+  --odin-danger-bg:   rgba(248, 113, 113, 0.10);
   --odin-warning:     var(--odin-amber-500);    /* bekleyen risk */
   --odin-warning-bg:  rgba(245, 158, 11, 0.10);
   --odin-success:     var(--odin-green-500);    /* onay / sağlıklı */
@@ -300,7 +324,7 @@
   --odin-chart-tooltip:  var(--odin-surface-floating);
 
   --odin-chart-positive: var(--odin-green-400);
-  --odin-chart-negative: var(--odin-red-400);
+  --odin-chart-negative: var(--odin-red-300);  /* UI-ADR-166 — bkz. yukarıdaki not */
   --odin-chart-neutral:  var(--odin-gray-500);
 
   /* Çok serili grafikler için sıra */
@@ -425,6 +449,21 @@
 /* ---------------------------------------------------------------------------
    KATMAN 2b — EXECUTIVE LIGHT (v1.1 — yapı hazır, tasarım sonra)
    ADR-075: Light tema v1.1'e ertelendi. Değerler şimdilik taslak.
+
+   ⚠️ ÖLÇÜLMÜŞ KUSUR — UI-ADR-166, BİLEREK DÜZELTİLMEDİ.
+   Bu blok `danger/warning/success/info` tanımlıyor ama `-bg`
+   karşılıklarını TANIMLAMIYOR; onlar `:root`tan, yani KARANLIK tema için
+   ayarlanmış `rgba(...)` değerlerinden miras alınıyor. Beyaz üstünde
+   `danger-bg` `#FDECEC` oluyor ve orada:
+       text-danger  #DC2626 → 4.23  ✗
+       tertiary     #64748B → 4.17  ✗
+   Yani `Badge variant="danger"` (11px) aydınlık temada AA'yı geçmiyor.
+   Düzeltilmedi çünkü tema `theme-provider.tsx`te `enabled: false` ve bu
+   blok kendi başlığında "taslak" diyor — kapalı bir temaya ölçülmemiş
+   değer uydurmak, düzeltmek değil tahmin etmektir. **Aydınlık temayı
+   açan kişi önce bu dört `-bg` token'ını burada tanımlamalıdır.**
+   (Ve axe bunu asla yakalayamaz: `preview.tsx` her story'ye
+   `executive-dark` basıyor — kapı aydınlık temayı HİÇ görmüyor.)
    ------------------------------------------------------------------------ */
 
 [data-theme="executive-light"] {

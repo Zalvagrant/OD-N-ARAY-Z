@@ -35,9 +35,22 @@ export function MinorityOpinionBanner({
      taşıyan üç `complementary` landmark oluşuyordu ve ekran okuyucunun
      landmark listesi hangisinin hangi karara ait olduğunu söyleyemiyordu.
      Bir kart içi not, sayfanın gezinme iskeletine ait değildir.
-     Aşağıdaki başlık zaten "Azınlık görüşü" diyor. */
+
+     ⚠️ AMA İLK DÜZELTMEM FAZLA ALDI (UI-ADR-166). Düz `<div>`e indirince
+     blokta ne landmark, ne rol, ne erişilebilir ad kaldı — ekran okuyucu
+     kullanıcısı için üç serbest metin parçası oldu. Yorumum "aşağıdaki
+     BAŞLIK zaten söylüyor" diyordu; aşağıdaki bir `<p>`, başlık değil.
+     Bir fazlalığı düzeltirken bir eksiklik yarattım.
+
+     `role="group"` doğru katman: adlandırmayı DESTEKLER ama landmark
+     DEĞİLDİR — üç aynı adlı `complementary` sorunu da, kaybolan ad da
+     tek satırda kapanır. (Düz `<div>`e `aria-label` koymak kapıyı
+     DÜŞÜRÜRDÜ: role'ü olmayan elemanda `aria-label` yasaktır —
+     axe `aria-prohibited-attr`.) */
   return (
     <div
+      role="group"
+      aria-label="Azınlık görüşü"
       className={`rounded-sm border border-line bg-bg-secondary p-3 ${className}`}
     >
       <p className="flex flex-wrap items-center gap-2 text-xs text-content-tertiary">
