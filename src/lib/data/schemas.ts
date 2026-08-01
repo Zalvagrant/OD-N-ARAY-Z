@@ -24,7 +24,8 @@ const isoDate = z
    Zarf — 09b §0 · types/data-envelope.ts
    -------------------------------------------------------------------------- */
 
-export const dataSourceSchema = z.enum([
+/* Dosya İÇİNDE kullanılıyor (dataMetaSchema); dışarı açık değil. */
+const dataSourceSchema = z.enum([
   "sp-api",
   "ads-api",
   "internal",
@@ -34,7 +35,8 @@ export const dataSourceSchema = z.enum([
   "mock",
 ]);
 
-export const dataMetaSchema = z
+/* Dosya içinde `envelopeOf` kuruyor; dışarıdan çağıranı yok. */
+const dataMetaSchema = z
   .object({
     source: dataSourceSchema,
     lastUpdated: isoDate,
