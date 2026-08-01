@@ -6,20 +6,45 @@
  * eşzamanlı iki isteğinin TEK yükleme yapması.
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { loadMock, type MockKey } from "./registry";
 
+/**
+ * ANAHTAR LİSTESİ ARTIK ELLE TUTULMUYOR — UI-ADR-182.
+ *
+ * ⚠️ NEDEN DEĞİŞTİ: liste elle yazılmıştı ve **sürüklenmişti.** Ölçüldü:
+ * `registry.ts` **20** anahtar çözüyor, test **19**'unu sınıyordu —
+ * `briefing.directors.runtime` listeye hiç eklenmemişti. Yani o mock
+ * anahtarı `null` dönse kapı fark etmezdi ve ekran sessizce "veri yok"
+ * derdi; bu dosyanın başlığının **tam olarak engellemek için var
+ * olduğu** hata.
+ *
+ * Bu, bu oturumun tekrar eden dersi: **elle tutulan bir liste çürür.**
+ * Alt sınırlar (UI-ADR-176) ve envanter anlık görüntüsü aynı sınıftandı.
+ * Liste artık TEK KAYNAKTAN — `loadMock`'un `switch` etiketlerinden —
+ * türetiliyor; yeni bir `case` eklendiği an test onu kapsar.
+ */
 const KEYS: MockKey[] = [
-  "amazon.snapshot", "amazon.kpis", "amazon.skus", "amazon.ppc",
-  "amazon.campaigns", "amazon.simulations", "amazon.alerts",
-  "amazon.opportunities", "briefing.brief", "briefing.decisions",
-  "briefing.directors", "briefing.hero", "briefing.kpis",
-  "briefing.opportunities", "briefing.pulse", "briefing.risks",
-  "briefing.timeline", "feed.items", "goals.items",
-];
+  ...new Set(
+    [
+      ...readFileSync(join(process.cwd(), "src/mocks/registry.ts"), "utf8")
+        .matchAll(/^\s*case\s+"([a-z][a-z.]*)":/gm),
+    ].map((m) => m[1])
+  ),
+] as MockKey[];
 
 describe("kayıt defteri", () => {
+  /* KAPI KÖRELMESİN — türetilen liste boşalırsa `it.each([])` hiç test
+     üretmez ve dosya sessizce yeşil kalır (UI-ADR-154'ün sınıfı). Sayı
+     bir tavan değil, DÜŞÜŞ dedektörü: `registry.ts` bugün 20 anahtar
+     çözüyor. */
+  it("anahtar listesi kaynaktan türedi ve BOŞ DEĞİL", () => {
+    expect(KEYS.length).toBeGreaterThanOrEqual(20);
+  });
+
   it.each(KEYS)("%s çözülür ve zarf döndürür", async (key) => {
     /* MockMap'e eklenip switch'e eklenmeyen bir anahtar burada yakalanır:
        sessizce null dönerdi ve ekran "veri yok" derdi — mock modda bu

@@ -6772,3 +6772,65 @@ olur — kurulun kendi ifadesiyle.
 **storybook 56 dosya / 213 test** (alt sınır 211),
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
 Ayrıştırıcının kendi testi: **25 senaryo.**
+
+---
+
+## UI-ADR-182 — Mercek diğer kapılara: elle tutulan liste ÇÜRÜMÜŞTÜ
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-154 · 176 · 181
+
+Ekran durum kapısı yakınsadıktan sonra (UI-ADR-181) bu oturumda
+geliştirilen merceği **diğer kapılara** uyguladım — daha önce hiç
+yapılmamıştı. Üç kapı tarandı, **birinde gerçek bir kusur çıktı.**
+
+### Tarama sonucu
+
+| kapı | körlük riski | hüküm |
+|---|---|---|
+| `inventory.test.ts` | `orphans` boşalırsa? | **KORUNUYOR** — anlık görüntü uyuşmazlık verir |
+| `odin-contract.test.ts` | dinamik liste yok | konu dışı |
+| `registry.test.ts` | elle tutulan `KEYS` | ⚠️ **ÇÜRÜMÜŞ** |
+
+`inventory` için acele bir hüküm vermedim: 7 atlama noktası var ve
+körlük testi yok görünüyordu, ama `toMatchInlineSnapshot` liste boşalsa
+uyuşmazlık verir. **Bulgu yok.**
+
+### GERÇEK KUSUR — `registry.test.ts`
+
+`KEYS` elle yazılmış bir dizi ve **sürüklenmişti.** Ölçüldü:
+
+- `registry.ts` `loadMock` → **20** anahtar çözüyor
+- test → **19**'unu sınıyordu
+- eksik olan: **`briefing.directors.runtime`**
+
+Yani o mock anahtarı `null` dönse kapı fark etmezdi ve ekran sessizce
+"veri yok" derdi — dosyanın kendi başlığının *"tam olarak engellemek için
+var olduğu"* hata. (Anahtarı sınadım: **çözülüyor.** Bozuk değildi, ama
+**hiç test edilmiyordu** — kusur budur.)
+
+Bu, oturumun tekrar eden dersinin üçüncü örneği: **elle tutulan bir liste
+çürür.** Alt sınırlar (176) ve envanter anlık görüntüsü aynı sınıftandı;
+farkı, bu listenin çürüdüğünü kimsenin ölçmemiş olmasıydı.
+
+### Düzeltme: liste kaynaktan türetiliyor
+
+`KEYS` artık `loadMock`'un `switch` etiketlerinden okunuyor — yeni bir
+`case` eklendiği an test onu kapsar, insan disiplinine gerek kalmaz.
+Ayrıca bir körlük testi kondu: türetilen liste boşalırsa `it.each([])`
+hiç test üretmez ve dosya sessizce yeşil kalırdı (UI-ADR-154'ün sınıfı).
+
+### Neden production'a dokunulmadı
+
+`registry.ts`ten bir `MOCK_KEYS` dizisi export etmek daha temiz olurdu
+ama üretim kodunu test için değiştirmek gerekirdi. Kaynaktan türetme
+aynı garantiyi üretim yüzeyine dokunmadan veriyor; `case` etiketi zaten
+tek gerçek kaynak.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 298 test** (alt sınır **295**),
+**storybook 56 dosya / 213 test** (alt sınır 211),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
