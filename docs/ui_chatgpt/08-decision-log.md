@@ -6834,3 +6834,257 @@ tek gerçek kaynak.
 **unit 17 dosya / 298 test** (alt sınır **295**),
 **storybook 56 dosya / 213 test** (alt sınır 211),
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
+
+---
+
+## UI-ADR-183 — Mimari denetim: tekrar, performans, ölü kod
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-136 · 138 · 176
+
+Sahibin 12 boyutlu "Architecture Final Audit" görevinin ilk turu. Yasak
+açıktı: **hiçbir özellik kaldırılmayacak, hiçbir ekranın davranışı ve
+hiçbir UI tasarımı değişmeyecek.** Yalnız mimari kalite.
+
+### Tekrar
+
+`Pct` UI-ADR-138'de "beş satır altı yerde yazılıydı" diye çıkarılmıştı;
+para için aynı iş yapılmamıştı ve tekrar **daha büyüktü** — ölçüldü,
+**on yer** `value={x?.amount ?? null} format="currency" currency={x?.currency}`
+üçlüsünü kelimesi kelimesine yazıyordu. Bedel hacim değil: her çağıran
+`Money` zarfını ELLE söküyordu. Zarf bir gün `amount` yerine `minor`
+(kuruş) taşırsa dokuzu bulunup biri unutulduğunda ekranda 100 kat sapmış
+bir tutar durur. `Money` bileşeni eklendi; `RuntimeDirectorGrid` iki
+ekrandan çıkarıldı.
+
+### Performans — üçü de ölçümle
+
+`briefing` ve `amazon/director` ekranlarının **kökünde** `useNow()` vardı
+ve arkasında gerçek `setInterval(1000)` var. Kökteki tek tick **tüm ağacı
+saniyede bir** render ediyordu: 48 satırlık sanal tablo, 8 KPI, direktör
+kartları, 40 kayıtlık timeline. Repoda hiç `React.memo` yok (tarandı) ve
+React Compiler kapalı — hiçbir çocuk korunmuyordu. Maliyetin tamamı **tek
+bir zaman etiketi** içindi. `useNow` ihtiyaç duyan bileşene indi.
+
+**Lint kanıtladı:** çıkarma sonrası kökteki `now` "hiç kullanılmıyor"
+uyarısı verdi — yani bulgu tahmin değildi.
+
+`skuColumns()` her render'da yeni 7 elemanlı dizi üretiyordu; TanStack'in
+`getAllColumns` memo'su `[_getColumnDefs()]`e bağlı, kimlik değişince yedi
+`createColumn` ve ~140 hücre nesnesi yeniden kuruluyordu. Modül sabitine
+alındı.
+
+### ⚠️ Kendi hatam
+
+Toplu silme betiğim `listItemTransition`'ı da sildi ve o **üç yerde**
+kullanılıyordu — `tsc` yakaladı, geri kondu. **Ölü kodu toplu silmek
+yanlıştır; her biri tek tek doğrulanmalı.**
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0/0 · unit 17 dosya / 304 test · storybook 58 dosya /
+221 test · atlanan 0 · düşen 0.
+
+---
+
+## UI-ADR-184 — Kapsam sayı değildir: `play` kriteri ve store politikası
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-132 · 142 · 162 · 183
+
+Meclis (gavadolar 2/2) *"22 story'nin hepsine `play` yaz"*ı **REDDETTİ**
+ve kriter verdi: `play` yalnız gözlenebilir **davranış sözleşmesi** varsa
+yazılır; statik varyant, token galerisi ve salt kompozisyon hariç. Gerekçe
+ölçülebilir: `play` olmayan story de `addon-a11y` + `a11y-gate` ile
+koşuyor, yani `play` a11y kanıtı DEĞİL etkileşim kanıtıdır.
+
+### Button — test edilmemiş taşıyıcı kilit
+
+    const locked = disabled || loading || offline;
+
+Üç prop tek kilide iniyordu ve **üçü de ölçülmüyordu**; mevcut `States`
+hikâyesi dördünü yan yana ÇİZİYOR ama hiçbirine dokunmuyordu. `disabled`
+native'dir, kaybolsa tarayıcı korur; `loading` ve `offline` **ODIN'in
+kendi icadıdır** — `locked` sadeleşirse sessizce tıklanabilir olurlar. Bu
+bir karar sistemi: `offline` bir butonun ateşlediği komut ağ olmadığı için
+gerçekleşemez ama kullanıcı yapıldığını sanır.
+
+Dördüncü test **karşı kutup** (kilitsiz buton GERÇEKTEN tıklanır) — onsuz
+"her şey kilitli" yazan bir hata da yeşil kalırdı.
+
+### DecisionCard — yorumun iddia ettiği, hiçbir şeyin koşturmadığı
+
+Hikâye yorumu zaten *"Bayat veri → ÜÇ eylem de kilitli, sebep yazılı"*
+diyordu. **Yorum kapı değildir.** Kilit `disabled={stale}` ile üç ayrı
+butona tek tek yazılmış; dördüncü eylemde unutmayı engelleyen şey yok.
+Test kilidi butona değil KARARA bağladı.
+
+### Store politikası — Zustand değil, bizim kararlarımız
+
+Kural (React Query kuralının store karşılığı): **abonelik/selector/
+güncelleme mekanizması yeniden test EDİLMEZ; durum geçişi, değişmez ve
+kalıcılık sözleşmesi test EDİLİR.** 15 test yazıldı. İçlerinden biri
+UI-ADR-162'nin **gerçek regresyonunu** kilitliyor (satır seçimi açık
+kartları düşürüyordu). `universe` kasten atlandı: 26 satır, düz
+delegasyon, politikası yok.
+
+### ⚠️ Ortam bulgusu
+
+`zustand`'ın `persist`i node'da **sessizce kendini kapatıyor** —
+`middleware.js` `if (!storage) return config(...)` ile erken çıkıyor ve
+`api.persist` HİÇ iliştirilmiyor. İlk üç test bu yüzden düştü; **kod
+kusuru değil ORTAM kusuruydu** ve ayrımı yapmadan "persist bozuk" demek
+yanlış olurdu.
+
+### ⚠️ Kendi hatam
+
+Bir testte `scrollTop` için `toBeUndefined()` bekledim;
+`toggleExpandedItem` yeni girdiye `{scrollTop: 0}` veriyor. **Yanlış olan
+kod değil benim varsayımımdı.**
+
+### Ölçüm
+
+`tsc` 0 · `lint` 0/0 · store 15/15 · button 8/8 · decision-card 4/4.
+
+---
+
+## UI-ADR-185 — Doğru sonuç, doğrulanmış sonuç değildir
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-183 · 184
+
+### Tekrar: Decision Center geçişi
+
+İki ekran birebir aynı sekiz satırı taşıyordu ve her ikisi de `useRouter`'ı
+**yalnızca** o tek satır için import ediyordu. `DecisionCenterLink`
+çıkarıldı; `useRouter` iki ekrandan da düştü.
+
+**Semantik kusur BİLEREK korundu:** bu bir gezinme ve `<button>` ile
+yapılıyor. Doğrusu `<Link href>`tir ve aynı repoda `app/not-found.tsx:39`
+tam olarak öyle yazılmış — yani doğru desen ZATEN VAR, bu iki ekran ondan
+sapmış. Çevirmek gözlenebilir davranışı değiştirirdi (ctrl+tık yeni sekme,
+hedef durum çubuğunda, ekran okuyucu "bağlantı" der). Meclis 2/2: önce
+tekrarı kaldır, semantiği aynen koru; **dönüşüm AYRI bir karardır.**
+
+### ⚠️ NAV_ITEMS — dört ölçümün dördü de yanlıştı
+
+| kim | hüküm | gerçek |
+|---|---|---|
+| ben | "gerçekten ölü" | **yanlış** — satır 237 kullanıyor, okumadan yazdım |
+| terra | "saf ölü kod, silinmeli" | **yanlış** — silinse `findWorkspaceByPath` kırılırdı |
+| Gemini | "SİLİNMELİ" | aynı hata |
+| Qwen | "silme, şu iki dosya kullanıyor" | **sonuç doğru, gerekçe UYDURMA** — iki dosya da repoda yok (arandı, 0) |
+
+Aynı üye ölçmediği React Profiler sayıları da verdi ("Money 12 ms").
+**Bir üyenin sonucuna katılmak, gerekçesini doğrulamamak için sebep
+değildir.** Doğru işlem `export`u düşürmekti, silmek değil.
+
+### ⚠️ Ölçülüp REDDEDİLEN meclis önerisi
+
+terra: *"`_KpiMatchesType`/`_AlertMatchesType` `export` olmamalı; derleme
+iddiasıdır, dışa açmak kontrole bir şey katmaz."* İlk kısım **doğru ve
+denendi**: `export` kaldırılıp `Partial<ExecutiveKPI>` yerine `string`
+yazıldığında `tsc` yine patladı (TS2344).
+
+**Ama reddedildi:** `export` düşünce iki takma ad "tanımlı ama
+kullanılmıyor" uyarısı üretiyor ve bu reponun kapısı `--max-warnings 0`
+ile koşuyor — `npm run test:ci` **DÜŞÜYOR**. Bir tarama gürültüsünü
+susturmak için ÇALIŞAN BİR KAPIYI kırmak olurdu. Kusur `export`ta değil,
+ölü-kod tarayıcımın varsayımındaydı. Gerekçe dosyaya yazıldı ki bir
+sonraki denetim aynı öneriyi yeniden getirmesin.
+
+**Kural:** meclis önerisini uygulamadan önce (a) iddiayı kaynaktan
+doğrula, (b) uygula ve **kapıyı koştur** — öneri kendi başına doğru olsa
+bile reponun kendi kurallarını düşürebilir.
+
+---
+
+## UI-ADR-186 — Boyut 9 ve 7 kapandı: silinecek ölü kod YOK, kullanılmayan 13 bileşen VAR
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-148 · 184 · 185
+
+### 22 story tek tek sınıflandı — isimden değil koddan
+
+Etkileşim sinyali tarandı (olay · yerel durum · kontrol · `aria-toggle` ·
+kilit · odak). **17'sine `play` yazılmadı, her biri gerekçeli:** 13 statik;
+`alert-stack` ve `timeline` `Pressable`e delege ediyor ve
+`pressable.stories.tsx` Tab+Enter+Space'i zaten test ediyor (ikinci kez
+test etmek kriterin ihlali olurdu); `input.tsx` düz native sarmalayıcı.
+
+`card.tsx` bir ders verdi: tarayıcım "odak" sinyali verdi ama **eşleşme
+YORUMUN İÇİNDEYDİ** — yorum klavyenin BİLEREK verilmediğini söylüyor.
+Regex kodu okumaz; eşleşmeye bakıp geçseydim gereksiz bir test yazacaktım.
+
+**5'ine yazıldı.** İkisi kurtuluş yolu: `ErrorState` retry (bağlanmazsa
+ekran DOĞRU görünür ama basmak hiçbir şey yapmaz) ve `Section`'ın o
+retry'ı **İLETMESİ** — meclisin (terra) tek itirazıydı ve haklıydı:
+`ErrorState`in kendi testi `Section`ı kanıtlamaz, çünkü hangi dalın
+çizileceğine karar veren `Section`dır.
+
+### İki AYRI sözleşme, aynı görünüm
+
+Meclis 2/2: `ai-recommendation-card` (`useDisclosureMemory`, store tabanlı,
+unmount'tan sağ çıkar) ile `campaign-intelligence` (yerel `useState`,
+unmount'ta ölür) **aynı görünen iki ayrı sözleşmedir.**
+
+Farkı `unmount`/`remount` ile **ölçemedim** — bir story tek kez render
+edilir. Bunun yerine **ayırt edici iz** ölçüldü: biri store'a yazıyor,
+öteki hiç dokunmuyor. İkinci test farkı **kilitlemek için değil, bugün var
+olduğunu belgelemek için**; sahip "birleştir" derse kırılacak ve kırılması
+doğru olacak.
+
+### Boyut 7 yeniden ölçüldü — "53 ölü export" SAYIM ARTEFAKTIYDI
+
+Tarayıcım "sıfır dış referans = ölü" varsayıyordu; `NAV_ITEMS` bunu
+çürüttü (UI-ADR-185). Düzeltilmiş sınıflandırma:
+
+| kategori | adet |
+|---|---|
+| A · gerçekten ölü | **0** |
+| B · dışa açık ama yalnız kendi dosyasında kullanılıyor | 49 |
+| C · yalnız test/story tüketiyor | 46 |
+| D · derleme-zamanı iddiası | 2 |
+
+**Silinecek ölü kod yok.** B kategorisi "export yüzeyi geniş", ölü değil.
+
+### ⚠️ C'den çıkan asıl bulgu: 13 tam bileşeni hiçbir ekran kullanmıyor
+
+`Tabs` · `TabPanel` · `Tooltip` · `Drawer` · `Avatar` · `TelemetryBar` ·
+`AreaChart` · `BarChart` · `FilterBar` · `RadioGroup` · `Toggle` ·
+`Textarea` · `Select`.
+
+Her biri hikâyeli, testli, a11y kanıtlı — **ve kullanıcı hiçbirini
+görmüyor.** Bu bir kod kusuru değil, **ürün bulgusudur** ve reponun kendi
+kuralı (CLAUDE.md 6, S8 dersi) tam olarak bunu sorar: *"kaç GERÇEK EKRAN
+TÜKETİCİSİ var? Sıfırsa altyapı işidir."* Silmek özellik kaldırmak olur →
+**sahibin kararı.**
+
+### ⚠️ `transport.ts` ölçüldü
+
+terra'nın ölçütüyle: tek import edeni bir **test**, dinamik import yok,
+`app/` altında hiç geçmiyor, üretim girişinden zincir yok → meclisin kendi
+ölçütüyle **ulaşılamaz üretim kodu**. Silmek yasak kapsamında; ölçüm
+belgelendi, kod değiştirilmedi.
+
+### SAHİBİN KARARINI BEKLEYEN ÜÇ MADDE
+
+1. **`simulation-panel.tsx:39` `caseLabel` eksi işaretini düşürüyor** —
+   `changePercent` −10 ekranda `%10` yazıyor (+15 → `+%15`). Ölçüldü.
+   %10'luk bir bütçe **kesintisi** artıştan ayırt edilemiyor. Meclis
+   BÖLÜNDÜ (terra "kusur onarımıdır", luna "görünür çıktıyı değiştirir,
+   eskale et"). Test o etikete bağlanmadı ki kusur çimentolanmasın.
+2. **`<button>` ile gezinme → `<Link href>` dönüşümü** (yukarıda).
+3. **`amazon/director/screen.tsx` 422 kod satırı** — terra: *"bu denetim
+   kapanmış sayılmamalı."* Bölmek ayrı bir UI-ADR.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0 · `lint` 0 hata 0 uyarı ·
+**unit 18 dosya / 319 test** (alt sınır 316) ·
+**storybook 58 dosya / 225 test** (alt sınır 222) ·
+atlanan 0 · düşen 0 · **a11y ihlali 0, koşum kanıtı 225/225**.
