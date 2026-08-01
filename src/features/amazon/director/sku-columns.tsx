@@ -47,7 +47,12 @@ import { SKU_SCALE, SKU_STATUS } from "@/features/amazon/presentation/sku";
  */
 export const SKU_COLUMNS: ColumnDef<SkuHealth, unknown>[] = skuColumns();
 
-export function skuColumns(): ColumnDef<SkuHealth, unknown>[] {
+/* `export` KALDIRILDI — UI-ADR-185. `SKU_COLUMNS` sabiti UI-ADR-183'te
+   çıkarıldığında bu fonksiyonun tek dış çağıranı ortadan kalktı; dışarı
+   açık kalması, sabiti atlayıp her render'da yeniden kurmanın yolunu açık
+   bırakırdı. Sorunu yaratan çağrı biçiminin artık yazılamaması gerekiyor.
+   Kendi değişikliğimin bıraktığı öksüz — CLAUDE.md kural 3. */
+function skuColumns(): ColumnDef<SkuHealth, unknown>[] {
   return [
     {
       id: "sku",

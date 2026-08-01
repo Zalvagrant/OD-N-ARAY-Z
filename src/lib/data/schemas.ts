@@ -216,6 +216,23 @@ export type ExecutiveKpiParsed = z.infer<typeof executiveKpiSchema>;
 /** Atanabilir değilse BURADA derleme hatası verir; çalışma zamanı kodu üretmez. */
 type AssertAssignable<A extends B, B> = A;
 
+/**
+ * ⚠️ `export` BİLEREK DURUYOR — UI-ADR-185, ÖLÇÜLDÜ ve öneri REDDEDİLDİ.
+ *
+ * Yazılımcılar meclisi (terra) bunların `export` olmaması gerektiğini
+ * söyledi: derleme-zamanı iddiasıdır, kısıt takma adın BİLDİRİLMESİYLE
+ * uygulanır, dışa açmak kontrole bir şey katmaz. İlk kısım DOĞRU ve
+ * denendi: `export` kaldırılıp `Partial<ExecutiveKPI>` yerine `string`
+ * yazıldığında tsc yine patladı (TS2344, satır 226) — yani kontrol
+ * gerçekten `export`a bağlı değil.
+ *
+ * AMA reddedildi, çünkü bedeli ölçüldü: `export` düşünce iki takma ad
+ * "tanımlı ama hiç kullanılmıyor" uyarısı üretiyor ve bu reponun kapısı
+ * `--max-warnings 0` ile koşuyor — yani `npm run test:ci` DÜŞÜYOR.
+ * Öneriyi uygulamak, bir tarama gürültüsünü susturmak için ÇALIŞAN BİR
+ * KAPIYI kırmak olurdu. Kusur `export`ta değil, ölü-kod tarayıcımın
+ * "sıfır dış referans = ölü" varsayımındaydı; düzeltilmesi gereken ölçüm.
+ */
 export type _KpiMatchesType = AssertAssignable<ExecutiveKpiParsed, Partial<ExecutiveKPI>>;
 export type _AlertMatchesType = AssertAssignable<z.infer<typeof alertSchema>, Partial<Alert>>;
 

@@ -230,7 +230,14 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
+/* `export` KALDIRILDI — UI-ADR-185. Dışarıdan sıfır tüketicisi var; hemen
+   aşağıdaki `findWorkspaceByPath` onu kullanıyor, yani SABİT ÖLÜ DEĞİL,
+   yalnız DIŞA AÇILMASI ölüydü. Ayrım hayati: denetimde üç meclis üyesinden
+   ikisi "saf ölü kod, silinmeli" dedi ve silinseydi `findWorkspaceByPath`
+   kırılırdı — üçüncüsü ise onu koruyan iki dosya adı UYDURDU (ikisi de
+   repoda yok, arandı). Ben de raporun ilk taslağında "gerçekten ölü" diye
+   yazmıştım; satır 237'yi okumadan. Dört ölçümün dördü de yanlıştı. */
+const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 /** Bir yola karşılık gelen workspace. En uzun eşleşme kazanır. */
 export function findWorkspaceByPath(pathname: string): NavItem | undefined {
