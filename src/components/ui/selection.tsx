@@ -170,12 +170,18 @@ export function Toggle({
         type="button"
         role="switch"
         aria-checked={checked}
-        /* `aria-label={label}` VARDI ve kaldırıldı (UI-ADR-166): saran
-           `<label>` zaten bu butonu adlandırıyor (`<button>` labelable
-           bir elemandır) ve yanında görünür `<span>{label}</span>` de
-           duruyor. Üç kaynak aynı metni veriyordu; `Checkbox` bunu doğru
-           yapıyor — ad etiket metninden gelir. Tam bu elemanı devre dışı
-           semantiği için düzenlerken çiftlemeyi görmemiştim. */
+        /* UI-ADR-166'da "çiftleme" diye KALDIRDIM, UI-ADR-167'de GERİ
+           KONDU — ve ARADAKİ DERS ŞU: erişilebilir ad MOTORA BAĞLIYDI.
+           Gerekçem `<button>`ın labelable olmasıydı; doğru ama yetersiz.
+           axe-core `button` için yalnız `subtreeText` uygular (`labelText`
+           listesinde YOK) ve butonun alt ağacında tek bir `aria-hidden`
+           span var → axe'in hesapladığı ad BOŞ. Buna karşılık
+           `dom-accessibility-api` (testing-library'nin motoru) saran
+           etiketi okur ve adı BULUR.
+
+           Yani iki motor iki farklı cevap veriyordu ve ben iyimser olanına
+           bakıp kaldırmıştım. `aria-label` bu belirsizliği yok eder. */
+        aria-label={label}
         aria-readonly={readOnly || undefined}
         disabled={disabled}
         onClick={() => !readOnly && onChange(!checked)}

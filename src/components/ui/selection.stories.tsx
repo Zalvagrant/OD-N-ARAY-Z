@@ -56,6 +56,31 @@ export const All: StoryObj = {
       </div>
     );
   },
+  /* ANAHTARIN ADI AÇIKÇA VERİLMİŞ OLMALI — UI-ADR-167.
+     `Toggle`ın denetimi `<button role="switch">`. UI-ADR-166'da
+     `aria-label`ı "çiftleme" sanıp kaldırdım; axe'in hesapladığı ad
+     BOŞALDI (`button` için yalnız `subtreeText`, saran etiket sayılmaz)
+     ve kapı bunu GÖRMEDİ — `aria-toggle-field-name` `<button>`da hiç
+     koşmuyor, `button-name` ise saran etiketin metnini görüp geçiyor.
+
+     ⚠️ VE İLK YAZDIĞIM İDDİA DA KORUMUYORDU: `getByRole("switch",
+     { name })` `dom-accessibility-api`yi kullanır, o saran etiketi
+     OKUR — `aria-label` kaldırılmış hâlde de YEŞİL kaldı (denendi).
+     İyimser motorla ölçmek, ölçmemektir. İddia bu yüzden niteliğin
+     kendisine bakıyor: adı açıkça veren bir şey OLMALI. */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const ad of ["Otomatik yenile", "Adaptive UI (v1.0'da kapalı)"]) {
+      const anahtar = canvas.getByRole("switch", { name: ad });
+      await expect(
+        anahtar.hasAttribute("aria-label") ||
+          anahtar.hasAttribute("aria-labelledby"),
+      ).toBe(true);
+    }
+    await expect(
+      canvas.getByRole("switch", { name: "Adaptive UI (v1.0'da kapalı)" }),
+    ).toBeDisabled();
+  },
 };
 
 /**

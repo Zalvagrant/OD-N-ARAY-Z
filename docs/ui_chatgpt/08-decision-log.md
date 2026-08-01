@@ -5498,3 +5498,101 @@ atlanan 0, düşen 0, **a11y ihlali 0**.
 `verify-tests.mjs --self-check`: **11 + 9 senaryo** yeşil.
 Kapı ayrıca enjekte ihlalle sınandı: token eski hâline döndürülünce tek
 story dosyasında **5/5 test kırmızı**.
+
+---
+
+## UI-ADR-167 — Yasak liste yerine İZİN listesi; ve iyimser motorla ölçmek ölçmemektir
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-165 · 166
+
+166 kilidi yeniden yazdı ve *"kapı sökülemez"* iddiasını **ikinci kez**
+ölçmeden yazdı. Üçüncü bağımsız denetim **altı sökme yolu daha** ölçtü;
+beşi tek satırlık, biri koda hiç dokunmuyor.
+
+### Kök hata: yasak kelime listesi sonsuza kadar eksik kalır
+
+165 `todo`yu yasakladı. 166 `disable`/`manual`/`enabled: false` ekledi.
+Denetim `context: { exclude: ["#storybook-root"] }` ile geçti; onu
+yasaklasan `options: { runOnly: [...] }` kalıyor; onu da yasaklasan
+`config: { checks: [{ id: "color-contrast", evaluate: () => true }] }`.
+**Üçü de `test: "error"` satırını yerinde bırakıp kapsamı sıfırlıyor.**
+
+Kural artık **izin listesi**: bir `a11y` bloğunun tek meşru içeriği
+`test: "error"`tür; fazladan HER anahtar kırmızıdır. Ne yaptığını bilmeye
+gerek kalmaz — bilinmeyen bir gelecek anahtarı da düşer.
+
+### Kapatılan diğer yollar
+
+- **Yem blok.** `String.match` global değildi; dosyanın başına sağlam
+  görünen bir `a11y` bloğu koymak gerçek bloğu denetimden tamamen
+  kaçırıyordu. Artık tüm bloklar parantez sayılarak çıkarılıyor.
+- **`main.ts` kontrolü "dosyada geçiyor mu" diyordu.**
+  `const KALDIRILDI = ["@storybook/addon-a11y"]` yazıp `addons`tan
+  çıkarmak kilidi yeşil bırakıyordu. Artık `addons` DİZİSİNİN içinde.
+- **`STORYBOOK_COMPONENT_PATHS`.** 166 `VITEST_STORYBOOK`i sabitledi ve
+  *"kapı kendi ortamını sabitler"* dedi; aynı işi yapan İKİNCİSİ açıktı —
+  `globals.ghostStories`i doldurup axe'i hiç çağırtmıyor, **koda tek
+  karakter dokunmadan.** Tez doğruydu, uygulaması eksikti.
+- **Uzantı kümesi.** Yürüyüş `.stories.tsx` arıyordu, `main.ts` beşini
+  indeksliyor. Bugün 54 dosyanın 54'ü `.tsx` — delik açık değildi, ama bir
+  `kapali.stories.ts` eklemek onu sessizce açardı.
+
+### Yanlış kırmızılar — 166 kendi teşhisini tekrar etmişti
+
+166 *"eski regex biçim değişikliğinde yalan söylüyordu"* dedi ve yenisi de
+söylüyordu: gerçek `preview.tsx`te a11y bloğunun hemen altında
+`backgrounds: { disable: true }` var; blok tek satıra sıkışınca regex onu
+yutuyor ve **"a11y bloğunda `disable`"** diye yanlış yeri gösteriyordu.
+Kapanışta virgül yoksa "blok bulunamadı" diyordu. Tek tırnak
+reddediliyordu. Kapıyı SIKILAŞTIRAN bir story bile kırmızıydı.
+
+**Ve self-check bu sınıfı YAPISAL OLARAK göremezdi**, çünkü dokuz
+senaryonun hiçbiri gerçek dosyaları okumuyordu. O satır eklendi ve
+**hemen bir kaçak yakaladı**: gerçek `main.ts` anahtarı tırnaklı yazıyor
+(`"addons":`), kilidin regex'i tırnaksız arıyordu — yani yeni kilit,
+yürürlükteki DOĞRU yapılandırmayı düşürüyordu.
+
+Senaryolar 9 → 17. `manual` ve `enabled: false` **hiç sınanmamıştı**
+(oysa doküman ikisini de sökme yolu diye sayıyordu); dördü artık
+"doğru yapılandırmayı yanlışlıkla düşürme"yi sınıyor.
+
+### Ve bir GERİLEME: 166 anahtarı adsız bıraktı
+
+166 `Toggle`ın `<button role="switch">`inden `aria-label`ı "çiftleme"
+diye kaldırdı. Gerekçe `<button>`ın labelable olmasıydı — doğru ama
+yetersiz: **erişilebilir ad hesabı MOTORA BAĞLI.** axe-core `button` için
+yalnız `subtreeText` uygular (`labelText` listesinde yok) ve butonun alt
+ağacında tek bir `aria-hidden` span var → **axe'in hesapladığı ad boş.**
+
+Ve kapı bunu göremezdi: `aria-toggle-field-name`
+`matches: 'no-naming-method-matches'` olduğu için `<button>`da hiç
+koşmuyor, `button-name` ise `implicit-label` kontrolüyle geçiyor.
+**Sıfır ihlal raporlandı, anahtar adsızdı.**
+
+**İlk yazdığım koruma da işe yaramadı** ve bunu deneyerek gördüm:
+`getByRole("switch", { name })` `dom-accessibility-api`yi kullanır, o
+saran etiketi OKUR — `aria-label` kaldırılmış hâlde test YEŞİL kaldı.
+*İyimser motorla ölçmek, ölçmemektir.* İddia niteliğin kendisine
+bakacak şekilde yeniden yazıldı ve kırmızı olduğu kanıtlandı.
+
+### Düzeltilmeyen — gerekçesiyle
+
+- **Import indirection ve hesaplanmış anahtar.** Parametreyi başka bir
+  dosyadan alan bir story statik metin denetiminden kaçar. Kapatılmadı:
+  bu kilidin amacı **niyet göstermeden** yapılan sökmeleri durdurmak;
+  import indirection niyettir. Sınır dosyaya yazıldı.
+- **166'nın "tonlu zeminlerde bugün hiçbiri 4.5 altında değil" iddiası
+  YANLIŞTI.** `text-content-tertiary`, `danger-bg` üstünde
+  `surface-floating` zemininde **4.21**. Bugün `ErrorState` popover'a
+  girmiyor, yani latent — ama iddia olduğu gibi yanlıştı.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 206 test**,
+atlanan 0, düşen 0, **a11y ihlali 0**.
+`--self-check`: **11 + 17 senaryo.**
+Enjekte ihlal denemeleri: token geri alınınca **5/5 kırmızı** ·
+`aria-label` kaldırılınca **1 kırmızı**.

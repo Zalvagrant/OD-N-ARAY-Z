@@ -188,7 +188,11 @@
   --odin-danger:      var(--odin-red-400);      /* gerçek kriz — SADECE */
   /* UI-ADR-166 — `rgba(239,68,68,…)` yani red-500 tabanlıydı; ön plan
      red-400'e taşınınca "danger"ın tek kaynak tonu kalmamıştı. Ölçüldü:
-     yeni tonda `text-danger` en kötü 4.77, geçer. */
+     yeni tonda `text-danger` en kötü 4.77, geçer.
+     ⚠️ UI-ADR-167: "bugün hiçbir kombinasyon 4.5 altında değil"
+     dedim ve YANLIŞTI — `text-content-tertiary` bu tonun üzerinde,
+     `surface-floating` zemininde **4.21**. Bugün `ErrorState` bir
+     popover'a girmediği için latent; ama iddia yanlıştı. */
   --odin-danger-bg:   rgba(248, 113, 113, 0.10);
   --odin-warning:     var(--odin-amber-500);    /* bekleyen risk */
   --odin-warning-bg:  rgba(245, 158, 11, 0.10);

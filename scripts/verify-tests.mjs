@@ -61,76 +61,112 @@ const ZORUNLU = {
   storybook: [],
 };
 
+/** Yorumları söker. String içindeki `//` yanlış kesilmesin diye önce
+ *  blok yorumları, sonra YALNIZ satır başındaki/boşluk sonrası `//`. */
+function yorumsuz(k) {
+  return k.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*/g, "$1");
+}
+
+/** `a11y: { … }` bloklarının GÖVDESİNİ parantez sayarak çıkarır.
+ *
+ *  Regex ile blok sonu aramak (satır sonu + `\},`) İKİ yönden yanlıştı ve
+ *  denetim ikisini de ölçtü: blok tek satıra sıkışınca bir SONRAKİ bloğu
+ *  yutuyordu (gerçek `preview.tsx`te hemen altta `backgrounds: { disable:
+ *  true }` var — kilit "a11y bloğunda `disable`" diye YALAN bir teşhis
+ *  basıyordu), ve kapanışta virgül yoksa bloğu hiç bulamıyordu.
+ *  Ayrıca `String.match` global değildi: dosyanın başına sağlam görünen
+ *  bir YEM blok koymak gerçek bloğu denetimden tamamen kaçırıyordu. */
+export function a11yBloklari(kaynak) {
+  const bloklar = [];
+  const re = /["']?a11y["']?\s*:\s*\{/g;
+  let m;
+  while ((m = re.exec(kaynak)) !== null) {
+    let derinlik = 1;
+    let i = m.index + m[0].length;
+    const bas = i;
+    while (i < kaynak.length && derinlik > 0) {
+      if (kaynak[i] === "{") derinlik += 1;
+      else if (kaynak[i] === "}") derinlik -= 1;
+      i += 1;
+    }
+    bloklar.push(kaynak.slice(bas, i - 1));
+  }
+  return bloklar;
+}
+
 /**
- * A11Y KAPISI SÖKÜLEMEZ — UI-ADR-165, **UI-ADR-166'da yeniden yazıldı.**
+ * A11Y KAPISI SÖKÜLEMEZ — UI-ADR-165 → 166 → **167'de üçüncü kez yazıldı.**
  *
  * `addon-a11y` `test: "todo"` iken ihlalleri GÖSTERİR ama hiçbir testi
- * düşürmez. Yani tek kelimelik bir düzenleme 206 testin hepsini yeşil
- * bırakarak erişilebilirlik kapsamının TAMAMINI kapatır — ne alt sınır ne
- * kimlik kontrolü görür, ikisi de SAYIYA bakar, sayı hiç değişmez.
+ * düşürmez. Tek kelimelik bir düzenleme 206 testin hepsini yeşil bırakarak
+ * erişilebilirlik kapsamının TAMAMINI kapatır; ne alt sınır ne kimlik
+ * kontrolü görür, ikisi de SAYIYA bakar, sayı hiç değişmez.
  *
- * ⚠️ İLK KİLİDİM YETERSİZDİ ve bunu bağımsız denetim ölçtü. Yalnız
- * `preview.tsx`te `test: "error"` metnini arıyordu; kapı **niyet
- * göstermeyen ÜÇ ayrı yoldan** sökülebiliyordu:
+ * ⚠️ İKİ KEZ YETERSİZ ÇIKTI ve iki kez bağımsız denetim ölçtü. 165 yalnız
+ * `preview.tsx`te metin arıyordu; 166 dört yolu kapattı ve ALTI yol daha
+ * açık kaldı. Kök hata her ikisinde de aynıydı: **yasak kelime listesi.**
+ * `disable`ı yasaklayınca `context: { exclude: ["#storybook-root"] }`
+ * kalıyor; onu da yasaklayınca `options: { runOnly: [...] }`, sonra
+ * `config: { checks: [...] }`. Liste sonsuza kadar eksik kalır.
  *
- *   1. `main.ts`ten `"@storybook/addon-a11y"` satırını sil → axe HİÇ
- *      yüklenmez. `preview.tsx` el değmeden durur, kilit YEŞİL kalırdı.
- *      (Kapıyı taşıyan dosya, ayarı taşıyan dosya DEĞİLDİ.)
- *   2. Bir story'ye `parameters: { a11y: { test: "todo" } }` yaz.
- *      Storybook story > meta > project sırasıyla birleştirir; story
- *      SON yazandır ve global `error`ü ezer.
- *   3. `a11y` bloğuna `disable: true` ya da `manual: true` ekle —
- *      `test: "error"` satırı yerinde kalır, tarama yine susar.
+ * Bu yüzden kural artık İZİN LİSTESİDİR: bir `a11y` bloğunun tek meşru
+ * içeriği `test: "error"`tür. Fazladan HER anahtar kırmızıdır — ne
+ * yaptığını bilmeye gerek kalmaz.
  *
- * Ayrıca regex `disable`li bir blokta da, salt biçim değişikliğinde
- * (tek satıra sıkışma, sondaki virgülün düşmesi) YANLIŞ KIRMIZI veriyordu
- * ve mesajı yanlış yeri gösteriyordu.
+ * Kapatılan yollar (hepsi kaynaktan doğrulandı):
+ *   1. `main.ts`ten addon'u çıkar → axe hiç yüklenmez. Artık `addons`
+ *      DİZİSİNİN İÇİNDE aranıyor: dosyanın başka bir yerinde geçen
+ *      (`const KALDIRILDI = ["@storybook/addon-a11y"]`) dizge saymaz.
+ *   2. Story'ye `parameters.a11y` yaz → story `project`i EZER. Aynı izin
+ *      listesi story'lere de uygulanır; bu sayede kapıyı SIKILAŞTIRAN bir
+ *      story artık yanlışlıkla kırmızı olmuyor.
+ *   3-6. `disable` · `manual` · `context.exclude` · `options.runOnly` ·
+ *      `config.checks` — hepsi "fazladan anahtar" olarak tek kuralla düşer.
+ *   7. `VITEST_STORYBOOK` ve `STORYBOOK_COMPONENT_PATHS` ortam
+ *      değişkenleri — ikincisi `globals.ghostStories`i doldurup taramayı
+ *      koda hiç dokunmadan susturuyordu. Kapı kendi ortamını sabitler.
  *
- * Bu yüzden kilit artık **saf bir fonksiyon**: `evaluate()` gibi, dosya
- * sistemi olmadan `--self-check` ile sınanabilir. Kendi testi olmayan bir
- * kapı, kapı değildir — ilk kilidin en büyük kusuru buydu: `--self-check`
- * satır 122'de `process.exit(0)` yaptığı için kilide HİÇ ULAŞMIYORDU.
+ * BİLİNEN SINIR — dürüstçe yazılıyor: statik metin denetimi, parametreyi
+ * BAŞKA bir dosyadan import eden ya da hesaplanmış anahtar kullanan bir
+ * düzenlemeyi göremez. Bu kilidin amacı da o değil: **niyet göstermeden**
+ * yapılan sökmeleri kapatmak. Import indirection niyettir.
  */
 export function a11ySorunlari({ main, preview, storyler = [] }) {
   const sorunlar = [];
-  /* Yorumlar SAYILMAZ: bir yorum içindeki `test: "error"` kapıyı açık
-     gösteriyordu — metin varlığı bir kanıt değildir. */
-  const yorumsuz = (s) =>
-    s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  /* Blok gövdesi boşluksuz hâliyle TAM olarak buna eşit olmalı. */
+  const SAGLAM = /^test:["']error["'],?$/;
+  const denetle = (ad, kaynak, zorunlu) => {
+    const bloklar = a11yBloklari(yorumsuz(kaynak));
+    if (zorunlu && bloklar.length === 0) {
+      sorunlar.push(`${ad}: \`a11y: { … }\` bloğu bulunamadı`);
+      return;
+    }
+    for (const blok of bloklar) {
+      const sade = blok.replace(/\s+/g, "");
+      if (!SAGLAM.test(sade)) {
+        sorunlar.push(
+          `${ad}: a11y bloğu \`test: "error"\` DIŞINDA içerik taşıyor → \`${sade.slice(0, 60)}\`. ` +
+          "Tek meşru içerik budur; fazladan her anahtar taramayı daraltabilir " +
+          "(disable · manual · context.exclude · options.runOnly · config.checks).",
+        );
+      }
+    }
+  };
 
-  if (!/["']@storybook\/addon-a11y["']/.test(yorumsuz(main))) {
+  /* Anahtar TIRNAKLI olabilir — gerçek `main.ts` `"addons": [` yazıyor.
+     Bu kaçak, self-check'e gerçek dosyaları okutan satır sayesinde
+     yakalandı: uydurma girdilerle yazılmış senaryolar yeşildi ama kilit
+     yürürlükteki yapılandırmayı düşürüyordu. */
+  const addons = yorumsuz(main).match(/["']?addons["']?\s*:\s*\[[\s\S]*?\]/);
+  if (!addons || !/["']@storybook\/addon-a11y["']/.test(addons[0])) {
     sorunlar.push(
-      "main.ts `addons` içinde @storybook/addon-a11y YOK — axe hiç yüklenmez, " +
+      "main.ts `addons` DİZİSİNDE @storybook/addon-a11y yok — axe hiç yüklenmez, " +
       "tarama sıfırdır (test sayısı değişmediği için alt sınır bunu göremez)",
     );
   }
 
-  const blok = yorumsuz(preview).match(/a11y\s*:\s*\{([\s\S]*?)\n\s*\},/);
-  if (!blok) {
-    sorunlar.push("preview.tsx içinde `a11y: { … }` bloğu bulunamadı");
-  } else {
-    if (!/test\s*:\s*"error"/.test(blok[1])) {
-      sorunlar.push(
-        'preview.tsx a11y.test "error" değil — "todo" raporlar ama düşürmez, "off" hiç koşmaz',
-      );
-    }
-    const susturucu = blok[1].match(/disable|manual|enabled\s*:\s*false/);
-    if (susturucu) {
-      sorunlar.push(
-        `preview.tsx a11y bloğunda susturucu anahtar: \`${susturucu[0]}\` — ` +
-        '`test: "error"` yerinde dursa bile tarama susar',
-      );
-    }
-  }
-
-  for (const { ad, kaynak } of storyler) {
-    if (/\ba11y\s*:/.test(yorumsuz(kaynak))) {
-      sorunlar.push(
-        `${ad}: story seviyesi \`a11y\` parametresi global kapıyı EZER ` +
-        "(Storybook story > meta > project sırasıyla birleştirir)",
-      );
-    }
-  }
+  denetle("preview.tsx", preview, true);
+  for (const { ad, kaynak } of storyler) denetle(ad, kaynak, false);
 
   return sorunlar;
 }
@@ -192,27 +228,61 @@ if (process.argv.includes("--self-check")) {
   assert.equal(
     evaluate({ ...ok, testResults: [{ name: "x/kapi.test.ts" }] },
              { ...F, zorunlu: ["kapi.test"] }).problems.length, 0);
-  /* A11Y KİLİDİ — sekiz senaryo. İlk kilidin HİÇ testi yoktu ve üç
-     sökme yolunu birden kaçırıyordu; bağımsız denetim ölçtü. */
+  /* A11Y KİLİDİ — UI-ADR-167. Önceki dokuz senaryo YETERSİZDİ ve denetim
+     bunu ölçtü: `manual` ile `enabled: false` HİÇBİR senaryoda
+     sınanmıyordu (oysa doküman ikisini de sökme yolu diye sayıyordu), ve
+     senaryoların hiçbiri GERÇEK dosyaları okumadığı için "doğru
+     yapılandırmayı yanlışlıkla düşürme" sınıfı yapısal olarak
+     görünmezdi. Artık ikisi de var. */
   const MAIN = 'addons: ["@storybook/addon-a11y"],';
-  const PRE = (govde) => `  parameters: {\n    a11y: {\n${govde}\n    },\n  },`;
-  const SAGLAM = PRE('      test: "error",');
-  const a11y = (o) => a11ySorunlari({ main: MAIN, preview: SAGLAM, ...o });
+  const PRE = (govde) => `  parameters: {
+    a11y: {
+${govde}
+    },
+    backgrounds: { disable: true },
+  },`;
+  const a11y = (o) => a11ySorunlari({ main: MAIN, preview: PRE('      test: "error",'), ...o });
 
-  assert.equal(a11y({}).length, 0);                                   // sağlıklı
-  // 1. Biçim değişikliği YANLIŞ KIRMIZI vermemeli (eski regex veriyordu):
-  assert.equal(a11y({ preview: PRE('      test: "error"') }).length, 0);   // virgülsüz
-  assert.equal(a11ySorunlari({ main: MAIN, preview: 'a11y: {\n test: "error"\n },' }).length, 0);
-  // 2. Gerçek sökme yolları KIRMIZI olmalı:
-  assert.ok(a11y({ preview: PRE('      test: "todo",') }).length > 0);
-  assert.ok(a11y({ preview: PRE('      test: "off",') }).length > 0);
-  assert.ok(a11y({ preview: PRE('      test: "error",\n      disable: true,') }).length > 0);
-  assert.ok(a11y({ main: 'addons: ["@storybook/addon-vitest"],' }).length > 0);
+  assert.equal(a11y({}).length, 0);                                        // sağlıklı
+  /* YANLIŞ KIRMIZI OLMAMALI — dördü de a11y'yi tam AÇIK bırakan biçimler.
+     Eskisi dördünde de kırmızıydı ve mesajı yanlış yeri gösteriyordu. */
+  assert.equal(a11y({ preview: `a11y: { test: "error" },
+backgrounds: { disable: true },` }).length, 0);
+  assert.equal(a11y({ preview: `a11y: {
+  test: "error"
+}
+` }).length, 0);   // kapanışta virgül yok
+  assert.equal(a11y({ preview: `a11y: { test: 'error' },` }).length, 0);          // tek tırnak
+  assert.equal(a11y({ storyler: [{ ad: "s.stories.tsx", kaynak: 'parameters:{a11y:{test:"error"}}' }] }).length, 0);
+  assert.equal(a11y({ storyler: [{ ad: "s.stories.tsx", kaynak: 'const skor = { a11y: 92 };' }] }).length, 0);
+  /* SÖKME YOLLARI — hepsi kırmızı olmalı. */
+  for (const govde of [
+    `      test: "todo",`,
+    `      test: "off",`,
+    `      test: "error",
+      disable: true,`,
+    `      test: "error",
+      manual: true,`,
+    `      test: "error",
+      options: { rules: [{ id: "color-contrast", enabled: false }] },`,
+    `      test: "error",
+      context: { exclude: ["#storybook-root"] },`,
+    `      /* test: "error", */
+      test: "todo",`,
+  ]) assert.ok(a11y({ preview: PRE(govde) }).length > 0, govde);
+  // YEM BLOK: sağlam görünen ilk blok, gerçeği gizleyemez.
+  assert.ok(a11y({ preview: 'const not = { a11y: { test: "error" } };' + PRE('      test: "todo",') }).length > 0);
+  // main.ts: dizge dosyada geçiyor ama `addons` DİZİSİNDE değil.
+  assert.ok(a11y({ main: 'const KALDIRILDI = ["@storybook/addon-a11y"]; addons: ["@storybook/addon-vitest"],' }).length > 0);
   assert.ok(a11y({ storyler: [{ ad: "x.stories.tsx", kaynak: 'parameters: { a11y: { test: "todo" } }' }] }).length > 0);
-  // 3. Yorum içindeki metin KANIT DEĞİLDİR (eski regex buna kanıyordu):
-  assert.ok(a11y({ preview: PRE('      /* test: "error", */\n      test: "todo",') }).length > 0);
+  /* GERÇEK DOSYALAR — senaryolar uydurma girdiyle yeşil olup yürürlükteki
+     yapılandırmayı düşürebilirdi; bu satır o boşluğu kapatır. */
+  const gercek = (yol) => readFileSync(new URL(`./../${yol}`, import.meta.url), "utf8");
+  assert.equal(
+    a11ySorunlari({ main: gercek(".storybook/main.ts"), preview: gercek(".storybook/preview.tsx") }).length,
+    0, "yürürlükteki .storybook yapılandırması kilitten geçmeli");
 
-  console.log(`self-check: 11 + 9 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
+  console.log(`self-check: 11 + 17 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 
@@ -223,7 +293,11 @@ if (PROJECT === "storybook") {
     for (const g of readdirSync(new URL(`./../${dizin}`, import.meta.url), { withFileTypes: true })) {
       const yol = `${dizin}/${g.name}`;
       if (g.isDirectory()) gez(yol);
-      else if (g.name.endsWith(".stories.tsx")) storyler.push({ ad: yol, kaynak: oku(yol) });
+      /* Uzantı kümesi `main.ts` globuyla AYNI olmalı: o beşini indeksliyor
+         (`js|jsx|mjs|ts|tsx`), yürüyüş yalnız `.tsx` arıyordu. Bugün 54
+         dosyanın 54'ü `.tsx` — yani delik açık değil, ama bir
+         `kapali.stories.ts` eklemek onu sessizce açardı (UI-ADR-167). */
+      else if (/\.stories\.(m?[jt]sx?)$/.test(g.name)) storyler.push({ ad: yol, kaynak: oku(yol) });
     }
   };
   gez("src");
@@ -255,7 +329,15 @@ try {
          durursa ihlaller rapora yazılır ama HİÇBİR TEST DÜŞMEZ — ve depoda
          hiçbir iz kalmaz. Kapı, korumasını dışarıdaki bir ortam
          değişkenine emanet edemez; kendi ortamını sabitler. */
-      env: { ...process.env, VITEST_STORYBOOK: "false" } },
+      env: { ...process.env,
+             VITEST_STORYBOOK: "false",
+             /* `STORYBOOK_COMPONENT_PATHS` — UI-ADR-167. Doluysa plugin
+                `globals.ghostStories`i dolduruyor ve addon-a11y'nin
+                `!!!globals.ghostStories` koşulu axe'i HİÇ çağırmıyor.
+                166 tek değişkeni sabitledi ve "kapı kendi ortamını
+                sabitler" dedi; aynı işi yapan İKİNCİSİ açıktı. Tez
+                doğruydu, uygulaması eksikti. */
+             STORYBOOK_COMPONENT_PATHS: undefined } },
   );
 } catch {
   // Çıkış kodunu YUTMUYORUZ ama tek kanıt saymıyoruz: rapor yine de
