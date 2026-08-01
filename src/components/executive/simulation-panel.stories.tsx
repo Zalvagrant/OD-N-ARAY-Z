@@ -54,14 +54,24 @@ export const HazirSenaryolar: StoryObj = {
     await userEvent.click(secenekler[1]);
     await expect(c.getByText("−%6")).toBeInTheDocument();
 
-    /* ⚠️ KASTEN İSİMLE ARAMIYORUZ — UI-ADR-184'te bulunan kusur.
-       `caseLabel` eksi işaretini `Math.abs` ile düşürüyor ve geri
-       koymuyor: changePercent −10 ekranda "%10" yazıyor (+15 ise "+%15").
-       Yani %10'luk bir bütçe KESİNTİSİ, artışla aynı biçimde görünüyor.
-       Ölçüldü. Bu bir GÖRÜNTÜ kusurudur ve bu görevin yasağı kapsamında
-       ("hiçbir davranış değişmeyecek") — sahibin kararına bırakıldı.
-       Testi o etikete bağlamak kusuru ÇİMENTOLARDI; adet ve indeksle
-       ölçüyoruz ki düzeltme geldiğinde bu test kırılmasın. */
+    /* İŞARET SÖZLEŞMESİ — UI-ADR-191'de DÜZELTİLDİ, artık kilitli.
+       UI-ADR-184'te bu kusur bulunmuş ama düzeltme sahibin kararına
+       bırakılmıştı (görüntüyü değiştirir); o yüzden test bilerek etikete
+       BAĞLANMAMIŞTI, kusuru çimentolamasın diye. Sahip onayladı, tek
+       satır düzeldi ve kilit şimdi kondu.
+
+       Ölçülen: artı işaret ALIR, eksi işaret ALIR. İkinci assert olmadan
+       `Math.abs`ın işareti yeniden yutması sessizce geri gelebilirdi —
+       kusurun ilk hâli tam olarak buydu.
+
+       ⚠️ İlk yazışımda `getByText("−%10")` kullandım ve test "multiple
+       elements" ile düştü: etiket artık İKİ yerde görünüyor (radyo düğmesi
+       ve gövdedeki "değişim" satırı). Düşme, düzeltmenin İKİSİNDE DE
+       çalıştığının kanıtıydı — yani yanlış olan kod değil testimdi, yine.
+       Assert seçeneklerin kendisine bağlandı: kullanıcı senaryoyu önce
+       oradan okur. */
+    await expect(secenekler[0]).toHaveTextContent("+%15");
+    await expect(secenekler[1]).toHaveTextContent("−%10");
   },
 };
 

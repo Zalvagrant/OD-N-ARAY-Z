@@ -9,7 +9,15 @@
 
 ## HÜKÜM: ÜRETİME HAZIR DEĞİL
 
-**Dört açık release blocker var.** Meclis (gavadolar 2/2) aynı hükümde.
+**İKİ blocker kapandı, İKİ blocker açık.** (İlk hâlinde dördü de açıktı;
+sahip B2 ve B3'ü onayladı, ikisi de kapatıldı — UI-ADR-191.)
+
+| # | durum |
+|---|---|
+| **B1** Human Sign-off çalışmıyor | 🔴 **AÇIK — Senaryo B doğrulandı** |
+| B2 Eksi işareti | ✅ kapandı |
+| B3 `global-error.tsx` | ✅ kapandı |
+| **B4** Yetkilendirme | ⚠️ **AÇIK — dağıtım modeli beyanı bekliyor** |
 
 Sabit kural, yüzdeden önce gelir:
 
@@ -45,10 +53,49 @@ Arayüz bugün **salt-okunur**. Ekranda karar verilebilir GÖRÜNÜYOR — üç
 buton çizili, form açılıyor, gerekçe isteniyor — ama hiçbir şey ODIN'e
 ulaşmıyor. Bu, "sahte veri yasağı"nın eylem tarafındaki karşılığıdır.
 
-**Düzeltme:** `POST /api/command` bağlantısı + `useMutation` + hata/rollback
-sözleşmesi. Backend ucu ODIN'de mevcut (CLAUDE.md "Backend bağlantısı").
+#### ⚠️ "Göndermesi gerekiyordu" kanıtı — sahibin itirazı üzerine eklendi
 
-### B2 — Eksi işareti düşüyor: kesinti, artış gibi görünüyor 🔴
+Raporun ilk hâli yalnız *"göndermiyor"*u kanıtlamıştı. Sahip haklı olarak
+ayrımı sordu:
+
+- **Senaryo A** — UI hazır, backend henüz yazılmadı → bu bir **eksik
+  özelliktir**, mimari kusur değil.
+- **Senaryo B** — backend hazır, UI göndermiyor → **kritik bug**.
+
+ODIN çekirdeği okundu. **Senaryo B doğrulandı.**
+
+`odin/cockpit.py`, `ALLOWED_COMMANDS` içinde — kendi yorumuyla:
+
+> *"ADR-0142 (ER-0025): **the UI submits owner verdicts through THIS
+> whitelist** — no separate `/api/verdict` endpoint (council ruling, 3/3).
+> `ceo verdict` itself enforces ADR-0131 (class-B/C reason, deferred date)
+> and refuses loudly; the refusal text travels back verbatim in the command
+> result **so the UI can show WHY**."*
+
+Üç bağımsız kanıt:
+
+| kanıt | yer | ne diyor |
+|---|---|---|
+| CLI fiili **var** | `odin/__main__.py:98` | `python -m odin ceo verdict <rec_id> <approved\|rejected\|deferred> [neden]` |
+| Beyaz listeye **UI için eklendi** | `odin/cockpit.py` `ALLOWED_COMMANDS` | `"ceo"` — gerekçe yorumda yazılı |
+| İstek **kapatıldı** | `docs/registries/request-registry.md` ER-0025 | *"implemented v1 (ADR-0142) … refusal text travels verbatim, **UI tells a whitelist rejection from a refused verdict** … `tests/test_cockpit.py` pins a dateless deferral coming back REFUSED, **7 green**"* |
+
+Yani backend tarafı, **arayüzün çağıracağı sözleşmesiyle tasarlandı,
+uygulandı, test edildi ve "tamamlandı" diye kapatıldı.** Arayüz o çağrıyı
+hiç yapmadı ve kodundaki not hâlâ *"S7'de bağlanacak"* diyor — **S7 çoktan
+geçti** (`main` bugün S1…S17 + S13).
+
+Bu bir bekleyen özellik değil, **kopmuş bir el sıkışmadır**: iki taraf da
+kendi tarafını bitmiş sayıyor, arada kimsenin sahiplenmediği bir boşluk
+var. ER-0025'in "implemented" damgası bugün **yanıltıcıdır** — komut
+çalışıyor ama onu çağıran yok.
+
+**Düzeltme:** `POST /api/command` çağrısı, gövde `{argv: ["ceo","verdict",
+id, verdict, reason]}`; `useMutation`; ve iki hata biçimini ayırt etme —
+beyaz liste reddi (`exit` anahtarı yok) ile reddedilmiş verdict
+(`exit != 0` + `REDDEDİLDİ` metni). Sözleşme ER-0025'te zaten yazılı.
+
+### B2 — Eksi işareti düşüyordu ✅ KAPANDI (UI-ADR-191)
 
 `components/executive/simulation-panel.tsx:39`:
 
@@ -66,11 +113,13 @@ Node ile koşturularak doğrulandı. Bir simülasyon panelinde %10'luk bütçe
 gerçekten −10'luk bir senaryo var. Kullanıcı yanlış senaryonun sayılarını
 okuyup karar verebilir.
 
-**Düzeltme:** `p > 0 ? "+" : p < 0 ? "-" : ""` (tek satır).
-**Durum:** sahibin kararını bekliyor (UI-ADR-189) — düzeltme görüntüyü
-değiştirdiği için görevin yasağı kapsamındaydı.
+**Düzeltildi** (sahip onayladı): `p > 0 ? "+" : p < 0 ? "−" : ""`.
+`−` U+2212 — `mocks/amazon.ts` senaryo metinleri zaten bunu kullanıyor.
+Dikkat çekici: fonksiyonun **kendi JSDoc'u zaten `"-%10"` yazıyordu** —
+sözleşme beyan edilmiş, kod tutmuyordu. Sözleşme testi kondu
+(`simulation-panel.stories.tsx`): artı işaret ALIR, eksi işaret ALIR.
 
-### B3 — Kök layout patlarsa boş beyaz sayfa 🔴
+### B3 — Kök layout patlarsa boş beyaz sayfa ✅ KAPANDI (UI-ADR-191)
 
 ```
 src/app/(shell)/error.tsx     VAR   → ekran hataları yakalanıyor, kabuk ayakta kalıyor
@@ -82,7 +131,20 @@ KENDİSİ patlarsa devreye giremez. Sonuç: kullanıcı boş beyaz sayfa görür
 `10-component-library.md` §11'in (*"Kullanıcı hiçbir zaman sadece 'Error'
 görmez"*) ihlali.
 
-**Düzeltme:** `src/app/global-error.tsx` (küçük, tek dosya).
+**Düzeltildi** (sahip onayladı): `src/app/global-error.tsx` eklendi.
+Kendi `<html>`/`<body>`sini kurar (kök layout'un YERİNE geçer), `reset()`
+ile yerinde onarma ve brifinge dönüş yolu sunar, hata kimliğini ancak Next
+ürettiyse basar.
+
+⚠️ **İki kez kapı tarafından düzeltildim:** (1) "kök çöktüyse `globals.css`
+yüklenmemiş olabilir" diye inline stil yazdım — token kapısı dokuz satırda
+durdurdu ve haklıydı: stil yoksa sayfa stilsiz ama OKUNUR kalır.
+(2) `bg-surface-base` yazdım — **öyle bir token yok**; repoda tek geçtiği
+yer benim satırımdı ve Tailwind onu sessizce yok sayardı. Kabuğun kullandığı
+`bg-bg` ile değiştirildi.
+
+⚠️ Bu dosyanın **story'si yok**, yani a11y kapısından geçmiyor: kök çökme
+durumu Storybook'ta üretilemiyor. Bilerek kayda geçirildi.
 
 ### B4 — Yetkilendirme katmanı yok ⚠️ ŞARTA BAĞLI
 

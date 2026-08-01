@@ -35,11 +35,33 @@ export function canRenderSimulation(c: SimulationCase | undefined): boolean {
   return Array.isArray(a) && a.length > 0 && (c!.result.scenarios?.length ?? 0) > 0;
 }
 
-/** "+%15" · "-%10" — sayı zarftan gelir, burada yalnızca biçimlenir. */
+/**
+ * "+%15" · "−%10" — sayı zarftan gelir, burada yalnızca biçimlenir.
+ *
+ * ⚠️ EKSİ İŞARETİ DÜŞÜYORDU — UI-ADR-191, mimari denetimde bulundu.
+ *
+ * Satır şöyleydi: `${p > 0 ? "+" : ""}%${Math.abs(p)}`. Artı için işaret
+ * ekleniyor, eksi için `Math.abs` işareti siliyor ve geri konmuyordu:
+ *
+ *     changePercent  +15  →  "+%15"      (doğru)
+ *     changePercent  −10  →  "%10"       (YANLIŞ — kesinti, artış gibi)
+ *
+ * Bu bir simülasyon panelinde: %10'luk bütçe KESİNTİSİ senaryosu, artış
+ * senaryosundan ayırt edilemiyordu ve mock'ta gerçekten −10'luk bir
+ * senaryo var. Kullanıcı yanlış senaryonun sayılarına bakıp karar
+ * verebilirdi.
+ *
+ * Dikkat çekici olan: bu fonksiyonun KENDİ yorumu zaten `"-%10"` yazıyordu.
+ * Sözleşme beyan edilmişti, kod onu tutmuyordu ve hiçbir şey ölçmüyordu —
+ * bu denetimin baştan sona tekrar eden deseni.
+ *
+ * `−` U+2212 MİNUS SIGN: `mocks/amazon.ts` senaryo metinlerinde ("−%6")
+ * zaten bunu kullanıyor. ASCII tire ile yan yana durunca hizasız görünür.
+ */
 function caseLabel(c: SimulationCase): string {
   const p = c.request?.changePercent;
   if (!Number.isFinite(p)) return c.request?.parameter ?? "senaryo";
-  return `${p > 0 ? "+" : ""}%${Math.abs(p)}`;
+  return `${p > 0 ? "+" : p < 0 ? "−" : ""}%${Math.abs(p)}`;
 }
 
 function SimulationView({

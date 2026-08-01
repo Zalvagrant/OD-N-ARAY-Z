@@ -7459,3 +7459,112 @@ kararına kanıt olarak sunulur; kapı eklenmedi.**
 Kod değiştirilmedi. Kapı UI-ADR-187'deki hâliyle:
 `tsc` 0 · `lint` 0/0 · unit 18 dosya / 321 test · storybook 58 dosya /
 226 test · atlanan 0 · düşen 0 · a11y ihlali 0, koşum kanıtı 226/226.
+
+---
+
+## UI-ADR-191 — İki blocker kapandı; ve "eksik özellik mi, kusur mu" ayrımı kanıtlandı
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-133 · 184 · 189 · 190 · ODIN ADR-0142 · ER-0025
+
+Sahip Release Readiness raporunu okudu, dört blocker'ı **önem sırasına
+ayırdı** ve raporun en zayıf noktasını buldu.
+
+### Sahibin itirazı — ve haklıydı
+
+> *"Rapor şu an sadece 'göndermiyor' demiş. Ama 'göndermesi gerekiyordu'
+> kanıtını göstermemiş. Bu küçük ama önemli fark."*
+
+İki senaryo ayırt edilmemişti:
+
+- **A** — UI hazır, backend yazılmadı → **eksik özellik**, kusur değil.
+- **B** — backend hazır, UI göndermiyor → **kritik bug**.
+
+ODIN çekirdeği okundu. **Senaryo B doğrulandı**, üç bağımsız kanıtla:
+
+1. `odin/__main__.py:98` — CLI fiili var:
+   `python -m odin ceo verdict <rec_id> <approved|rejected|deferred> [neden]`
+2. `odin/cockpit.py` `ALLOWED_COMMANDS` — `"ceo"` beyaz listede ve gerekçe
+   yorumda yazılı: *"the UI submits owner verdicts through THIS whitelist …
+   the refusal text travels back verbatim **so the UI can show WHY**"*
+3. `request-registry.md` ER-0025 — **"implemented v1 (ADR-0142)"**,
+   `tests/test_cockpit.py` **7 yeşil**, ve satır arayüzün iki hata biçimini
+   nasıl ayırt edeceğini tarif ediyor.
+
+Yani backend, **arayüzün çağıracağı sözleşmesiyle** tasarlandı, uygulandı,
+test edildi ve *tamamlandı* diye kapatıldı. Arayüz o çağrıyı hiç yapmadı;
+kodundaki not hâlâ *"S7'de bağlanacak"* diyor ve **S7 çoktan geçti**.
+
+**Bu bir bekleyen özellik değil, kopmuş bir el sıkışmadır.** İki taraf da
+kendi tarafını bitmiş sayıyor; arada kimsenin sahiplenmediği bir boşluk
+var. ER-0025'in "implemented" damgası bugün **yanıltıcıdır** — komut
+çalışıyor ama onu çağıran yok.
+
+**Ders:** iki repolu bir sistemde "tamamlandı" tek taraflı verilemez. Bir
+sözleşmenin iki ucu vardır ve yalnız biri kapandığında kayıt "bitti" der,
+sistem "bitmedi" der. Bunu ne backend'in 7 yeşil testi ne arayüzün 226
+testi yakalayabilirdi: **ikisi de kendi tarafında haklıydı.**
+
+### B2 — eksi işareti düşüyordu (kapandı)
+
+    // önce
+    return `${p > 0 ? "+" : ""}%${Math.abs(p)}`;      // −10 → "%10"
+    // sonra
+    return `${p > 0 ? "+" : p < 0 ? "−" : ""}%${Math.abs(p)}`;
+
+`Math.abs` işareti siliyor, artı için geri konuyor, eksi için
+konmuyordu — %10'luk bütçe **kesintisi** artıştan ayırt edilemiyordu.
+
+Dikkat çekici olan: **fonksiyonun kendi JSDoc'u zaten `"-%10"` yazıyordu.**
+Sözleşme beyan edilmiş, kod tutmuyordu ve hiçbir şey ölçmüyordu — bu
+denetimin baştan sona tekrar eden deseni.
+
+Sözleşme testi kondu; UI-ADR-184'te kusuru **çimentolamamak için** bilerek
+etikete bağlanmamıştı, şimdi bağlandı.
+
+### B3 — kök hata sınırı (kapandı)
+
+`src/app/global-error.tsx` eklendi. `(shell)/error.tsx` bir route segment
+sınırıdır ve `layout.tsx`'in KENDİSİ patlarsa devreye giremez; o durumda
+kullanıcı boş beyaz sayfa görüyordu.
+
+**⚠️ Bu dosyayı yazarken kapı beni İKİ KEZ düzeltti:**
+
+1. *"Kök çöktüyse `globals.css` yüklendiğine güvenilemez"* diyerek inline
+   stil yazdım; token kapısı **dokuz satırda birden** durdurdu. Varsayımı
+   gözden geçirdim: stil yoksa sayfa **stilsiz ama OKUNUR** kalır. Kuralı
+   çiğnemeye gerekçe yoktu. **Bir kapıyı susturmak için bulunan gerekçe,
+   gerekçe değildir.**
+2. `bg-surface-base` yazdım — **öyle bir token yok.** Kullanımdan türeterek
+   yakalandı: repoda tek geçtiği yer benim satırımdı. Tailwind onu sessizce
+   yok sayar ve hata sayfası **zeminsiz** kalırdı; hiçbir test bunu
+   göremezdi. Kabuğun kullandığı `bg-bg` ile değiştirildi.
+
+Ayrıca `<a>` yerine `<Link>` kullanıldı: repo **`noInlineConfig`** ile
+koşuyor, yani hiçbir kural satır içi susturulamıyor. Gerekçemi ("kök
+çöktüyse istemci gezinmesi de çökmüş olabilir") yeniden tarttım ve
+**spekülatifti** — `global-error` taze bir React kökü kurar ve router'ın da
+çöktüğüne dair kanıtım yoktu.
+
+⚠️ Bu dosyanın **story'si yok**, yani a11y kapısından geçmiyor: kök çökme
+Storybook'ta üretilemiyor. Bilerek kayda geçirildi.
+
+### ⚠️ Testim yine benden önce yanılmadı
+
+Sözleşme testini `getByText("−%10")` ile yazdım ve **"multiple elements"**
+ile düştü: etiket artık **iki yerde** görünüyor (radyo düğmesi ve gövde).
+Düşme, düzeltmenin ikisinde de çalıştığının kanıtıydı. Bu oturumda
+sekizinci kez yanlış olan kod değil **benim testimdi**.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0 · `lint` 0 hata 0 uyarı ·
+**unit 18 dosya / 321 test** · **storybook 58 dosya / 226 test** ·
+atlanan 0 · düşen 0 · **a11y ihlali 0, koşum kanıtı 226/226**.
+
+### Kalan iki blocker
+
+- **B1** — Human Sign-off. Sözleşme ER-0025'te yazılı, backend hazır.
+- **B4** — yetkilendirme. **Dağıtım modeli beyanı sahibindir**: tek
+  kullanıcılı localhost aracı ise N/A, çok kullanıcılı ise blocker.
