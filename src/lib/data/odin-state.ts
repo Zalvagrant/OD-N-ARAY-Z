@@ -21,6 +21,7 @@ import { IS_MOCK } from "./mode";
 import {
   alertSchema,
   councilPanelSchema,
+  decisionQueueItemSchema,
   executiveKpiSchema,
   goalSchema,
   opportunitySchema,
@@ -537,6 +538,80 @@ export function useOdinCompanyKpis(): OdinQueryResult<
               asOf: p.finance_position.cash_provenance?.as_of ?? null,
             },
           ]);
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Karar kuyruğu — ODIN `/api/state.decision_queue`
+   -------------------------------------------------------------------------- */
+
+/**
+ * Sahibin karara bağlaması beklenen öneriler.
+ *
+ * TEKİLLEŞTİRME ODIN'DE: ham akış 1.933 kayıt ama 1.921'i aynı risklerin
+ * heartbeat tekrarı; ODIN (trigger, signal, recommendation) anahtarıyla
+ * 26'ya indiriyor ve tekrar sayısını `occurrences` olarak taşıyor. Arayüz
+ * ne tekilleştirir ne de sıralar — sıra da ODIN'de (önce sahip onayı
+ * bekleyen, sonra şiddet).
+ */
+const decisionQueueStateSchema = z.object({
+  generated_at: z.string(),
+  /* Okunamayan kuyruk "öneri yok" DEĞİLDİR. */
+  decision_queue: z
+    .array(
+      z.object({
+        rec_id: z.string(),
+        trigger: z.string(),
+        signal: z.object({ risk: z.string(), level: z.number() }).nullable(),
+        recommendation: z.string(),
+        severity: z.enum(["HIGH", "MEDIUM", "INFO"]),
+        klass: z.string().nullable(),
+        rationale: z.string().nullable(),
+        owner_approval_required: z.boolean(),
+        council_needed: z.boolean(),
+        decided: z.boolean(),
+        first_seen: z.string(),
+        last_seen: z.string(),
+        occurrences: z.number(),
+      })
+    )
+    .nullable(),
+});
+
+export type DecisionQueueItem = z.infer<typeof decisionQueueItemSchema>;
+
+export function useOdinDecisionQueue(): OdinQueryResult<DecisionQueueItem[]> {
+  return useOdinQuery({
+    key: ["odin", "decision-queue"],
+    module: "default",
+    schema: z.array(decisionQueueItemSchema),
+    load: IS_MOCK
+      ? async () => loadMock("decisions.queue")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = decisionQueueStateSchema.parse(raw);
+          if (parsed.decision_queue === null) {
+            throw contractError("/api/state", "ODIN karar kuyruğunu okuyamadı");
+          }
+          return internalEnvelope(
+            parsed.generated_at,
+            parsed.decision_queue.map((d) => ({
+              recId: d.rec_id,
+              trigger: d.trigger,
+              signal: d.signal,
+              recommendation: d.recommendation,
+              severity: d.severity,
+              klass: d.klass,
+              rationale: d.rationale,
+              ownerApprovalRequired: d.owner_approval_required,
+              councilNeeded: d.council_needed,
+              decided: d.decided,
+              firstSeen: d.first_seen,
+              lastSeen: d.last_seen,
+              occurrences: d.occurrences,
+            }))
+          );
         },
   });
 }

@@ -62,6 +62,7 @@ export interface MockMap {
   "briefing.risks": ReturnType<BriefingMocks["risksMock"]>;
   "briefing.timeline": ReturnType<BriefingMocks["timelineMock"]>;
   "council.panels": ReturnType<BriefingMocks["councilPanelsMock"]>;
+  "decisions.queue": ReturnType<BriefingMocks["decisionQueueMock"]>;
   "system.health": ReturnType<BriefingMocks["systemHealthMock"]>;
   "feed.items": ReturnType<FeedMocks["feedMock"]>;
   "goals.items": ReturnType<GoalMocks["goalsMock"]>;
@@ -104,6 +105,8 @@ export async function loadMock<K extends MockKey>(key: K): Promise<MockMap[K] | 
       return (await import("./briefing")).runtimeDirectorsMock() as MockMap[K];
     case "briefing.hero":
       return (await import("./briefing")).heroMock() as MockMap[K];
+    case "decisions.queue":
+      return (await import("./briefing")).decisionQueueMock() as MockMap[K];
     case "council.panels":
       return (await import("./briefing")).councilPanelsMock() as MockMap[K];
     case "system.health":

@@ -443,3 +443,34 @@ export const councilPanelSchema = z.object({
   consensus: z.number(),
   disagreement: z.number(),
 });
+
+/* --------------------------------------------------------------------------
+   DecisionQueueItem — ODIN `/api/state.decision_queue`
+   -------------------------------------------------------------------------- */
+
+/**
+ * Karara bağlanmayı BEKLEYEN öneri. Karar KAYDI değildir (`decisions`
+ * ayrı anahtar): `decided` ODIN'in kendi alanı ve bugün hepsi `false`.
+ *
+ * `signal` `null` OLABİLİR — her öneri bir sinyalden doğmuyor (ölçüldü:
+ * iki şekil var, `null` ve `{level, risk}`). Zorunlu kılmak, ODIN'in
+ * yayınladığı geçerli kaydı reddetmek olurdu.
+ */
+export const decisionQueueItemSchema = z.object({
+  recId: z.string().min(1),
+  trigger: z.string().min(1),
+  signal: z
+    .object({ risk: z.string(), level: z.number() })
+    .nullable(),
+  recommendation: z.string().min(1),
+  severity: z.enum(["HIGH", "MEDIUM", "INFO"]),
+  klass: z.string().nullable(),
+  rationale: z.string().nullable(),
+  ownerApprovalRequired: z.boolean(),
+  councilNeeded: z.boolean(),
+  decided: z.boolean(),
+  firstSeen: isoDate,
+  lastSeen: isoDate,
+  /** Aynı önerinin kaç kez yazıldığı. 1 ile 696 aynı şey değildir. */
+  occurrences: z.number().int().min(1),
+});

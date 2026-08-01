@@ -774,3 +774,40 @@ export function councilPanelsMock() {
     },
   ]);
 }
+
+/** ODIN `decision_queue`un mock ikizi — alanlar birebir (signal null olabilir). */
+export function decisionQueueMock() {
+  return mockEnvelope([
+    {
+      recId: "OPP-20260729-181802-251129-4ed2c2",
+      trigger: "opportunity.inventory",
+      signal: null,
+      recommendation: "29 SKU kritik stokta — yeniden siparis penceresi",
+      severity: "INFO" as const,
+      klass: "B",
+      rationale: null,
+      ownerApprovalRequired: true,
+      councilNeeded: false,
+      decided: false,
+      firstSeen: "2026-07-29T18:18:02.251167+00:00",
+      lastSeen: "2026-07-29T18:18:02.251167+00:00",
+      occurrences: 1,
+    },
+    {
+      recId: "REC-20260801-213115-802086-7c8314",
+      trigger: "risk.detected",
+      signal: { risk: "Workspace ulaşılamıyor: Amazon Jarvis Vault", level: 60 },
+      recommendation:
+        "Riski azalt: kaynagi dogrula, mitigasyon plani cikar, gerekiyorsa owner'a eskale et.",
+      severity: "HIGH" as const,
+      klass: "A",
+      rationale: null,
+      ownerApprovalRequired: false,
+      councilNeeded: false,
+      decided: false,
+      firstSeen: "2026-07-24T09:00:00.000000+00:00",
+      lastSeen: "2026-08-01T21:31:15.802086+00:00",
+      occurrences: 696,
+    },
+  ]);
+}
