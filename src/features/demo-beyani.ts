@@ -46,6 +46,14 @@ export type BeyanSonucu =
 
 const kirmizi = (neden: string): BeyanSonucu => ({ tur: "cozulemedi", neden });
 
+/** Bir tipin çözüldüğü DOSYA bağlamı — dosya sınırı geçilince taşınır. */
+type Baglam = {
+  dosya: ts.SourceFile;
+  dosyaYolu: string;
+  yerel: Map<string, ts.TypeNode>;
+};
+type Hedef = { tip: ts.TypeNode; baglam: Baglam };
+
 function ayrıştır(kaynak: string, ad = "x.tsx"): ts.SourceFile {
   return ts.createSourceFile(ad, kaynak, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 }
@@ -65,27 +73,38 @@ function aliaslar(dosya: ts.SourceFile): Map<string, ts.TypeNode> {
  * Bunun VAR OLMA sebebi: eskiden import edilen `DemoState` için üç durum
  * "varsayılıyordu". Varsaymak yerine okuyoruz; bulunamazsa KIRMIZI.
  */
-function importtanAlias(
-  dosya: ts.SourceFile,
-  ad: string,
-  dosyaYolu: string
-): ts.TypeNode | undefined {
-  for (const st of dosya.statements) {
+function importtanAlias(b: Baglam, ad: string): Hedef | undefined {
+  for (const st of b.dosya.statements) {
     if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier)) continue;
     const isimler = st.importClause?.namedBindings;
     if (!isimler || !ts.isNamedImports(isimler)) continue;
-    if (!isimler.elements.some((e) => e.name.text === ad)) continue;
+
+    /* TAKMA AD — `import { type X as Y }`: YEREL ad `Y`, UZAK ad `X`.
+       Eskiden yerel adı uzakta arıyordum ve hedef dosyada `Y` diye bir
+       alias olmadığı için sessizce "çözülemedi" diyordu (denetim 3/4).
+       Ölçüldü: `import type { X }` biçimi ZATEN yakalanıyordu — kurulun
+       o kısmı deneyle çürüdü, ama takma ad gerçek bir kusurdu. */
+    const oge = isimler.elements.find((e) => e.name.text === ad);
+    if (!oge) continue;
+    const uzakAd = oge.propertyName?.text ?? oge.name.text;
 
     const spec = st.moduleSpecifier.text;
-    const kok = process.cwd();
     const temel = spec.startsWith("@/")
-      ? join(kok, "src", spec.slice(2))
-      : resolve(dirname(dosyaYolu), spec);
+      ? join(process.cwd(), "src", spec.slice(2))
+      : resolve(dirname(b.dosyaYolu), spec);
 
     for (const uzanti of [".ts", ".tsx", "/index.ts", "/index.tsx"]) {
-      const p = temel + uzanti;
-      if (!existsSync(p)) continue;
-      return aliaslar(ayrıştır(readFileSync(p, "utf8"), p)).get(ad);
+      const yol = temel + uzanti;
+      if (!existsSync(yol)) continue;
+      const hedefDosya = ayrıştır(readFileSync(yol, "utf8"), yol);
+      const tip = aliaslar(hedefDosya).get(uzakAd);
+      if (!tip) return undefined;
+      /* ⚠️ BAĞLAM DA TAŞINIR — UI-ADR-180 (denetim 3/3 aynı bulgu).
+         Eskiden yalnız `TypeNode` dönüyordu ve özyineleme ÇAĞIRAN
+         dosyanın alias haritasıyla devam ediyordu: import edilen tipin
+         gövdesindeki bir referans YANLIŞ dosyada aranırdı — ya sessizce
+         "çözülemedi" ya da aynı adlı BAŞKA bir tip. */
+      return { tip, baglam: { dosya: hedefDosya, dosyaYolu: yol, yerel: aliaslar(hedefDosya) } };
     }
   }
   return undefined;
@@ -99,14 +118,11 @@ function importtanAlias(
  */
 function cozumle(
   t: ts.TypeNode,
-  dosya: ts.SourceFile,
-  dosyaYolu: string,
-  yerel: Map<string, ts.TypeNode>,
+  b: Baglam,
   gorulen: Set<string>
 ): { ok: true; lit: string[] } | { ok: false; neden: string } {
-  if (ts.isParenthesizedTypeNode(t)) {
-    return cozumle(t.type, dosya, dosyaYolu, yerel, gorulen);
-  }
+  const dosya = b.dosya;
+  if (ts.isParenthesizedTypeNode(t)) return cozumle(t.type, b, gorulen);
 
   if (ts.isLiteralTypeNode(t)) {
     if (ts.isStringLiteral(t.literal)) return { ok: true, lit: [t.literal.text] };
@@ -119,7 +135,7 @@ function cozumle(
   if (ts.isUnionTypeNode(t)) {
     const hepsi: string[] = [];
     for (const alt of t.types) {
-      const r = cozumle(alt, dosya, dosyaYolu, yerel, gorulen);
+      const r = cozumle(alt, b, gorulen);
       if (!r.ok) return r;
       hepsi.push(...r.lit);
     }
@@ -131,18 +147,38 @@ function cozumle(
     if (t.typeArguments?.length) {
       return { ok: false, neden: `generic tip: ${t.getText(dosya)}` };
     }
-    const ad = t.typeName.getText(dosya);
-    if (gorulen.has(ad)) return { ok: false, neden: `döngüsel tip: ${ad}` };
-    gorulen.add(ad);
+    /* `A.B` gibi nitelikli ad desteklenmiyor — sessizce "çözülemedi"
+       demek yerine ADIYLA söylenir (denetim bulgusu). */
+    if (!ts.isIdentifier(t.typeName)) {
+      return { ok: false, neden: `nitelikli tip referansı: ${t.getText(dosya)}` };
+    }
+    const ad = t.typeName.text;
 
-    const hedef = yerel.get(ad) ?? importtanAlias(dosya, ad, dosyaYolu);
+    const yerelTip = b.yerel.get(ad);
+    const hedef: Hedef | undefined = yerelTip
+      ? { tip: yerelTip, baglam: b }
+      : importtanAlias(b, ad);
     if (!hedef) {
       return {
         ok: false,
         neden: `\`${ad}\` çözülemedi — ne yerel alias ne de tek-hop import`,
       };
     }
-    return cozumle(hedef, dosya, dosyaYolu, yerel, gorulen);
+
+    /* ⚠️ ANAHTAR DOSYA+KONUM, yalnız AD DEĞİL — UI-ADR-180.
+       Ada göre anahtarlamak İKİ yanlış üretiyordu: (1) iki farklı
+       dosyadaki aynı adlı alias "döngüsel" sanılıyordu; (2) küme hiç
+       temizlenmediği için aynı alias'ı bir union'ın İKİ kolunda
+       kullanmak da döngü sayılıyordu. Anahtar artık benzersiz ve küme
+       yalnız AKTİF ZİNCİRİ tutuyor (`finally` ile geri alınıyor). */
+    const anahtar = `${hedef.baglam.dosyaYolu}:${hedef.tip.pos}`;
+    if (gorulen.has(anahtar)) return { ok: false, neden: `döngüsel tip: ${ad}` };
+    gorulen.add(anahtar);
+    try {
+      return cozumle(hedef.tip, hedef.baglam, gorulen);
+    } finally {
+      gorulen.delete(anahtar);
+    }
   }
 
   /* `Props["demo"]` · koşullu · eşlemeli · nesne · şablon literal · any …
@@ -222,7 +258,7 @@ export function beyanEdilenDurumlar(kaynak: string, dosyaYolu = "screen.tsx"): B
     return kirmizi(`${bulunanlar.length} export edilen bileşende \`demo\` var — belirsiz`);
   }
 
-  const r = cozumle(bulunanlar[0], dosya, dosyaYolu, yerel, new Set());
+  const r = cozumle(bulunanlar[0], { dosya, dosyaYolu, yerel }, new Set());
   if (!r.ok) return kirmizi(r.neden);
 
   const benzersiz = [...new Set(r.lit)];

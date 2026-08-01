@@ -6638,3 +6638,71 @@ budur.
 **storybook 56 dosya / 213 test** (alt sınır 211),
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
 Ayrıştırıcının kendi testi: **19 senaryo**, dokuzu enjekte kaçak.
+
+---
+
+## UI-ADR-180 — Dosya sınırını geçen çözücü bağlamı da taşımalı
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-179
+
+Doğrulama turu: `ask_yazilimcilar` **3/4** (Qwen zaman aşımı). Üç bulgu;
+üçü de gerçek, üçü de kapandı. **Bir bulguları ise deneyle çürüdü** —
+bu oturumda dördüncü kez.
+
+### 1 — BAĞLAM SIZINTISI (üç üye de aynı şeyi söyledi)
+
+`importtanAlias` başka dosyadan bir `TypeNode` getiriyordu ama özyineleme
+**ÇAĞIRAN dosyanın** alias haritasıyla devam ediyordu. Yani import edilen
+tipin gövdesindeki bir referans **yanlış dosyada** aranırdı: ya sessizce
+"çözülemedi" ya da — daha kötüsü — aynı adı taşıyan **başka bir tip**.
+
+Bugün gizliydi çünkü `DemoState` düz bir literal union ve içinde başka
+referans yok. **Gizli olması yok olması değildir.** Artık `Baglam`
+(`dosya` + `dosyaYolu` + `yerel`) dosya sınırıyla birlikte taşınıyor.
+
+### 2 — DÖNGÜ ANAHTARI ADA GÖREYDİ, İKİ YANLIŞ ÜRETİYORDU
+
+- İki farklı dosyadaki aynı adlı alias "döngüsel" sanılıyordu.
+- Küme hiç temizlenmediği için **aynı alias'ı bir union'ın İKİ kolunda
+  kullanmak** da döngü sayılıyordu (`demo?: A | A`).
+
+İkincisi bir **yanlış pozitif** ve testi yazıldı. Anahtar artık
+`dosyaYolu:pos` ve küme yalnız **aktif zinciri** tutuyor (`finally` ile
+geri alınıyor).
+
+### 3 — TAKMA ADLI IMPORT
+
+`import { type DemoState as D }` — yerel ad `D`, uzak ad `DemoState`.
+Yerel adı uzakta arıyordum; hedef dosyada `D` diye bir alias olmadığı
+için sessizce "çözülemedi" derdi. `propertyName ?? name`.
+
+### ÇÜRÜTÜLEN BULGU — `import type { X }`
+
+İki üye *"`import type { X }` yakalanmıyor, `ImportClause.isTypeOnly`
+üzerinden ayrı ele alınmalı"* dedi. **Ölçüldü ve yanlış:** o biçim de
+bir `ImportDeclaration` ve `namedBindings`i `NamedImports`; mevcut kod
+zaten yakalıyordu. Testi yazıldı ve yeşil.
+
+Buna karşılık `export type { X } from "..."` (yeniden dışa aktarım)
+gerçekten yakalanmıyor — ama `ExportDeclaration` olduğu için çözücü
+**kırmızı** veriyor, sessiz kalmıyor. Fark budur.
+
+### Ayrıca
+
+Nitelikli ad (`NS.Durum`) artık **adıyla** reddediliyor: `getText()` ile
+düz metne çevirip aramak, `A.B`yi `yerel` haritasında arayıp
+"çözülemedi" demek demekti — doğru sonuç, yanlış gerekçe.
+
+### Dört yeni test
+
+`A | A` döngü değildir · takma adlı import · `import type { }` ·
+nitelikli ad. Ayrıştırıcının kendi testi **19 → 23 senaryo**.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 294 test** (alt sınır **291**),
+**storybook 56 dosya / 213 test** (alt sınır 211),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.

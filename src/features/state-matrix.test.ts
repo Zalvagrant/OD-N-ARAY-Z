@@ -378,4 +378,43 @@ type B = A;
 export const Baska = ({ demo }: { demo?: "empty" }) => null;`;
     expect(beyanEdilenDurumlar(k).tur).toBe("cozulemedi");
   });
+
+  /* ⬇️ UI-ADR-180 — bağlam sızıntısı, döngü anahtarı, takma ad. */
+
+  it("KAÇAK 10 — aynı alias İKİ union kolunda döngü SANILMAZ", () => {
+    const k = `type A = "loading";
+` + S(`demo?: A | A;`);
+    expect(beyanEdilenDurumlar(k)).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading"],
+    });
+  });
+
+  it("KAÇAK 11 — takma adlı import (`as`) uzak adı arar", () => {
+    const k =
+      `import { type DemoState as D } from "@/features/shell/screen-state";
+` +
+      S("demo?: D;");
+    expect(beyanEdilenDurumlar(k)).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading", "empty", "error"],
+    });
+  });
+
+  it("KAÇAK 12 — `import type { }` biçimi de okunur", () => {
+    const k =
+      `import type { DemoState } from "@/features/shell/screen-state";
+` +
+      S("demo?: DemoState;");
+    expect(beyanEdilenDurumlar(k)).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading", "empty", "error"],
+    });
+  });
+
+  it("KAÇAK 13 — nitelikli ad (`A.B`) KIRMIZI ve adıyla söylenir", () => {
+    const r = beyanEdilenDurumlar(S("demo?: NS.Durum;"));
+    expect(r.tur).toBe("cozulemedi");
+    if (r.tur === "cozulemedi") expect(r.neden).toContain("nitelikli");
+  });
 });
