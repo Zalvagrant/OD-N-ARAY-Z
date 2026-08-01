@@ -367,32 +367,31 @@ Aşağısı tarihsel kayıt:
    tests.mjs`in `evaluate()` mantığı `--project unit` raporuna da
    uygulanabilir.
 4. ⬜ **Meclis denetimi hâlâ ALINMADI** — `ask_yazilimcilar` yeni oturumda.
+   Bu oturumda UC KEZ denendi ve MCP araclari yoktu; [[council-session-bound]]
+   uyarinca bu ancak YENI bir oturumda cozulur, yeniden baslatmakla degil.
 
-### 6.7 SAHIP KARARI BEKLEYEN TEK MADDE
+### 6.7 ERISILEBILIRLIK KAPISI - KAPANDI (UI-ADR-165)
 
-**Erisilebilirlik taramasi CI'da baglayici DEGIL** (`a11y.test: "todo"`).
-Olculdu: `error`e cevrilince **107 story dusuyor, 609 ihlal** - ve
-**582'si (%96) TEK TOKEN'dan**: `#64748b` (`text-content-tertiary`),
-en kotu kontrast **3.73:1**, WCAG AA 4.5:1 istiyor.
+Bu bolum bir zamanlar "SAHIP KARARI BEKLEYEN TEK MADDE" idi ve **iki kez
+birden yaziliydi** (eski bir betik iki kez kosmus; tek kayda indirildi).
 
-Bu bir "yuzlerce hata" degil, bir tasarim dili karari. Olculmus adaylar:
-`#7c8899` -> 4.93, `#8593a5` -> 5.67, `#94a3b8` -> 6.92.
+`a11y.test` artik **`"error"`** ve **ihlal 0**. Yol: 609 -> 27 -> 6 -> 1 -> 0.
+Tam gerekce `08-decision-log.md` UI-ADR-165'te.
 
-Sahip tonu secerse: token degistir -> tekrar olc -> kalan ~27 ihlali kapat
--> `test: "error"`. Sayilar `.storybook/preview.tsx`te yazili; tahmin etme.
+⚠️ **BU BOLUMDEKI ESKI SAYILAR YANLISTI** ve dersi burada duruyor:
+adaylar `#7c8899 -> 4.93 · #8593a5 -> 5.67 · #94a3b8 -> 6.92` diye
+yaziliydi; o olcum karanlik temanin BES zemininden ikisini
+(`surface-elevated` #16202F, `surface-floating` #1B2739) gormuyordu.
+Tam kumeyle gercek degerler **4.18 · 4.81 · 5.87** - yani "en iyi aday"
+diye sunulan `#7c8899` aslinda KALIYORDU.
 
-### 6.7 SAHIP KARARI BEKLEYEN TEK MADDE
+**Bir kontrast iddiasi, olculdugu zemin kumesi kadar dogrudur.** Secilen
+ton `#8593A5` (`gray-450`): gecen en dusuk deger. `gray-400` de gecerdi
+ama o `text-secondary` - ikisini esitlemek hiyerarsiyi silerdi.
 
-**Erisilebilirlik taramasi CI'da baglayici DEGIL** (`a11y.test: "todo"`).
-Olculdu: `error`e cevrilince **107 story dusuyor, 609 ihlal** - ve
-**582'si (%96) TEK TOKEN'dan**: `#64748b` (`text-content-tertiary`),
-en kotu kontrast **3.73:1**, WCAG AA 4.5:1 istiyor.
-
-Bu bir "yuzlerce hata" degil, bir tasarim dili karari. Olculmus adaylar:
-`#7c8899` -> 4.93, `#8593a5` -> 5.67, `#94a3b8` -> 6.92.
-
-Sahip tonu secerse: token degistir -> tekrar olc -> kalan ~27 ihlali kapat
--> `test: "error"`. Sayilar `.storybook/preview.tsx`te yazili; tahmin etme.
+Kapi artik sokulemez: `verify-tests.mjs` `preview.tsx`te `test: "error"`
+ariyor. Tek kelimelik bir geri cevirme 206 testi yesil birakarak kapsamin
+tamamini kapatirdi ve ne alt sinir ne kimlik kontrolu gorurdu.
 
 
 ---
