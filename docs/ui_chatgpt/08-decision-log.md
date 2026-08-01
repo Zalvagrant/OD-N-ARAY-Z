@@ -5785,3 +5785,105 @@ iddia edilmiyor.**
 **unit 16 dosya / 241 test**, **storybook 55 dosya / 207 test**,
 atlanan 0, düşen 0, **a11y ihlali 0**, **a11y kanıtı 207/207**.
 `--self-check`: **11 + 30 senaryo.**
+
+---
+
+## UI-ADR-170 — "passed" ile "bir şey ölçüldü" aynı şey değil
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-169
+
+Altıncı bağımsız denetim. UI-ADR-169 doğru soruyu sormuştu (*"koştu mu"*)
+ama **yanlış sinyale** bakıyordu.
+
+### KRİTİK — "passed" yalnızca "ihlal bulunmadı" demektir
+
+`addon-a11y` şunu yazıyor: `status: hasViolations ? getMode() : "passed"`.
+Yani **hiçbir şey taramamak da "passed"tir.** Denetim playwright + axe
+4.12.1 ile ölçtü:
+
+| girdi | sonuç |
+|---|---|
+| varsayılan | 2 ihlal → failed ✔ |
+| `context: { include: "head" }` | **0 kural → PASSED** |
+| `options: { runOnly: ["cat.parsing"] }` | **PASSED** |
+| DOM boşaltılmış | **PASSED** |
+
+Sömürü, `preview.tsx`e tek satır: `afterEach`te `parameters.a11y.context`i
+daraltmak. Metin kilidi görmez (`a11y` ardından iki nokta yok), kanarya
+görmez (`play` `afterEach`ten önce biter), **ve 169'un kanıtı 207/207
+yeşil kalır.**
+
+169 *"afterEach'te parametre ezme artık yakalanıyor"* diyordu: bu yalnız
+**devre dışı bırakan** ezme için doğruydu (`disable`/`off` → `shouldRun`
+düşer → rapor hiç yazılmaz). **Daraltan** ezme için yanlıştı.
+
+**Düzeltme:** kanıt artık HACMİ de doğruluyor —
+`passes.length + violations.length >= 1`. Sıfır kural değerlendirilmesi
+kırmızıdır. Bu depodaki gerçek dağılım **2 – 35** (ölçüldü); eşik bilerek
+1'de, çünkü asıl saldırı sıfırdır ve yanlış kırmızı payı geniş olmalı.
+
+Aynı satır **sahte axe modülünü** de yakalar: boş sonuç döndürüp
+"passed" der ve motor adını bile doğru yazar — ama hacmi sıfırdır.
+
+### Kendi ölçümüm çürüktü ve denetim haklı olarak yakaladı
+
+Denetim, ağaçtaki `.artifacts/storybook-vitest.json`da **sıfır a11y
+raporu** buldu ve 169'un *"a11y kanıtı 207/207"* iddiasının ölçülmediğini
+söyledi. Sebep başkaydı — **benim sökme denemem**: `afterEach` enjekte
+edip koştum, `preview.tsx`i geri aldım ama **paketi yeniden koşturmadım**
+ve artefaktı öyle bıraktım. İddia doğruydu (yeniden ölçüldü: 15 MB
+artefakt, 207/207) ama **kanıtı kirli bıraktım**, ki bu da bir kusurdur:
+bir sonraki okuyucu ağaçtaki artefakta bakar.
+
+**Kural:** enjeksiyon testinden sonra paketi TEMİZ hâliyle bir kez daha
+koştur; artefakt son geçerli ölçümü göstermeli.
+
+### Diğer kapatılanlar
+
+- **`alias` yasak listesi de yetersizdi.** Denetim **on biçimden yedisinin
+  kaçtığını** ölçtü — Vite'ın standart DİZİ biçimi
+  (`[{ find, replacement }]`), 400 karakterden uzak dolgu, addon'un
+  KENDİSİNİ alias'lamak, hesaplanmış anahtar, `plugins[].resolveId`.
+  Yine izin listesine çevrildi: `vitest.config.ts` ve `main.ts`te `alias`
+  ya da `resolveId` GEÇMESİ tek başına kırmızı, tek istisna bugünkü meşru
+  `'@' → src`. Ve kontrol artık `main.ts`e de uygulanıyor (`viteFinal`
+  oradan geliyordu).
+- **Dizge yutma.** Yorum boşaltıcı dizge literallerini bilmiyor: iki
+  dizgenin arasına yorum imleri koyup gerçek `a11y` bloğunu GÖRÜNMEZ
+  yapmak mümkündü. Ayrıştırıcıya dizge farkındalığı eklemek yerine
+  **yutma girişiminin izi** aranıyor: ham metinde `a11y:` bir nesne
+  başlatıyor ama boşaltılmışta hiç blok yoksa, orada bir şey kayboldu.
+- **`toplam ≠ geçen`.** `numPendingTests` `result?.state`e bakıyor;
+  `result` hiç oluşmamış bir test ne oraya ne `numTodoTests`e giriyor.
+  17 story sessizce kaybolup alt sınırın (190) üstünde kalabilirdi ve
+  hiçbir sayaç görmezdi — kapının kurulma sebebinin ta kendisi.
+
+### Ve GÖRÜNMEZ BACKSPACE BAYTI, ikinci kez
+
+`alias` kontrolü yazıldı, self-check kırmızı verdi, kod gözle doğru
+görünüyordu. `cat -A` ile bakınca regex şuydu:
+`/^Halias^H|^HresolveId^H/` — `\b` dosyaya **0x08 baytı** olarak girmişti
+ve regex hiç eşleşmiyordu. Bu repoda `state-matrix` kapısında AYNI hata
+olmuştu (UI-ADR-152).
+
+**Ders:** bir regex "gözle doğru ama hiç eşleşmiyorsa" ilk bakılacak yer
+görünmez bayttır — `cat -A`. Ve bu, kilidin kendi self-check'i olduğu için
+yakalandı; olmasaydı sessizce ölü bir kural olarak kalırdı.
+
+### Yanlış kırmızılar da düzeltildi
+
+`a11y: 92` gibi meşru bir veri anahtarı yutma imzasını tetikliyordu; imza
+`a11y:` sonrası bir nesne/parantez başlangıcı arayacak şekilde daraltıldı.
+Ve kanarya dosyasının kendi belgesindeki ÖRNEK yine kapıyı düşürdü —
+**üçüncü kez aynı ders: imler metnin içinde de imdir.** Örnek desensiz
+yeniden yazıldı.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 16 dosya / 241 test**, **storybook 55 dosya / 207 test**,
+atlanan 0, düşen 0, **a11y kanıtı 207/207**, `numTotal` 207 = geçen 207,
+ölçülen kural **en düşük 2 / en yüksek 35**.
+`--self-check`: **11 + 39 senaryo.**

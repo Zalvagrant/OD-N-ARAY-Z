@@ -159,6 +159,20 @@ export function a11ySorunlari({ main, preview, vitestConfig = "", storyler = [] 
   const denetle = (ad, kaynak, zorunlu) => {
     const bos = yorumBosalt(kaynak);
     const bloklar = a11yBloklari(bos);
+    /* YUTMA İMZASI — UI-ADR-170. Yorum boşaltıcı dizge/şablon/regex
+       literallerini bilmiyor: `const A = "/*"; … const B = "*` + `/";`
+       arasındaki HER ŞEY boşluğa dönüyor ve aradaki gerçek `a11y` bloğu
+       GÖRÜNMEZ oluyor. Denetimde ölçüldü, bir story dosyası bu yolla
+       `test: "todo"` gizledi. Ayrıştırıcıya dizge farkındalığı eklemek
+       yerine YUTMA GİRİŞİMİNİN İZİNİ arıyoruz: ham metinde `a11y` geçiyor
+       ama boşaltılmışta hiç blok yoksa, orada bir şey kayboldu. */
+    if (/["']?a11y["']?\s*:\s*[({]/.test(kaynak) && bloklar.length === 0) {
+      sorunlar.push(
+        `${ad}: ham metinde \`a11y\` geçiyor ama blok bulunamadı — bir dizge ya da ` +
+        "yorum bloğu yutmuş olabilir (UI-ADR-170)",
+      );
+      return;
+    }
     if (zorunlu && bloklar.length === 0) {
       sorunlar.push(`${ad}: \`a11y: { … }\` bloğu bulunamadı`);
       return;
@@ -185,28 +199,41 @@ export function a11ySorunlari({ main, preview, vitestConfig = "", storyler = [] 
     }
   };
 
-  /* axe'İN KENDİSİ SAHTELENEBİLİR — UI-ADR-169. `vitest.config.ts`teki
-     `resolve.alias` ile `axe-core` sahte bir modüle bağlanırsa tarama
-     koşar, rapor yazılır, `status: "passed"` der ve **hiç ihlal
-     bulmaz**. `storybook/test` alias'lanırsa kanaryanın `expect`i bile
-     no-op olur. Çalışma zamanı kanıtı bunu göremez; metin görebilir. */
-  if (vitestConfig && /alias[\s\S]{0,400}?["']?(axe-core|storybook\/test)["']?\s*:/.test(yorumBosalt(vitestConfig))) {
-    sorunlar.push(
-      "vitest.config.ts `alias` bloğunda `axe-core` ya da `storybook/test` yeniden " +
-      "yönlendiriliyor — tarama koşuyor görünür ama hiçbir şey ölçmez",
-    );
-  }
-
   /* Anahtar TIRNAKLI olabilir — gerçek `main.ts` `"addons": [` yazıyor.
-     Ve kontrol DİZİNİN İÇİNE indirilmiş durumda: dosyanın başka bir
-     yerinde geçen (`const KALDIRILDI = ["@storybook/addon-a11y"]`) dizge
-     saymaz. İkisi de bağımsız denetimde ölçüldü. */
+     Ve kontrol DİZİNİN İÇİNE indirilmiş: dosyanın başka bir yerinde geçen
+     (`const KALDIRILDI = ["@storybook/addon-a11y"]`) dizge saymaz. */
   const addons = yorumBosalt(main).match(/["']?addons["']?\s*:\s*\[[\s\S]*?\]/);
   if (!addons || !/["']@storybook\/addon-a11y["']/.test(addons[0])) {
     sorunlar.push(
       "main.ts `addons` DİZİSİNDE @storybook/addon-a11y yok — axe hiç yüklenmez, " +
       "tarama sıfırdır (test sayısı değişmediği için alt sınır bunu göremez)",
     );
+  }
+
+  /* axe'İN KENDİSİ SAHTELENEBİLİR — UI-ADR-170'te İZİN LİSTESİNE çevrildi.
+     `resolve.alias` ile `axe-core` sahte bir modüle bağlanırsa tarama
+     "koşar", rapor yazılır, motor adını bile doğru yazar ve HİÇBİR ŞEY
+     ölçmez. İlk sürüm yasak kelime arıyordu ve denetim **on biçimden
+     yedisinin kaçtığını** ölçtü: Vite'ın standart DİZİ biçimi
+     (`[{ find, replacement }]`), 400 karakterden uzak dolgu, addon'un
+     KENDİSİNİ alias'lamak, hesaplanmış anahtar, `plugins[].resolveId`…
+     Yasak liste yine sonsuza kadar eksikti.
+     Artık kural: bu iki dosyada `alias` ya da `resolveId` GEÇMESİ tek
+     başına kırmızıdır — tek istisna bugünkü meşru kullanım (`'@'` →
+     `src`). Yeni bir alias gerçekten gerekirse bu satır da güncellenir;
+     yani kapıyı gevşetmek bilinçli bir düzenleme gerektirir. */
+  const IZINLI_ALIAS = /alias\s*:\s*\{\s*['"]@['"]\s*:\s*[^}]*\}/g;
+  for (const [ad, kaynak] of [["vitest.config.ts", vitestConfig], ["main.ts", main]]) {
+    if (!kaynak) continue;
+    const kalan = yorumBosalt(kaynak).replace(IZINLI_ALIAS, "");
+    const m = kalan.match(/alias|resolveId/);
+    if (m) {
+      sorunlar.push(
+        `${ad}: beklenmeyen \`${m[0]}\` — modül yeniden yönlendirme axe'i (ya da ` +
+        "`storybook/test`i) sahte bir modülle değiştirebilir; tarama koşuyor " +
+        "görünür ama hiçbir şey ölçmez. Meşruysa bu kuralı da güncelle (UI-ADR-170).",
+      );
+    }
   }
 
   denetle("preview.tsx", preview, true);
@@ -250,7 +277,21 @@ function a11yKanitiEksikOlanlar(report) {
     for (const a of f.assertionResults ?? []) {
       if (a.status !== "passed") continue;   // düşenleri `failed` zaten sayıyor
       const raporlar = (a.meta?.reports ?? []).filter((r) => r?.type === "a11y");
-      if (!raporlar.some((r) => r.status === "passed")) {
+      const gecerli = raporlar.filter((r) => {
+        if (r.status !== "passed") return false;
+        /* HACİM — UI-ADR-170. `status: "passed"` yalnız "ihlal bulunmadı"
+           demektir; addon `hasViolations ? getMode() : "passed"` yazıyor.
+           Yani HİÇBİR ŞEY TARAMAMAK da "passed"tir. Ölçüldü (playwright +
+           axe 4.12.1): `context: { include: "head" }` → 0 kural, PASSED.
+           Sahte bir axe modülü de boş sonuç döndürüp "passed" der ve motor
+           adını bile doğru yazar. Ayrım tek sinyalde: KAÇ KURAL
+           DEĞERLENDİRİLDİ. Bu depoda gerçek dağılım 2–7 (ölçüldü); eşik 1,
+           yani yalnız "sıfır ölçüm" kırmızıdır — yanlış kırmızı payı
+           bilerek geniş, çünkü asıl saldırı sıfırdır. */
+        const r0 = r.result ?? {};
+        return (r0.passes?.length ?? 0) + (r0.violations?.length ?? 0) >= 1;
+      });
+      if (gecerli.length === 0) {
         eksik.push(a.fullName ?? a.title ?? String(f.name ?? "?"));
       }
     }
@@ -272,6 +313,16 @@ export function evaluate(report, { runFailed = false, floor = FLOOR, zorunlu = [
   if (pending > 0) problems.push(`${pending} test atlandı (skip)`);
   if (todo > 0) problems.push(`${todo} test todo`);
   if (passed < floor) problems.push(`geçen test ${passed} < alt sınır ${floor}`);
+  /* TOPLAM = GEÇEN — UI-ADR-170. `numPendingTests` `result?.state`e
+     bakıyor; `result` hiç oluşmamış bir test ("pending", mode=run) ne
+     oraya ne `numTodoTests`e giriyor. Yani 17 story sessizce kaybolup
+     alt sınırın (190) üstünde kalabilir ve HİÇBİR sayaç görmez. Kapının
+     kurulma sebebi tam olarak buydu: "tarayıcı düştü, testler koşmadı,
+     özet yine passed yazdı." */
+  const toplam = report.numTotalTests ?? passed;
+  if (toplam !== passed) {
+    problems.push(`toplam ${toplam} ≠ geçen ${passed} — ${toplam - passed} test hiçbir sayaca girmedi`);
+  }
   const adlar = (report.testResults ?? []).map((r) => String(r.name ?? ""));
   for (const z of zorunlu) {
     if (!adlar.some((a) => a.includes(z))) {
@@ -397,23 +448,45 @@ backgrounds: { disable: true },` }).length, 0);
   assert.ok(a11y({ vitestConfig: 'resolve: { alias: { "axe-core": "./sahte.ts" } }' }).length > 0);
   assert.ok(a11y({ vitestConfig: 'resolve: { alias: { "storybook/test": "./sahte.ts" } }' }).length > 0);
   assert.equal(a11y({ vitestConfig: 'resolve: { alias: { "@": "./src" } }' }).length, 0);
+  /* UI-ADR-170 — dizge yutma imzasi ve alias izin listesi. */
+  // Bir dizge yorum acma imi tasiyorsa aradaki HER SEY bosluga doner ve
+  // gercek a11y blogu GORUNMEZ olur. Yutma girisiminin izini ariyoruz.
+  assert.ok(a11y({ storyler: [{ ad: "y.stories.tsx",
+    kaynak: `const A = "/*"; parameters: { a11y: { test: "todo" } }; const B = "*/";` }] }).length > 0);
+  // Vite'in DIZI bicimi de dahil, her alias kirmizidir; tek istisna '@'.
+  assert.ok(a11y({ vitestConfig: 'alias: [{ find: "axe-core", replacement: "./f.ts" }]' }).length > 0);
+  assert.ok(a11y({ vitestConfig: 'plugins: [{ resolveId(id) { return id; } }]' }).length > 0);
+  assert.ok(a11y({ main: MAIN + ' viteFinal: (c) => ({ resolve: { alias: { "axe-core": "./f.ts" } } })' }).length > 0);
+  // Gercek vitest.config.ts'teki mesru alias yanlis kirmizi vermemeli.
   /* CALISMA ZAMANI KANITI — her story kendi taramasini kanitlar. */
-  const rp = (st) => ({ numPassedTests: 1, numFailedTests: 0, numPendingTests: 0, numTodoTests: 0,
+  const rp = (st, hacim = 3) => ({ numPassedTests: 1, numTotalTests: 1, numFailedTests: 0,
+    numPendingTests: 0, numTodoTests: 0,
     testResults: [{ name: 'x', assertionResults: [{ status: 'passed', fullName: 'S',
-      meta: st === null ? {} : { reports: [{ type: 'a11y', status: st }] } }] }] });
+      meta: st === null ? {} : { reports: [{ type: 'a11y', status: st,
+        result: { passes: new Array(hacim).fill({}), violations: [] } }] } }] }] });
   const K = { floor: 1, a11yKaniti: true };
   assert.equal(evaluate(rp('passed'), K).problems.length, 0);
-  assert.ok(evaluate(rp('warning'), K).problems.length > 0);   // todo kipi
+  assert.ok(evaluate(rp('warning'), K).problems.length > 0);   // todo kipi, ihlalli
   assert.ok(evaluate(rp(null), K).problems.length > 0);        // axe hic kosmadi
+  /* HACIM — UI-ADR-170. "passed" ama SIFIR kural degerlendirilmis:
+     `context:{include:"head"}` daraltmasi ve sahte axe modulu tam olarak
+     boyle gorunur. Olculdu: gercek dagilim 2-7, sifir asla. */
+  assert.ok(evaluate(rp('passed', 0), K).problems.length > 0);
+  assert.equal(evaluate(rp('passed', 1), K).problems.length, 0);
   assert.equal(evaluate(rp(null), { floor: 1 }).problems.length, 0);  // unit projesi etkilenmez
+  /* TOPLAM = GECEN — sayaclara girmeyen test. */
+  assert.ok(evaluate({ ...rp('passed'), numTotalTests: 5 }, K).problems.length > 0);
   /* GERÇEK DOSYALAR — senaryolar uydurma girdiyle yeşil olup yürürlükteki
      yapılandırmayı düşürebilirdi; bu satır o boşluğu kapatır. */
   const gercek = (yol) => readFileSync(new URL(`./../${yol}`, import.meta.url), "utf8");
   assert.equal(
     a11ySorunlari({ main: gercek(".storybook/main.ts"), preview: gercek(".storybook/preview.tsx") }).length,
     0, "yürürlükteki .storybook yapılandırması kilitten geçmeli");
+  /* Gerçek `vitest.config.ts`teki meşru `@` alias'ı yanlış kırmızı vermemeli. */
+  assert.equal(a11y({ vitestConfig: gercek("vitest.config.ts") }).length, 0);
 
-  console.log(`self-check: 11 + 30 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
+
+  console.log(`self-check: 11 + 39 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 

@@ -9,7 +9,11 @@
  *
  * Son turun altı yolunun DÖRDÜ kilit dosyasına hiç dokunmuyordu; ikisi
  * `a11y` sözcüğünü hiç yazmıyordu bile:
- *   · `a11y: ({ test: "todo" })` — bir çift parantez, regex eşleşmiyor
+ *   · anahtarın değerini bir çift PARANTEZ içine almak — regex birebir
+ *     süslü parantez beklediği için eşleşmiyordu
+ *     (örneği burada birebir yazamıyorum: kapının "yutma imzası" onu
+ *     gerçek yapılandırma sanıp kırmızıya düşürüyor. Üçüncü kez aynı
+ *     ders — imler metnin içinde de imdir.)
  *   · bir satır yorumunun İÇİNE blok-yorum açma imi koymak — TypeScript
  *     onu satır yorumu sayar, kilidin yorum sökücüsü blok yorumu sanar
  *     ve aradaki `disable: true`yu siler; geriye tertemiz `test: "error"`
