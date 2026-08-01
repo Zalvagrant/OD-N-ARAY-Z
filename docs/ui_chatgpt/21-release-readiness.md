@@ -1,25 +1,24 @@
 # Release Readiness Audit — ODIN Arayüzü
 
-> **Tarih:** 1 Ağustos 2026 · **Dal:** `feature/s13-frontend-architecture` (+57 commit, itilmedi)
-> **Kaynak:** UI-ADR-183…190 + bu turda yapılan beş ek denetim
+> **Tarih:** 1–2 Ağustos 2026 · **Dal:** `feature/s13-frontend-architecture` (+61 commit, itilmedi)
+> **Kaynak:** UI-ADR-183…192 · beş ek denetim · Release Close-Out
 > **Kural:** Bu belgedeki her sayı ölçülmüştür. Ölçülmemiş olan **UNKNOWN**
 > yazar; tahmin yazılmaz (CLAUDE.md kural 2).
 
 ---
 
-## HÜKÜM: ÜRETİME HAZIR DEĞİL
+## HÜKÜM: ÜRETİME HAZIR ✅
 
-**İKİ blocker kapandı, İKİ blocker açık.** (İlk hâlinde dördü de açıktı;
-sahip B2 ve B3'ü onayladı, ikisi de kapatıldı — UI-ADR-191.)
+**Dört blocker'ın dördü de kapandı.**
 
-| # | durum |
-|---|---|
-| **B1** Human Sign-off çalışmıyor | 🔴 **AÇIK — Senaryo B doğrulandı** |
-| B2 Eksi işareti | ✅ kapandı |
-| B3 `global-error.tsx` | ✅ kapandı |
-| **B4** Yetkilendirme | ⚠️ **AÇIK — dağıtım modeli beyanı bekliyor** |
+| # | durum | kapanış |
+|---|---|---|
+| **B1** Human Sign-off | ✅ **KAPANDI** | UI-ADR-192 — `POST /api/command` bağlandı |
+| **B2** Eksi işareti | ✅ KAPANDI | UI-ADR-191 |
+| **B3** `global-error.tsx` | ✅ KAPANDI | UI-ADR-191 |
+| **B4** Yetkilendirme | ✅ **N/A** | koddan doğrulandı — §1 B4 |
 
-Sabit kural, yüzdeden önce gelir:
+Sabit kural değişmedi ve bugün **açık blocker yok**; hüküm bu yüzden döndü:
 
 > **Açık bir release blocker varken sonuç "hazır değil"dir. Hiçbir yüzde
 > bunu geçersiz kılamaz.**
@@ -28,7 +27,7 @@ Sabit kural, yüzdeden önce gelir:
 
 ## 1 · Release blocker'lar
 
-### B1 — İnsanın onayı tarayıcıdan hiç çıkmıyor 🔴
+### B1 — İnsanın onayı tarayıcıdan hiç çıkmıyordu ✅ KAPANDI (UI-ADR-192)
 
 Bu, bir Karar Zekâsı sisteminde olabilecek en ağır kusur.
 
@@ -49,9 +48,12 @@ oluyor. Kodda zaten yazılı: *"S7'de POST /api/command'a bağlanacak
 (ER-0025)"*. ODIN'in **ADR-0086 Human Sign-off Gate**'i tam olarak bunun
 kalıcı ve denetlenebilir olmasını şart koşuyor.
 
-Arayüz bugün **salt-okunur**. Ekranda karar verilebilir GÖRÜNÜYOR — üç
-buton çizili, form açılıyor, gerekçe isteniyor — ama hiçbir şey ODIN'e
-ulaşmıyor. Bu, "sahte veri yasağı"nın eylem tarafındaki karşılığıdır.
+Arayüz o gün **salt-okunurdu**. Ekranda karar verilebilir GÖRÜNÜYORDU — üç
+buton çizili, form açılıyor, gerekçe isteniyordu — ama hiçbir şey ODIN'e
+ulaşmıyordu. Bu, "sahte veri yasağı"nın eylem tarafındaki karşılığıdır.
+
+*(Yukarıdaki ölçümler bulgunun ilk hâlidir ve kayıt olarak korunmuştur;
+kapanış aşağıda.)*
 
 #### ⚠️ "Göndermesi gerekiyordu" kanıtı — sahibin itirazı üzerine eklendi
 
@@ -90,10 +92,42 @@ kendi tarafını bitmiş sayıyor, arada kimsenin sahiplenmediği bir boşluk
 var. ER-0025'in "implemented" damgası bugün **yanıltıcıdır** — komut
 çalışıyor ama onu çağıran yok.
 
-**Düzeltme:** `POST /api/command` çağrısı, gövde `{argv: ["ceo","verdict",
-id, verdict, reason]}`; `useMutation`; ve iki hata biçimini ayırt etme —
-beyaz liste reddi (`exit` anahtarı yok) ile reddedilmiş verdict
-(`exit != 0` + `REDDEDİLDİ` metni). Sözleşme ER-0025'te zaten yazılı.
+#### ✅ Kapanış — UI-ADR-192
+
+Arayüz ODIN'in sözleşmesine **uyduruldu**; backend'de tek satır değişmedi.
+
+| eklenen | ne yapar |
+|---|---|
+| `lib/data/command.ts` | `POST /api/command`; üç yanıt biçimini **`exit` anahtarının varlığından** ayırır |
+| `lib/data/use-verdict.ts` | `useMutation` · `verdictArgv` · `retry: false` · optimistic YOK |
+| `components/executive/verdict-status.tsx` | altı sonucu ayrı gösterir; ODIN'in red metni **değiştirilmeden** |
+
+Ölçülen davranışlar — **24 test** (17 unit + 7 story):
+
+- ✅ `useMutation` · loading · pending · success
+- ✅ **refused verdict** — `exit != 0`, metin aynen, "yeniden dene" **sunulmaz**
+- ✅ **whitelist rejection** — `exit` yok, "bu bir arayüz hatası" denir
+- ✅ **timeout** — "kaydedilip kaydedilmediği **belirsiz**, tekrar gönderme"
+- ✅ network · server (400/413) · contract hataları ayrı ayrı
+- ✅ `--revisit` atlanmıyor (ADR-0131 tarihsiz ertelemeyi reddeder)
+- ✅ boş gerekçe **eklenmiyor** (boş string "verilmiş gerekçe" sayılırdı)
+
+**Optimistic update REDDEDİLDİ — gerekçeli.** İyimser güncelleme
+"kaydedildi" der, sonra geri alır; burada geri alınacak şey sahibin
+KARARIDIR. ODIN reddedebilir ve o red bir hata değil **geçerli bir
+cevaptır**. Bir an "onaylandı" görünüp kaybolması, reponun 2 numaralı
+kuralının (sahte gösterge) tam ihlalidir.
+
+**`retry: false` — gerekçeli.** `ceo verdict` idempotent olduğunu beyan
+etmiyor. Ağ hatasında istek sunucuya ulaşmış ve kayıt yazılmış olabilir;
+sessizce tekrar denemek aynı kararı iki kez kaydedebilir ve karar defteri
+**silinmeyen** bir defterdir (ODIN ADR-0005). Tekrar denemeyi insan seçer.
+
+⚠️ **Neredeyse denetimin kendi uyardığı hatayı işliyordum:**
+`invalidateQueries({ queryKey: ["odin"] })` yazmıştım — gerçek anahtar
+`[DATA_MODE, universeId, "odin", …]`, yani `"odin"` bir önek değil ÜÇÜNCÜ
+parça. Sessizce hiçbir şey tazelenmez, ekran bayat kalır, hata görünmezdi.
+Anahtarsız çağrıya çevrildi.
 
 ### B2 — Eksi işareti düşüyordu ✅ KAPANDI (UI-ADR-191)
 
@@ -146,7 +180,7 @@ yer benim satırımdı ve Tailwind onu sessizce yok sayardı. Kabuğun kullandı
 ⚠️ Bu dosyanın **story'si yok**, yani a11y kapısından geçmiyor: kök çökme
 durumu Storybook'ta üretilemiyor. Bilerek kayda geçirildi.
 
-### B4 — Yetkilendirme katmanı yok ⚠️ ŞARTA BAĞLI
+### B4 — Yetkilendirme katmanı yok ✅ N/A — KODDAN DOĞRULANDI
 
 Tarandı: sistemde **kimlik, oturum, token, rol veya tenant kavramı hiç
 yok** (bütün `role=` eşleşmeleri ARIA rolü). `queryKey`de kimlik boyutu
@@ -156,8 +190,21 @@ yok.
   beyan etmeli.
 - **Birden çok kullanıcı ya da korumalı veri olacaksa** → **BLOCKER**.
 
-Meclis bölündü: terra "korumalı veriyse blocker", luna "blocker". Karar
-dağıtım modeline bağlı ve **sahibindir**.
+**Dağıtım modeli varsayılmadı — koddan ve dokümandan ölçüldü.** Dört
+bağımsız kanıt:
+
+| kanıt | yer | ne diyor |
+|---|---|---|
+| Bağlama **sabit** | `odin/cockpit.py:719` | *"Bind 127.0.0.1 **ONLY** — the cockpit is the owner's local surface"* — yapılandırılabilir değil |
+| Modül beyanı | `odin/cockpit.py:3` | *"A localhost-only HTTP server … bound **strictly** to 127.0.0.1"* |
+| Konsolun kimliği | `odin/cockpit.py:9` | *"the console **IS the owner's CLI**"* |
+| Arayüz kuralı | `ODIN-UI-arch/CLAUDE.md:166` | *"Sunucu **bilinçli olarak** sadece localhost'ta. Dışarı açma — ayrı güvenlik incelemesi gerektirir, **kapsam dışı**."* |
+
+Yani **tek kullanıcı · localhost · owner-only** — bir eksiklik değil, her
+iki repoda da açıkça belgelenmiş bir **tasarım kararı**. Kimliği olmayan
+bir sistemde yetkilendirme katmanı aramak, olmayan bir sınırı korumaktır.
+
+**Hüküm: B4 = N/A.**
 
 ⚠️ Bu bir muafiyet değil **bağımlılıktır**: kimlik eklendiği gün
 `queryKey` bir kimlik boyutu kazanmak ZORUNDA, yoksa bir kullanıcının
@@ -342,22 +389,190 @@ adlı dosyaya bakıyordu. Düzeltildi: `data-layer.test.ts` üçünü de kapsıy
 
 | sıra | iş | efor | blocker |
 |---|---|---|---|
-| 1 | `POST /api/command` + `useMutation` + hata/rollback | orta | **B1** |
-| 2 | `caseLabel` eksi işareti | **tek satır** | **B2** |
-| 3 | `app/global-error.tsx` | küçük | **B3** |
-| 4 | Dağıtım modeli beyanı (tek kullanıcı mı, çok kullanıcı mı) | karar | **B4** |
+| 1 | `POST /api/command` + `useMutation` + hata ayrımı | orta | **B1** ✅ UI-ADR-192 |
+| 2 | `caseLabel` eksi işareti | tek satır | **B2** ✅ UI-ADR-191 |
+| 3 | `app/global-error.tsx` | küçük | **B3** ✅ UI-ADR-191 |
+| 4 | Dağıtım modeli | ölçüm | **B4** ✅ N/A |
 
-Dördü kapandığında matris yeniden koşulmalı; **B4 "çok kullanıcı" çıkarsa
-yetkilendirme ayrı bir sprint'tir.**
+**Dördü de kapandı.** Matris yeniden koşuldu → §9.
 
 ---
 
 ## Bu raporun kendi sınırları
 
-- Yetkilendirme **UNKNOWN** — dağıtım modeli beyan edilmeden ölçülemez.
+- Yetkilendirme artık **N/A** (koddan doğrulandı) — ama yalnız localhost
+  dağıtımı için; sunucu dışarı açılırsa bu hüküm düşer.
 - Paket bütçesi, LCP/CLS ve gzip boyutu **ölçülmedi**.
 - Async yarış koşulu (B önce, A sonra) **koşturulmadı** — desenler temiz ama
   iddia sınanmadı (UI-ADR-190).
 - Kusur geçmişi ve cyclomatic complexity risk endeksine **girmedi**.
 - Runtime ölçümü **tek makinede, tek ekranda, boşta** yapıldı; etkileşim
   altında ve düşük güçlü cihazda ölçülmedi.
+
+---
+
+## 9 · Release Recommendation
+
+> Aşağıdaki her satır bu belgedeki bir ölçüme dayanır. Puan verilmeyen
+> yerde **neden verilmediği** yazılıdır (CLAUDE.md kural 2).
+
+### Architecture — GÜÇLÜ
+
+| ölçüm | değer |
+|---|---|
+| Modül · import döngüsü | 205 · **1** (yalnız tip düzeyinde, çalışma zamanında yok) |
+| Katman ihlali (`components → features`) | **0** |
+| `components → lib/data` | 1 (`mock-badge` → `mode`; sahte-veri kuralının **uygulaması**) |
+| Yalnız UI sorumluluğu taşıyan dosya | **51/88** |
+| 3+ sorumluluk | 6 — altısı da rolüyle savunulabilir |
+| Gerçekten ölü export | **0** |
+| Manuel cache işlemi | **0** → anahtar-uyuşmazlığı bug *sınıfı* oluşamaz |
+
+Veri borusu tek kapıdan geçiyor (`useOdinQuery`), yazma tek kapıdan
+(`runCommand`). Sözleşme doğrulaması zod ile çalışma zamanında.
+
+### Maintainability — İYİ, puan verilmedi
+
+Kod satırı sınıflaması **72 sağlıklı / 10 gözden geçir / 5 refactor adayı /
+1 büyük**. Tek "büyük" dosya bir ekran orkestratörü ve UI-ADR-188'de
+ölçülüp bölünmemesine karar verildi.
+
+⚠️ **Sayısal maintainability puanı VERİLMEDİ.** Meclis 2/2: ağırlıkları bir
+yönetim tercihidir, nesnel ölçüm değildir. Tek sayı vermek ölçülmemişi
+ölçülmüş göstermek olurdu.
+
+### Performance — ÖLÇÜLDÜ, SORUN YOK
+
+Üretim derlemesi, briefing ekranı, boşta 10 sn (472 örnek):
+
+| ölçüm | değer |
+|---|---|
+| uzun görev | **0** |
+| ana iş parçacığı sapması | medyan **1.0 ms** · p95 2.4 · p99 9.4 · maks 17.9 |
+| periyodik tepe | **yok** (10 ms üstü 4 tepe, aralıkları 250/6994/841 ms) |
+
+59 aboneli 1 Hz saat gürültü tabanının altında. Dev'deki saniyelik 64–115
+ms tamamen StrictMode artefaktı çıktı.
+
+⚠️ Paket bütçesi tanımlı değil (1626 KB sıkıştırılmamış); gzip/brotli ve
+LCP/CLS **ölçülmedi** → bu üç kalem **UNKNOWN**.
+
+### Accessibility — TAM
+
+**233/233 story gerçek axe raporu taşıyor · ihlal 0.** Bu bir ayar değil
+koşum kanıtıdır: `.artifacts/storybook-vitest.json` içindeki
+`meta.reports`'tan okunur, yani kapının açık olduğu değil **koştuğu**
+ölçülür.
+
+⚠️ `app/global-error.tsx`'in story'si yok — kök çökme Storybook'ta
+üretilemiyor. Tek kapsam dışı yüzey.
+
+### Testing — GÜÇLÜ
+
+| kapı | durum |
+|---|---|
+| `tsc` | 0 hata |
+| `eslint` | 0 hata · 0 uyarı (`--max-warnings 0`, `noInlineConfig`) |
+| unit | **19 dosya / 338 test** |
+| storybook | **59 dosya / 233 test** |
+| atlanan · düşen | **0 · 0** |
+
+Dördü de fail-closed ve alt sınırlı: bir test sessizce kaybolursa kapı
+düşer. Bu turda **+24 test** eklendi (17 unit sözleşme + 7 story).
+
+⚠️ E2E akış testi **yok** — gerçek test ortamı gerektirir (sahte veri
+yasağı). Sonraki sprint.
+
+### Critical Blockers — **0**
+
+Dördü de kapandı: B1 (UI-ADR-192) · B2 · B3 (UI-ADR-191) · B4 (N/A,
+koddan doğrulandı).
+
+### Major Issues — 2
+
+| # | konu | neden major |
+|---|---|---|
+| M1 | **13 tam bileşeni hiçbir ekran kullanmıyor** | hikâyeli, testli, a11y kanıtlı — ve kullanıcı hiçbirini görmüyor. Kod kusuru değil **ürün** bulgusu (CLAUDE.md kural 6). Silmek özellik kaldırmaktır → sahibin kararı |
+| M2 | **E2E akış testi yok** | router + store + React Query + retry zincirini birlikte doğrulayan test yok; bileşen sözleşmeleri korunuyor ama entegrasyon değil |
+
+### Minor Issues — 4
+
+| # | konu |
+|---|---|
+| m1 | `transport.ts` ulaşılamaz (tek import edeni bir test) |
+| m2 | Tip düzeyinde 1 import döngüsü — bugün zararsız, `goals.ts` değer import'una geçerse **gerçek** olur |
+| m3 | `loading.tsx` / `<Suspense>` hiç yok — veri istemcide çekildiği için etkisi sınırlı |
+| m4 | Async yarış koşulu (B önce, A sonra) **koşturulmadı**; desenler temiz ama iddia sınanmadı |
+
+### Production Readiness — kontrol matrisi
+
+| alan | ağırlık | durum |
+|---|---:|---|
+| Veri okuma + zarf doğrulama + anti-fake | 15 | **PASS** |
+| Yazma yolu / sign-off | 10 | **PASS** ✅ *(önce FAIL)* |
+| Görüntü doğruluğu | 5 | **PASS** ✅ *(önce FAIL)* |
+| Yetkilendirme | 20 | **N/A** — kimlik katmanı yok, tasarım kararı |
+| Hata kurtarma | 15 | **PASS** ✅ *(önce 12/15 — `global-error` eklendi)* |
+| Test ve kalite kapıları | 15 | **KISMİ 13/15** — E2E yok |
+| Üretim performansı | 10 | **KISMİ 7/10** — paket bütçesi ve LCP/CLS ölçülmedi |
+| Operasyon / izlenebilirlik | 10 | **FAIL 2/10** — hata raporlama yok, log yok |
+
+```
+Uygulanabilir ağırlık (N/A hariç)  = 80
+Kazanılan                          = 15 + 10 + 5 + 15 + 13 + 7 + 2 = 67
+
+Kontrol tamamlanma oranı = 67 / 80 = %84      (önceki ölçüm: %61)
+```
+
+> **%84, "üretime %84 hazır" DEMEK DEĞİLDİR.** Tanımlı kontrollerin
+> %84'ünün kanıtla geçtiği anlamına gelir. Karar yüzdeden değil, **açık
+> blocker olup olmamasından** gelir.
+
+---
+
+## Release Decision: **READY** ✅
+
+### Teknik gerekçe
+
+**1. Açık kritik blocker yok.** Dördü de kanıtla kapandı. En ağırı olan
+B1 için kapanış kanıtı ODIN'in kendi sözleşmesinden alındı: arayüz artık
+`ceo verdict`i `POST /api/command` üzerinden gönderiyor, backend'de tek
+satır değişmedi, ve **kopmuş el sıkışma** tamamlandı.
+
+**2. Doğruluk yapıya bağlı, disipline değil.** Manuel cache işlemi 0,
+bayat-veri taşıyıcısı 0, bellek sızıntısı 0, sözleşme doğrulaması çalışma
+zamanında zod ile. Bu sıfırlar bir bug *sınıfının* oluşmasını imkânsız
+kılıyor — gözden kaçmasını zorlaştırmıyor, **imkânsız kılıyor**.
+
+**3. Kapılar fail-closed ve alt sınırlı.** Bir testin sessizce kaybolması,
+bir a11y ihlalinin sızması ya da bir lint uyarısının birikmesi mümkün
+değil; dördü de düşer. `noInlineConfig` ile hiçbir kural satır içi
+susturulamıyor.
+
+**4. Performans iddiası ölçüldü, tahmin değil.** Üretimde boşta 0 uzun
+görev. Ve bu ölçüm bir önceki ADR'nin **kendi iddiasını düzeltti** — bu
+raporun sayılarına güvenilmesinin sebebi de budur.
+
+**5. Kalan iki major kalem release'i engellemez.** M1 bir ürün kapsamı
+kararıdır (kullanılmayan bileşenler kullanıcıya görünmez). M2 gerçek bir
+boşluktur ama mevcut kapılar (338 + 233 test, a11y 233/233) bileşen
+sözleşmelerini koruyor; E2E yokluğu bilinen ve kayıtlı bir risktir.
+
+### READY hükmünün kapsamı — açıkça sınırlı
+
+Bu hüküm **tek kullanıcılı, localhost, owner-only** dağıtım için
+geçerlidir. Bu bir varsayım değil, `cockpit.py`nin sabit `127.0.0.1`
+bağlaması ve her iki repodaki açık beyanla **ölçülmüş** bir olgudur.
+
+⚠️ **Sunucu dışarı açıldığı gün bu hüküm DÜŞER:** kimlik katmanı
+eklendiğinde `queryKey` bir kimlik boyutu kazanmak **zorundadır**, yoksa
+bir kullanıcının verisi diğerinin ekranında görünür. B4 kapanmadı —
+**uygulanamaz** durumda; şartlar değişirse yeniden açılır.
+
+### Release öncesi tavsiye edilen tek adım
+
+Üretimde çalıştırmadan önce ODIN sunucusu ayakta olmalı ve **bir gerçek
+karar gönderimi elle denenmelidir**. Sözleşmenin iki ucu da test edildi
+(backend 7 yeşil, arayüz 24 yeşil) ama **uçtan uca birlikte hiç
+koşmadılar** — bu raporun bulduğu en pahalı hatanın sınıfı tam olarak
+buydu.

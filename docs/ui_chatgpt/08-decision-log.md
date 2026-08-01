@@ -7568,3 +7568,141 @@ atlanan 0 · düşen 0 · **a11y ihlali 0, koşum kanıtı 226/226**.
 - **B1** — Human Sign-off. Sözleşme ER-0025'te yazılı, backend hazır.
 - **B4** — yetkilendirme. **Dağıtım modeli beyanı sahibindir**: tek
   kullanıcılı localhost aracı ise N/A, çok kullanıcılı ise blocker.
+
+---
+
+## UI-ADR-192 — ER-0025 kapandı: kopmuş el sıkışma tamamlandı
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** ODIN ADR-0142 · ADR-0131 · ADR-0086 · ADR-0005 · ER-0025 · UI-ADR-190 · 191
+
+Denetimin en ağır blocker'ı (B1) kapandı. **Backend'de tek satır
+değişmedi**; arayüz ODIN'in var olan sözleşmesine uyduruldu.
+
+### Sözleşme — okundu, uydurulmadı
+
+`odin/cockpit.py: run_command` **üç yanıt biçimi** döndürüyor ve **üçü de
+HTTP 200**. Ayırt edici sinyal HTTP kodu değil, **`exit` anahtarının
+varlığı**:
+
+| durum | gövde | kayıt |
+|---|---|---|
+| komut KOŞTU | `{ok: exit===0, exit, output}` | `exit===0` → yazıldı · `exit!==0` → **yazılmadı** |
+| beyaz liste reddi | `{ok:false, error}` — `exit` **YOK** | kesinlikle yazılmadı |
+| sunucu zaman aşımı | `{ok:false, error:"timeout (300s)"}` — `exit` **YOK** | **BELİRSİZ** |
+
+Backend testi bunu zaten çivilemiş (`tests/test_cockpit.py`):
+
+    self.assertIn("exit", result)           # the verb DID run
+    self.assertNotEqual(result["exit"], 0)  # the verdict was REFUSED
+    self.assertIn("REDDED", result["output"])
+
+### Eklenen üç dosya
+
+| dosya | sorumluluk |
+|---|---|
+| `lib/data/command.ts` | `POST /api/command`; üç biçimi `CommandOutcome`'a ayırır |
+| `lib/data/use-verdict.ts` | `useMutation` · `verdictArgv` · retry/optimistic politikası |
+| `components/executive/verdict-status.tsx` | altı sonucun ekran karşılığı |
+
+### İki politika kararı — ikisi de gerekçeli
+
+**`retry: false`.** Okuma yolundaki `retryable` politikası burada geçerli
+DEĞİL: bu bir yazma ve `ceo verdict` idempotent olduğunu **beyan
+etmiyor**. Ağ hatasında istek sunucuya ulaşmış ve kayıt yazılmış olabilir;
+sessizce tekrar denemek aynı kararı iki kez kaydeder. Karar defteri
+**silinmeyen** bir defterdir (ODIN ADR-0005) — ikinci kayıt geri alınamaz.
+Tekrar denemeyi **insan** seçer.
+
+**Optimistic update YOK.** İyimser güncelleme "kaydedildi" der ve sonra
+geri alır; burada geri alınacak şey sahibin **kararıdır**. ODIN reddedebilir
+(tarihsiz erteleme, eksik gerekçe) ve o red bir hata değil **geçerli bir
+cevaptır**. Ekranda bir an "onaylandı" görünüp kaybolması, reponun 2
+numaralı kuralının (sahte gösterge) tam ihlalidir. Karar ancak ODIN
+yazdığını söyledikten SONRA verilmiş görünür.
+
+### Altı sonuç neden ayrı gösteriliyor
+
+Ayrım kozmetik değil: sahibin bir sonraki hamlesi her birinde farklıdır.
+
+| sonuç | sahibin hamlesi |
+|---|---|
+| gönderiliyor | bekle, tekrar basma |
+| kaydedildi | iş bitti |
+| **ODIN reddetti** | gerekçeyi düzelt (kayıt YOK) |
+| komut reddedildi | arayüz hatası, yapacağı yok (kayıt YOK) |
+| **zaman aşımı** | ⚠️ **tekrar gönderme** — önce listeyi tazele (kayıt BELİRSİZ) |
+| taşıma hatası | yeniden dene (istek ulaşmamış olabilir) |
+
+**En kritik ayrım zaman aşımıdır.** Diğer beşinde "kaydedildi mi?"
+sorusunun cevabı kesin; orada değil. Sunucu 300 sn çalıştırabiliyor,
+istemci 30 sn'de vazgeçiyor. Bunu "hata" diye göstermek sahibi tekrar
+göndermeye iter ve çift kayıt üretir.
+
+**Red metni DEĞİŞTİRİLMEDEN gösterilir** — ER-0025 bunu şart koşuyor.
+Gerekçe somut: kuralı ODIN uyguluyor (ADR-0131); arayüz metni yeniden
+ifade ederse kural değiştiğinde arayüz **eskisini söylemeye devam eder**.
+
+### İki ince tuzak
+
+**`--revisit` atlanamaz.** `lifecycle.verdict` tarihsiz bir ertelemeyi
+reddeder. Bayrak gönderilmezse **her erteleme** sunucuda reddedilirdi ve
+arayüz "ODIN reddediyor" diye görünürdü — hata arayüzde olurdu.
+
+**Boş gerekçe hiç eklenmez, boş string olarak değil.** `args[0] if args
+else None` boş stringi "verilmiş gerekçe" sayar ve ODIN'in gerekçe kapısı
+sessizce atlanmış olurdu.
+
+### ⚠️ Neredeyse denetimin kendi uyardığı hatayı işliyordum
+
+`onSuccess` içine `invalidateQueries({ queryKey: ["odin"] })` yazmıştım.
+Gerçek anahtar `[DATA_MODE, universeId, "odin", …]` (`use-odin-query.ts:72`)
+— yani `"odin"` bir **önek değil, üçüncü parça**. Çağrı hiçbir şeyle
+eşleşmez, sessizce hiçbir şey tazelenmez, ekran bayat kalır ve hata
+**görünmez**.
+
+Bu, UI-ADR-190'da *"meclisin en çok uyardığı kusur"* diye kaydettiğim
+sınıfın ta kendisi — ve repodaki **ilk elle cache işlemini** eklerken
+neredeyse ben işliyordum. Anahtarsız çağrıya çevrildi: kapsam biraz geniş
+ama **yanlış olamaz**.
+
+Bir denetimin bulgusunu yazmak, o bulguya karşı bağışıklık kazandırmıyor.
+
+### Linter yine öksüzü yakaladı
+
+`verdicts` / `setVerdicts` oturum-içi haritası artık kullanılmıyordu;
+`--max-warnings 0` kapısı ikisini de, sonra öksüz kalan `useState`
+import'unu da gösterdi. Kararın tek kaydı artık ODIN'de — ekranda ikinci
+bir "işaretlendi" listesi tutmak iki gerçek kaynağı olurdu.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0 · `lint` 0 hata 0 uyarı ·
+**unit 19 dosya / 338 test** (alt sınır 335) ·
+**storybook 59 dosya / 233 test** (alt sınır 230) ·
+atlanan 0 · düşen 0 · **a11y ihlali 0, koşum kanıtı 233/233**.
+
+Bu turda eklenen: **24 test** (17 unit sözleşme + 7 story etkileşim).
+
+### B4 — ölçüldü, N/A
+
+Dağıtım modeli **varsayılmadı**: `cockpit.py:719` bağlamayı `127.0.0.1`e
+**sabitliyor** (yapılandırılabilir değil), modül başlığı *"bound strictly
+to 127.0.0.1"* diyor, `cockpit.py:9` *"the console IS the owner's CLI"*
+diyor ve arayüz `CLAUDE.md:166` *"bilinçli olarak sadece localhost … dışarı
+açma, kapsam dışı"* diyor. **Tek kullanıcı · localhost · owner-only.**
+
+⚠️ Bu bir muafiyet değil bağımlılıktır: sunucu dışarı açıldığı gün
+`queryKey` bir kimlik boyutu kazanmak **zorundadır**.
+
+### Sonuç
+
+**Dört blocker'ın dördü de kapandı. Release Decision: READY** — kapsamı
+localhost/tek-kullanıcı dağıtımıyla sınırlı olmak üzere
+(`21-release-readiness.md` §9).
+
+⚠️ Tek tavsiye: sözleşmenin iki ucu da test edildi (backend 7 yeşil,
+arayüz 24 yeşil) ama **uçtan uca birlikte hiç koşmadılar**. Üretimde
+kullanmadan önce bir gerçek gönderim elle denenmeli — bu raporun bulduğu
+en pahalı hatanın sınıfı tam olarak buydu.

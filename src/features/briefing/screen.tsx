@@ -17,7 +17,6 @@
  * göstermez, sözleşmesi olmayan alan (AI Readiness) NoData çıkar.
  */
 
-import { useState } from "react";
 import type { Decision } from "@/types/executive";
 import type { DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
@@ -53,6 +52,8 @@ import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
 import { AIPulse } from "@/components/executive/ai-pulse";
 import { AlertStack } from "@/components/executive/alert-stack";
+import { VerdictStatus } from "@/components/executive/verdict-status";
+import { useVerdictMutation } from "@/lib/data/use-verdict";
 import { Badge } from "@/components/ui/badge";
 import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
@@ -214,7 +215,10 @@ export function ExecutiveBriefing({
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
   demo?: DemoState;
 }) {
-  const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
+  /* `verdicts` oturum-içi haritası KALDIRILDI — UI-ADR-192. Kararın tek
+     kaydı artık ODIN'de; ekranda ikinci bir "işaretlendi" listesi tutmak
+     iki gerçek kaynağı olurdu ve biri diğerinden ayrışırdı. Linter öksüzü
+     yakaladı — kapının çalıştığının kanıtı. */
 
   const hero = useOdinFixture("briefing.hero");
   const decisions = useOdinFixture("briefing.decisions");
@@ -261,10 +265,19 @@ export function ExecutiveBriefing({
     error: DEMO_ERROR,
   });
 
-  /* Verdict S7'de POST /api/command'a bağlanacak (ER-0025). Şimdilik
-     oturum içi işaretlenir ve KAYDEDILMEDIGI açıkça yazılır. */
+  /**
+   * KARAR ARTIK ODIN'E YAZILIYOR — UI-ADR-192, ER-0025 kapandı.
+   *
+   * Buradaki eski satır `setVerdicts` idi: karar oturum içinde işaretlenip
+   * sekme kapanınca yok oluyordu ve yorumda "S7'de bağlanacak" yazıyordu —
+   * S7 çoktan geçmişti. Denetim bunu B1 blocker'ı olarak buldu ve ODIN
+   * çekirdeği okununca sebep netleşti: backend tarafı (ADR-0142) arayüzün
+   * çağıracağı sözleşmesiyle yazılmış, test edilmiş ve "tamamlandı" diye
+   * kapatılmıştı. Kopmuş olan el sıkışmanın arayüz ucuydu.
+   */
+  const verdictMutation = useVerdictMutation();
   const onVerdict = (d: Decision, v: VerdictInput) =>
-    setVerdicts((m) => ({ ...m, [d.id]: v }));
+    verdictMutation.mutate({ decisionId: d.id, input: v });
 
   return (
     /* Okunabilir satır uzunluğu korunur: ultrawide'da içerik gerilmez
@@ -313,13 +326,18 @@ export function ExecutiveBriefing({
           limit={3}
           onVerdict={onVerdict}
         />
-        {Object.keys(verdicts).length > 0 && (
-          <Text size="sm" tone="tertiary" className="mt-3">
-            {Object.keys(verdicts).length} verdict bu oturumda işaretlendi.
-            Kayıt S7&apos;de `ceo verdict` üzerinden kalıcı olacak (ER-0025) —
-            şu an HİÇBİR YERE yazılmadı.
-          </Text>
-        )}
+        {/* Gönderimin altı sonucu ayrı ayrı — özellikle zaman aşımı, çünkü
+            orada "kaydedildi mi?" sorusunun cevabı BELİRSİZDİR. Yeniden
+            deneme düğmesi yalnız taşıma hatasında çıkar; ODIN'in reddi
+            tekrar denenecek bir şey değil, düzeltilecek bir şeydir. */}
+        <VerdictStatus
+          pending={verdictMutation.isPending}
+          outcome={verdictMutation.data}
+          error={verdictMutation.error}
+          onRetry={() =>
+            verdictMutation.variables && verdictMutation.mutate(verdictMutation.variables)
+          }
+        />
       </Section>
 
       {/* 2 + 3 — Risk ve fırsat EŞİT görsel ağırlıkta: aynı grid, aynı genişlik */}
