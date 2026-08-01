@@ -5596,3 +5596,96 @@ atlanan 0, düşen 0, **a11y ihlali 0**.
 `--self-check`: **11 + 17 senaryo.**
 Enjekte ihlal denemeleri: token geri alınınca **5/5 kırmızı** ·
 `aria-label` kaldırılınca **1 kırmızı**.
+
+---
+
+## UI-ADR-168 — Kanarya: metin denetimi çalışma zamanını ölçmez
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-165 · 166 · 167
+
+Metin kilidi **üç kez** yazıldı ve **üç kez** kırıldı: 4, sonra 6, sonra 6
+ölçülmüş sökme yolu. Dördüncü denetimin teşhisi tek cümleydi ve doğruydu:
+
+> **Nokta yamalar bu altı yolu kapatır ve yedincisini davet eder. Üç
+> sürümdür aynı kök hata: metin denetimi çalışma zamanını ölçmüyor.**
+
+### Son turun altı yolu — dördü kilit dosyasına hiç dokunmuyordu
+
+1. **Satır yorumunun içine blok-yorum açma imi.** TypeScript onu satır
+   yorumu sayar; kilidin yorum sökücüsü blok yorumu sanıp aradaki
+   `disable: true`yu siler ve geriye tertemiz `test: "error"` kalır.
+   Ölçüldü: kilit **geçti**, axe hiç çağrılmadı.
+2. **`a11y: ({ test: "todo" })`** — bir çift parantez. Regex `a11y:`
+   sonrası birebir `{` istiyordu; eşleşme yok → blok yok → story'lerde
+   `zorunlu=false` olduğu için **hiç denetlenmiyor.**
+3. **`main.ts` → `previewAnnotations`.** Parametreler DERİN birleşiyor;
+   `disable: true` başka bir dosyadan gelip yapışıyor. Kilidin okuduğu
+   iki dosyada hiçbir `a11y` bloğu görünmüyor.
+4. **`main.ts` → `viteFinal` → `test.env.VITEST_STORYBOOK: "true"`.**
+   Kapının çocuk-süreç ortamı pini vite yapılandırmasına yetişmiyor;
+   ihlaller raporlanır ama hiçbir test düşmez.
+5. **`afterEach`te DOM'u boşaltmak.** Addon'un `afterEach`i EN SON
+   koşuyor (`.reverse()`); ondan önce çalışan bir `afterEach` gövdeyi
+   temizlerse axe boş sayfayı tarar.
+6. **17 senaryonun hepsi yeşilken kilidi zayıflatmak** — üç düzenleme,
+   hiçbiri senaryolarla kapsanmıyordu.
+
+### Çözüm: sonucu ölç, metni değil
+
+`src/a11y-kanarya.stories.tsx` — bileşen sınamayan tek story. Story'nin
+**gerçekten çözülmüş** yapılandırmasına bakıyor:
+
+- `parameters.a11y.test === "error"`
+- `parameters.a11y`de `test` DIŞINDA anahtar YOK — çalışma zamanı izin
+  listesi; yarın icat edilecek bir daraltma anahtarı da düşer
+- `globals.a11y.manual !== true` ve `globals.ghostStories === undefined`
+- `import.meta.env.VITEST_STORYBOOK === "false"`
+
+Nereden geldiği önemsiz: preview, meta, story, bir annotation dosyası,
+bir vite config'i — **birleşmiş hâli buradan görünür.** 1, 2, 3, 4 ve 6
+bu tek story ile kapanıyor.
+
+**Kanıt:** yorum numarasıyla `disable: true` enjekte edildi →
+**metin kilidi GEÇTİ, kanarya DÜŞTÜ.**
+
+Kanarya `ZORUNLU.storybook`a eklendi: silinirse toplam yalnız 1 düşer,
+alt sınır (190) görmez — ama kimlik kontrolü görür.
+
+### Metin kilidi silinmedi — ikisi birlikte
+
+Kanaryanın göremediği iki şey var ve dürüstçe yazılıyor:
+**`main.ts`ten addon'un tamamen çıkarılması** (o zaman `test` yine
+"error" görünür, çünkü onu preview yazıyor) ve **`afterEach`te DOM'u
+boşaltan bir düzenleme.** Birincisini metin kilidi yakalar; ikincisi
+**AÇIK KALIYOR** ve burada kayıtlı.
+
+Metin kilidinin kendi üç kusuru da düzeltildi: yorum sökme SIRASI
+(satır yorumları artık önce), parantezli nesne, ve `--self-check`e üç
+yeni senaryo (17 → 20).
+
+### Düzeltilmedi — gerekçesiyle
+
+- **Modül import edilirse kapıyı koşturuyor.** Bir `DOGRUDAN` koruması
+  denendi ve **yarım kaldı**: yalnız a11y bloğunu atlıyor, aşağıdaki
+  `execFileSync`i atlamıyordu. **Yarım bir koruma olmayandan kötüdür** —
+  atladığını sanırsın. Geri alındı; temiz çözüm saf kısmı ayrı bir
+  modüle almaktır ve dosyada yazılı. Bugün için sınama yolu
+  `--self-check`.
+- **`aria-disabled` üretim kodunda bir axe muafiyeti** (`selection.tsx`).
+  Dosyanın kendi yorumu bunu zaten itiraf ediyor (UI-ADR-166). Meşru
+  (WCAG 1.4.3) ama izin listesi felsefesinin JSX'te tutmadığı bir yer.
+
+### Ve bir küçük ironi
+
+Bu dosyanın kendi JSDoc'una örnek diye yazdığım blok-yorum kapanış imi,
+yorumu erken kapattı ve Storybook dosyayı indeksleyemedi. **İmler metnin
+içinde de imdir** — kilidin üç sürümdür kandığı şeyin ta kendisi.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 16 dosya / 241 test**, **storybook 55 dosya / 207 test**,
+atlanan 0, düşen 0, **a11y ihlali 0**.
+`--self-check`: **11 + 20 senaryo.**

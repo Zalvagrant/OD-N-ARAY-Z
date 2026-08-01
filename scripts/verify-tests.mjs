@@ -58,13 +58,21 @@ const FLOOR = Number(process.argv[3] ?? 190);
    adlarıyla aranıyor — iki satır, kimlik kontrolünün büyük kısmını verir. */
 const ZORUNLU = {
   unit: ["state-matrix.test", "inventory.test"],
-  storybook: [],
+  /* Kanarya story'si — UI-ADR-168. Metin kilidi çalışma zamanını
+     ölçemiyor; asıl kapı `src/a11y-kanarya.stories.tsx`. Silinirse ya da
+     yeniden adlandırılırsa toplam yalnız 1 düşer, alt sınır görmez. */
+  storybook: ["a11y-kanarya.stories"],
 };
 
 /** Yorumları söker. String içindeki `//` yanlış kesilmesin diye önce
  *  blok yorumları, sonra YALNIZ satır başındaki/boşluk sonrası `//`. */
 function yorumsuz(k) {
-  return k.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*/g, "$1");
+  /* SIRA ÖNEMLİ — UI-ADR-168. Blok yorumları ÖNCE sökülüyordu ve bir
+     satır yorumunun İÇİNDEKİ blok-açma imi gerçek bir blok sanılıyordu:
+     aradaki `disable: true` siliniyor, geriye tertemiz `test: "error"`
+     kalıyordu. TypeScript için o bir satır yorumudur ve hiçbir şey
+     açmaz. Satır yorumları önce sökülünce im de onlarla gider. */
+  return k.replace(/(^|\s)\/\/.*/g, "$1").replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
 /** `a11y: { … }` bloklarının GÖVDESİNİ parantez sayarak çıkarır.
@@ -78,7 +86,10 @@ function yorumsuz(k) {
  *  bir YEM blok koymak gerçek bloğu denetimden tamamen kaçırıyordu. */
 export function a11yBloklari(kaynak) {
   const bloklar = [];
-  const re = /["']?a11y["']?\s*:\s*\{/g;
+  /* `\(*` — UI-ADR-168. `a11y: ({ test: "todo" })` bir çift parantezle
+     eşleşmeden kaçıyordu: blok bulunamıyor, story'lerde `zorunlu=false`
+     olduğu için hiç denetlenmiyordu. Tek satır, sıfır dolaylılık. */
+  const re = /["']?a11y["']?\s*:\s*\(*\s*\{/g;
   let m;
   while ((m = re.exec(kaynak)) !== null) {
     let derinlik = 1;
@@ -279,6 +290,16 @@ backgrounds: { disable: true },` }).length, 0);
   ]) assert.ok(a11y({ preview: PRE(govde) }).length > 0, govde);
   // YEM BLOK: sağlam görünen ilk blok, gerçeği gizleyemez.
   assert.ok(a11y({ preview: 'const not = { a11y: { test: "error" } };' + PRE('      test: "todo",') }).length > 0);
+  /* UI-ADR-168 — dorduncu denetimin iki yeni yolu. Duzeltme testsiz kalmasin. */
+  // (a) Satir yorumunun ICINDE blok-acma imi: TypeScript satir yorumu sayar,
+  //     eski yorum sokucu blok sanip aradaki `disable: true`yu siliyordu.
+  const ACIK = "/" + "*", KAPA = "*" + "/";
+  assert.ok(a11y({ preview:
+    `a11y: {\n  test: "error",\n  // acik ${ACIK}\n  disable: true,\n  // ${KAPA}\n},`
+  }).length > 0);
+  // (b) Bir cift parantez regex'ten kaciriyordu.
+  assert.ok(a11y({ preview: 'a11y: ({ test: "todo" }),' }).length > 0);
+  assert.ok(a11y({ storyler: [{ ad: "p.stories.tsx", kaynak: 'parameters: { a11y: ({ test: "todo" }) }' }] }).length > 0);
   // main.ts: dizge dosyada geçiyor ama `addons` DİZİSİNDE değil.
   assert.ok(a11y({ main: 'const KALDIRILDI = ["@storybook/addon-a11y"]; addons: ["@storybook/addon-vitest"],' }).length > 0);
   assert.ok(a11y({ storyler: [{ ad: "x.stories.tsx", kaynak: 'parameters: { a11y: { test: "todo" } }' }] }).length > 0);
@@ -289,10 +310,19 @@ backgrounds: { disable: true },` }).length, 0);
     a11ySorunlari({ main: gercek(".storybook/main.ts"), preview: gercek(".storybook/preview.tsx") }).length,
     0, "yürürlükteki .storybook yapılandırması kilitten geçmeli");
 
-  console.log(`self-check: 11 + 17 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
+  console.log(`self-check: 11 + 20 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 
+/* ⚠️ BU DOSYA IMPORT EDİLİRSE KAPIYI KOŞTURUR — UI-ADR-168, bilinçli.
+   `a11ySorunlari` ve `a11yBloklari` `export` edilmiş ama aşağıdaki her
+   şey modül üst seviyesinde: import eden bir sonda TÜM storybook
+   paketini başlatır (denetimde ölçüldü, iki dakikada zaman aşımı).
+   Bir `DOGRUDAN` koruması denendi ve YARIM kaldı — yalnız bu bloğu
+   atlıyor, aşağıdaki `execFileSync`i atlamıyordu; yarım bir koruma,
+   olmayandan kötüdür (atladığını sanırsın). Temiz çözüm saf kısmı ayrı
+   bir modüle almaktır ve o gün geldiğinde yolu budur.
+   BUGÜN İÇİN: bu fonksiyonları sınamanın yolu `--self-check`tir. */
 if (PROJECT === "storybook") {
   const oku = (p) => readFileSync(new URL(`./../${p}`, import.meta.url), "utf8");
   const storyler = [];

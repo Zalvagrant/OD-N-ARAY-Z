@@ -72,10 +72,11 @@ export const All: StoryObj = {
     const canvas = within(canvasElement);
     for (const ad of ["Otomatik yenile", "Adaptive UI (v1.0'da kapalı)"]) {
       const anahtar = canvas.getByRole("switch", { name: ad });
-      await expect(
-        anahtar.hasAttribute("aria-label") ||
-          anahtar.hasAttribute("aria-labelledby"),
-      ).toBe(true);
+      /* DEĞERE bakıyor, VARLIĞA değil (UI-ADR-168): `aria-label=""`
+         `hasAttribute`tan geçerdi ve `getByRole` boş adı atlayıp saran
+         etiketi okurdu — yani iki iddia da yeşil kalır, axe'in adı yine
+         BOŞ olurdu. Adsızlığın bir de sessiz biçimi var. */
+      await expect(anahtar.getAttribute("aria-label")).toBe(ad);
     }
     await expect(
       canvas.getByRole("switch", { name: "Adaptive UI (v1.0'da kapalı)" }),
