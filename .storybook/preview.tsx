@@ -33,27 +33,35 @@ const preview: Preview = {
       },
     },
 
+    /**
+     * ERİŞİLEBİLİRLİK — `test: "error"`, kapı KAPALI (UI-ADR-165).
+     * Seçenekler: `todo` yalnız gösterir · `off` hiç koşmaz.
+     *
+     * ⚠️ GEREKÇE BLOĞUN DIŞINDA DURUYOR VE BU BİLİNÇLİ (UI-ADR-169):
+     * `verify-tests.mjs` artık `a11y` bloğunun İÇİNDE yorum bulunmasını
+     * yasaklıyor. Sebebi acı: yorum sökme SIRASI iki ayrı sömürüye
+     * kandı — önce "satır yorumunun içindeki blok açma imi", sonra
+     * "blok yorumunun içindeki `//`". İkisinde de aradaki
+     * `disable: true` siliniyor ve geriye tertemiz `test: "error"`
+     * kalıyordu. Sıra oyununun kazananı yok; yorumu blok dışına almak
+     * soruyu tamamen ortadan kaldırıyor.
+     *
+     * Ölçüm (165): `error`e çevrildiğinde **107 story / 609 ihlal**di ve
+     * 582'si (%96) TEK token'dan geliyordu — `--odin-text-tertiary` =
+     * `#64748B`, karanlık temanın BEŞ zemininin hiçbirine karşı AA'yı
+     * geçmiyordu (3.16 – 4.14). `#8593A5`'e açıldı; en kötü zemine
+     * (`surface-floating` #1B2739) karşı 4.81.
+     *
+     * ⚠️ İlk aday listem EKSİK ÖLÇÜLMÜŞTÜ: `surface-floating` ve
+     * `surface-elevated` sayılmamıştı, `#7c8899` "4.93 geçer"
+     * görünüyordu — gerçekte 4.18 ile KALIYOR. **Bir kontrast iddiası,
+     * ölçüldüğü zemin kümesi kadar doğrudur.**
+     *
+     * `todo`ya geri çevirmek bir düzeltme değil, kapıyı sökmektir — ve
+     * asıl kapı artık burası bile değil: her story raporda kendi axe
+     * taramasının koştuğunu KANITLIYOR (UI-ADR-169).
+     */
     a11y: {
-      // 'todo' - show a11y violations in the test UI only
-      // 'error' - fail CI on a11y violations
-      // 'off' - skip a11y checks entirely
-      /**
-       * ✅ `error` — kapı KAPALI (UI-ADR-165). Bir zamanlar `todo` idi.
-       *
-       * Ölçüm o zaman **107 story / 609 ihlal** demişti ve 582'si (%96)
-       * TEK token'dan geliyordu: `--odin-text-tertiary` = `#64748B`.
-       * Karanlık temanın BEŞ zemininin hiçbirine karşı WCAG AA'yı
-       * geçmiyordu (3.16 – 4.14). Token `#8593A5`'e açıldı; en kötü
-       * zemine (`surface-floating` #1B2739) karşı 4.81 verir.
-       *
-       * ⚠️ İlk aday listem EKSİK ÖLÇÜLMÜŞTÜ: `surface-floating` ve
-       * `surface-elevated` zeminleri sayılmamıştı, bu yüzden `#7c8899`
-       * "4.93 geçer" görünüyordu — gerçekte 4.18 ile KALIYOR. Bir
-       * kontrast iddiası, ölçüldüğü zemin kümesi kadar doğrudur.
-       *
-       * Bundan sonra erişilebilirlik ihlali eklemek CI'yı düşürür.
-       * `todo`ya geri çevirmek bir düzeltme değil, kapıyı sökmektir.
-       */
       test: "error",
     },
 

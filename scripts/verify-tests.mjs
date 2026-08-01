@@ -64,26 +64,29 @@ const ZORUNLU = {
   storybook: ["a11y-kanarya.stories"],
 };
 
-/** Yorumları söker. String içindeki `//` yanlış kesilmesin diye önce
- *  blok yorumları, sonra YALNIZ satır başındaki/boşluk sonrası `//`. */
-function yorumsuz(k) {
-  /* SIRA ÖNEMLİ — UI-ADR-168. Blok yorumları ÖNCE sökülüyordu ve bir
-     satır yorumunun İÇİNDEKİ blok-açma imi gerçek bir blok sanılıyordu:
-     aradaki `disable: true` siliniyor, geriye tertemiz `test: "error"`
-     kalıyordu. TypeScript için o bir satır yorumudur ve hiçbir şey
-     açmaz. Satır yorumları önce sökülünce im de onlarla gider. */
-  return k.replace(/(^|\s)\/\/.*/g, "$1").replace(/\/\*[\s\S]*?\*\//g, "");
+/**
+ * Yorumları SİLMEZ, aynı uzunlukta boşlukla DOLDURUR — UI-ADR-169.
+ *
+ * Silmek iki kez oyuna geldi ve üçüncüsünde kendi ayağıma sıktı:
+ *   · Blok yorumları önce sökülürse, bir SATIR yorumunun içindeki blok
+ *     açma imi gerçek blok sanılır ve aradaki `disable: true` silinir.
+ *   · Satır yorumları önce sökülürse, bir BLOK yorumunun içindeki `//`
+ *     aynı oyunu ters yönden oynar.
+ *   · Ve hiç sökülmezse, bir yorumun içindeki ÖRNEK gerçek yapılandırma
+ *     sanılır (kanarya dosyasının kendi belgesi kapıyı düşürdü).
+ *
+ * Boşlukla doldurmak üçünü birden bitirir: konumlar korunduğu için
+ * blokları boşaltılmış metinden bulup **ham metinle karşılaştırarak**
+ * "bu bloğun içinde yorum var mıydı" sorusunu da cevaplayabiliyoruz.
+ * Satır sonları korunur ki hata mesajlarındaki satır sayısı kaymasın.
+ */
+function yorumBosalt(k) {
+  const bosluk = (m) => m.replace(/[^\n]/g, " ");
+  return k
+    .replace(/\/\*[\s\S]*?\*\//g, bosluk)
+    .replace(/(^|[\s;,(])\/\/[^\n]*/g, (m, on) => on + bosluk(m.slice(on.length)));
 }
 
-/** `a11y: { … }` bloklarının GÖVDESİNİ parantez sayarak çıkarır.
- *
- *  Regex ile blok sonu aramak (satır sonu + `\},`) İKİ yönden yanlıştı ve
- *  denetim ikisini de ölçtü: blok tek satıra sıkışınca bir SONRAKİ bloğu
- *  yutuyordu (gerçek `preview.tsx`te hemen altta `backgrounds: { disable:
- *  true }` var — kilit "a11y bloğunda `disable`" diye YALAN bir teşhis
- *  basıyordu), ve kapanışta virgül yoksa bloğu hiç bulamıyordu.
- *  Ayrıca `String.match` global değildi: dosyanın başına sağlam görünen
- *  bir YEM blok koymak gerçek bloğu denetimden tamamen kaçırıyordu. */
 export function a11yBloklari(kaynak) {
   const bloklar = [];
   /* `\(*` — UI-ADR-168. `a11y: ({ test: "todo" })` bir çift parantezle
@@ -100,7 +103,7 @@ export function a11yBloklari(kaynak) {
       else if (kaynak[i] === "}") derinlik -= 1;
       i += 1;
     }
-    bloklar.push(kaynak.slice(bas, i - 1));
+    bloklar.push({ bas, son: i - 1 });
   }
   return bloklar;
 }
@@ -149,18 +152,29 @@ export function a11yBloklari(kaynak) {
  * düzenlemeyi göremez. Bu kilidin amacı da o değil: **niyet göstermeden**
  * yapılan sökmeleri kapatmak. Import indirection niyettir.
  */
-export function a11ySorunlari({ main, preview, storyler = [] }) {
+export function a11ySorunlari({ main, preview, vitestConfig = "", storyler = [] }) {
   const sorunlar = [];
   /* Blok gövdesi boşluksuz hâliyle TAM olarak buna eşit olmalı. */
   const SAGLAM = /^test:["']error["'],?$/;
   const denetle = (ad, kaynak, zorunlu) => {
-    const bloklar = a11yBloklari(yorumsuz(kaynak));
+    const bos = yorumBosalt(kaynak);
+    const bloklar = a11yBloklari(bos);
     if (zorunlu && bloklar.length === 0) {
       sorunlar.push(`${ad}: \`a11y: { … }\` bloğu bulunamadı`);
       return;
     }
-    for (const blok of bloklar) {
-      const sade = blok.replace(/\s+/g, "");
+    for (const { bas, son } of bloklar) {
+      /* BLOK İÇİNDE YORUM YASAK. Boşaltılmış dilim ham dilimden
+         farklıysa orada bir yorum vardı. Bu bloğun tek meşru içeriği
+         zaten `test: "error"`; gerekçe bloğun DIŞINA yazılır. */
+      if (bos.slice(bas, son) !== kaynak.slice(bas, son)) {
+        sorunlar.push(
+          `${ad}: a11y bloğunun İÇİNDE yorum var — gerekçeyi bloğun dışına yaz ` +
+          "(yorum sökme sırası iki ayrı sömürüye kandı, UI-ADR-169)",
+        );
+        continue;
+      }
+      const sade = bos.slice(bas, son).replace(/\s+/g, "");
       if (!SAGLAM.test(sade)) {
         sorunlar.push(
           `${ad}: a11y bloğu \`test: "error"\` DIŞINDA içerik taşıyor → \`${sade.slice(0, 60)}\`. ` +
@@ -171,11 +185,23 @@ export function a11ySorunlari({ main, preview, storyler = [] }) {
     }
   };
 
+  /* axe'İN KENDİSİ SAHTELENEBİLİR — UI-ADR-169. `vitest.config.ts`teki
+     `resolve.alias` ile `axe-core` sahte bir modüle bağlanırsa tarama
+     koşar, rapor yazılır, `status: "passed"` der ve **hiç ihlal
+     bulmaz**. `storybook/test` alias'lanırsa kanaryanın `expect`i bile
+     no-op olur. Çalışma zamanı kanıtı bunu göremez; metin görebilir. */
+  if (vitestConfig && /alias[\s\S]{0,400}?["']?(axe-core|storybook\/test)["']?\s*:/.test(yorumBosalt(vitestConfig))) {
+    sorunlar.push(
+      "vitest.config.ts `alias` bloğunda `axe-core` ya da `storybook/test` yeniden " +
+      "yönlendiriliyor — tarama koşuyor görünür ama hiçbir şey ölçmez",
+    );
+  }
+
   /* Anahtar TIRNAKLI olabilir — gerçek `main.ts` `"addons": [` yazıyor.
-     Bu kaçak, self-check'e gerçek dosyaları okutan satır sayesinde
-     yakalandı: uydurma girdilerle yazılmış senaryolar yeşildi ama kilit
-     yürürlükteki yapılandırmayı düşürüyordu. */
-  const addons = yorumsuz(main).match(/["']?addons["']?\s*:\s*\[[\s\S]*?\]/);
+     Ve kontrol DİZİNİN İÇİNE indirilmiş durumda: dosyanın başka bir
+     yerinde geçen (`const KALDIRILDI = ["@storybook/addon-a11y"]`) dizge
+     saymaz. İkisi de bağımsız denetimde ölçüldü. */
+  const addons = yorumBosalt(main).match(/["']?addons["']?\s*:\s*\[[\s\S]*?\]/);
   if (!addons || !/["']@storybook\/addon-a11y["']/.test(addons[0])) {
     sorunlar.push(
       "main.ts `addons` DİZİSİNDE @storybook/addon-a11y yok — axe hiç yüklenmez, " +
@@ -189,7 +215,50 @@ export function a11ySorunlari({ main, preview, storyler = [] }) {
   return sorunlar;
 }
 
-export function evaluate(report, { runFailed = false, floor = FLOOR, zorunlu = [] } = {}) {
+/**
+ * HER STORY KENDİ TARAMASININ KOŞTUĞUNU KANITLAR — UI-ADR-169.
+ *
+ * Beş tur denetim, dört farklı kilit sürümü ve hâlâ yeni sökme yolları.
+ * Sebep artık çok net: kapı YAPILANDIRMAYA bakıyordu — önce metne, sonra
+ * (kanaryayla) çözülmüş parametreye. İkisi de "acaba koşacak mı" sorusunu
+ * cevaplıyor. Doğru soru: **KOŞTU MU?**
+ *
+ * Rapor bunu zaten taşıyormuş ve kimse bakmamış: `addon-vitest`
+ * (`test-utils.js`) her story'nin `meta.reports`una axe'in gerçek
+ * sonucunu yazıyor — motor adı ve sürümüyle birlikte
+ * (`{ type: "a11y", status: "passed", result: { testEngine: axe-core } }`).
+ * Ölçüldü: 207 assertion'ın **207'sinde** var.
+ *
+ * Bu tek kontrol, beş turda bulunan sökme yollarının neredeyse tamamını
+ * birden kapatır — çünkü hiçbirini AYRI AYRI tanımıyor:
+ *   · addon `main.ts`ten çıkarılırsa rapor hiç yazılmaz
+ *   · `disable`/`manual`/`ghostStories`/`context.exclude` — `shouldRun`
+ *     düşer, `addReport` hiç çağrılmaz
+ *   · `todo` kipi `status: "warning"` yazar, `passed` değil
+ *   · `afterEach`te DOM boşaltmak ya da parametreyi ezmek — UI-ADR-168'in
+ *     "AÇIK KALIYOR" diye kaydettiği delik; kanaryadan SONRA koşuyordu
+ *     ama rapordan önce değil
+ *   · parantezli/hesaplanmış/atamalı yazımlar — metin hiç okunmuyor
+ *
+ * Kapatmadığı: axe'in kendisini sahte bir modülle değiştirmek (o da
+ * "passed" der). Ona karşı `a11ySorunlari` `vitest.config.ts`teki
+ * `alias`a bakıyor.
+ */
+function a11yKanitiEksikOlanlar(report) {
+  const eksik = [];
+  for (const f of report.testResults ?? []) {
+    for (const a of f.assertionResults ?? []) {
+      if (a.status !== "passed") continue;   // düşenleri `failed` zaten sayıyor
+      const raporlar = (a.meta?.reports ?? []).filter((r) => r?.type === "a11y");
+      if (!raporlar.some((r) => r.status === "passed")) {
+        eksik.push(a.fullName ?? a.title ?? String(f.name ?? "?"));
+      }
+    }
+  }
+  return eksik;
+}
+
+export function evaluate(report, { runFailed = false, floor = FLOOR, zorunlu = [], a11yKaniti = false } = {}) {
   const passed = report.numPassedTests ?? 0;
   const failed = report.numFailedTests ?? 0;
   const pending = report.numPendingTests ?? 0;
@@ -207,6 +276,16 @@ export function evaluate(report, { runFailed = false, floor = FLOOR, zorunlu = [
   for (const z of zorunlu) {
     if (!adlar.some((a) => a.includes(z))) {
       problems.push(`KAPI DOSYASI KOŞMADI: ${z} — silinmiş ya da yeniden adlandırılmış olabilir`);
+    }
+  }
+  if (a11yKaniti) {
+    const eksik = a11yKanitiEksikOlanlar(report);
+    if (eksik.length > 0) {
+      problems.push(
+        `${eksik.length} story a11y taramasının koştuğunu KANITLAMIYOR ` +
+        `(ilk: ${eksik.slice(0, 3).join(" · ")}) — axe koşmamış ya da ` +
+        "`todo` kipinde uyarı yazmış olabilir",
+      );
     }
   }
   if (runFailed && problems.length === 0) {
@@ -303,6 +382,30 @@ backgrounds: { disable: true },` }).length, 0);
   // main.ts: dizge dosyada geçiyor ama `addons` DİZİSİNDE değil.
   assert.ok(a11y({ main: 'const KALDIRILDI = ["@storybook/addon-a11y"]; addons: ["@storybook/addon-vitest"],' }).length > 0);
   assert.ok(a11y({ storyler: [{ ad: "x.stories.tsx", kaynak: 'parameters: { a11y: { test: "todo" } }' }] }).length > 0);
+  /* UI-ADR-169 — besinci denetimin yollari. */
+  // Blok icinde yorum artik YASAK: sira oyununun iki yonu de biter.
+  assert.ok(a11y({ preview: `a11y: {
+  test: "error",
+  /* neden: // ayrinti */
+  disable: true,
+},` }).length > 0);
+  assert.ok(a11y({ preview: `a11y: {
+  test: "error",
+  // not
+},` }).length > 0);
+  // axe'in kendisi sahtelenirse tarama kosar ama hicbir sey olcmez.
+  assert.ok(a11y({ vitestConfig: 'resolve: { alias: { "axe-core": "./sahte.ts" } }' }).length > 0);
+  assert.ok(a11y({ vitestConfig: 'resolve: { alias: { "storybook/test": "./sahte.ts" } }' }).length > 0);
+  assert.equal(a11y({ vitestConfig: 'resolve: { alias: { "@": "./src" } }' }).length, 0);
+  /* CALISMA ZAMANI KANITI — her story kendi taramasini kanitlar. */
+  const rp = (st) => ({ numPassedTests: 1, numFailedTests: 0, numPendingTests: 0, numTodoTests: 0,
+    testResults: [{ name: 'x', assertionResults: [{ status: 'passed', fullName: 'S',
+      meta: st === null ? {} : { reports: [{ type: 'a11y', status: st }] } }] }] });
+  const K = { floor: 1, a11yKaniti: true };
+  assert.equal(evaluate(rp('passed'), K).problems.length, 0);
+  assert.ok(evaluate(rp('warning'), K).problems.length > 0);   // todo kipi
+  assert.ok(evaluate(rp(null), K).problems.length > 0);        // axe hic kosmadi
+  assert.equal(evaluate(rp(null), { floor: 1 }).problems.length, 0);  // unit projesi etkilenmez
   /* GERÇEK DOSYALAR — senaryolar uydurma girdiyle yeşil olup yürürlükteki
      yapılandırmayı düşürebilirdi; bu satır o boşluğu kapatır. */
   const gercek = (yol) => readFileSync(new URL(`./../${yol}`, import.meta.url), "utf8");
@@ -310,7 +413,7 @@ backgrounds: { disable: true },` }).length, 0);
     a11ySorunlari({ main: gercek(".storybook/main.ts"), preview: gercek(".storybook/preview.tsx") }).length,
     0, "yürürlükteki .storybook yapılandırması kilitten geçmeli");
 
-  console.log(`self-check: 11 + 20 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
+  console.log(`self-check: 11 + 30 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 
@@ -341,6 +444,7 @@ if (PROJECT === "storybook") {
   const sorunlar = a11ySorunlari({
     main: oku(".storybook/main.ts"),
     preview: oku(".storybook/preview.tsx"),
+    vitestConfig: oku("vitest.config.ts"),
     storyler,
   });
   if (sorunlar.length > 0) {
@@ -400,6 +504,7 @@ try {
 const { problems, files, passed } = evaluate(report, {
   runFailed,
   zorunlu: ZORUNLU[PROJECT] ?? [],
+  a11yKaniti: PROJECT === "storybook",
 });
 
 if (problems.length > 0) {

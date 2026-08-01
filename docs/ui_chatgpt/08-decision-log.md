@@ -5689,3 +5689,99 @@ içinde de imdir** — kilidin üç sürümdür kandığı şeyin ta kendisi.
 **unit 16 dosya / 241 test**, **storybook 55 dosya / 207 test**,
 atlanan 0, düşen 0, **a11y ihlali 0**.
 `--self-check`: **11 + 20 senaryo.**
+
+---
+
+## UI-ADR-169 — Doğru soru "koşacak mı" değil, "KOŞTU MU"
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-165 · 166 · 167 · 168
+
+Beş tur bağımsız denetim, dört kilit sürümü. Beşincisi kanaryayı da
+kırdı — dört yoldan. Ama asıl değeri bulduğu deliklerde değil, **teşhisi
+bir adım öteye taşımasındaydı:**
+
+> Kapı hep YAPILANDIRMAYA bakıyordu — önce metne, sonra (kanaryayla)
+> çözülmüş parametreye. İkisi de *"acaba koşacak mı"* sorusunu
+> cevaplıyor. Doğru soru: **KOŞTU MU?**
+
+### Cevap zaten rapordaydı ve kimse bakmamıştı
+
+`addon-vitest` her story'nin `meta.reports`una axe'in **gerçek sonucunu**
+yazıyor — motor adı ve sürümüyle:
+
+```
+{ type: "a11y", status: "passed",
+  result: { testEngine: { name: "axe-core", version: "4.12.1" } } }
+```
+
+Ölçüldü: 207 assertion'ın **207'sinde** var. Kapı artık bunu doğruluyor.
+Dört satır.
+
+**Bu tek kontrol beş turda bulunan sökme yollarının neredeyse tamamını
+kapatır — çünkü hiçbirini AYRI AYRI tanımıyor:**
+
+- addon `main.ts`ten çıkarılırsa rapor hiç yazılmaz
+- `disable` · `manual` · `ghostStories` · `context.exclude` ·
+  `options.runOnly` → `shouldRun` düşer, `addReport` hiç çağrılmaz
+- `todo` kipi `status: "warning"` yazar, `passed` değil
+- parantezli · hesaplanmış · atamalı · prototipten miras yazımlar —
+  metin hiç okunmuyor, konu dışı
+- **UI-ADR-168'in "AÇIK KALIYOR" diye kaydettiği delik** de kapandı
+
+**Kanıt:** `preview.tsx`e `afterEach: (ctx) => { ctx.parameters.a11y =
+{ test: "off" } }` enjekte edildi — metin kilidi görmez (`a11y =`, iki
+nokta yok), kanarya görmez (kendi `play`i `afterEach`ten önce biter).
+Kapı: **"207 story a11y taramasının koştuğunu KANITLAMIYOR."**
+
+### Beşinci turun kırdığı dört şey
+
+1. **Prototip zinciri.** `combineParameters` yalnız DÜZ nesneleri derin
+   birleştirir; `Object.create({ disable: true })` bütün olarak devralınır
+   ve prototipini korur. Kanarya `Object.keys` ile **kendi** anahtarlarına
+   bakıyordu, addon ise `?.disable` ile **zincire**.
+2. **`tags: ["!test"]`.** Dosya raporda kalır ama `assertionResults` boş
+   olur; `ZORUNLU` ADA baktığı için yeşil kalıyordu — kanarya komple
+   silinebiliyordu.
+3. **`afterEach` sırası.** Kullanıcı `preview.tsx`inin `afterEach`i
+   addon'unkinden ÖNCE koşuyor (`.reverse()`), yani parametre ezilebiliyor.
+4. **`vitest.config.ts` hiçbir kilidin kapsamında değildi.**
+   `resolve.alias` ile `axe-core` sahte bir modüle bağlanırsa tarama
+   "koşar", rapor yazılır, `passed` der ve **hiçbir şey ölçmez.**
+
+1, 2 ve 3 çalışma zamanı kanıtıyla kapandı. 4 metinle kapatıldı — çünkü
+çalışma zamanı kanıtı onu göremez, sahte axe de "passed" der.
+
+### Yorum sökme oyunu bitirildi
+
+Sıra iki kez oyuna geldi (blok-yorum-önce → "satır yorumu içindeki blok
+açma imi"ne kandı; satır-önce → "blok yorumu içindeki `//`"ye kandı) ve
+üçüncüde **kendi ayağıma sıktı**: yorumları hiç sökmeyince kanarya
+dosyasının kendi belgesindeki ÖRNEK gerçek yapılandırma sanıldı ve kapı
+düştü.
+
+Çözüm sırayı değiştirmek değil, **yorumları silmek yerine aynı uzunlukta
+boşlukla doldurmak.** Konumlar korunduğu için blokları boşaltılmış
+metinden bulup **ham metinle karşılaştırarak** "bu bloğun içinde yorum var
+mıydı" sorusunu da cevaplayabiliyoruz. Ve blok içinde yorum artık YASAK —
+o bloğun tek meşru içeriği `test: "error"`, gerekçe dışarı yazılır
+(`preview.tsx` buna göre düzenlendi).
+
+### Katmanlar ve her birinin işi
+
+| Katman | Ne yapar | Neyi göremez |
+|---|---|---|
+| Çalışma zamanı kanıtı | Her story kendi taramasının koştuğunu kanıtlar | axe'in kendisinin sahtelenmesi |
+| Metin kilidi | Hızlı, okunur teşhis; `addons` ve `vitest.config` alias | Çalışma zamanında olan hiçbir şey |
+| Kanarya story | Çözülmüş yapılandırmayı tek yerde gösterir | Kendisi dışındaki story'ler |
+
+Üçü de duruyor. **Hiçbiri tek başına yeterli değil ve öyle olduğu
+iddia edilmiyor.**
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 16 dosya / 241 test**, **storybook 55 dosya / 207 test**,
+atlanan 0, düşen 0, **a11y ihlali 0**, **a11y kanıtı 207/207**.
+`--self-check`: **11 + 30 senaryo.**
