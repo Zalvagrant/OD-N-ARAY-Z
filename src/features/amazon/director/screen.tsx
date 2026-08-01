@@ -68,7 +68,11 @@ import {
   BUY_BOX_RISK_DESCRIPTION,
   UI_THRESHOLD_PROVENANCE,
 } from "@/features/amazon/presentation/thresholds";
-import { atRiskSkus, losingBuyBoxSkus } from "@/features/amazon/selectors";
+import {
+  atRiskSkus,
+  losingBuyBoxSkus,
+  unmeasuredSkus,
+} from "@/features/amazon/selectors";
 import { GlanceView } from "@/features/amazon/director/glance-view";
 import { skuColumns } from "@/features/amazon/director/sku-columns";
 
@@ -151,6 +155,10 @@ export function AmazonDirector({
   const [filteredSkuCount, setFilteredSkuCount] = useState<number | null>(null);
   const measuredSkus = isEmpty ? [] : (skus.envelope?.data ?? null);
   const skuRows = measuredSkus ?? [];
+  /* Bastırılan sayı SÖYLENİR — UI-ADR-163. Hızı ölçülmemiş SKU'lar risk
+     kohortuna girmez (doğru), ama boş kohort "hiçbiri riskli değil" diye
+     yazıyordu; 48'in 29'u ölçülmemişken bu bir ÖLÇÜM iddiasıdır. */
+  const olculemeyen = unmeasuredSkus(skuRows);
   /* FR-0046 v1 Opportunity'de `category` YOK — reklam/genel ayrımını sürecek
      bir kaynak alan kalmadı, ayrım UYDURULMAZ (UI-ADR-106). Tüm fırsatlar
      §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
@@ -217,7 +225,8 @@ export function AmazonDirector({
         loadingCount={8}
         error={sectionError(kpis.error)}
         onRetry={reloadAll}
-        empty={isEmpty}
+        /* Boşluk diziden gelir — UI-ADR-163 (bkz. briefing/screen.tsx). */
+        empty={isEmpty || (kpis.envelope?.data.length ?? 0) === 0}
         emptyTitle="KPI üretilmedi"
         emptyDescription="Hiçbir metrik hesaplanamadı."
       >
@@ -298,7 +307,11 @@ export function AmazonDirector({
           onRetry={reloadAll}
           empty={measuredSkus !== null && atRisk.length === 0}
           emptyTitle="Stok riski yok"
-          emptyDescription="Hiçbir SKU riskli ya da kritik durumda değil."
+          emptyDescription={
+            olculemeyen.length > 0
+              ? `Değerlendirilen ${skuRows.length - olculemeyen.length} SKU'nun hiçbiri riskli değil — ${olculemeyen.length} SKU hızı ölçülmediği için DEĞERLENDİRİLEMEDİ.`
+              : "Hiçbir SKU riskli ya da kritik durumda değil."
+          }
         >
           <ul className="flex flex-col gap-3">
             {atRisk.map((s) => (

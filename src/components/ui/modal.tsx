@@ -101,6 +101,24 @@ export function useDialogBehavior(
 ) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * `onClose` REF'TE — UI-ADR-163.
+   *
+   * Bağımlılıkta olduğu için, çağıran satır içi ok fonksiyonu verdiğinde
+   * (`onClose={() => setOpen(false)}` — en yaygın biçim) HER ebeveyn
+   * render'ında effect sökülüp yeniden kuruluyordu: `opener?.focus()`
+   * odağı tetikleyiciye atıyor, sonra panelin ilk öğesine (Kapat butonu)
+   * geri alıyordu. Modal içinde bir form varsa ve her tuş vuruşu ebeveyn
+   * state'ini güncelliyorsa odak sürekli Kapat butonuna sıçrıyordu.
+   *
+   * Ref'e effect İÇİNDE yazılır — render'da yazmak `react-hooks/refs`
+   * ihlalidir (UI-ADR-157'de öğrenildi).
+   */
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
 
@@ -116,7 +134,7 @@ export function useDialogBehavior(
       if (e.key === "Escape") {
         /* Yalnız EN İÇTEKİ (en derin) diyalog kapanır. */
         if (depth !== Math.max(...openDepths)) return;
-        onClose();
+        closeRef.current();
         return;
       }
       if (e.key !== "Tab" || !panelRef.current) return;
@@ -154,7 +172,7 @@ export function useDialogBehavior(
       if (openDepths.size === 0) document.body.style.overflow = overflow;
       opener?.focus();
     };
-  }, [open, onClose, depth]);
+  }, [open, depth]);
 
   return panelRef;
 }

@@ -5087,3 +5087,78 @@ tasima unutulur; yayma unutulmaz.**
 `npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
 **unit 16 dosya / 241 test**, **storybook 54 dosya / 203 test**,
 atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-163 - Bastirilan sayi soylenir; kilit anin degil ISLEMIN kilididir (S13 kapanis)
+
+**Durum:** DONDURULDU - ucuncu denetimin acik listesi BITTI
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-155 - 157 - 158 - 162
+
+Son yedi bulgu.
+
+### 1 - Olculemeyen SKU'lar sessizce risk degerlendirmesinden cikiyordu
+
+`atRiskSkus` yalniz `critical`/`warn` doner; `unknown` durumdaki SKU'lar
+(hizi olculmemis olanlar) listeye BILEREK alinmaz - **ve bu dogrudur**,
+onlar hakkinda bir risk yargisi YOKTUR. Ama ekran bos kohortu *"Hicbir SKU
+riskli ya da kritik durumda degil"* diye yaziyordu.
+
+48 SKU'nun 29'u olculmemisken bu cumle bir OLCUM iddiasidir. Dogrusu:
+"degerlendirilen 19'un hicbiri riskli degil — 29 SKU olculemedi".
+**Bastirilan sayiyi SOYLEMEK, bastirmayi mesru kilan tek seydir**
+(`alert-stack` ayni kalibi zaten kullaniyor).
+
+### 2 - `adaptSkus` olculmus satirlari sessizce dusuruyordu
+
+Filtre `s.asin && s.title && s.status` idi ama yorum yalniz KIMLIK
+gerekcesini anlatiyordu. ODIN satirlari `set(econ) | set(items) |
+set(ad_rows)` birlesiminden uretiyor ve `status` yalniz ENVANTER kaydi
+olan SKU'larda dolu. Yani **envanterde olmayan ama reklam harcamasi ve
+satisi OLCULMUS bir SKU tablodan tamamen kayboluyordu.**
+
+Kimligi bilinmeyeni gizlemek baska, olculmus reklam harcamasini gizlemek
+baskadir. `status` filtreden cikarildi; ODIN'in sozlugunde zaten `unknown`
+var.
+
+### 3 - `toPeriod` sinir durumlari
+
+Gecersiz `end` -> `toISOString()` **RangeError** (ve `classifyError` bunu
+"unknown" diye siniflar, oysa sozlesme hatasidir). `window_days: 0` ->
+`from = end + 1 gun`, yani **tersine donmus pencere**. Ikisinde de `null`:
+pencere YAZILMAZ. *Uydurulmus bir aralik, yazilmamis bir araliktan
+tehlikelidir.*
+
+### 4 - Bayat-veri kilidi ANIN kilidiydi, ISLEMIN degil
+
+`stale` yalniz uc butonu `disabled` yapiyordu. Form KURULDUKTAN sonra veri
+bayatlarsa (poll gelir, kullanici gerekce yazarken) gonderim
+engellenmiyordu: taze veriyle "Onayla"ya basip **bayat veriye dayanan bir
+karar kaydedilebiliyordu.**
+
+### 5 - `modal` odagi her render'da geri atiyordu
+
+`useEffect(..., [open, onClose])` - cagiran satir ici ok fonksiyonu
+verirse (`onClose={() => setOpen(false)}`, en yaygin bicim) HER ebeveyn
+render'inda effect sokulup yeniden kuruluyor, odak once tetikleyiciye
+sonra panelin ilk ogesine (Kapat butonu) siciyordu. Modal icinde bir form
+varsa her tus vurusunda odak Kapat'a kaciyordu.
+
+`onClose` ref'e alindi ve ref **effect icinde** yaziliyor - render'da
+yazmak `react-hooks/refs` ihlalidir (UI-ADR-157'de ogrenildi).
+
+### 6 - Bos bolum bayragi DIZIDEN degil ekran degiskeninden geliyordu
+
+`empty={isEmpty}` yalniz demo bayragina bakiyordu. Zarf `data: []` ile
+geldiginde bayrak false kaliyor, `map` hicbir sey basmiyor ve ekranda
+**basligi olan ama ne icerigi ne bos durumu olan** bir bolum kaliyordu.
+Sessiz bir bolum, cevap degildir.
+
+### Olcum - uretim derlemesi ve tarayici
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 204 test**.
+Uretim derlemesi 7 sayfa; dort rota 200. Tarayicida `/amazon`: konsol
+hatasiz, `NaN` yok, izgara ciziliyor, yuzdeler tek ondalikla, tazelik
+etiketi yasla TUTARLI ("canli · 2 dk once").

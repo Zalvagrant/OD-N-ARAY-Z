@@ -301,6 +301,21 @@ function DecisionView({
                   Ertele
                 </Button>
               </div>
+            ) : stale ? (
+              /**
+               * BAYAT KİLİT FORMA DA UYGULANIR — UI-ADR-163.
+               *
+               * `stale` yalnız üç butonu `disabled` yapıyordu. Ama form
+               * KURULDUKTAN sonra veri bayatlarsa (poll gelir, gerekçe
+               * yazılırken) gönderim engellenmiyordu: kullanıcı taze
+               * veriyle "Onayla"ya basıp bayat veriye dayanan bir kararı
+               * kaydedebiliyordu. Kilit bir ANIN değil, İŞLEMİN kilididir.
+               */
+              <Text size="sm" tone="warning">
+                Veri bu işlem sürerken bayatladı — karar KAYDEDİLMEDİ.
+                Yenile ve yeniden dene; bayat bir sayıya dayanarak karar
+                vermek, kararı kaydetmemekten kötüdür.
+              </Text>
             ) : (
               <VerdictForm
                 decision={decision}

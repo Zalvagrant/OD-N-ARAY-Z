@@ -47,3 +47,22 @@ export function losingBuyBoxSkus(rows: SkuHealth[]): SkuHealth[] {
     )
     .sort((a, b) => a.sales.buyBoxRate - b.sales.buyBoxRate);
 }
+
+/**
+ * DEĞERLENDİRİLEMEYEN SKU'lar — UI-ADR-163.
+ *
+ * `atRiskSkus` yalnız `critical`/`warn` döner; durumu `unknown` olan
+ * SKU'lar (hızı ölçülmemiş olanlar) listeye BİLEREK alınmaz — ve bu
+ * doğrudur, çünkü onlar hakkında bir risk yargısı YOKTUR.
+ *
+ * Ama ekran boş kohortu *"Hiçbir SKU riskli ya da kritik durumda değil"*
+ * diye yazıyordu. 48 SKU'nun 29'u ölçülmemişken bu cümle bir ÖLÇÜM
+ * iddiasıdır ve yanlıştır: doğrusu "19'u değerlendirildi, 29'u
+ * ölçülemedi". Bastırılan sayıyı SÖYLEMEK, bastırmayı meşru kılan tek
+ * şeydir (`alert-stack` aynı kalıbı kullanıyor).
+ */
+export function unmeasuredSkus(rows: SkuHealth[]): SkuHealth[] {
+  /* `no_movement` de ölçülmüş bir sonuçtur ("hareket yok"), bilinmezlik
+     değil — yalnız `unknown` değerlendirilememiş sayılır. */
+  return rows.filter((s) => s.status === "unknown");
+}

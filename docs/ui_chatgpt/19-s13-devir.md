@@ -397,57 +397,33 @@ Sahip tonu secerse: token degistir -> tekrar olc -> kalan ~27 ihlali kapat
 
 ---
 
-## 7. UCUNCU DENETIMIN BULGULARI (UI-ADR-155 - 156)
-
-> **UI-ADR-156'da KAPATILANLAR** (asagidaki tablolardan cikarildi):
-> arama sayaci filtrelenmemis toplami duyuruyordu (2 ekran) - korumasiz
-> sozluk aramasi 4 yerde beyaz ekran uretiyordu - `NoData` gerekcesi ekran
-> okuyucuya hic ulasmiyordu - `verdict-form` fail-open idi (+ story acigi
-> dogru davranis diye kilitliyordu).
+## 7. UCUNCU DENETIM — TAMAMI KAPANDI (UI-ADR-155…163)
 
 Uc tur bagimsiz denetim yapildi (meclis MCP araclari dustugu icin ajanla).
-Ucuncu tur KODUN KENDISINE bakti: **6 kritik, 21 orta, 14 dusuk.**
-Alti kritik kapatildi (UI-ADR-155). Asagisi KAPATILMAYANLARDIR - hepsi
-kaynaktan dogrulandi, hicbiri elenmedi.
+Ucuncu tur KODUN KENDISINE bakti: **6 kritik, 21 orta, 14 dusuk = 41 bulgu.**
 
-> Siralama ONEM sirasidir. Her madde: nerede - ne - hangi durumda yanlis.
+**Kirk birinin kirk biri kapatildi.** Dagilim:
 
-### 7.1 Sessiz yanlis SAYI / YANLIS IDDIA
-
-| Nerede | Ne | Ne zaman yanlis |
-|---|---|---|
-| `amazon/director/screen.tsx` stok bolumu | Hizi `unknown` olan SKU'lar listeye BILEREK alinmiyor ama bos durum "hicbir SKU riskli degil" diyor | 29 SKU olculmemis, 19'u iyi -> ekran "hicbir SKU riskli degil" |
-| `ui/chart.tsx:219` | Eksen daima `compact`, okuma satiri `percent` - ayni grafikte iki olcek | `format="percent"` grafiginde eksen "0,4", okuma "%42" |
-
-### 7.2 COKME riski
-
-| Nerede | Ne |
+| ADR | Ne kapandi |
 |---|---|
-| `lib/data/odin-amazon.ts:251` | `toPeriod`: gecersiz `end` -> `toISOString()` RangeError; `window_days: 0` -> `from > to` |
+| **155** | Satis degisimi 100 KAT yanlisti (olcek beyani) · Amazon Director olculmemis veriyi "risk yok" diye iddia ediyordu · `SystemReadiness` "hazir" bir derleme sabitiydi · aciklanabilirlik kapisi tek dala uygulaniyordu · `AIPulse` "yuk 0" basiyordu · `<dl>` icinde `<p>` |
+| **156** | Arama sayaci filtrelenmemis toplami duyuruyordu (2 ekran) · korumasiz sozluk aramasi 4 yerde beyaz ekran · `NoData` gerekcesi ekran okuyucuya ulasmiyordu · `verdict-form` fail-open |
+| **157** | Escape ic ice diyalogda ikisini birden kapatiyordu |
+| **158** | Gecersiz tarih ekranin tamamini goturuyordu · tek alan boslugu tum Amazon'u karartiyordu (fail-total) · tazelik damgasi onbellekte donuyordu |
+| **159** | `command-palette` `aria-modal` diyor ama modal degildi (5 kusur) |
+| **160** | `SegmentedControl` klavyeye kapanabiliyordu · odak secimi takip etmiyordu · baglam paneli odagi dusuruyordu |
+| **161** | Filtre sonucu bos ≠ veri yok · hayalet secim · Enter siralama butonunu olduruyordu · bilinmeyen ciddiyet "Bilgi" diye gomuluyordu · para birimi uyduruluyordu · tiklanabilir satirin adi kimlikti |
+| **162** | `NaN`/`Infinity` kapilardan geciyordu · `Tabs` kimlikleri globaldi · canli bolge duyurulmuyordu · bilinen sebep "bilinmeyen hata" diye gosteriliyordu · secim hafizasi acik kartlari siliyordu |
+| **163** | Olculemeyen SKU'lar sessizce risk disi kaliyordu · `adaptSkus` olculmus satirlari dusuruyordu · `toPeriod` sinir durumlari · bayat kilit ANIN kilidiydi · `modal` odagi her render'da geri atiyordu · bos bolum bayragi diziden gelmiyordu |
 
-### 7.3 Klavye / odak sozlesmesi
+### Ucun tekrar eden kok deseni (ajanin kendi tespiti)
 
-| Nerede | Ne |
-|---|---|
-| `ui/modal.tsx:47` | `useEffect` bagimliliginda `onClose`; satir ici ok fonksiyonu verilirse her render'da odak Kapat butonuna siciyor |
+1. **Kapi hesaplanip yalniz bir dala uygulanmasi** — `recOk`, "stok riski",
+   bayat kilit, `stale`.
+2. **Sozluk aramalarinda tutarsiz savunma** — ayni dosyada bir satirda
+   `??` var, digerinde yok.
+3. **Escape/odak sozlesmesinin capture katmaninda sessizce yutulmasi.**
 
-### 7.4 Erisilebilirlik / anti-fake
+### Devam eden tek acik: erisilebilirlik token karari
 
-| Nerede | Ne |
-|---|---|
-| `executive/decision-card.tsx:233` | Bayat-veri kilidi yalniz butonlara; `VerdictForm` gonderimi engellenmiyor |
-| `layout/section.tsx:80` | Bos bolum bayragi ekran degiskeninden geliyor, diziden degil -> basligi olan ama icerigi de bos durumu da olmayan bolumler |
-| `ui/search.tsx:212` | `aria-live` bolgesi icerigiyle BIRLIKTE mount ediliyor -> cogu ekran okuyucu duyurmaz. `ui/chart.tsx:161` ayni isi dogru yapiyor |
-
-### 7.5 Veri katmani
-
-| Nerede | Ne |
-|---|---|
-| `lib/data/odin-amazon.ts:270` | `adaptSkus` `status` bos olan satiri sessizce DUSURUYOR: reklam harcamasi OLCULMUS bir SKU tablodan tamamen kaybolur, "N satir dusuruldu" bilgisi yok |
-
-### 7.6 ODIN'e talep (kural 7 - kendin yapma)
-
-`backend-istekleri.md`ye yazildi: **`sales_change_pct` olcek beyani yanlis**
-(`amazon_director.py:541` `* 100` uretiyor, `amazon_api.py:134`
-`scale="0-1"` diyor). UI tarafinda savunma kapisi kondu (UI-ADR-155) ama
-kok neden ODIN'de.
+Bkz. §6.7 — sahip karari bekliyor.

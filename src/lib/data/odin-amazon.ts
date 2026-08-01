@@ -21,6 +21,7 @@
  */
 
 import { z } from "zod";
+import { parseIso } from "@/lib/format/date";
 
 import { internalEnvelope } from "@/types/data-envelope";
 import type { Money, ThresholdProvenance } from "@/types/executive";
@@ -265,7 +266,20 @@ function toPeriod(raw: z.infer<typeof rawPeriodSchema>): MetricPeriod | null {
   if (!raw) return null;
   if (raw.start && raw.end) return { from: raw.start, to: raw.end };
   if (raw.end && typeof raw.window_days === "number") {
-    const to = new Date(raw.end);
+    /**
+     * SINIR DURUMLARI — UI-ADR-163.
+     *
+     * `new Date(raw.end)` doğrulanmıyordu: geçersiz bir `end` ile
+     * `toISOString()` **RangeError** atıyor ve `classifyError` bunu
+     * "unknown" diye sınıflıyordu (oysa sözleşme hatasıdır).
+     * `window_days: 0` ise `from = end + 1 gün` üretiyordu — yani
+     * `from > to`, tersine dönmüş bir pencere.
+     *
+     * İkisinde de `null` dönülür: pencere YAZILMAZ. Uydurulmuş bir aralık,
+     * yazılmamış bir aralıktan tehlikelidir.
+     */
+    const to = parseIso(raw.end);
+    if (to === null || raw.window_days < 1) return null;
     const from = new Date(to.getTime() - (raw.window_days - 1) * 86_400_000);
     return { from: from.toISOString().slice(0, 10), to: raw.end };
   }
@@ -277,10 +291,23 @@ const money = (v: number | null, currency: string | null): Money | null =>
 
 export function adaptSkus(raw: z.infer<typeof amazonSkusSchema>): SkuHealth[] {
   return raw.skus
-    /* Kimliği olmayan satır GÖSTERİLMEZ: `asin`/`title` sözleşmede
-       zorunlu ve ODIN envanter kaydı yoksa null gönderiyor. Boş string
-       koymak, olmayan bir ürünü varmış gibi listelemek olurdu. */
-    .filter((s) => s.asin && s.title && s.status)
+    /**
+     * Kimliği olmayan satır GÖSTERİLMEZ: `asin`/`title` sözleşmede
+     * zorunlu ve ODIN envanter kaydı yoksa null gönderiyor. Boş string
+     * koymak, olmayan bir ürünü varmış gibi listelemek olurdu.
+     *
+     * ⚠️ `status` FİLTREDEN ÇIKARILDI — UI-ADR-163. Yorum yalnız KİMLİK
+     * gerekçesini anlatıyordu ama filtreye `s.status` de eklenmişti.
+     * ODIN satırları `set(econ) | set(items) | set(ad_rows)` birleşiminden
+     * üretiyor ve `status` yalnız ENVANTER kaydı olan SKU'larda dolu.
+     * Yani envanterde olmayan ama reklam harcaması ve satışı ÖLÇÜLMÜŞ bir
+     * SKU tablodan tamamen kayboluyordu.
+     *
+     * Kimliği bilinmeyeni gizlemek başka, ölçülmüş reklam harcamasını
+     * gizlemek başkadır. ODIN'in sözlüğünde zaten `unknown` var; durumu
+     * bilinmeyen satır o etiketle listede kalır.
+     */
+    .filter((s) => s.asin && s.title)
     .map((s) => ({
       sku: s.sku,
       asin: s.asin!,

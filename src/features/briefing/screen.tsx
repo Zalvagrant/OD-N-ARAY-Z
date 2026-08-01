@@ -326,7 +326,12 @@ export function ExecutiveBriefing({
         loadingCount={8}
         error={error}
         onRetry={reloadAll}
-        empty={isEmpty}
+        /* BOŞLUK DİZİDEN GELİR — UI-ADR-163. `empty={isEmpty}` yalnız
+           demo bayrağına bakıyordu: zarf `data: []` ile geldiğinde bayrak
+           false kalıyor, `map` hiçbir şey basmıyor ve ekranda BAŞLIĞI olan
+           ama içeriği de boş durumu da olmayan bir bölüm kalıyordu.
+           Sessiz bir bölüm, cevap değildir. */
+        empty={isEmpty || (kpis.envelope?.data.length ?? 0) === 0}
         emptyTitle="KPI üretilmedi"
         emptyDescription="Hiçbir metrik hesaplanamadı."
       >
@@ -363,7 +368,7 @@ export function ExecutiveBriefing({
         loadingCount={6}
         error={error}
         onRetry={reloadAll}
-        empty={isEmpty}
+        empty={isEmpty || (directors.envelope?.data.length ?? 0) === 0}
         emptyTitle="Director verisi yok"
         emptyDescription="Heartbeat servisi bağlı değil."
       >
