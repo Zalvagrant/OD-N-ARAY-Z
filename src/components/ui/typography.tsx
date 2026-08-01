@@ -268,6 +268,46 @@ export function Num({
  * Anti-fake KORUNUR: ölçek bildirilmemişse `toPercentUnit` null döner ve
  * `Num` NoData basar — 0 ya da tahmin ASLA basılmaz (UI-ADR-093).
  */
+/**
+ * PARA — `Pct`'in EKSİK KARDEŞİ (UI-ADR-183, mimari denetim).
+ *
+ * NEDEN AYRI BİLEŞEN: `Pct` yukarıda "beş satır altı yerde yazılıydı"
+ * diye çıkarıldı. Para için AYNI iş yapılmamıştı ve tekrar daha
+ * büyüktü — ölçüldü, **on yer** şu üç satırı kelimesi kelimesine
+ * yazıyordu:
+ *
+ *     value={x?.amount ?? null}
+ *     format="currency"
+ *     currency={x?.currency}
+ *
+ * (ppc-overview ×3 · glance-view ×3 · amazon/sku ×4)
+ *
+ * Tekrarın bedeli yalnız hacim değil: her çağıran `Money` zarfını ELLE
+ * söküyor. `types/executive.ts`teki `Money` bir gün `amount` yerine
+ * `minor` (kuruş) taşırsa on yerin onu da bulunmak zorunda; dokuzu
+ * bulunup biri unutulduğunda ekranda 100 kat sapmış bir tutar durur ve
+ * hangisinin doğru olduğu anlaşılmaz — `Pct`in gerekçesinin aynısı.
+ *
+ * Anti-fake KORUNUR: zarf yoksa `null` gider ve `Num` `NoData` basar;
+ * para birimi bildirilmemişse `Num` lira UYDURMAZ (UI-ADR-161).
+ */
+export function Money({
+  value,
+  ...rest
+}: {
+  /** ODIN'in para zarfı — sökme işi burada, çağıranda değil. */
+  value: { amount: number | null; currency?: string } | null | undefined;
+} & Omit<Parameters<typeof Num>[0], "value" | "format" | "currency">) {
+  return (
+    <Num
+      value={value?.amount ?? null}
+      format="currency"
+      currency={value?.currency}
+      {...rest}
+    />
+  );
+}
+
 export function Pct({
   value,
   scale,

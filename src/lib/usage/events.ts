@@ -55,7 +55,3 @@ export function recordWorkspaceVisit(
   }
 }
 
-export function readUsageEvents(): UsageEvent[] {
-  if (typeof window === "undefined") return [];
-  return read();
-}

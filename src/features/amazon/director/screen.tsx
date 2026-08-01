@@ -75,7 +75,8 @@ import {
   unmeasuredSkus,
 } from "@/features/amazon/selectors";
 import { GlanceView } from "@/features/amazon/director/glance-view";
-import { skuColumns } from "@/features/amazon/director/sku-columns";
+import type { SkuHealth } from "@/types/screens";
+import { SKU_COLUMNS } from "@/features/amazon/director/sku-columns";
 
 /* --------------------------------------------------------------------------
 /* --------------------------------------------------------------------------
@@ -89,6 +90,58 @@ const DEMO_ERROR = demoError(
 
 
 
+/**
+ * RİSKLİ SKU SATIRI — `useNow` BURAYA İNDİ (UI-ADR-183, mimari denetim).
+ *
+ * ⚠️ NEDEN ÇIKARILDI: `useNow()` EKRANIN KÖKÜNDE çağrılıyordu ve arkasında
+ * gerçek bir `setInterval(1000)` var (`lib/clock/tick.ts:18,28`). Kökteki
+ * tek bir tick **tüm Amazon Director ağacını saniyede bir** yeniden
+ * render ediyordu — ve bu ekran reponun en ağırı: 48 satırlık sanal
+ * `DataTable`, 8 KPI kartı, PPC kartı, kampanya listesi, simülasyon
+ * paneli, alarm yığını, AI brifingi. Repoda hiç `React.memo` yok
+ * (tarandı) ve React Compiler kapalı; hiçbir çocuk korunmuyordu.
+ *
+ * Maliyetin tamamı **tek bir geri sayım etiketi** içindi. Üstelik
+ * `sku-columns.tsx:26-28` bu alanın (`estimatedStockoutAt`) ODIN'de
+ * ÜRETİLMEDİĞİNİ yazıyor (ADR-0149) — yani 1 Hz tick bugün büyük
+ * olasılıkla daima `null` besliyordu.
+ *
+ * Çıktı birebir aynı; değişen tek şey render'ın YARIÇAPI.
+ */
+function AtRiskRow({ s }: { s: SkuHealth }) {
+  const now = useNow();
+
+  return (
+    <li className="border-l-2 border-line pl-3">
+      <p className="flex flex-wrap items-center gap-2">
+        <Mono size="sm">{s.sku}</Mono>
+        <Badge variant={SKU_STATUS[s.status].variant} size="xs">
+          {SKU_STATUS[s.status].label}
+        </Badge>
+      </p>
+      <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-content-secondary">
+        <span>
+          Stok <Num value={s.unitsAvailable} size="sm" noDataReason="bilinmiyor" />
+        </span>
+        <span>
+          Tükenme{" "}
+          {remainingTime(s.estimatedStockoutAt, now) ?? (
+            <NoData reason="Tükenme tarihi hesaplanmadı" />
+          )}
+        </span>
+        <span>
+          Sipariş{" "}
+          <Num
+            value={s.reorderUnits}
+            size="sm"
+            noDataReason="Sipariş önerisi üretilmedi"
+          />
+        </span>
+      </p>
+    </li>
+  );
+}
+
 export function AmazonDirector({
   demo,
 }: {
@@ -96,7 +149,6 @@ export function AmazonDirector({
   demo?: DemoState;
 }) {
   const router = useRouter();
-  const now = useNow();
   const [query, setQuery] = useState("");
   /* Seçimde NESNE DEĞİL KİMLİK saklanır (UI-ADR-098 `SelectedEntity`):
      kopya, liste yenilendiğinde panelde bayat bir kayıt bırakırdı.
@@ -277,7 +329,7 @@ export function AmazonDirector({
           <DataTable
             label="SKU sağlık tablosu"
             data={skuRows}
-            columns={skuColumns()}
+            columns={SKU_COLUMNS}
             globalFilter={query}
             density="compact"
             onSelect={(row) =>
@@ -321,33 +373,7 @@ export function AmazonDirector({
         >
           <ul className="flex flex-col gap-3">
             {atRisk.map((s) => (
-              <li key={s.sku} className="border-l-2 border-line pl-3">
-                <p className="flex flex-wrap items-center gap-2">
-                  <Mono size="sm">{s.sku}</Mono>
-                  <Badge variant={SKU_STATUS[s.status].variant} size="xs">
-                    {SKU_STATUS[s.status].label}
-                  </Badge>
-                </p>
-                <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-content-secondary">
-                  <span>
-                    Stok <Num value={s.unitsAvailable} size="sm" noDataReason="bilinmiyor" />
-                  </span>
-                  <span>
-                    Tükenme{" "}
-                    {remainingTime(s.estimatedStockoutAt, now) ?? (
-                      <NoData reason="Tükenme tarihi hesaplanmadı" />
-                    )}
-                  </span>
-                  <span>
-                    Sipariş{" "}
-                    <Num
-                      value={s.reorderUnits}
-                      size="sm"
-                      noDataReason="Sipariş önerisi üretilmedi"
-                    />
-                  </span>
-                </p>
-              </li>
+              <AtRiskRow key={s.sku} s={s} />
             ))}
           </ul>
         </Section>

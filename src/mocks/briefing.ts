@@ -323,14 +323,6 @@ export function decisionsMock(): DataEnvelope<Decision[]> {
   ] satisfies Decision[]);
 }
 
-/** Bayat zarf — onay kilidi kuralı ekranda görünsün diye ayrı zarfta. */
-export function staleDecisionMock(): DataEnvelope<Decision> {
-  const all = decisionsMock().data;
-  return mockEnvelope(all.find((d) => d.id === "dec-fx")!, {
-    lastUpdated: ago(6 * 60 * 60_000),
-    freshness: "stale",
-  });
-}
 
 /* --------------------------------------------------------------------------
    Kritik riskler — 05-dashboard.md §3.3 (09-...md §6 Alert sözleşmesi)

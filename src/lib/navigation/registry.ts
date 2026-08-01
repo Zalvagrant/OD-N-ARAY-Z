@@ -15,7 +15,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   Bot,
-  Boxes,
   Brain,
   Building2,
   CandlestickChart,
@@ -244,5 +243,3 @@ export function findGroupOf(itemId: string): NavGroup | undefined {
   return NAV_GROUPS.find((g) => g.items.some((i) => i.id === itemId));
 }
 
-/** Boş workspace ikonu — placeholder sayfalar kullanır. */
-export const FALLBACK_ICON = Boxes;

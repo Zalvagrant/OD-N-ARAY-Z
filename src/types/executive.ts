@@ -196,14 +196,11 @@ export interface ExecutiveKPI {
    §2 Decision
    -------------------------------------------------------------------------- */
 
-export type DecisionStatus = OdinDecisionStatus;
-
-export interface DecisionEvent {
-  id: string;
-  at: string;
-  title: string;
-  description?: string;
-}
+/* `DecisionStatus` ve `DecisionEvent` KALDIRILDI — UI-ADR-183 (mimari
+   denetim): ikisinin de repoda sıfır referansı vardı (ölçüldü).
+   `DecisionEvent`, UI-ADR-098'de uydurma olduğu için kaldırılan 19
+   alanlık eski UI tipinin artığıydı; `DecisionStatus` ise
+   `OdinDecisionStatus`e giden kullanılmayan bir takma addı. */
 
 /**
  * ODIN `DecisionRecord`un UI görünümü (09b §1). Alan adları camelCase'e

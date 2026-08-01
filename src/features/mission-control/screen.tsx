@@ -43,7 +43,7 @@ import { Section } from "@/components/layout/section";
 import type { DataEnvelope } from "@/types/data-envelope";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AlertStack } from "@/components/executive/alert-stack";
-import { RuntimeDirectorCard } from "@/components/executive/runtime-director-card";
+import { RuntimeDirectorGrid } from "@/components/executive/runtime-director-card";
 import { MonitoredDecisionsBoard } from "@/components/executive/monitored-decisions-board";
 
 /* --------------------------------------------------------------------------
@@ -276,14 +276,7 @@ export function MissionControl({
         emptyTitle="Director verisi yok"
         emptyDescription="ODIN hiçbir zamanlanmış iş bildirmedi."
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {directors.envelope?.data.map((d) => (
-            <RuntimeDirectorCard
-              key={d.id}
-              env={{ data: d, meta: directors.envelope!.meta }}
-            />
-          ))}
-        </div>
+        <RuntimeDirectorGrid env={directors.envelope} />
       </Section>
 
       {/* Sözleşmesi olmayan üç bölüm — UI-ADR-096 */}

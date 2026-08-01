@@ -26,6 +26,27 @@ import { SKU_SCALE, SKU_STATUS } from "@/features/amazon/presentation/sku";
 /* `now` PARAMETRESİ DÜŞTÜ: tabloda artık geri sayım yok — tükenme
    tarihi ODIN tarafından üretilmiyor (ADR-0149). Envanter bölümü
    kendi `now`unu kullanmaya devam ediyor. */
+/**
+ * ⚠️ SABİT REFERANS ŞART — UI-ADR-183 (mimari denetim).
+ *
+ * `columns={skuColumns()}` her render'da YENİ bir 7 elemanlı dizi
+ * üretiyordu (her biri yeni `cell` closure'ıyla). TanStack Table'ın
+ * `getAllColumns` memo'su `[table._getColumnDefs()]`e bağlı
+ * (`table-core/build/lib/core/table.js:166`), yani kimlik değişince
+ * yedi `createColumn()` yeniden koşuyor ve görünen her satırın hücre
+ * nesneleri yeniden kuruluyordu (~20 sanal satır × 7 ≈ 140 nesne).
+ *
+ * Satır modeli etkilenmiyordu (`getCoreRowModel` `[options.data]`ya
+ * memo'lu) — maliyet sütun/başlık/hücre katmanındaydı. Ama bu ekranın
+ * kökündeki 1 Hz tick yüzünden bedel SANİYEDE BİR ödeniyordu; iki kusur
+ * birbirini büyütüyordu.
+ *
+ * Fonksiyon argüman almıyor ve hiçbir şeyi kapatmıyor (yukarıdaki nota
+ * bakın: `now` parametresi zaten düşmüştü) — bu yüzden modül kapsamında
+ * BİR KEZ üretilmesi güvenli.
+ */
+export const SKU_COLUMNS: ColumnDef<SkuHealth, unknown>[] = skuColumns();
+
 export function skuColumns(): ColumnDef<SkuHealth, unknown>[] {
   return [
     {

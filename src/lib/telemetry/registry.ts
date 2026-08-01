@@ -122,10 +122,3 @@ export function isChannelAvailable(id: string): boolean {
   );
 }
 
-/** Yol haritası — System Director'da gösterilebilir */
-export function plannedChannels(version: "v1.0" | "v1.1" | "v2") {
-  return [
-    ...TELEMETRY_CHANNELS.filter((c) => !c.available && c.plannedFor === version),
-    ...AI_PULSE_CHANNELS.filter((c) => !c.available && c.plannedFor === version),
-  ];
-}

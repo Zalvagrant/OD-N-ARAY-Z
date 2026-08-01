@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { NoData } from "@/components/ui/no-data";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
-import { Num, Pct, Text } from "@/components/ui/typography";
+import { Money, Num, Pct, Text } from "@/components/ui/typography";
 import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { Meter } from "@/components/executive/meter";
 import { PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
@@ -62,10 +62,8 @@ export function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
           <Stat
             label="Revenue"
             value={
-              <Num
-                value={s.revenue?.amount ?? null}
-                format="currency"
-                currency={s.revenue?.currency}
+              <Money
+                value={s.revenue}
                 size="lg"
                 noDataReason="Ciro gelmedi"
               />
@@ -78,10 +76,8 @@ export function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
             <Stat
               label="Net Profit"
               value={
-                <Num
-                  value={s.netProfit.amount}
-                  format="currency"
-                  currency={s.netProfit.currency}
+                <Money
+                  value={s.netProfit}
                   size="lg"
                 />
               }
@@ -91,10 +87,8 @@ export function GlanceView({ s, meta }: { s: AmazonSnapshot; meta: DataMeta }) {
               label="Gross Profit (ücretler hariç)"
               note="Net kâr DEĞİL — hariç tutulanlar aşağıda"
               value={
-                <Num
-                  value={s.grossProfit?.amount ?? null}
-                  format="currency"
-                  currency={s.grossProfit?.currency}
+                <Money
+                  value={s.grossProfit}
                   size="lg"
                   noDataReason={PROFIT_NEEDS_COGS}
                 />

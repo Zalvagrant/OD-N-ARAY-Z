@@ -151,3 +151,34 @@ export function RuntimeDirectorCard({
     </DataGuard>
   );
 }
+
+/**
+ * IZGARA — üç ekranda birebir aynıydı (UI-ADR-183, mimari denetim).
+ *
+ * İki bağımsız denetim de aynı yeri işaretledi: `briefing/screen.tsx`,
+ * `mission-control/screen.tsx` ve `system/screen.tsx` şu sekiz satırı
+ * karakterine kadar tekrar ediyordu — ızgara sınıfı, `map`, `key` ve
+ * `env={{ data, meta: X.envelope!.meta }}` zarf kurulumu dahil.
+ *
+ * Tekrarın asıl bedeli ızgara sınıfı değil, **zarfın elle kurulması**:
+ * `meta` üç yerde ayrı ayrı `!` ile zorlanıyordu. Kart tek bir direktör
+ * bekliyor ama veri bir DİZİ olarak geliyor; o dönüşümü her ekranın
+ * kendi başına yapması, `meta`nın bir gün ayrışması demekti.
+ *
+ * Sarmalayıcı `Section`lar ÇIKARILMADI ve bu bilinçli: üç ekranın
+ * başlıkları ve boş-durum metinleri farklı ve farklı olmaları doğru.
+ */
+export function RuntimeDirectorGrid({
+  env,
+}: {
+  env: DataEnvelope<RuntimeDirector[]> | null | undefined;
+}) {
+  if (!env) return null;
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
+      {env.data.map((d) => (
+        <RuntimeDirectorCard key={d.id} env={{ data: d, meta: env.meta }} />
+      ))}
+    </div>
+  );
+}

@@ -39,32 +39,9 @@ export const workspaceTransition = {
   transition: motion.slow,
 } as const;
 
-/** Panel / drawer açılışı */
-export const panelTransition = {
-  initial: { opacity: 0, x: 12 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: 12 },
-  transition: motion.normal,
-} as const;
-
 /** Liste öğesi girişi — yumuşak, dikkat çekmez */
 export const listItemTransition = {
   initial: { opacity: 0, y: 4 },
   animate: { opacity: 1, y: 0 },
   transition: motion.normal,
 } as const;
-
-export const scaleHover = 1.01;
-export const opacityDisabled = 0.4;
-
-/** Reduced motion kontrolü */
-export function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/**
- * Sayı geçişi süresi.
- * 12-motion-system.md §5: sayı ZIPLAMAZ, tween ile geçer.
- */
-export const numberTweenDuration = duration.normal;

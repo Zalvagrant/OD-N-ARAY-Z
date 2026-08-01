@@ -21,7 +21,7 @@ import type { PPCOverview } from "@/types/executive";
 import type { DataEnvelope } from "@/types/data-envelope";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
-import { Num, Pct, Text } from "@/components/ui/typography";
+import { Money, Num, Pct, Text } from "@/components/ui/typography";
 import { DataGuard } from "./data-guard";
 import { Meter } from "./meter";
 import { TrustSignal } from "./trust-signal";
@@ -81,10 +81,8 @@ export function PPCOverviewCard({
               <Stat
                 label="Spend"
                 value={
-                  <Num
-                    value={ppc.spend?.amount ?? null}
-                    format="currency"
-                    currency={ppc.spend?.currency}
+                  <Money
+                    value={ppc.spend}
                     size="lg"
                     noDataReason="Reklam harcaması gelmedi"
                   />
@@ -94,10 +92,8 @@ export function PPCOverviewCard({
               <Stat
                 label="Sales"
                 value={
-                  <Num
-                    value={ppc.sales?.amount ?? null}
-                    format="currency"
-                    currency={ppc.sales?.currency}
+                  <Money
+                    value={ppc.sales}
                     size="lg"
                     noDataReason="Reklam satışı gelmedi"
                   />
@@ -134,10 +130,8 @@ export function PPCOverviewCard({
                 label="Profit After Ads"
                 note={ppc.profitAfterAds ? "reklam sonrası kâr" : PROFIT_NEEDS_COGS}
                 value={
-                  <Num
-                    value={ppc.profitAfterAds?.amount ?? null}
-                    format="currency"
-                    currency={ppc.profitAfterAds?.currency}
+                  <Money
+                    value={ppc.profitAfterAds}
                     size="lg"
                     noDataReason={PROFIT_NEEDS_COGS}
                   />

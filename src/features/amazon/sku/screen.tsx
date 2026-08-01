@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
-import { Caption, Heading, Mono, Num, Pct, Text } from "@/components/ui/typography";
+import { Caption, Heading, Mono, Money, Num, Pct, Text } from "@/components/ui/typography";
 import { Meter } from "@/components/executive/meter";
 import { PROFIT_NEEDS_COGS } from "@/components/executive/ppc-overview";
 import {
@@ -205,10 +205,8 @@ export function AmazonSkuPanel() {
           <Stat
             label="Ciro"
             value={
-              <Num
-                value={sku.sales.revenue?.amount ?? null}
-                format="currency"
-                currency={sku.sales.revenue?.currency}
+              <Money
+                value={sku.sales.revenue}
                 size="lg"
                 noDataReason="Dönem cirosu gelmedi"
               />
@@ -217,10 +215,8 @@ export function AmazonSkuPanel() {
           <Stat
             label="Fiyat"
             value={
-              <Num
-                value={sku.price?.amount ?? null}
-                format="currency"
-                currency={sku.price?.currency}
+              <Money
+                value={sku.price}
                 noDataReason="Fiyat gelmedi"
               />
             }
@@ -258,10 +254,8 @@ export function AmazonSkuPanel() {
           <Stat
             label="Reklam harcaması"
             value={
-              <Num
-                value={sku.advertising.spend?.amount ?? null}
-                format="currency"
-                currency={sku.advertising.spend?.currency}
+              <Money
+                value={sku.advertising.spend}
                 noDataReason="Ads API'den harcama gelmedi"
               />
             }
@@ -269,10 +263,8 @@ export function AmazonSkuPanel() {
           <Stat
             label="Reklam satışı"
             value={
-              <Num
-                value={sku.advertising.sales?.amount ?? null}
-                format="currency"
-                currency={sku.advertising.sales?.currency}
+              <Money
+                value={sku.advertising.sales}
                 noDataReason="Ads API'den satış gelmedi"
               />
             }
