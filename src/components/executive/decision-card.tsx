@@ -87,7 +87,13 @@ function DecisionView({
   const [pending, setPending] = useState<OdinVerdict | null>(null);
   const bodyId = useId();
 
-  const tier = TIER[decision.tier];
+  /* BİLİNMEYEN DEĞER ÇÖKERTMEZ — UI-ADR-156.
+     ODIN sözlüğüne yeni bir değer eklediğinde (ve ekliyor: ADR-0148 dört
+     runtime durumu getirdi, ADR-0151 `module: "runtime"`) korumasız bir
+     sözlük araması `undefined.x` ile TypeError atıp EKRANIN TAMAMINI
+     beyaz bırakır. Aynı dosyalarda `?? ` savunması başka satırlarda
+     ZATEN VAR — tutarsızlıktı, tercih değil. */
+  const tier = TIER[decision.tier] ?? TIER.D1;
   const rec = decision.recommendation;
   const recOk = canRenderRecommendation(rec);
   const decided = decision.humanDecision;
@@ -106,10 +112,14 @@ function DecisionView({
                 {tier.label}
               </Badge>
               <Badge
-                variant={decided ? OUTCOME[decided.outcome].variant : "secondary"}
+                variant={
+                  decided ? (OUTCOME[decided.outcome]?.variant ?? "secondary") : "secondary"
+                }
                 size="xs"
               >
-                {decided ? OUTCOME[decided.outcome].label : STATUS_LABEL[decision.status]}
+                {decided
+                  ? (OUTCOME[decided.outcome]?.label ?? decided.outcome)
+                  : (STATUS_LABEL[decision.status] ?? decision.status)}
               </Badge>
               {decision.domain && (
                 <Caption>{decision.domain}</Caption>

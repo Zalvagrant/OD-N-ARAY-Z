@@ -62,8 +62,20 @@ export function VerdictForm({
   const now = useNow(); // merkezi saat (UI-ADR-089) — render'da Date.now() yok
 
   const recClass = decision.recommendation.recClass;
+  /**
+   * BİLİNMİYORSA ZORUNLU — fail-CLOSED (UI-ADR-156).
+   *
+   * Önce `recClass !== undefined && ...` idi: sınıf taşımada DÜŞERSE
+   * gerekce zorunlu OLMAKTAN ÇIKIYORDU. Yani ADR-0131'in B/C kuralı,
+   * bir alanın kaybolmasıyla sessizce kalkıyor ve karar tek tıkla
+   * kaydediliyordu — bu dosyanın kendi başlığı o riski zaten sayıyor.
+   *
+   * Bir yönetişim kuralı, kendisini tetikleyen verinin yokluğunda
+   * GEVŞEMEZ. Sınıf bilinmiyorsa gerekçe İSTENİR: fazladan bir cümle
+   * yazmak, kaydı gerekçesiz bırakmaktan ucuzdur.
+   */
   const reasonRequired =
-    recClass !== undefined && ODIN_REASON_REQUIRED_CLASSES.includes(recClass);
+    recClass === undefined || ODIN_REASON_REQUIRED_CLASSES.includes(recClass);
   const reasonOk = !reasonRequired || reason.trim().length >= ODIN_MIN_REASON_CHARS;
 
   /* "Tarihsiz erteleme sessiz bir hayırdır" — gelecek tarih şart.

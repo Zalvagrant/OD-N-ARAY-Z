@@ -397,7 +397,13 @@ Sahip tonu secerse: token degistir -> tekrar olc -> kalan ~27 ihlali kapat
 
 ---
 
-## 7. UCUNCU DENETIMIN ACIK BULGULARI (UI-ADR-155)
+## 7. UCUNCU DENETIMIN BULGULARI (UI-ADR-155 - 156)
+
+> **UI-ADR-156'da KAPATILANLAR** (asagidaki tablolardan cikarildi):
+> arama sayaci filtrelenmemis toplami duyuruyordu (2 ekran) - korumasiz
+> sozluk aramasi 4 yerde beyaz ekran uretiyordu - `NoData` gerekcesi ekran
+> okuyucuya hic ulasmiyordu - `verdict-form` fail-open idi (+ story acigi
+> dogru davranis diye kilitliyordu).
 
 Uc tur bagimsiz denetim yapildi (meclis MCP araclari dustugu icin ajanla).
 Ucuncu tur KODUN KENDISINE bakti: **6 kritik, 21 orta, 14 dusuk.**
@@ -410,7 +416,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 
 | Nerede | Ne | Ne zaman yanlis |
 |---|---|---|
-| `amazon/director/screen.tsx:174` - `mission-control/screen.tsx:201` | Arama sayaci FILTRELENMEMIS toplami yaziyor (`aria-live` ile de okunuyor) | 48 SKU'da "zzz" ara: tablo "SKU yok" der, kutu "48 sonuc" der |
 | `amazon/director/screen.tsx` stok bolumu | Hizi `unknown` olan SKU'lar listeye BILEREK alinmiyor ama bos durum "hicbir SKU riskli degil" diyor | 29 SKU olculmemis, 19'u iyi -> ekran "hicbir SKU riskli degil" |
 | `ui/table.tsx:187` | Filtre sonucu bos = "Bu tabloda gosterilecek veri bulunmuyor" | Veri VAR, filtre eslesmiyor |
 | `ui/table.tsx:379` | Secili satir filtreyle listeden cikinca "1 satir secili" yazmaya devam eder, `onSelect(null)` cagrilmaz | Sag panel listede olmayan kaydi gosterir |
@@ -422,7 +427,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 
 | Nerede | Ne |
 |---|---|
-| `activity-feed.tsx:60` - `timeline.tsx:75` - `decision-card.tsx:90,109` | Korumasiz sozluk aramasi (`CATEGORY[x]` -> `.cls`). ODIN sozluge yeni deger eklerse TypeError, beyaz ekran. Ayni dosyalarda `??` savunmasi baska satirlarda VAR - tutarsiz |
 | `executive-kpi-card.tsx:143` - `amazon/sku/screen.tsx:49` | `Intl.DateTimeFormat.format(new Date(iso))` gecersiz tarihte **RangeError**. `report_period` alanlari semada yalniz `z.string()`, `isoDate` uygulanmamis |
 | `lib/data/odin-amazon.ts:251` | `toPeriod`: gecersiz `end` -> `toISOString()` RangeError; `window_days: 0` -> `from > to` |
 | `ui/chart.tsx:140` - `ui/sparkline.tsx:52` | `NaN`/`Infinity` tip olarak `number`dir: chart "NaN" basar, sparkline `d="M NaN,NaN"` uretir |
@@ -442,8 +446,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 
 | Nerede | Ne |
 |---|---|
-| `ui/no-data.tsx:8` | Gerekce ekran okuyucuya ULASMIYOR: `aria-label` generic rolde yok sayilir, `title` yalniz fareyle. Bilesen TUM repoda gerekce tasiyicisi |
-| `executive/verdict-form.tsx:65` | **Fail-open**: `recClass` tasimada duserse gerekce ZORUNLU olmaktan cikar, ADR-0131 B/C kurali sessizce kalkar |
 | `executive/decision-card.tsx:233` | Bayat-veri kilidi yalniz butonlara; `VerdictForm` gonderimi engellenmiyor |
 | `layout/section.tsx:80` | Bos bolum bayragi ekran degiskeninden geliyor, diziden degil -> basligi olan ama icerigi de bos durumu da olmayan bolumler |
 | `ui/search.tsx:212` | `aria-live` bolgesi icerigiyle BIRLIKTE mount ediliyor -> cogu ekran okuyucu duyurmaz. `ui/chart.tsx:161` ayni isi dogru yapiyor |

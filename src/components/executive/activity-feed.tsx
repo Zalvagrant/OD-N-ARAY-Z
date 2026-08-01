@@ -33,6 +33,20 @@ import { DataGuard } from "./data-guard";
 import { TrustSignal } from "./trust-signal";
 
 /** Renk tek başına anlam taşımaz — her kategorinin glyph'i ve adı vardır. */
+/**
+ * Bilinmeyen kategori için geri düşüş — UI-ADR-156.
+ *
+ * Kategori ADI gösterilir, uydurulmuş bir sınıflandırma DEĞİL: "bilinmeyen"
+ * demek ile yanlış bir etiket vermek arasındaki fark, sahibin kaydı doğru
+ * yorumlayıp yorumlayamamasıdır. Nötr glyph ve nötr renk — bir ciddiyet
+ * yargısı üretilmez (kaynağı yok).
+ */
+const BILINMEYEN_KATEGORI = {
+  glyph: "·",
+  label: "sınıflandırılmamış",
+  cls: "text-content-tertiary",
+} as const;
+
 const CATEGORY: Record<IntelligenceCategory, { glyph: string; label: string; cls: string }> = {
   critical_risk: { glyph: "▲", label: "Kritik risk", cls: "text-danger" },
   ai_recommendation: { glyph: "◆", label: "AI tavsiyesi", cls: "text-ai-text" },
@@ -57,7 +71,13 @@ export function sortIntelligence(items: IntelligenceItem[]): IntelligenceItem[] 
 function FeedRow({ item, index }: { item: IntelligenceItem; index: number }) {
   const now = useNow();
   const reduced = useReducedMotion();
-  const cat = CATEGORY[item.category];
+  /* BİLİNMEYEN DEĞER ÇÖKERTMEZ — UI-ADR-156.
+     ODIN sözlüğüne yeni bir değer eklediğinde (ve ekliyor: ADR-0148 dört
+     runtime durumu getirdi, ADR-0151 `module: "runtime"`) korumasız bir
+     sözlük araması `undefined.x` ile TypeError atıp EKRANIN TAMAMINI
+     beyaz bırakır. Aynı dosyalarda `?? ` savunması başka satırlarda
+     ZATEN VAR — tutarsızlıktı, tercih değil. */
+  const cat = CATEGORY[item.category] ?? BILINMEYEN_KATEGORI;
   const age = relativeTime(item.at, now);
 
   return (

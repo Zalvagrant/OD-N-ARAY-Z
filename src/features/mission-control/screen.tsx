@@ -153,6 +153,9 @@ export function MissionControl({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  /* Tahtanın gerçekten gösterdiği sayı — UI-ADR-156. Zarftaki ham sayı
+     filtreyi de, izlenen/vadesi-gelen ayrımını da görmüyordu. */
+  const [filteredCount, setFilteredCount] = useState<number | null>(null);
 
   const decisions = useOdinFixture("briefing.decisions");
   /* CANLI — ODIN ADR-0148 (UI-ADR-127). Bu bölüm artık ZAMANLANMIŞ
@@ -198,7 +201,7 @@ export function MissionControl({
             label="Karar ara"
             placeholder="Karar sorusu"
             onSearch={setQuery}
-            resultCount={query ? (decisionEnv?.data.length ?? null) : null}
+            resultCount={query ? filteredCount : null}
           />
         }
       />
@@ -226,7 +229,11 @@ export function MissionControl({
         error={error}
         onRetry={reloadAll}
       >
-        <MonitoredDecisionsBoard env={decisionEnv} filter={query} />
+        <MonitoredDecisionsBoard
+          env={decisionEnv}
+          filter={query}
+          onFilteredCount={setFilteredCount}
+        />
       </Section>
 
       <div className="grid gap-8 lg:grid-cols-2 [&>section]:min-w-0">

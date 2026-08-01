@@ -1,6 +1,6 @@
 /** S6 · 3 — Amazon Director (tam ekran) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { AmazonDirector } from "./screen";
 
 const meta: Meta = {
@@ -131,6 +131,46 @@ export const HataOlcumIddiaEtmez: StoryObj = {
     await expect(
       canvas.queryByText(/Hiçbir SKU riskli ya da kritik durumda değil/i)
     ).toBeNull();
+  },
+};
+
+/**
+ * UI-ADR-156 — ARAMA SAYACI FİLTRELENMİŞ SAYIYI SÖYLER.
+ *
+ * Bağımsız denetim bulgusu: `resultCount={query ? skuRows.length : null}`
+ * HAM listeyi sayıyordu; filtreleme `DataTable`ın içinde TanStack'te
+ * oluyor. 48 SKU'da eşleşmeyen bir sorgu yazınca tablo "SKU yok" derken
+ * kutu "48 sonuç" diyordu — ve bu sayı `aria-live` ile ekran okuyucuya da
+ * okunuyordu. `search.tsx`in kendi sözleşmesi "sayı UYDURULMAZ" der.
+ */
+export const AramaSayaciFiltreliDir: StoryObj = {
+  name: "Arama sayacı FİLTRELENMİŞ sayıyı söyler (ham toplamı değil)",
+  render: () => (
+    <div className="bg-bg p-6">
+      <AmazonDirector />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const kutu = await canvas.findByRole("combobox", { name: /SKU ara/i }, BEKLE);
+
+    /* Önce tablonun dolduğunu kanıtla — yokluk iddiası varlıktan sonra. */
+    await canvas.findByRole("grid", {}, BEKLE);
+
+    await userEvent.type(kutu, "eslesmeyen-sorgu-xyz");
+
+    /* Sayaç tabloyla AYNI şeyi söylemeli. Ham toplam (48) görünürse
+       kullanıcı boş bir tabloya bakarken "48 sonuç" duyar. */
+    /* Sayaç, arama kutusunun KENDİ canlı bölgesidir — sayfada "sonuç"
+       geçen başka metinler de var, o yüzden kutunun kabına daraltılıyor. */
+    const kap = kutu.closest("div")!.parentElement!;
+    await waitFor(
+      async () => {
+        const sayac = kap.querySelector('[aria-live="polite"]');
+        await expect(sayac?.textContent).toBe("0 sonuç");
+      },
+      { timeout: 15_000 }
+    );
   },
 };
 

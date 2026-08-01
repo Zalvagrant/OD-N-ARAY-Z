@@ -74,6 +74,7 @@ export function DataTable<T>({
   emptyNextStep,
   maxHeightClass = "max-h-[60vh]",
   label,
+  onFilteredCount,
 }: {
   data: T[];
   columns: ColumnDef<T, unknown>[];
@@ -91,6 +92,19 @@ export function DataTable<T>({
   emptyNextStep?: React.ReactNode;
   maxHeightClass?: string;
   label: string;
+  /**
+   * FİLTRELENMİŞ satır sayısını yukarı bildirir — UI-ADR-156.
+   *
+   * Ekranlar `resultCount={query ? rows.length : null}` yazıyordu ama o
+   * `rows` HAM listeydi; filtrelemeyi TanStack burada, tablonun İÇİNDE
+   * yapıyor. 48 SKU'da "zzz" aratınca tablo "SKU yok" derken arama kutusu
+   * "48 sonuç" diyordu — ve bu sayı `aria-live` ile ekran okuyucuya da
+   * okunuyordu. `search.tsx`in kendi sözleşmesi "sayı UYDURULMAZ" der.
+   *
+   * Filtreyi ekranda TEKRARLAMAK yerine sayı buradan bildiriliyor: iki
+   * uygulama bir gün ayrışır, tek kaynak ayrışamaz.
+   */
+  onFilteredCount?: (n: number) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -138,6 +152,24 @@ export function DataTable<T>({
   useEffect(() => {
     setCursor((c) => Math.min(c, Math.max(rows.length - 1, 0)));
   }, [rows.length]);
+
+  /**
+   * Filtrelenmiş sayı yukarı — UI-ADR-156.
+   *
+   * Çağıran KARARLI bir fonksiyon geçmelidir (`useState` setter'ı
+   * kararlıdır). Bağımlılıktan çıkarmak bir `eslint-disable` gerektirirdi
+   * ve UI-ADR-154 satır içi kapatmayı yasakladı — haklı olarak:
+   * bastırılan uyarı, çözülmemiş sorundur.
+   */
+  /* `onFilteredCount` BAĞIMLILIKTA — ref hilesi değil. Ref'i render'da
+     yazmak React kuralını ihlal eder (`react-hooks/refs`), effect'te
+     yazmak ikinci bir effect ister. Çağıranın KARARLI bir fonksiyon
+     geçmesi zaten doğru sözleşme: `useState` setter'ı kararlıdır ve iki
+     çağıran da onu geçiyor. Kararsız bir fonksiyon geçen, `useCallback`
+     yazar — bu, gizlenecek değil söylenecek bir gerekliliktir. */
+  useEffect(() => {
+    onFilteredCount?.(rows.length);
+  }, [rows.length, onFilteredCount]);
 
   const select = (index: number) => {
     const row = rows[index];

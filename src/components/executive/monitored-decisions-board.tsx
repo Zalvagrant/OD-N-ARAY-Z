@@ -24,6 +24,7 @@
 
 import type { Decision } from "@/types/executive";
 import type { DataEnvelope } from "@/types/data-envelope";
+import { useEffect } from "react";
 import { relativeTime, remainingTime, useNow } from "@/lib/clock/tick";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
@@ -90,23 +91,54 @@ function DecisionItem({
 export function MonitoredDecisionsBoard({
   env,
   filter = "",
+  onFilteredCount,
 }: {
   env: DataEnvelope<Decision[]> | null | undefined;
   /** Workspace header'daki aramadan gelir; boşsa filtre yok. */
   filter?: string;
+  /**
+   * Tahtanın GERÇEKTEN gösterdiği kayıt sayısı — UI-ADR-156.
+   *
+   * Ekran `resultCount={decisionEnv?.data.length}` yazıyordu: zarftaki HAM
+   * sayı. Oysa filtre BURADA uygulanıyor ve liste ayrıca ikiye bölünüyor
+   * (izlenen + vadesi gelen). Sonuç: "XYZ" aratınca tahtada 0 kart
+   * görünürken arama kutusu ham toplamı duyuruyordu — `aria-live` ile
+   * ekran okuyucuya da. Sayının sahibi filtreyi uygulayan katmandır.
+   */
+  onFilteredCount?: (n: number) => void;
 }) {
   const now = useNow();
 
+  /**
+   * HESAP GÖVDEDE, RENDER GERİ ÇAĞRISINDA DEĞİL — UI-ADR-156.
+   *
+   * İlk yazımda sayım `DataGuard`ın render geri çağrısı içinde yapılıp
+   * bir ref üzerinden yukarı bildiriliyordu; ESLint `react-hooks/refs`
+   * ile haklı olarak reddetti: render sırasında ebeveynin state'ini
+   * güncellemek olur. Aynı filtre gövdede bir kez hesaplanıp hem render'a
+   * hem effect'e veriliyor — tek kaynak, iki tüketici.
+   */
+  const q = filter.trim().toLocaleLowerCase("tr");
+  const match = (d: Decision) =>
+    !q || d.question.toLocaleLowerCase("tr").includes(q);
+  const all = env?.data ?? null;
+  const monitored = all === null ? [] : monitoredDecisions(all).filter(match);
+  const due = all === null ? [] : dueDeferrals(all, now).filter(match);
+
+  const shown = all === null ? null : monitored.length + due.length;
+  /* `onFilteredCount` BAĞIMLILIKTA — ref hilesi değil. Ref'i render'da
+     yazmak React kuralını ihlal eder (`react-hooks/refs`), effect'te
+     yazmak ikinci bir effect ister. Çağıranın KARARLI bir fonksiyon
+     geçmesi zaten doğru sözleşme: `useState` setter'ı kararlıdır ve iki
+     çağıran da onu geçiyor. Kararsız bir fonksiyon geçen, `useCallback`
+     yazar — bu, gizlenecek değil söylenecek bir gerekliliktir. */
+  useEffect(() => {
+    onFilteredCount?.(shown ?? 0);
+  }, [shown, onFilteredCount]);
+
   return (
     <DataGuard env={env} reason="Karar verisi yok">
-      {(decisions, meta) => {
-        const q = filter.trim().toLocaleLowerCase("tr");
-        const match = (d: Decision) =>
-          !q || d.question.toLocaleLowerCase("tr").includes(q);
-
-        const monitored = monitoredDecisions(decisions).filter(match);
-        const due = dueDeferrals(decisions, now).filter(match);
-
+      {(_decisions, meta) => {
         if (monitored.length === 0 && due.length === 0) {
           return (
             <EmptyState

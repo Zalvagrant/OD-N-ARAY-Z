@@ -4611,3 +4611,94 @@ Escape/odak sozlesmesinin capture katmaninda sessizce yutulmasi.
 `tsc` 0, `lint` 0 hata 0 uyari,
 **unit 16 dosya / 238 test** (alt sinir 230),
 **storybook 53 dosya / 196 test** (alt sinir 190), atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-156 - Ucuncu denetimin acik bulgulari kapatildi (S13 kapanis)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-131 - 155 - ODIN ADR-0131
+
+UI-ADR-155 alti kritigi kapatip 35 bulguyu devretmisti. Bu tur, o listenin
+**en agir yedisini** kapatti. Hepsi kaynaktan dogrulandi.
+
+### 1 - Arama sayaci FILTRELENMEMIS toplami duyuruyordu (2 ekran)
+
+`resultCount={query ? rows.length : null}` - ama o `rows` HAM listeydi;
+filtreleme `DataTable`in icinde TanStack'te, `MonitoredDecisionsBoard`da
+ise bilesenin kendinde yapiliyor.
+
+**Somut:** 48 SKU'da eslesmeyen bir sorgu yazinca tablo "SKU yok" derken
+kutu **"48 sonuc"** diyordu - ve bu sayi `aria-live` ile ekran okuyucuya da
+okunuyordu. `search.tsx`in kendi sozlesmesi *"sayi UYDURULMAZ"* der.
+
+Filtreyi ekranda TEKRARLAMAK yerine sayi filtreyi uygulayan katmandan
+bildiriliyor (`onFilteredCount`): iki uygulama bir gun ayrisir, tek kaynak
+ayrisamaz. Story ile kilitlendi.
+
+**Yan bulgu:** ilk cozum geri cagriyi bir REF'te tutuyordu; ESLint
+`react-hooks/refs` ile reddetti (render sirasinda ref yazmak, ebeveynde
+render-ici setState olur). Dogrusu bagimliliga koymak ve **caginanin
+kararli bir fonksiyon gecmesini sozlesme yapmak** - `useState` setter'i
+zaten kararlidir. UI-ADR-154'un satir ici `eslint-disable` yasagi burada
+ise yaradi: bastirilan uyari, cozulmemis sorundur.
+
+### 2 - Korumasiz sozluk aramasi -> BEYAZ EKRAN (4 yer)
+
+`CATEGORY[item.category].cls` - `TONE[item.tone].dot` - `TIER[tier]` -
+`OUTCOME[outcome].label`. ODIN sozluge yeni bir deger ekledigi anda
+(ve ekliyor: ADR-0148 dort runtime durumu, ADR-0151 `module:"runtime"`)
+`undefined.x` ile TypeError atip ekranin TAMAMINI beyaz birakiyordu.
+Ayni dosyalarda `??` savunmasi baska satirlarda ZATEN VARDI - tutarsizlikti,
+tercih degil.
+
+Bilinmeyen kategori icin notr bir geri dusus eklendi: **kategori ADI
+gosterilir, uydurulmus bir siniflandirma DEGIL.** Notr glyph ve notr renk -
+bir ciddiyet yargisi uretilmez, cunku kaynagi yok.
+
+### 3 - `NoData` gerekcesi ekran okuyucuya HIC ULASMIYORDU
+
+`<span title aria-label>` - `aria-label`, adsiz bir `<span>`in "generic"
+rolunde ARIA'ya gore GECERSIZDIR ve yok sayilir; `title` ise yalniz FARE
+ustunde cikar. Yani klavye ve ekran okuyucu kullanicisi her yerde sadece
+**"—"** duyuyordu. Bu bilesen tum repoda gerekce tasiyicisidir ve "neden
+veri yok" sorusunun tek cevabidir.
+
+Duzeltme tek kelime: **`role="note"`**. `note` adlandirmayi DESTEKLEYEN bir
+roldur; ayni `aria-label` artik gecerli ve duyuluyor.
+
+**Ayrica bir iddia kacirilmisti:** varsayilan metin *"Veri kaynagi henuz
+bagli degil"* idi - oysa veri olculup de yok olabilir. Sebebi bilmeden
+soylemek, uydurmanin kucuk halidir. Varsayilan artik yalnizca "Veri yok".
+
+### 4 - `verdict-form` FAIL-OPEN idi
+
+`recClass !== undefined && ODIN_REASON_REQUIRED_CLASSES.includes(recClass)`
+- sinif tasimada DUSERSE gerekce zorunlu OLMAKTAN CIKIYORDU. Yani
+ADR-0131'in B/C kurali bir alanin kaybolmasiyla sessizce kalkiyor ve karar
+tek tikla kaydediliyordu.
+
+**Bir yonetisim kurali, kendisini tetikleyen verinin yoklugunda GEVSEMEZ.**
+Sinif bilinmiyorsa gerekce ISTENIR: fazladan bir cumle yazmak, kaydi
+gerekcesiz birakmaktan ucuzdur.
+
+**Ve story bu acigi DOGRU davranis diye kilitliyordu:** `gerekceIstege`
+fixture'i `recClass: undefined` kullaniyordu, yani "sinif yok" ile "gerekce
+istege bagli"yi ayni sayiyordu. Fixture gercek bir sinifa ("A") cevrildi ve
+sinif-bilinmiyor hali icin AYRI bir fail-closed testi yazildi.
+
+### Olcum
+
+`npm run test:ci` = typecheck + lint + unit + storybook:
+`tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 238 test**, **storybook 53 dosya / 198 test**,
+atlanan 0, dusen 0.
+
+### Kalan acik bulgular
+
+`19-s13-devir.md` §7 guncellendi. Kapatilmayanlarin en agirlari: Escape'in
+`document` capture katmaninda yutulmasi (ic ice diyalog), `command-palette`
+`aria-modal` diyor ama modal degil, tek provenance boslugunun tum Amazon
+KPI'larini karartmasi (fail-total parse), tazelik damgasinin onbellekte
+donmasi.

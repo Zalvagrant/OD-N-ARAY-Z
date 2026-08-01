@@ -146,6 +146,9 @@ export function AmazonDirector({
    * `mission-control`de UI-ADR-120 ile bulunup düzeltilen hatanın AYNISI;
    * bu ekranda uygulanmamıştı. `null` = ölçülmedi, `[]` = ölçüldü ve boş.
    */
+  /* Tablonun GERÇEKTEN gösterdiği satır sayısı — UI-ADR-156. Arama
+     kutusu ham listeyi sayıyordu; filtre tablonun içinde uygulanıyor. */
+  const [filteredSkuCount, setFilteredSkuCount] = useState<number | null>(null);
   const measuredSkus = isEmpty ? [] : (skus.envelope?.data ?? null);
   const skuRows = measuredSkus ?? [];
   /* FR-0046 v1 Opportunity'de `category` YOK — reklam/genel ayrımını sürecek
@@ -190,7 +193,7 @@ export function AmazonDirector({
             label="SKU ara"
             placeholder="SKU, ASIN veya başlık"
             onSearch={setQuery}
-            resultCount={query ? skuRows.length : null}
+            resultCount={query ? filteredSkuCount : null}
           />
         }
       />
@@ -270,6 +273,7 @@ export function AmazonDirector({
               )
             }
             getRowId={(r) => r.sku}
+            onFilteredCount={setFilteredSkuCount}
             emptyTitle={measuredSkus === null ? "SKU verisi ölçülmedi" : "SKU yok"}
             emptyDescription={
               measuredSkus === null

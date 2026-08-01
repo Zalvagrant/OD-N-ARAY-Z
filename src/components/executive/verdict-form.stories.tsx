@@ -34,8 +34,22 @@ export default meta;
 /** `recClass: "B"` — gerekçe ZORUNLU sınıf (fixture'ın kendi değeri). */
 const gerekceZorunlu = decision;
 
-/** Gerekçe zorunlu OLMAYAN karar. */
+/**
+ * Gerekçe zorunlu OLMAYAN karar — sınıf "A".
+ *
+ * ⚠️ Bu fixture `recClass: undefined` idi ve YANLIŞTI: sınıfın YOKLUĞU
+ * "gerekçe isteğe bağlı" demek değildir, "sınıf bilinmiyor" demektir.
+ * O hâliyle story, UI-ADR-156'da fail-closed yapılan bir açığı (sınıf
+ * düşerse kural sessizce kalkar) doğru davranış diye kilitliyordu.
+ * Gerçekten isteğe bağlı olan hâl, ODIN'in B/C dışındaki bir sınıfıdır.
+ */
 const gerekceIstege: Decision = {
+  ...decision,
+  recommendation: { ...decision.recommendation, recClass: "A" },
+};
+
+/** Sınıf BİLİNMİYOR — gerekçe yine de İSTENİR (fail-closed, UI-ADR-156). */
+const sinifBilinmiyor: Decision = {
   ...decision,
   recommendation: { ...decision.recommendation, recClass: undefined },
 };
@@ -174,5 +188,30 @@ export const VazgecmeKayitBirakmaz: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Vazgeç" }));
     await expect(canvas.getByTestId("cancelled")).toBeInTheDocument();
     await expect(args.onSubmit).not.toHaveBeenCalled();
+  },
+};
+
+export const SinifBilinmiyorsaGerekceZORUNLU: Story = {
+  name: "Sınıf BİLİNMİYORSA gerekçe zorunlu (fail-closed)",
+  args: { onSubmit: fn() },
+  render: (args) => (
+    <Harness d={sinifBilinmiyor} pending="approved" onSubmit={args.onSubmit} />
+  ),
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+
+    /* ASIL İDDİA: bir yönetişim kuralı, kendisini tetikleyen verinin
+       YOKLUĞUNDA gevşemez. `recClass` taşımada düşerse ADR-0131'in B/C
+       kuralı sessizce kalkıyordu ve karar tek tıkla kaydediliyordu. */
+    const kaydet = canvas.getByRole("button", { name: /kaydet|onayla/i });
+    await expect(kaydet).toBeDisabled();
+
+    await userEvent.type(
+      canvas.getByRole("textbox"),
+      "Sınıf bilinmiyor ama gerekçe yazıldı — kayıt böyle dürüst olur."
+    );
+    await expect(kaydet).toBeEnabled();
+    await userEvent.click(kaydet);
+    await expect(args.onSubmit).toHaveBeenCalledTimes(1);
   },
 };

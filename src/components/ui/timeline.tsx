@@ -72,7 +72,8 @@ export function Timeline({
   return (
     <ol className="relative flex flex-col">
       {items.map((item, i) => {
-        const tone = TONE[item.tone ?? "neutral"];
+        /* Bilinmeyen ton nötre düşer — çökmez (UI-ADR-156). */
+        const tone = TONE[item.tone ?? "neutral"] ?? TONE.neutral;
         const last = i === items.length - 1;
         const body = (
           <div className="flex gap-3 pb-4">
