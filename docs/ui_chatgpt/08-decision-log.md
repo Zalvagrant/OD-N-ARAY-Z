@@ -4953,3 +4953,76 @@ odaklanabilir kalir; ok tusu hem `aria-checked`i hem ODAGI tasir.
 `npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
 **unit 16 dosya / 241 test**, **storybook 54 dosya / 203 test**,
 atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-161 - Kaynagi olmayan yargi uretilmez (S13 kapanis)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-139 - 156 - 160
+
+Alti bulgu daha. Ortak yanlari: hicbiri hata vermiyor, hepsi **kaynagi
+olmayan bir SEY SOYLUYOR.**
+
+### 1 - Filtre sonucu bos ≠ veri yok (`ui/table.tsx`)
+
+48 satirlik bir tabloda eslesmeyen bir sorgu yazinca ekran *"Kayit yok —
+Bu tabloda gosterilecek veri bulunmuyor"* diyordu. **Veri VAR; eslesen
+yok.** Ikisini ayni gostermek kullaniciya kaynagin bos oldugunu
+dusundurur ve aramayi temizlemeyi akla getirmez. Artik ayri metin, ve
+tablodaki gercek kayit sayisi da yaziliyor.
+
+### 2 - Hayalet secim (`ui/table.tsx`)
+
+Secili satir filtreyle listeden ciktiginda `selected` duruyordu: alt bar
+hala "1 satir secili" diyor ve `onSelect(null)` hic cagrilmadigi icin
+**sag baglam paneli listede olmayan bir kaydi** gostermeye devam
+ediyordu. Ekranda gorunmeyen bir kaydin detayina bakmak, hangi kaydi
+inceledigini SANMAKLA arasindaki farki siler.
+
+### 3 - Enter siralama basligini olduruyordu (`ui/table.tsx`)
+
+`<table onKeyDown>` Enter'da `preventDefault` yapiyor ve bu BALONCUKLANAN
+olaylara da uygulaniyordu: siralama basligi bir `<button>` ve Enter'in
+varsayilan "tikla" davranisi iptal ediliyordu. Dosyanin 17. satiri
+*"Enter/Space ile siralar"* diyor - **Enter calismiyordu**; Space
+calistigi icin gozden kacmis. Ayni sebeple hucre icindeki her buton da
+Enter'a sagirdi. `if (e.target !== e.currentTarget) return;`
+
+### 4 - Bilinmeyen ciddiyet "Bilgi" diye gomuluyordu (`alert-stack`)
+
+`?? SEVERITY.info` idi: ODIN sozluge yeni bir deger eklerse (orn.
+`"urgent"`) uyari mavi **"Bilgi"** rozetiyle ve listenin **EN ALTINDA**
+gorunuyordu. Ikisi de kaynagi olmayan bir YARGIDIR: ne "bu bilgi
+amaclidir" ne "bu en onemsizidir" olculmustur.
+
+Sinifi bilinmeyen bir uyarinin tehlikeli OLMADIGINI da bilmiyoruz;
+listenin dibine gommek onu hic gostermemekle ayni seydir. Artik notr
+etiketle (`siniflandirilmamis`) ve **EN USTTE**.
+
+UI-ADR-139'un testi eski davranisi kilitliyordu ve degisikligi YAKALADI -
+kapinin isini yapmasi budur; test gerekcesiyle guncellendi.
+
+### 5 - Para birimi uyduruluyordu (`ui/typography.tsx`)
+
+`options.currency = currency ?? "TRY"`. Bildirilmemis bir para birimi
+sessizce **liraya** donuyordu. Dolar bir tutari lira gostermek eksik
+veriden cok daha tehlikelidir: sayi makul gorunur ve kimse sorgulamaz.
+Bugunku cagiranlarin hepsi `Money.currency` geciyor - ama varsayilan bir
+tuzakti ve `Num`un kendi anti-fake sozu (satir 10) bunun tersini vaat
+ediyordu. Bildirilmemisse **birimsiz** yazilir.
+
+### 6 - Tiklanabilir satirin adi KIMLIKTI (`ui/timeline.tsx`)
+
+`label={actor ? \`${actor}: ${id}\` : id}` - ekran okuyucuda
+**"evt-4821, buton"** diye okunuyordu; kullanici neye tikladigini
+bilmiyordu. (`alert-stack.tsx` ayni isi baslikla yapiyor.) `title` tipce
+`ReactNode` oldugu icin dize oldugunda kullaniliyor, degilse "Olay {id}"
+- ciplak kimlik hicbir sey soylemez.
+
+### Olcum
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 203 test**,
+atlanan 0, dusen 0.

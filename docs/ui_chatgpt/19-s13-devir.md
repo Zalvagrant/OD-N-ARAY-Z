@@ -418,9 +418,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 |---|---|---|
 | `amazon/director/screen.tsx` stok bolumu | Hizi `unknown` olan SKU'lar listeye BILEREK alinmiyor ama bos durum "hicbir SKU riskli degil" diyor | 29 SKU olculmemis, 19'u iyi -> ekran "hicbir SKU riskli degil" |
 | `ui/table.tsx:187` | Filtre sonucu bos = "Bu tabloda gosterilecek veri bulunmuyor" | Veri VAR, filtre eslesmiyor |
-| `ui/table.tsx:379` | Secili satir filtreyle listeden cikinca "1 satir secili" yazmaya devam eder, `onSelect(null)` cagrilmaz | Sag panel listede olmayan kaydi gosterir |
-| `executive/alert-stack.tsx:73` | Bilinmeyen `severity` sessizce "Bilgi"ye duser ve EN ALTA gider | ODIN `severity:"urgent"` yayinlarsa |
-| `ui/typography.tsx:193` | `currency ?? "TRY"` - para birimi bildirilmemisse lira uydurulur | Bugun tetiklenmiyor (tum cagiranlar currency geciyor) ama tuzak duruyor |
 | `ui/chart.tsx:219` | Eksen daima `compact`, okuma satiri `percent` - ayni grafikte iki olcek | `format="percent"` grafiginde eksen "0,4", okuma "%42" |
 
 ### 7.2 COKME riski
@@ -435,7 +432,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 | Nerede | Ne |
 |---|---|
 | `ui/modal.tsx:47` | `useEffect` bagimliliginda `onClose`; satir ici ok fonksiyonu verilirse her render'da odak Kapat butonuna siciyor |
-| `ui/table.tsx:229` | `<table onKeyDown>` Enter'da `preventDefault` -> siralama basligi butonu Enter ile calismiyor (dosyanin 17. satiri "Enter/Space ile siralar" diyor) |
 
 ### 7.4 Erisilebilirlik / anti-fake
 
@@ -445,7 +441,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 | `layout/section.tsx:80` | Bos bolum bayragi ekran degiskeninden geliyor, diziden degil -> basligi olan ama icerigi de bos durumu da olmayan bolumler |
 | `ui/search.tsx:212` | `aria-live` bolgesi icerigiyle BIRLIKTE mount ediliyor -> cogu ekran okuyucu duyurmaz. `ui/chart.tsx:161` ayni isi dogru yapiyor |
 | `ui/tabs.tsx:84` | `id={`tab-${item.id}`}` `useId` ile kapsanmamis -> ayni sayfada iki `Tabs` cakisir |
-| `ui/timeline.tsx:134` | Tiklanabilir satirin erisilebilir adi olay BASLIGI degil KIMLIGI ("evt-4821, buton") |
 
 ### 7.5 Veri katmani
 

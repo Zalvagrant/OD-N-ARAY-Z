@@ -154,6 +154,22 @@ export function DataTable<T>({
   }, [rows.length]);
 
   /**
+   * HAYALET SEÇİM TEMİZLENİR — UI-ADR-161.
+   *
+   * Seçili satır filtreyle listeden çıktığında `selected` duruyordu:
+   * alt bar hâlâ "1 satır seçili" diyor ve `onSelect(null)` hiç
+   * çağrılmadığı için SAĞ BAĞLAM PANELİ listede olmayan bir kaydı
+   * göstermeye devam ediyordu. Ekranda görünmeyen bir kaydın detayına
+   * bakmak, hangi kaydı incelediğini sanmakla arasındaki farkı siler.
+   */
+  useEffect(() => {
+    if (selected === null) return;
+    if (rows.some((r) => r.id === selected)) return;
+    setSelected(null);
+    onSelect?.(null);
+  }, [rows, selected, onSelect]);
+
+  /**
    * Filtrelenmiş sayı yukarı — UI-ADR-156.
    *
    * Çağıran KARARLI bir fonksiyon geçmelidir (`useState` setter'ı
@@ -217,12 +233,26 @@ export function DataTable<T>({
   }
 
   if (rows.length === 0) {
+    /**
+     * FİLTRE SONUCU BOŞ ≠ VERİ YOK — UI-ADR-161.
+     *
+     * `emptyTitle` koşulsuz basılıyordu: 48 satırlık bir tabloda
+     * eşleşmeyen bir sorgu yazınca ekran "Kayıt yok — Bu tabloda
+     * gösterilecek veri bulunmuyor" diyordu. Veri VAR; eşleşen yok.
+     * İkisini aynı göstermek, kullanıcıya kaynağın boş olduğunu
+     * düşündürür ve aramayı temizlemeyi akla getirmez.
+     */
+    const filtreli = globalFilter.trim().length > 0 && data.length > 0;
     return (
       <EmptyState
-        title={emptyTitle}
-        description={emptyDescription}
-        suggestion={emptySuggestion}
-        nextStep={emptyNextStep}
+        title={filtreli ? "Eşleşen kayıt yok" : emptyTitle}
+        description={
+          filtreli
+            ? `"${globalFilter}" için eşleşen satır bulunamadı — tabloda ${data.length} kayıt var.`
+            : emptyDescription
+        }
+        suggestion={filtreli ? "Aramayı temizle ya da farklı bir terim dene." : emptySuggestion}
+        nextStep={filtreli ? undefined : emptyNextStep}
       />
     );
   }
@@ -246,6 +276,14 @@ export function DataTable<T>({
           aria-rowcount={rows.length}
           tabIndex={0}
           onKeyDown={(e) => {
+          /* KLAVYE YALNIZ IZGARANIN KENDİSİNDE — UI-ADR-161.
+             `preventDefault` baloncuklanan olaylara da uygulanıyordu:
+             sıralama başlığı bir `<button>` ve Enter'ın varsayılan
+             "tıkla" davranışı iptal ediliyordu. Dosyanın 17. satırı
+             "Enter/Space ile sıralar" diyor — Enter ÇALIŞMIYORDU
+             (Space çalışıyordu, o yüzden gözden kaçmış). Aynı sebeple
+             hücre içindeki her buton da Enter'a sağır kalıyordu. */
+          if (e.target !== e.currentTarget) return;
           if (e.key === "ArrowDown") {
             e.preventDefault();
             move(cursor + 1);

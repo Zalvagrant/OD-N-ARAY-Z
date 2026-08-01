@@ -36,6 +36,23 @@ const TONE = {
   info: { dot: "bg-info", glyph: "i" },
 } as const;
 
+/**
+ * Tıklanabilir satırın ERİŞİLEBİLİR ADI — UI-ADR-161.
+ *
+ * Önce `item.actor ? \`${actor}: ${id}\` : id` idi ve ekran okuyucuda
+ * **"evt-4821, buton"** diye okunuyordu: kullanıcı neye tıkladığını
+ * bilmiyordu. (`alert-stack.tsx` aynı işi başlıkla yapıyor.)
+ *
+ * `title` tipçe `ReactNode` — düğüm olduğunda ondan güvenli bir ad
+ * çıkarılamaz; o hâlde kimliğe düşülür ama "Olay" önekiyle, çünkü çıplak
+ * bir kimlik hiçbir şey söylemez.
+ */
+function erisilebilirAd(item: TimelineItem): string {
+  const baslik = typeof item.title === "string" ? item.title : null;
+  const govde = baslik ?? `Olay ${item.id}`;
+  return item.actor ? `${item.actor}: ${govde}` : govde;
+}
+
 function formatTime(iso: string): string {
   /* Tek doğrulama noktası — UI-ADR-158. Bu dosya geçerliliği ZATEN
      kontrol ediyordu; iki kardeşi (kpi kartı, sku paneli) etmiyordu.
@@ -137,7 +154,11 @@ export function Timeline({
             {onSelect ? (
               <Pressable
                 onPress={() => onSelect(item)}
-                label={item.actor ? `${item.actor}: ${item.id}` : item.id}
+                /* Ad KİMLİK değil BAŞLIK — UI-ADR-161. "evt-4821, buton"
+                   diye okunan bir satır ekran okuyucuda hiçbir şey
+                   söylemez; kullanıcı neye tıkladığını bilmez.
+                   (`alert-stack.tsx` bunu zaten doğru yapıyor.) */
+                label={erisilebilirAd(item)}
                 className="w-full hover:bg-surface"
               >
                 {body}

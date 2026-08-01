@@ -191,7 +191,15 @@ export function formatNumber(
   const options: Intl.NumberFormatOptions = {};
   if (format === "currency") {
     options.style = "currency";
-    options.currency = currency ?? "TRY";
+    /* PARA BİRİMİ UYDURULMAZ — UI-ADR-161.
+       `?? "TRY"` idi: bildirilmemiş bir para birimi sessizce liraya
+       dönüyordu. Dolar bir tutarı lira göstermek, eksik veriden çok daha
+       tehlikelidir — sayı makul görünür ve kimse sorgulamaz. Bugünkü
+       çağıranların hepsi `Money.currency` geçiyor, ama varsayılan bir
+       tuzaktı ve `Num`un kendi anti-fake sözü (satır 10) bunun tersini
+       vaat ediyordu. Bildirilmemişse BİRİMSİZ yazılır. */
+    if (currency) options.currency = currency;
+    else options.style = "decimal";
   } else if (format === "percent") {
     options.style = "percent";
   } else if (format === "compact") {

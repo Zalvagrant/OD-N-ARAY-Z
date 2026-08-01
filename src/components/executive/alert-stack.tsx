@@ -40,10 +40,29 @@ const SEVERITY = {
     ADR-0143 §1 bunu üretici tarafı sözleşmesi de yaptı; UI tarafı kalıyor
     çünkü iki tarafta da uygulanan bir kural, tek tarafta uygulanandan
     güvenlidir. */
+/**
+ * Bilinmeyen ciddiyet — UI-ADR-161.
+ *
+ * `?? SEVERITY.info` idi: ODIN sözlüğe yeni bir değer eklerse (örn.
+ * `"urgent"`) uyarı mavi **"Bilgi"** rozetiyle ve listenin EN ALTINDA
+ * görünüyordu. İkisi de kaynağı olmayan bir YARGIDIR: ne "bu bilgi
+ * amaçlıdır" ne de "bu en önemsizidir" ölçülmüştür.
+ *
+ * Artık nötr etiketle ve EN ÜSTTE (`rank -1`) gösteriliyor: bilinmeyen
+ * bir uyarıyı gömmek, onu hiç göstermemekle aynı şeydir — ve sınıfı
+ * bilinmediği için tehlikeli OLMADIĞINI da bilmiyoruz.
+ */
+const BILINMEYEN_CIDDIYET = {
+  rank: -1,
+  label: "sınıflandırılmamış",
+  variant: "secondary",
+  glyph: "·",
+} as const;
+
 export function actionableAlerts(alerts: Alert[]): Alert[] {
   return alerts
     .filter((a) => a.requiresAction === true)
-    .sort((a, b) => (SEVERITY[a.severity]?.rank ?? 9) - (SEVERITY[b.severity]?.rank ?? 9));
+    .sort((a, b) => (SEVERITY[a.severity]?.rank ?? -1) - (SEVERITY[b.severity]?.rank ?? -1));
 }
 
 export function AlertStack({
@@ -70,7 +89,7 @@ export function AlertStack({
               {shown.length ? (
                 <ul className="flex flex-col gap-3">
                   {shown.map((a) => {
-                    const sev = SEVERITY[a.severity] ?? SEVERITY.info;
+                    const sev = SEVERITY[a.severity] ?? BILINMEYEN_CIDDIYET;
                     const age = relativeTime(a.createdAt, now);
                     const row = (
                       <>

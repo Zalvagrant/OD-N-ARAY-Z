@@ -100,12 +100,18 @@ describe("actionableAlerts — aksiyon gerektirmeyen uyarı GÖSTERİLMEZ", () =
     ]);
   });
 
-  it("BİLİNMEYEN ciddiyet en sona düşer, listeden atılmaz", () => {
+  it("BİLİNMEYEN ciddiyet EN ÜSTE çıkar, listeden atılmaz", () => {
     /* ODIN sözlüğü genişlerse yeni bir severity SESSİZCE KAYBOLMAMALI —
-       görünmeyen uyarı, olmayan uyarıdan tehlikelidir. */
-    const out = actionableAlerts([alert("apocalypse", true), alert("info", true)]);
+       görünmeyen uyarı, olmayan uyarıdan tehlikelidir.
+
+       ♻️ UI-ADR-161: eskiden EN SONA düşüyordu ve rozeti "Bilgi" oluyordu.
+       İkisi de kaynağı olmayan bir YARGIYDI: ne "bu bilgi amaçlıdır" ne
+       "bu en önemsizidir" ölçülmüştür. Sınıfı bilinmeyen bir uyarının
+       tehlikeli OLMADIĞINI da bilmiyoruz; listenin dibine gömmek onu
+       göstermemekle aynı şeydir. Artık en üstte ve nötr etiketle. */
+    const out = actionableAlerts([alert("info", true), alert("apocalypse", true)]);
     expect(out).toHaveLength(2);
-    expect((out[1] as { severity: string }).severity).toBe("apocalypse");
+    expect((out[0] as { severity: string }).severity).toBe("apocalypse");
   });
 });
 
