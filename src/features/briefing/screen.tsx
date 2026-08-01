@@ -29,12 +29,13 @@ import {
   type DemoState,
 } from "@/features/shell/screen-state";
 import { greeting } from "@/features/executive/presentation/greeting";
-import { useOdinFixture } from "@/lib/data/odin-fixture";
 /* CANLI fırsat görünümü main'den (S16 / UI-ADR-141) — mock'a GERİ
    DÖNDÜRÜLMEDİ. `useMockData` ve `@/mocks/mock-badge` ise S13'ün tek veri
    borusuyla (UI-ADR-135) değiştirildi: main o borudan önceki hâldeydi. */
 import {
   useOdinAlerts,
+  useOdinBrief,
+  useOdinDecisions,
   useOdinDirectors,
   useOdinFeed,
   useOdinHealthKpis,
@@ -167,7 +168,11 @@ export function ExecutiveBriefing({
   /* CANLI — `/api/state.health_score` (S10 · G3). Özet ODIN'in KENDİ
      `critical[].label` cümlelerinden aktarılıyor; arayüz cümle kurmuyor. */
   const hero = useOdinHero();
-  const decisions = useOdinFixture("briefing.decisions");
+  /* CANLI — `/api/state.decisions` (ODIN FileDecisionLog). Fixture
+     KALDIRILDI: kaynak baştan beri vardı, eksik olan projeksiyonun
+     genişliğiydi. Bugün sıfır kayıt var; bu bir eksiklik değil ölçüm —
+     sahip henüz hiçbir kararı kayda geçirmedi, ekran da onu söylüyor. */
+  const decisions = useOdinDecisions();
   /* CANLI — `/api/state.alerts` (S10 · G3). `useOdinAlerts` bu anahtarın
      tayin edilmiş karşılığıydı; yeni kanca yazılmadı. */
   const risks = useOdinAlerts();
@@ -184,7 +189,10 @@ export function ExecutiveBriefing({
   /* CANLI — `/api/state.health_score.components` (S10 · G3). Altı iş
      bileşeni; ölçülemeyen `value: null` + gerekçe ile geliyor. */
   const kpis = useOdinHealthKpis();
-  const brief = useOdinFixture("briefing.brief");
+  /* CANLI — `/api/state` (ODIN `odin/briefing.py`). Fixture KALDIRILDI.
+     Beş adımın ikisi ölçülen veriyle dolu; yorum/öneri/kanıt ODIN'de
+     ÜRETİLMİYOR ve `AIBrief` eksik olanı adıyla söylüyor. */
+  const brief = useOdinBrief();
   /* CANLI — `/api/state.directors` (S10 · G3). `agents` SIFIR kayıt
      taşıyor; runtime direktörleri gösteriliyor (UI-ADR-127 emsali). */
   const directors = useOdinDirectors();

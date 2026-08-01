@@ -15,7 +15,14 @@
 import { z } from "zod";
 
 import { internalEnvelope } from "@/types/data-envelope";
-import type { PulseChannelStates } from "@/types/executive";
+import type {
+  AIRecommendation,
+  Decision,
+  EvidenceRef,
+  ExecutiveBrief,
+  PulseChannelStates,
+} from "@/types/executive";
+import type { OdinVerdict } from "@/types/odin";
 import type {
   ExecutiveHero,
   IntelligenceCategory,
@@ -483,6 +490,233 @@ export function useOdinPulse(): OdinQueryResult<PulseChannelStates> {
              ÇİZİLMİYOR. Zarfın zamanı ODIN'den geliyor, yani "şu an
              itibarıyla" iddiası gerçek. */
           return internalEnvelope(parsed.generated_at, {} as PulseChannelStates);
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Kararlar — `/api/state.decisions` (ODIN FileDecisionLog)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in karar kaydı — arayüzdeki fixture'ın YERİNİ ALIR.
+ *
+ * Yuva `useOdinFixture("briefing.decisions")` ile besleniyordu. Ölçüldü:
+ * kaynak baştan beri vardı — `FileDecisionLog`, `decision-record.schema.json`
+ * (arayüzün `Decision` tipiyle BİREBİR: `alternatives` minItems 2,
+ * `recommendation`, `human_decision`) ve `/api/state.decisions` projeksiyonu.
+ * Eksik olan tek şey projeksiyonun GENİŞLİĞİYDİ: dört alan yayınlıyordu,
+ * kart ise `tier`/`alternatives`/`recommendation` olmadan çizilemiyordu.
+ * Projeksiyon ODIN tarafında genişletildi (`replay()` bu alanları zaten
+ * hesaplayıp atıyordu), burada yalnız yeniden adlandırılıyor.
+ *
+ * BUGÜN SIFIR KAYIT VAR (`odin-data/decisions/` boş) ve bu bir eksiklik
+ * değil, ÖLÇÜMÜN KENDİSİ: sahip henüz hiçbir kararı kayda geçirmedi.
+ * Kanca boş dizi döndürür, `DecisionQueue` dürüst boş durumunu basar.
+ * Sahip ilk kararı yazdığı an kart gerçek veriyle dolar — fixture'la
+ * dolmuş gibi YAPMAZ.
+ */
+const decisionAlternativeSchema = z.object({
+  option: z.string(),
+  assessment: z.string(),
+  risk: z.string().optional(),
+});
+
+const odinDecisionSchema = z.object({
+  id: z.string(),
+  question: z.string(),
+  date: z.string().nullable(),
+  tier: z.enum(["D1", "D2", "D3"]),
+  status: z.enum(["open", "monitoring", "closed"]),
+  domain: z.string().nullable().optional(),
+  outcome: z.string().nullable(),
+  alternatives: z.array(decisionAlternativeSchema),
+  recommendation: z.object({
+    text: z.string().nullable(),
+    confidence: z.number(),
+    confidence_breakdown: z.record(z.string(), z.number()),
+    consensus: z
+      .object({ consensus: z.number(), disagreement: z.number() })
+      .nullable(),
+    evidence: z.array(
+      z.object({
+        knowledge_id: z.string(),
+        trust_at_decision: z.number(),
+        role: z.string(),
+        summary: z.string().optional(),
+      })
+    ),
+    flip_conditions: z.array(z.string()),
+    risks: z.array(z.string()),
+    assumptions: z.array(z.string()),
+  }),
+  human_decision: z
+    .object({
+      outcome: z.string(),
+      human_reasoning: z.string().optional(),
+      revisit_at: z.string().optional(),
+    })
+    .nullable(),
+});
+
+const decisionsStateSchema = z.object({
+  generated_at: z.string(),
+  decisions: z.array(odinDecisionSchema),
+});
+
+/** ODIN `role` → arayüzün duruş sözlüğü. Bilinmeyen rol NÖTR sayılır —
+    "destekliyor" varsayılamaz; kanıtın yönü kararın anlamını değiştirir. */
+const STANCE: Record<string, EvidenceRef["supportsOrContradicts"]> = {
+  supporting: "supports",
+  contradicting: "contradicts",
+  neutral: "neutral",
+};
+
+export function adaptDecisions(
+  raw: z.infer<typeof decisionsStateSchema>
+): Decision[] {
+  return raw.decisions.map((d) => ({
+    id: d.id,
+    question: d.question,
+    date: d.date ?? "",
+    tier: d.tier,
+    status: d.status,
+    ...(d.domain ? { domain: d.domain } : {}),
+    alternatives: d.alternatives,
+    recommendation: {
+      id: `${d.id}-rec`,
+      recommendation: d.recommendation.text ?? "",
+      confidence: d.recommendation.confidence,
+      confidenceBreakdown: d.recommendation
+        .confidence_breakdown as unknown as AIRecommendation["confidenceBreakdown"],
+      /* `type` ve `freshness` ATLANIYOR: ODIN'in kanıt kopyasında yoklar
+         ve uydurmak yerine alan çizilmiyor (types/executive.ts notu). */
+      evidence: d.recommendation.evidence.map((e) => ({
+        id: e.knowledge_id,
+        title: e.summary ?? e.knowledge_id,
+        sourceQuality: e.trust_at_decision,
+        supportsOrContradicts: STANCE[e.role] ?? "neutral",
+      })),
+      potentialRisks: d.recommendation.risks,
+      assumptions: d.recommendation.assumptions,
+      flipConditions: d.recommendation.flip_conditions,
+      consensusScore: d.recommendation.consensus?.consensus ?? 0,
+      disagreementScore: d.recommendation.consensus?.disagreement ?? 0,
+    } as AIRecommendation,
+    ...(d.human_decision
+      ? {
+          humanDecision: {
+            outcome: d.human_decision.outcome as OdinVerdict,
+            ...(d.human_decision.human_reasoning
+              ? { humanReasoning: d.human_decision.human_reasoning }
+              : {}),
+            ...(d.human_decision.revisit_at
+              ? { revisitAt: d.human_decision.revisit_at }
+              : {}),
+          },
+        }
+      : {}),
+  }));
+}
+
+export function useOdinDecisions(): OdinQueryResult<Decision[]> {
+  return useOdinQuery({
+    key: ["odin", "decisions"],
+    module: "default",
+    schema: z.custom<Decision[]>(),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.decisions")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = decisionsStateSchema.parse(raw);
+          return internalEnvelope(parsed.generated_at, adaptDecisions(parsed));
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Yönetici brifingi — `/api/state` (ODIN `odin/briefing.py`)
+   -------------------------------------------------------------------------- */
+
+/**
+ * Günlük brifingin ÖLÇÜLEN yarısı — fixture'ın yerini alır.
+ *
+ * ODIN her sabah `odin-data/briefings/*.md` üretir (29 dosya) ve aynı
+ * sayıları `/api/state` üzerinden yayınlar. Fixture'ın kalma sebebi
+ * "şekil uyuşmuyor" idi; ölçüldü, uyuşmayan kısım BEŞ adımın İKİSİ değil
+ * ÜÇÜ: ODIN yorum, açıklanabilirlik-seviyesinde öneri ve kanıt zinciri
+ * ÜRETMİYOR. Uydurmak yerine o üç adım boş bırakılıyor — `AIBrief` zaten
+ * eksik olanı ADIYLA söylüyor ("Öneri gösterilmiyor. Eksik: ...").
+ *
+ * Sayıların hiçbiri burada HESAPLANMAZ; hepsi ODIN'in yayınladığı
+ * değerlerdir, yalnız etiketlenir. Kritik durum cümleleri de ODIN'in
+ * kendi metnidir (`briefing._critical_conditions`), arayüz cümle kurmaz.
+ */
+const briefStateSchema = z.object({
+  generated_at: z.string(),
+  core_count: z.number().nullable().optional(),
+  events_today: z.number().nullable().optional(),
+  staging_stats: z
+    .object({
+      count: z.number().nullable(),
+      avg_trust: z.number().nullable(),
+    })
+    .nullable()
+    .optional(),
+  health_score: z
+    .object({
+      score: z.number().nullable(),
+      coverage: z.string().nullable().optional(),
+      operational: z.object({ score: z.number().nullable() }).nullable().optional(),
+      critical: z
+        .array(z.object({ label: z.string() }))
+        .nullable()
+        .optional(),
+    })
+    .nullable(),
+});
+
+export function adaptBrief(
+  raw: z.infer<typeof briefStateSchema>
+): ExecutiveBrief {
+  const hs = raw.health_score;
+  const numbers: ExecutiveBrief["numbers"] = {};
+  /* Ölçülmemiş bir sayı SATIR AÇMAZ. `0` yazmak "ölçtük, sıfır çıktı"
+     demektir ve okuyan ayırt edemez. */
+  const koy = (etiket: string, v: number | null | undefined) => {
+    if (typeof v === "number") numbers[etiket] = v;
+  };
+  koy("Şirket sağlığı", hs?.score);
+  koy("Operasyonel hazırlık", hs?.operational?.score);
+  koy("Core kayıt", raw.core_count);
+  koy("Bekleyen staging", raw.staging_stats?.count);
+  koy("Ortalama güven", raw.staging_stats?.avg_trust);
+  koy("Bugünkü olay", raw.events_today);
+  if (hs?.coverage) numbers["Kapsam"] = hs.coverage;
+
+  return {
+    numbers,
+    /* ODIN'in kendi kritik durum cümleleri. Yoksa boş string DEĞİL, o
+       adımın gerçekten söyleyeceği bir şey olmadığını belirten metin. */
+    analysis:
+      (hs?.critical ?? []).map((c) => c.label).join(" · ") ||
+      "Ortalamanın gizleyemeyeceği kritik bir durum ölçülmedi.",
+    /* interpretation · recommendation · evidence ATLANIYOR — ODIN
+       üretmiyor (types/executive.ts notu). */
+  };
+}
+
+export function useOdinBrief(): OdinQueryResult<ExecutiveBrief> {
+  return useOdinQuery({
+    key: ["odin", "brief"],
+    module: "default",
+    schema: z.custom<ExecutiveBrief>(),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.brief")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = briefStateSchema.parse(raw);
+          return internalEnvelope(parsed.generated_at, adaptBrief(parsed));
         },
   });
 }

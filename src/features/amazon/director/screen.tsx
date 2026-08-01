@@ -41,7 +41,6 @@ import {
   useAmazonKpis,
   useAmazonSkus,
 } from "@/lib/data/odin-amazon";
-import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/table";
@@ -116,7 +115,14 @@ export function AmazonDirector({
      gün-kapsamı, satılan adet, reklam, fiyat. Skor YOK ve
      türetilmiyor; durum kendi eşik provenance'ıyla geliyor. */
   const skus = useAmazonSkus();
-  const simulations = useOdinFixture("amazon.simulations");
+  /* FIXTURE KALDIRILDI — ODIN'de yayınlanmış simülasyon YOK ve
+     uydurulamaz. Motor var (`odin/scenario.py: apply_scenario`) ama
+     saklanan sonuç yok: hangi senaryonun çalıştırılacağı (hangi kalem,
+     yüzde kaç) SAHİP BEYANIDIR — eşiklerin beyan edilmesi gibi
+     (ADR-0146). Delta'yı arayüzün seçmesi cevabı değil SORUYU
+     uydurmak olurdu. `DataGuard` "Simülasyon verisi yok" basar;
+     üretimde zaten bu görünüyordu, artık mock modda da aynısı. */
+  const simulations = null;
 
   /* Canlı bölümün hatası SUSTURULMAZ (S8 dersi, main CLAUDE.md kural 6):
      bir bölüm gerçek uç noktadan besleniyorsa, o uç nokta düştüğünde
@@ -128,7 +134,7 @@ export function AmazonDirector({
   const { loading, error, isEmpty, reloadAll } = screenState({
     demo,
     primary: kpis,
-    sources: [kpis, skus, simulations, alerts],
+    sources: [kpis, skus, alerts],
     error: DEMO_ERROR,
   });
 
@@ -469,7 +475,7 @@ export function AmazonDirector({
             </Text>
           </div>
 
-          <SimulationPanel env={isEmpty ? emptied(simulations.envelope) : simulations.envelope} />
+          <SimulationPanel env={simulations} />
         </div>
       </Section>
 
