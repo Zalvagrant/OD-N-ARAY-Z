@@ -10,6 +10,7 @@
  * Modüle özel context panel YAZILMAZ; yalnızca içerik sağlayıcısı değişir.
  */
 
+import { useEffect, useRef } from "react";
 import { Pin, PinOff, PanelRight, X, Maximize2, Minimize2 } from "lucide-react";
 import { useUiStore, type ContextPanelState } from "@/lib/store/ui";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -34,10 +35,35 @@ export function RightContextPanel({
   const state = useUiStore((s) => s.contextPanel);
   const setState = useUiStore((s) => s.setContextPanel);
 
+  /**
+   * ODAK KAYBOLMAZ — UI-ADR-160.
+   *
+   * Kapat butonuna basınca TÜM `<aside>` sökülüyor ve odak hiçbir yere
+   * verilmiyordu: odak `<body>`ye düşer, sonraki Tab BELGENİN BAŞINA
+   * atlar ve klavye kullanıcısı bulunduğu yeri kaybeder. `ui/filter.tsx`
+   * tam bu hatayı adıyla anıp düzeltmiş; burada düzeltilmemişti.
+   *
+   * Panel kapanınca odak, yerine geçen ray butonuna verilir; açılınca da
+   * panelin kendi kapat butonuna. Her iki yönde de odak GÖRÜNÜR bir
+   * hedefte kalır.
+   */
+  const railRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const oncekiState = useRef(state);
+  useEffect(() => {
+    if (oncekiState.current === state) return;
+    const acildi = oncekiState.current === "closed" && state !== "closed";
+    const kapandi = oncekiState.current !== "closed" && state === "closed";
+    oncekiState.current = state;
+    if (kapandi) railRef.current?.focus();
+    else if (acildi) closeRef.current?.focus();
+  }, [state]);
+
   if (state === "closed") {
     return (
       <div className="flex w-10 shrink-0 flex-col items-center border-l border-line bg-bg-secondary py-2">
         <button
+          ref={railRef}
           type="button"
           onClick={() => setState("preview")}
           title="Bağlam panelini aç"
@@ -91,6 +117,7 @@ export function RightContextPanel({
             )}
           </button>
           <button
+            ref={closeRef}
             type="button"
             onClick={() => setState("closed")}
             title="Kapat"

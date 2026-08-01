@@ -192,11 +192,36 @@ export function SegmentedControl<T extends string>({
   const height = { xs: "h-6", sm: "h-8", md: "h-10" }[size];
   const text = { xs: "text-xs", sm: "text-sm", md: "text-base" }[size];
 
+  /**
+   * ODAK SEÇİMİ TAKİP EDER — UI-ADR-160.
+   *
+   * `move()` yalnız `onChange` çağırıyordu; odak eski butonda kalıyor ve
+   * o buton `tabIndex={-1}`e düşüyordu. WAI-ARIA radyo grubu kalıbı
+   * odağın seçimle birlikte taşınmasını ister — taşınmazsa ekran okuyucu
+   * seçim değişimini DUYURMAZ ve kullanıcı neyi seçtiğini bilmez.
+   * (`ui/tabs.tsx` bunu zaten doğru yapıyor.)
+   */
+  const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const move = (dir: 1 | -1) => {
     const i = options.findIndex((o) => o.value === value);
-    const next = options[(i + dir + options.length) % options.length];
-    if (next) onChange(next.value);
+    const nextIndex = (i + dir + options.length) % options.length;
+    const next = options[nextIndex];
+    if (!next) return;
+    onChange(next.value);
+    btnRefs.current[nextIndex]?.focus();
   };
+
+  /**
+   * HİÇBİRİ EŞLEŞMEZSE İLK BUTON ODAKLANABİLİR KALIR — UI-ADR-160.
+   *
+   * `tabIndex={active ? 0 : -1}` idi: `value` hiçbir seçenekle
+   * eşleşmediğinde (örn. URL'den gelen "7g", seçenekler ["24s","30g"])
+   * TÜM butonlar -1 oluyordu ve kontrole Tab'la ULAŞILAMIYORDU. Bir
+   * kontrolün klavyeden tamamen kaybolması, görünür olduğu hâlde
+   * kullanılamaz olmasıdır.
+   */
+  const aktifIndex = options.findIndex((o) => o.value === value);
+  const odakIndex = aktifIndex >= 0 ? aktifIndex : 0;
 
   return (
     <div
@@ -215,15 +240,18 @@ export function SegmentedControl<T extends string>({
         disabled ? "pointer-events-none opacity-40" : ""
       }`}
     >
-      {options.map((opt) => {
+      {options.map((opt, i) => {
         const active = opt.value === value;
         return (
           <button
             key={opt.value}
+            ref={(el) => {
+              btnRefs.current[i] = el;
+            }}
             type="button"
             role="radio"
             aria-checked={active}
-            tabIndex={active ? 0 : -1}
+            tabIndex={i === odakIndex ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(opt.value)}
             className={`h-full rounded-xs px-3 ${text} transition-colors duration-fast ease-standard ${

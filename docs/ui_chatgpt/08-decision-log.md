@@ -4903,3 +4903,53 @@ calisir.
 `npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
 **unit 16 dosya / 241 test**, **storybook 54 dosya / 201 test**,
 atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-160 - Odak kaybolmaz, kontrol klavyeye kapanmaz (S13 kapanis)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-149 - 159
+
+Ucuncu denetimin klavye/odak bulgularindan ucu kapatildi. Ucu de gorunur
+bir kusur URETMIYOR - yalnizca klavyeyle fark edilir.
+
+### 1 - `SegmentedControl` klavyeye TAMAMEN kapanabiliyordu
+
+`tabIndex={active ? 0 : -1}` idi. `value` hicbir secenekle eslesmezse
+(orn. URL'den gelen `"7g"`, secenekler `["24s","30g"]`) **TUM butonlar -1**
+oluyor ve kontrole Tab'la ULASILAMIYORDU.
+
+Gorunur oldugu halde kullanilamayan bir kontrol, olmayan bir kontroldur.
+Artik hicbiri eslesmezse ILK buton odaklanabilir kalir.
+
+### 2 - Ok tusu secimi degistiriyor ama ODAGI TASIMIYORDU
+
+`move()` yalniz `onChange` cagiriyordu; odak eski butonda kaliyor ve o
+buton `tabIndex={-1}`e dusuyordu. WAI-ARIA radyo grubu kalibi odagin
+secimle birlikte tasinmasini ister - tasinmazsa **ekran okuyucu secim
+degisimini DUYURMAZ** ve kullanici klavyeyle sikisir. (`ui/tabs.tsx` bunu
+zaten dogru yapiyordu; iki kardes ayrismisti.)
+
+### 3 - Baglam paneli kapaninca odak `<body>`ye dusuyordu
+
+Kapat butonuna basinca tum `<aside>` sokuluyor ve odak hicbir yere
+verilmiyordu: sonraki Tab **belgenin basina** atlar ve klavye kullanicisi
+bulundugu yeri kaybeder.
+
+`ui/filter.tsx` tam bu hatayi adiyla anip duzeltmisti (UI-ADR-149);
+burada duzeltilmemisti - kural yazilmis ama her yere uygulanmamisti. Panel
+kapaninca odak yerine gecen ray butonuna, acilinca panelin kapat butonuna
+veriliyor: her iki yonde de odak GORUNUR bir hedefte kalir.
+
+### Kapi
+
+`selection.stories.tsx` - iki story: eslesmeyen degerde bile tam bir buton
+odaklanabilir kalir; ok tusu hem `aria-checked`i hem ODAGI tasir.
+
+### Olcum
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 203 test**,
+atlanan 0, dusen 0.
