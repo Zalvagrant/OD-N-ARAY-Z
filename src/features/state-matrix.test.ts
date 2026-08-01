@@ -417,4 +417,26 @@ export const Baska = ({ demo }: { demo?: "empty" }) => null;`;
     expect(r.tur).toBe("cozulemedi");
     if (r.tur === "cozulemedi") expect(r.neden).toContain("nitelikli");
   });
+
+  /* ⬇️ UI-ADR-181 — kurul ÇELİŞTİ, ölçümle ayrıldı. */
+
+  it("ÇOK IMPORT — ad İKİNCİ bildirimdeyse de bulunur (Gemini'nin iddiası)", () => {
+    const k =
+      `import { Card } from "@/components/ui/card";
+` +
+      `import { type DemoState } from "@/features/shell/screen-state";
+` +
+      S("demo?: DemoState;");
+    expect(beyanEdilenDurumlar(k)).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading", "empty", "error"],
+    });
+  });
+
+  it("RE-EXPORT zinciri SESSİZ değil, KIRMIZI (Qwen'in iddiası)", () => {
+    const k = `import { type Uzak } from "@/features/shell/screen-state";
+` + S("demo?: Uzak;");
+    const r = beyanEdilenDurumlar(k);
+    expect(r.tur).toBe("cozulemedi");
+  });
 });

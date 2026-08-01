@@ -6706,3 +6706,69 @@ nitelikli ad. Ayrıştırıcının kendi testi **19 → 23 senaryo**.
 **unit 17 dosya / 294 test** (alt sınır **291**),
 **storybook 56 dosya / 213 test** (alt sınır 211),
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
+
+---
+
+## UI-ADR-181 — Yakınsama: kurul çelişti, ölçüm ayırdı, kapı KAPANDI
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-177 · 178 · 179 · 180
+
+Beşinci doğrulama turu. **Kurul kendi içinde çelişti** ve karar ölçümle
+verildi — bu ADR'nin asıl kaydı budur.
+
+| üye | hüküm |
+|---|---|
+| terra | *"Kalan somut sessiz-muafiyet ya da yanlış-pozitif görmüyorum. **Kapatılabilir.**"* |
+| Gemini | *"**GERÇEK KUSUR**: `importtanAlias` ilk import'ta bulamayınca döngüyü kırıyor; ikinci bildirimdeki tip çözülemez. Yakınsama tamamlanmadı."* |
+| Qwen | *"İki sessiz muafiyet kaldı: `export type * from` ve `export { type X } from`."* |
+
+### Ölçüm ikisini de çürüttü
+
+**Gemini'nin iddiası — YANLIŞ.** Kod `if (!oge) continue;` ile o import
+bildiriminde ad yoksa **zaten sonraki bildirime geçiyor**; erken dönüş
+yalnız ad BULUNDUKTAN ve hedef dosya okunduktan sonra, alias orada yoksa
+gerçekleşiyor — ki bir ad iki modülden import edilemeyeceği için doğru.
+Test yazıldı: ad İKİNCİ import bildirimindeyken de bulunuyor. **Yeşil.**
+
+Bu, bu oturumda **beşinci** çürütülen kurul iddiası. (Öncekiler:
+`parameters` birleşimi · `Object.keys` + `hasOwnProperty` ·
+`toHaveAccessibleName` · `import type { X }` yakalanmıyor.)
+
+**Qwen'in iddiası — çerçeve yanlış.** O iki biçim gerçekten
+çözülemiyor, ama çözücü onlara **KIRMIZI** veriyor. Bir sessiz muafiyet
+sessizdir; kırmızı veren bir yol muafiyet değildir. Qwen kendi cevabında
+bunu zaten yazmış (*"bu yol hâlâ kırmızı üretir"*) ve yine de "sessiz
+muafiyet" diye adlandırmış. Test yazıldı: çözülemeyen uzak alias
+**kırmızı**. Yeşil.
+
+### Yakınsama kanıtı
+
+Aynı ayrıştırıcı üzerinde **beş tur** denetim yapıldı ve bulguların
+ciddiyeti tur tur düştü:
+
+| tur | bulgu |
+|---|---|
+| 177 | AST'ye geçiş — sınıf değişimi |
+| 178 | üç gerçek kusur |
+| 179 | dokuz kaçak (biri kanıtsız iddia) |
+| 180 | iki latent + bir yanlış-pozitif |
+| **181** | **sıfır gerçek kusur; iki iddia ölçümle çürüdü** |
+
+UI-ADR-172'de kurulun verdiği **durma kriteri** karşılanıyor:
+çalışma zamanı kapısı sahte "passed" üretemiyor · keşfedilen her kaçağın
+regresyon testi var (**25 senaryo**) · kalan yollar kaynak değişikliği ve
+niyet gerektiriyor · sınırlar ve kalan riskler ADR'de yazılı.
+
+**Karar: bu ayrıştırıcı üzerinde yeni bir adversaryal tur AÇILMIYOR.**
+Bundan sonrası "sürekli denetim" değil, yeni bir tetikleyici değişiklik
+olur — kurulun kendi ifadesiyle.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 296 test** (alt sınır **293**),
+**storybook 56 dosya / 213 test** (alt sınır 211),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
+Ayrıştırıcının kendi testi: **25 senaryo.**
