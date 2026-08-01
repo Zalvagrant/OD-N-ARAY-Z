@@ -11,13 +11,14 @@
  * abonelerin uyandığını ölçmüyor — hepsi "ne yazıldığı"nı ölçüyor. `set`in
  * çalıştığı Zustand'ın sorumluluğu; NE yazılacağı bizim.
  *
- * ⚠️ `universe.ts` KASTEN TEST EDİLMEDİ. 26 satır ve tek eylemi düz bir
- * `set({ activeUniverseId })` — politikası yok, yalnız delegasyon. Meclis
- * kriteri açıktı: "Sadece set/get delegasyonu varsa test yazılmamalı."
- * Değerli olan tek özelliği diske YAZILMAMASI ve o bir yokluk; `persist`
- * eklenirse bu dosya değil, kod incelemesi yakalar.
+ * ⚠️ `universe.ts` ÖNCE ATLANDI, SONRA GERİ ALINDI (UI-ADR-187). İlk turda
+ * "26 satır, düz set delegasyonu, politikası yok" diye atlamıştım; yazılımcılar
+ * meclisi 2/2 bunun savunulamaz olduğunu söyledi ve haklıydılar. Politikası
+ * setter'ında değil, önbellek anahtarında — aşağıdaki üçüncü `describe`e bak.
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -189,6 +190,63 @@ describe("ui · bağlam paneli durum makinesi", () => {
     useUiStore.getState().resetContextPanelOnNavigate();
     expect(useUiStore.getState().selectedEntity).toBeNull();
     expect(useUiStore.getState().contextPanel).toBe("pinned");
+  });
+});
+
+describe("universe · önbellek anahtarının parçası", () => {
+  /**
+   * ⚠️ BU ATLAMA SAVUNULAMAZDI — yazılımcılar meclisi 2/2, UI-ADR-187.
+   *
+   * Yukarıda `universe`ü "düz set delegasyonu, politikası yok" diye
+   * atlamıştım. Yanlıştı: `universe.ts` kendi başlığında **neden var
+   * olduğunu** yazıyor — "ÖNBELLEK ANAHTARININ parçasıdır: evren değişince
+   * Lillu'nun KPI'ı başka bir evrenin ekranında görünmemelidir."
+   *
+   * Yani politika `setUniverse`te değil, `use-odin-query.ts:72`de:
+   *
+   *     queryKey: [DATA_MODE, universeId, ...key]
+   *
+   * `universeId` o diziden düşerse iki evren AYNI önbellek girdisini
+   * paylaşır ve A evreninin sayıları B evreninin ekranında görünür.
+   * Sayılar makul durur, kaynağı yanlıştır — reponun 2 numaralı kuralının
+   * en sinsi hâli; hiçbir tip ve hiçbir a11y kapısı bunu göremez.
+   *
+   * ⚠️ NEDEN KAYNAK TARAMASI: `useOdinQuery` bir hook ve `unit` projesi
+   * node ortamında koşuyor (jsdom kurulu değil) — render edilemiyor.
+   * Anahtar üreticisini test için dışa çıkarmak ÜRETİM KODUNU teste göre
+   * değiştirmek olurdu ve bu repo o yolu UI-ADR-182'de açıkça reddetti.
+   * Kaynaktan türeyen kapı burada yerleşik bir desendir
+   * (`mocks/registry.test.ts` anahtar listesini `switch` etiketlerinden
+   * türetiyor). Zayıf yanı açık: satır yeniden YAZILIRSA regex kaçırabilir
+   * — o yüzden anahtarın TAMAMI okunuyor, yalnız `universeId` kelimesi
+   * aranmıyor.
+   */
+  it("queryKey evren kimliğini TAŞIR — iki evren aynı önbelleği paylaşamaz", () => {
+    const src = readFileSync(
+      join(process.cwd(), "src/lib/data/use-odin-query.ts"),
+      "utf8"
+    );
+    const m = src.match(/queryKey:\s*\[([^\]]*)\]/);
+    expect(m, "queryKey dizisi bulunamadı — satır yeniden yazılmış olabilir").
+      not.toBeNull();
+
+    const parcalar = m![1].split(",").map((s) => s.trim());
+    expect(parcalar).toContain("universeId");
+    /* Mod da anahtarın parçası: gerçek ve mock veri aynı girdide
+       buluşursa hangisinin hangisi olduğu görünmez (UI-ADR-115). */
+    expect(parcalar).toContain("DATA_MODE");
+  });
+
+  it("evren kimliği store'dan gelir, prop'tan değil", () => {
+    /* `universe.ts`in kendi gerekçesi: "Bileşenler bunu prop olarak
+       taşımaz — taşınan bir değer bir yerde taşınmayı unutulur."
+       Prop'a dönerse anahtar bir ekranda eksik kalır ve SADECE o ekran
+       sızdırır; en zor bulunan hata biçimi. */
+    const src = readFileSync(
+      join(process.cwd(), "src/lib/data/use-odin-query.ts"),
+      "utf8"
+    );
+    expect(src).toContain("useUniverseStore");
   });
 });
 
