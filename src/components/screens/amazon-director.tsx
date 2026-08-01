@@ -410,7 +410,13 @@ export function AmazonDirector({
   const kpis = useAmazonKpis();
   const alerts = useAmazonAlerts();
 
-  const snapshot = useMockData("amazon.snapshot");
+  /* ODIN KARŞILIĞI YOK — mock kaldırıldı (S10 · G3). AmazonSnapshot
+     ZORUNLU alanlarının çoğu yayınlanmıyor: revenue · orders · tacos ·
+     buyBoxRate · inventoryHealth · inventoryValue · intelligence. Yayında
+     olanlar (units_sold, acos, roas, ad_spend, ad_sales, net_after_ads,
+     critical_stock_skus) ZATEN Executive KPI Strip ve SKU tablosunda
+     canlı gösteriliyor — Glance ve Intelligence bölümleri gerekçeli
+     "veri yok" basıyor. */
   /* CANLI — ODIN ADR-0149 (UI-ADR-128). 48 SKU: kimlik, stok,
      gün-kapsamı, satılan adet, reklam, fiyat. Skor YOK ve
      türetilmiyor; durum kendi eşik provenance'ıyla geliyor. */
@@ -435,12 +441,11 @@ export function AmazonDirector({
   const sectionError = (live: { toErrorState: () => SectionError } | null) =>
     demo === "error" ? DEMO_ERROR : (live?.toErrorState() ?? null);
 
-  const loading = demo === "loading" || snapshot.loading;
+  const loading = demo === "loading" || kpis.loading;
   const error = demo === "error" ? DEMO_ERROR : null;
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    snapshot.reload();
     kpis.refetch();
     skus.refetch();
     simulations.reload();
@@ -476,7 +481,7 @@ export function AmazonDirector({
            "senkron yok" diyordu. Önce gerçekten bağlı olan kaynağın zamanı
            yazılır; ikisi de yoksa `—` kalır ve bu dürüsttür. */
         lastSync={
-          kpis.envelope?.meta.lastUpdated ?? snapshot.data?.meta.lastUpdated ?? null
+          kpis.envelope?.meta.lastUpdated ?? null
         }
         actions={
           <>
@@ -502,7 +507,10 @@ export function AmazonDirector({
       ) : error ? (
         <Section title="Executive Glance" error={error} onRetry={reloadAll} />
       ) : (
-        <DataGuard env={isEmpty ? null : snapshot.data} reason="Amazon anlık görüntüsü üretilmedi">
+        <DataGuard<AmazonSnapshot>
+          env={null}
+          reason="Amazon anlık görüntüsü üretilmedi"
+        >
           {(s, meta) => <GlanceView s={s} meta={meta} />}
         </DataGuard>
       )}
@@ -705,11 +713,7 @@ export function AmazonDirector({
           onRetry={reloadAll}
         >
           <AIBrief
-            env={
-              isEmpty || !snapshot.data
-                ? null
-                : { data: snapshot.data.data.intelligence, meta: snapshot.data.meta }
-            }
+            env={null}
             title="Amazon Executive Intelligence"
           />
         </Section>
