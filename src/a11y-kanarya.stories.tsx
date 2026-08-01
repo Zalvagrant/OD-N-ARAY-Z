@@ -42,14 +42,13 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
 
+import { a11yCalismaZamaniSorunlari } from "@/lib/a11y-gate";
+
 const meta: Meta = {
   title: "Kapılar/A11y Kanaryası",
   parameters: { layout: "centered" },
 };
 export default meta;
-
-/** `parameters.a11y`de meşru olan TEK anahtar. */
-const IZIN_VERILEN = ["test"];
 
 export const YapilandirmaCozulmusHaliyleDogru: StoryObj = {
   name: "axe taraması çalışma zamanında GERÇEKTEN etkin",
@@ -59,30 +58,19 @@ export const YapilandirmaCozulmusHaliyleDogru: StoryObj = {
       hâlâ açık olduğunu sınıyor.
     </p>
   ),
+  /* ⚠️ MANTIK BURADA DEĞİL — UI-ADR-172. Aynı kural artık
+     `preview.tsx`in `beforeEach`inde HER story için koşuyor; kopyalamak
+     iki kaynak yaratırdı ve biri güncellenmeden diğeri kalırdı.
+     Bu story o kuralın ADI ve REGRESYONU: kural sessizce gevşetilirse
+     burada bir test düşer ve `ZORUNLU` listesi dosyanın koştuğunu
+     ayrıca doğrular. Kuralın kendi birim testi `lib/a11y-gate.test.ts`. */
   play: async ({ parameters, globals }) => {
-    const a11y = (parameters as { a11y?: Record<string, unknown> }).a11y ?? {};
-
-    /* 1. `todo` raporlar ama DÜŞÜRMEZ; `off` hiç koşmaz. */
-    await expect(a11y.test).toBe("error");
-
-    /* 2. İZİN LİSTESİ — fazladan her anahtar taramayı daraltabilir:
-          `disable` · `manual` · `context.exclude` · `options.runOnly` ·
-          `config.checks`. Hangisinin ne yaptığını bilmeye gerek yok. */
-    await expect(Object.keys(a11y).filter((k) => !IZIN_VERILEN.includes(k))).toEqual([]);
-
-    /* 3. Global taraftan susturma. `manual: true` ve `ghostStories`in
-          ikisi de addon'un `shouldRun` koşulunu tek başına düşürür —
-          ikincisi `STORYBOOK_COMPONENT_PATHS` ortam değişkeniyle, yani
-          depoda tek karakter iz bırakmadan doldurulabiliyor. */
-    const g = globals as { a11y?: { manual?: boolean }; ghostStories?: unknown };
-    await expect(g.a11y?.manual).not.toBe(true);
-    await expect(g.ghostStories).toBeUndefined();
-
-    /* 4. İhlal yalnızca bu değer "false" iken FIRLATILIR. Kapı bunu
-          çocuk sürecin ortamında sabitliyor — ama `main.ts`teki
-          `viteFinal` vite yapılandırmasını SONRA eziyor ve kapının
-          pini oraya yetişmiyor. Burası ezilmiş hâli görür. */
-    const env = (import.meta as unknown as { env?: Record<string, string> }).env;
-    await expect(env?.VITEST_STORYBOOK).toBe("false");
+    await expect(
+      a11yCalismaZamaniSorunlari({
+        parameters,
+        globals,
+        env: (import.meta as unknown as { env?: Record<string, string> }).env,
+      }),
+    ).toEqual([]);
   },
 };

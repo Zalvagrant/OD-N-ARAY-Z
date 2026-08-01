@@ -20,6 +20,11 @@
  * kavramı reddetti; arayüzde geri getirmek kararı sessizce iptal ederdi.
  */
 
+import {
+  demoError,
+  screenState,
+  type DemoState,
+} from "@/features/shell/screen-state";
 import { useOdinGoals, type Goal } from "@/lib/data/odin-state";
 import { Card, CardBody } from "@/components/ui/card";
 import { Text } from "@/components/ui/typography";
@@ -103,21 +108,52 @@ function GoalRow({ goal }: { goal: Goal }) {
    Ekran
    -------------------------------------------------------------------------- */
 
-export function Goals() {
+/* UI-ADR-172 — durum zorlaması. Bu ekranın TEK story'si vardı, yani tek
+   yol kanıtlanıyordu: veri geldiğinde ne çizdiği. Oysa `goals.error`
+   dalı KODDA VARDI ve hiç uyandırılmıyordu — çizilen ama hiç
+   görülmemiş bir yol, olmayan yoldan farksızdır.
+   Diğer üç ekranın (briefing · mission-control · amazon-director)
+   kullandığı ortak `screenState` deseni; yeni bir mekanizma değil. */
+const DEMO_ERROR = demoError(
+  "Hedefler yüklenemedi",
+  "Sahibin ODIN'e yazdığı hedefler ve ölçülen ilerlemeleri görünmüyor."
+);
+
+export function Goals({
+  demo,
+}: {
+  /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
+  demo?: DemoState;
+}) {
   const goals = useOdinGoals();
+  const zorlama = screenState({
+    demo,
+    primary: goals,
+    sources: [goals],
+    error: DEMO_ERROR,
+  });
 
   /* Sözleşme ihlali/ağ hatası GÖRÜNÜR olmalı — doğrulama katmanının bütün
-     değeri reddin görünmesindedir (S7 dersi). */
-  const error: SectionError | null = goals.error
-    ? {
-        what: goals.error.what,
-        why: goals.error.why,
-        impact: goals.error.impact,
-        fix: goals.error.fix,
-      }
-    : null;
+     değeri reddin görünmesindedir (S7 dersi).
+     Demo zorlaması ÖNCE gelir ama GERÇEK hatayı EZMEZ: `??` sırası
+     "zorlama yoksa gerçeği göster" demektir; ikisi de yoksa null. */
+  const error: SectionError | null =
+    zorlama.error ??
+    (goals.error
+      ? {
+          what: goals.error.what,
+          why: goals.error.why,
+          impact: goals.error.impact,
+          fix: goals.error.fix,
+        }
+      : null);
 
-  const data: Goal[] | null = goals.envelope?.data ?? null;
+  /* `empty` = "ÖLÇÜLDÜ, sonuç boş" — `null` ("hiç ölçülmedi") DEĞİL.
+     Bu yüzden boş DİZİ veriliyor: üç bölüm de "bu seviyede hedef yok"
+     der, hiçbiri sessizce kaybolmaz (story'nin kilitlediği sınır). */
+  const data: Goal[] | null = zorlama.isEmpty
+    ? []
+    : (goals.envelope?.data ?? null);
 
   return (
     <div className="flex flex-col gap-8">
@@ -135,7 +171,7 @@ export function Goals() {
             key={g.level}
             title={g.title}
             description={g.note}
-            loading={goals.loading}
+            loading={zorlama.loading}
             error={error}
           >
             {items === null ? null : items.length === 0 ? (

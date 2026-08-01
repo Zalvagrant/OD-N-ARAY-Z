@@ -5966,3 +5966,126 @@ Yorum düzeltildi.
 **unit 16 dosya / 241 test**, **storybook 55 dosya / 207 test**
 (alt sınır 205), atlanan 0, düşen 0, a11y kanıtı 207/207.
 `--self-check`: **11 + 48 senaryo.**
+
+---
+
+## UI-ADR-172 — Kapı KAPANDI: kurul durma kriterini verdi, son açık kapatıldı
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-165…171
+
+**Kurul bu oturumda İLK KEZ erişilebilir oldu** (yedi turluk denetim
+bağımsız ajanlara yaptırılmak zorunda kalınmıştı, [[council-session-bound]]).
+`ask_gavadolar` **2/2** cevap verdi ve üç sorunun üçünde de aynı yöne
+işaret etti.
+
+### Kurulun verdiği DURMA KRİTERİ
+
+Yedi tur boyunca her tur yeni bir sökme yolu buldu ve soru şuydu: *bu
+sonsuz bir döngü mü?* Kurul "açık uçlu sekizinci tura devam etme" dedi
+ama **önce şartlı**: bilinen gerçek fail-open kapatılmalı. Kriter
+(terra + luna, birleştirilmiş):
+
+1. Çalışma zamanı kapısı fail-closed ve rapor **sahte "passed"
+   üretemiyor**.
+2. Keşfedilen her kaçış yolu için **regresyon testi** var.
+3. Kalan yollar yalnızca kaynak değişikliği/**niyet** gerektiriyor ve
+   koşum kanıtı onları görünür kılıyor.
+4. Kalan riskler, kapsam ve kabul eden sahip **ADR'de yazılı**.
+5. Bundan sonrası "sürekli denetim" değil, **yeni tehdit modeli** olur —
+   yeni tur ancak tetikleyici bir değişiklikte yapılır.
+
+Ve önemli bir sınıflandırma: *"Statik analiz hesaplanmış anahtar ve
+dolaylı importta kaçınılmaz olarak eksik kalır; onu **güvenlik sınırı
+değil savunma katmanı** kabul edin."*
+
+### Kapatılan son açık: `todo` bir "bilinen sınır" değil, FAIL-OPEN'dı
+
+UI-ADR-170'te bunu "niyet gerektiren bilinen sınır" diye kaydetmiştim.
+Kurul buna katılmadı ve haklıydı:
+
+> `todo` açığı gerçek bir fail-open: ihlal/çalışmama "passed" gibi
+> görünüyorsa kapının kanıtı güvenilir değildir.
+
+Sebep: addon `status: hasViolations ? getMode() : "passed"` yazıyor —
+**bugün temiz olan bir story'yi `todo`ya çevirmek raporda hiçbir iz
+bırakmıyor.** Koşum kanıtı (kaç kural, kaç düğüm) bunu göremez çünkü
+`todo` kipinde tarama TAM koşar, yalnız fırlatmaz. Korunmak istenen şey
+ise tam olarak YARINKİ regresyondur.
+
+### Çözüm: kural metinden çalışma zamanına, tek story'den HEPSİNE
+
+`src/lib/a11y-gate.ts` — saf fonksiyon. `preview.tsx`in `beforeEach`i
+onu çağırıyor. Storybook **proje seviyesi `beforeEach`i bileşen/story
+seviyesinden ÖNCE** koşar (`runtime.js` → `applyBeforeEach`), yani bir
+story bunu kendi `beforeEach`iyle ATLAYAMAZ.
+
+Ve okunan şey KAYNAK değil **BİRLEŞMİŞ SONUÇ** olduğu için, statik metin
+denetiminin göremediği iki sınıf da kapandı:
+**hesaplanmış anahtar** (`{ [K]: … }`) ve **başka dosyadan yayılım**.
+
+**Kanıt (kurulun şart koştuğu türden):** `goals` story'sine
+`const GIZLI = "a11" + "y"` ile `todo` enjekte edildi. Ölçüldü —
+metin kilidinin regex'i o dosyada `a11y:` **bulamıyor** (kaçtı), ama
+çalışma zamanı kapısı **4/4 test kırmızı** verdi:
+
+> `A11Y KAPISI SÖKÜLMÜŞ (UI-ADR-172): a11y.test = "todo" — "todo"
+> raporlar ama DÜŞÜRMEZ`
+
+⚠️ İlk enjeksiyon denemem HATALIYDI: `meta`ya ikinci bir `parameters`
+anahtarı koydum ve JS'te sonraki kazandığı için kendi enjeksiyonumu
+eziyordum — test yeşil geçti ve bir an "kapı çalışmıyor" sandım.
+**Bu oturumun deseni bir kez daha: testim koddan daha sık yanlış çıktı.**
+
+Mantık TEK YERDE: kanarya story'si de artık aynı fonksiyonu çağırıyor
+(kopyalamak iki kaynak yaratırdı). Fonksiyonun kendi birim testi
+`a11y-gate.test.ts` — **17 senaryo, tarayıcısız.** Prototipe saklanan
+`disable` dahil (bir denetim turu tam olarak onu kullanmıştı).
+
+### Ekran durum matrisi — ölçüt prop simetrisi DEĞİL
+
+Kurul: *"her ekrana zorunlu `demo` prop eklemeyin; her çizilen,
+kullanıcıya görünür durum dalını deterministik olarak uyandırın."*
+
+`goals` bu ölçütü karşılıyordu: **hata dalı KODDA VARDI ve hiç
+uyandırılmıyordu** — çizilen ama hiç görülmemiş bir yol, olmayan yoldan
+farksızdır. Demo prop'u + üç durum story'si eklendi. En keskin iddia:
+`empty` hâlinde ÜÇ bölüm de "bu seviyede hedef yok" der (hiçbiri sessizce
+kaybolmaz), `error` hâlinde ÜÇÜ de sebebi yazar ve boş cevap AYNI ANDA
+gösterilmez.
+
+`intelligence-feed` ve `amazon/sku` için ölçüt aynı: önce kod dalları
+çıkarılacak, tetiklenmeyen görünür dal varsa story eklenecek — **sırf
+matris simetrisi için değil.** Bu iş açık.
+
+### Alt sınırlar ölçüme çekildi
+
+`unit` 230 → **255** (ölçüm 259), `storybook` 205 → **208** (ölçüm 210).
+230'luk sınır 29 testin sessizce kaybolmasına izin veriyordu — kapıyı
+storybook için düzeltirken `unit` atlanmıştı.
+
+### KALAN AÇIKLAR — sahibin kabulüne sunuluyor
+
+Kurulun 4. maddesi gereği açıkça yazılıyor:
+
+1. **`main.ts`ten addon'un tamamen çıkarılması.** Metin kilidi yakalar
+   (`addons` dizisi kontrolü); çalışma zamanı kapısı yakalamaz.
+2. **`afterEach`te DOM'u boşaltmak.** Koşum kanıtının düğüm eşiği
+   (story başına 20) yakalar.
+3. **`stories` glob'unun `src` dışına çıkarılması.** Kilit görmez;
+   alt sınır (208) kısmen korur.
+4. **axe'in kendisinin sahte bir modülle değiştirilmesi.** Metin kilidi
+   `alias`/`resolveId` izin listesiyle yakalar; ayrıca kural sayısı
+   eşiği (80) sahte boş sonucu düşürür.
+
+Üçü de **kaynak değişikliği ve niyet** gerektiriyor ve hiçbiri sessiz
+değil. Kurulun kriterine göre bu, durma noktasıdır.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 259 test** (alt sınır 255),
+**storybook 55 dosya / 210 test** (alt sınır 208),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 210/210.
+`--self-check`: 11 + 48 senaryo. `a11y-gate.test.ts`: 17 senaryo.

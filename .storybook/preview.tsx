@@ -2,6 +2,7 @@ import type { Preview } from "@storybook/nextjs-vite";
 import { useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MotionGlobalConfig } from "framer-motion";
+import { a11yCalismaZamaniSorunlari } from "../src/lib/a11y-gate";
 import { makeQueryClient } from "../src/lib/data/query";
 import "../src/app/globals.css";
 
@@ -25,6 +26,33 @@ if ((globalThis as { __vitest_browser__?: boolean }).__vitest_browser__) {
 }
 
 const preview: Preview = {
+  /**
+   * ÇALIŞMA ZAMANI KAPISI — UI-ADR-172, HER story için.
+   *
+   * Yedi tur denetimden sonra kalan en ciddi açık: bugün TEMİZ olan bir
+   * story'yi `todo`ya çevirmek raporda hiçbir iz bırakmıyordu (addon
+   * `hasViolations ? getMode() : "passed"` yazıyor). Koşum kanıtı bunu
+   * göremez — `todo` kipinde tarama TAM koşar, yalnız fırlatmaz.
+   *
+   * Storybook proje seviyesi `beforeEach`i bileşen/story seviyesinden
+   * ÖNCE koşar (`runtime.js` → `applyBeforeEach`), yani bir story bunu
+   * kendi `beforeEach`iyle atlayamaz. Ve okunan şey KAYNAK değil
+   * BİRLEŞMİŞ SONUÇ olduğu için, metin denetiminin göremediği
+   * hesaplanmış anahtar ve başka dosyadan yayılım da buraya takılır.
+   */
+  beforeEach: async ({ parameters, globals }) => {
+    const sorunlar = a11yCalismaZamaniSorunlari({
+      parameters,
+      globals,
+      env: (import.meta as unknown as { env?: Record<string, string> }).env,
+    });
+    if (sorunlar.length > 0) {
+      throw new Error(
+        `A11Y KAPISI SÖKÜLMÜŞ (UI-ADR-172): ${sorunlar.join(" · ")}`,
+      );
+    }
+  },
+
   parameters: {
     controls: {
       matchers: {

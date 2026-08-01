@@ -71,3 +71,78 @@ export const Hedefler: Story = {
     }
   },
 };
+
+/* --------------------------------------------------------------------------
+   DURUM MATRİSİ — UI-ADR-172
+   -------------------------------------------------------------------------- */
+
+/**
+ * Bu ekranın TEK story'si vardı: veri geldiğinde ne çizdiği. Oysa hata
+ * dalı KODDA VARDI ve hiç uyandırılmıyordu — çizilen ama hiç görülmemiş
+ * bir yol, olmayan yoldan farksızdır.
+ *
+ * Kilitlenen ayrım UI-ADR-151'in ayrımıdır ve bu ekranda özellikle
+ * keskindir: **"ölçülmedi" ≠ "ölçüldü, hedef yok".** Sahibin hiç hedef
+ * yazmamış olması ile ODIN'in cevap verememesi aynı ekranı üretmemeli.
+ */
+export const Yukleniyor: Story = {
+  name: "loading — iskelet basılır, boş cevap DEĞİL",
+  render: () => <Goals demo="loading" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("heading", { name: "Hedefler" }, { timeout: 15_000 });
+
+    /* İskelet bölgesi DURUR. Yüklenirken "bu seviyede hedef yok" yazmak,
+       henüz sorulmamış bir soruya cevap uydurmaktır. */
+    await waitFor(
+      () => expect(canvas.queryAllByRole("status").length).toBeGreaterThan(0),
+      { timeout: 15_000 }
+    );
+    await expect(canvas.queryByText("Bu seviyede hedef yok.")).toBeNull();
+  },
+};
+
+export const Bos: Story = {
+  name: "empty — ÖLÇÜLDÜ, hedef yok: üç bölüm de cevap verir",
+  render: () => <Goals demo="empty" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("heading", { name: "Hedefler" }, { timeout: 15_000 });
+    await waitFor(
+      () => expect(canvas.queryAllByRole("status")).toHaveLength(0),
+      { timeout: 15_000 }
+    );
+
+    /* ÜÇÜ DE konuşur. Bir seviyenin sessizce kaybolması, o seviyede hedef
+       olmadığını değil, sistemin onu unuttuğunu düşündürür — bu ekranın
+       ilk story'sinin kilitlediği sınırın boş durumdaki karşılığı. */
+    await expect(canvas.getAllByText("Bu seviyede hedef yok.")).toHaveLength(3);
+  },
+};
+
+export const Hata: Story = {
+  name: "error — sebep YAZILIR, boş bölüm gösterilmez",
+  render: () => <Goals demo="error" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("heading", { name: "Hedefler" }, { timeout: 15_000 });
+
+    /* Hata SEBEBİYLE ve ÜÇ BÖLÜMDE BİRDEN görünür. `Section` `what`ı
+       basar; sebepsiz bir hata kullanıcıya "bir şeyler ters gitti"
+       demekten ibarettir ve bu repoda kaynağı uydurulmuş bir iddia
+       sayılır. Üç olması tesadüf değil: hata ekran seviyesindedir, yani
+       hiçbir seviye "benim verim geldi" izlenimi vermez. (İlk yazımda
+       tekil aradım ve düştü — kapı kendi iddiamı düzeltti.) */
+    await waitFor(
+      async () =>
+        expect(
+          await canvas.findAllByText("Hedefler yüklenemedi")
+        ).toHaveLength(3),
+      { timeout: 15_000 }
+    );
+
+    /* VE boş cevap AYNI ANDA gösterilmez: "hedef yok" ile "soramadım"
+       aynı ekranda çelişir. */
+    await expect(canvas.queryByText("Bu seviyede hedef yok.")).toBeNull();
+  },
+};
