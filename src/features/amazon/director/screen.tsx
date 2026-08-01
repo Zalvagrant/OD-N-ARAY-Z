@@ -24,7 +24,6 @@
  */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { useUiStore } from "@/lib/store/ui";
 import { MockBadge } from "@/components/ui/mock-badge";
@@ -77,6 +76,7 @@ import {
 import { GlanceView } from "@/features/amazon/director/glance-view";
 import type { SkuHealth } from "@/types/screens";
 import { SKU_COLUMNS } from "@/features/amazon/director/sku-columns";
+import { DecisionCenterLink } from "@/components/layout/decision-center-link";
 
 /* --------------------------------------------------------------------------
 /* --------------------------------------------------------------------------
@@ -148,7 +148,6 @@ export function AmazonDirector({
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
   demo?: DemoState;
 }) {
-  const router = useRouter();
   const [query, setQuery] = useState("");
   /* Seçimde NESNE DEĞİL KİMLİK saklanır (UI-ADR-098 `SelectedEntity`):
      kopya, liste yenilendiğinde panelde bayat bir kayıt bırakırdı.
@@ -546,17 +545,7 @@ export function AmazonDirector({
         </div>
       </Section>
 
-      <Text size="sm" tone="tertiary">
-        Amazon kararlarının tamamı için{" "}
-        <button
-          type="button"
-          className="text-ai-text underline"
-          onClick={() => router.push("/decisions")}
-        >
-          Decision Center
-        </button>
-        .
-      </Text>
+      <DecisionCenterLink prefix="Amazon kararlarının tamamı için" />
     </div>
   );
 }

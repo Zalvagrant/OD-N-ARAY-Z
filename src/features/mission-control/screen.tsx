@@ -18,7 +18,6 @@
  */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
 import {
   useOdinAlerts,
@@ -37,7 +36,6 @@ import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
-import { Text } from "@/components/ui/typography";
 import { Stat } from "@/components/ui/stat";
 import { Section } from "@/components/layout/section";
 import type { DataEnvelope } from "@/types/data-envelope";
@@ -45,6 +43,7 @@ import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AlertStack } from "@/components/executive/alert-stack";
 import { RuntimeDirectorGrid } from "@/components/executive/runtime-director-card";
 import { MonitoredDecisionsBoard } from "@/components/executive/monitored-decisions-board";
+import { DecisionCenterLink } from "@/components/layout/decision-center-link";
 
 /* --------------------------------------------------------------------------
    Operational Status — ölçüme dayalı, uydurmasız
@@ -151,7 +150,6 @@ export function MissionControl({
 }: {
   demo?: DemoState;
 }) {
-  const router = useRouter();
   const [query, setQuery] = useState("");
   /* Tahtanın gerçekten gösterdiği sayı — UI-ADR-156. Zarftaki ham sayı
      filtreyi de, izlenen/vadesi-gelen ayrımını da görmüyordu. */
@@ -310,17 +308,7 @@ export function MissionControl({
         />
       </div>
 
-      <Text size="sm" tone="tertiary">
-        Karar detayına geçmek için{" "}
-        <button
-          type="button"
-          className="text-ai-text underline"
-          onClick={() => router.push("/decisions")}
-        >
-          Decision Center
-        </button>
-        .
-      </Text>
+      <DecisionCenterLink prefix="Karar detayına geçmek için" />
     </div>
   );
 }
