@@ -69,26 +69,36 @@ const screens = walk(FEATURES).filter((f) => f.endsWith("screen.tsx"));
 const DURUMLAR = ["loading", "empty", "error"] as const;
 
 /**
- * `demo` prop'unun tipini AST'den çözer — UI-ADR-177.
+ * `demo` prop'unun tipini AST'den çözer — UI-ADR-177, **178'de üç kusuru
+ * kapatıldı** (`ask_yazilimcilar` 2/4).
  *
- * ⚠️ ÖNCE REGEX'Tİ ve üç kez yamandı: tek tırnak · çok satırlı union ·
- * `DemoStateish` yanlış pozitifi. Her yama bir ÖRNEĞİ kapatıyordu,
- * SINIFI değil — ve kurul iki kez AST önerdi, ben "kapsam dışı" diye
- * erteledim. Kalan kaçaklar gerçekti: `demo?: Props["demo"]`, tip takma
- * adları, `interface` bloğundaki başka bir `demo` alanı.
+ * ⚠️ ÖNCE REGEX'Tİ ve üç kez yamandı; her yama bir ÖRNEĞİ kapatıyordu,
+ * SINIFI değil. AST'ye geçince yorum/dizge sınıfı yapısal olarak kapandı
+ * ama üç kusur kaldı ve denetim üçünü de buldu:
  *
- * `typescript` zaten bir devDependency; AST yeni bir bağımlılık değil,
- * KULLANILMAYAN bir yetenekti. Artık **PropertySignature** düğümü
- * aranıyor, yani "bir yerde `demo?:` yazan satır" değil GERÇEK bir prop
- * bildirimi. Yorum, dizge ve `@example` blokları AST'ye hiç girmez —
- * bu oturumda ayrıştırıcının DÖRT kez kandığı sınıf tamamen kapanır.
+ *  1. **İLK `demo` prop'unu alıyordu.** Dosyada bir yardımcı bileşenin
+ *     props tipi ÖNCE gelirse yanlış tipe bağlanırdı. Artık yalnız
+ *     EXPORT EDİLEN fonksiyonun ilk parametresine bakılıyor.
+ *  2. **Çözülemeyen tip SESSİZCE boş dönüyordu** (`Props["demo"]` gibi).
+ *     Bunu "güvenli yön" diye yazmıştım; denetim ikisi de **"hayır, bu
+ *     SESSİZ MUAFİYET"** dedi ve haklılar — ekran matristen düşüyor ve
+ *     kimse fark etmiyor. Artık **KIRMIZI**.
+ *  3. **Yerel `type DemoState = "loading"` gölgelemesi.** Ada bakıyordum;
+ *     biri aynı dosyada daha dar bir alias tanımlarsa kapı üç story
+ *     isterdi ama ekran tek durum çizerdi. Artık yerel alias önce
+ *     çözülüyor.
  *
- * Sınır dürüstçe: `demo?: Props["demo"]` gibi dolaylı tipler hâlâ
- * çözülemez (tip ÇÖZÜMLEMESİ değil, sözdizimi okunuyor) — ama artık
- * sessizce ÜÇ durum istemek yerine BOŞ dönüyor, yani ekran matristen
- * düşüyor ve "kapı boşa çalışmıyor" testi bunu görür.
+ * Tam çözüm `ts.TypeChecker` ister (denetimin önerdiği) ve o, tek dosya
+ * yerine tsconfig'den TÜM PROGRAMI kurmayı gerektirir — kapı süresini
+ * ölçülebilir biçimde uzatır. Bugün sözdizimi üç kusuru da kapatıyor;
+ * yükseltme yolu yazılı.
  */
-function beyanEdilenDurumlar(kaynak: string): string[] {
+type BeyanSonucu =
+  | { tur: "durumlar"; durumlar: string[] }
+  | { tur: "yok" }
+  | { tur: "cozulemedi"; neden: string };
+
+function beyanEdilenDurumlar(kaynak: string): BeyanSonucu {
   const dosya = ts.createSourceFile(
     "screen.tsx",
     kaynak,
@@ -96,54 +106,111 @@ function beyanEdilenDurumlar(kaynak: string): string[] {
     true,
     ts.ScriptKind.TSX
   );
-  let bulunan: string[] = [];
 
-  const gez = (n: ts.Node): void => {
-    if (
-      ts.isPropertySignature(n) &&
-      n.name.getText(dosya) === "demo" &&
-      n.questionToken &&
-      n.type &&
-      bulunan.length === 0
-    ) {
-      const tip = n.type.getText(dosya);
-      /* `DemoState` bir TİP REFERANSIDIR; `DemoStateish` başka bir
-         referans. AST'de ad tam eşleşir, substring kazası olmaz. */
-      const referanslar: string[] = [];
-      const tipGez = (t: ts.Node): void => {
-        if (ts.isTypeReferenceNode(t)) referanslar.push(t.typeName.getText(dosya));
-        ts.forEachChild(t, tipGez);
-      };
-      tipGez(n.type);
+  /* Yerel alias'lar — `type DemoState = "loading"` gölgelemesi (kusur 3). */
+  const yerelAlias = new Map<string, ts.TypeNode>();
+  for (const st of dosya.statements) {
+    if (ts.isTypeAliasDeclaration(st)) yerelAlias.set(st.name.text, st.type);
+  }
 
-      if (referanslar.includes("DemoState")) {
-        bulunan = [...DURUMLAR];
-      } else {
-        /* Literal union: `"loading"` · `'loading' | 'empty'` — tırnak
-           türü AST'de zaten normalleşmiş. */
-        const lit: string[] = [];
-        const litGez = (t: ts.Node): void => {
-          if (ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal)) {
-            const v = t.literal.text;
-            if ((DURUMLAR as readonly string[]).includes(v)) lit.push(v);
-          }
-          ts.forEachChild(t, litGez);
-        };
-        litGez(n.type);
-        bulunan = [...new Set(lit)];
-      }
-      void tip;
+  /* YALNIZ EXPORT EDİLEN fonksiyonun ilk parametresi (kusur 1). */
+  const parametreTipleri: ts.TypeNode[] = [];
+  for (const st of dosya.statements) {
+    const disaAcik = ts.canHaveModifiers(st)
+      ? ts
+          .getModifiers(st)
+          ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
+      : false;
+    if (!disaAcik) continue;
+    if (ts.isFunctionDeclaration(st) && st.parameters[0]?.type) {
+      parametreTipleri.push(st.parameters[0].type);
     }
-    ts.forEachChild(n, gez);
+  }
+
+  const literalleriTopla = (t: ts.TypeNode): string[] => {
+    const bulunan: string[] = [];
+    const gez = (n: ts.Node): void => {
+      if (ts.isLiteralTypeNode(n) && ts.isStringLiteral(n.literal)) {
+        bulunan.push(n.literal.text);
+      }
+      ts.forEachChild(n, gez);
+    };
+    gez(t);
+    return bulunan;
   };
 
-  gez(dosya);
-  return bulunan;
+  for (const pt of parametreTipleri) {
+    let demoTipi: ts.TypeNode | undefined;
+    const bul = (n: ts.Node): void => {
+      if (
+        ts.isPropertySignature(n) &&
+        n.name.getText(dosya) === "demo" &&
+        n.questionToken &&
+        n.type
+      ) {
+        demoTipi = n.type;
+      }
+      ts.forEachChild(n, bul);
+    };
+    bul(pt);
+    if (!demoTipi) continue;
+
+    /* DOLAYLI ERİŞİM AÇIKÇA REDDEDİLİR — UI-ADR-178.
+       `P["demo"]` yazımında yerel alias'ı çözüp GÖVDESİNDEN literal
+       toplamak KAZARA doğru cevap verebiliyor (`P = { demo?: "loading" }`
+       örneğinde verdi) — ama `P`'de ikinci bir alan olsaydı onun
+       literalini de toplar ve SESSİZCE yanlış cevap verirdi. Kazara
+       doğru bir ayrıştırıcı, yanlış bir ayrıştırıcıdır. */
+    if (ts.isIndexedAccessTypeNode(demoTipi)) {
+      return {
+        tur: "cozulemedi",
+        neden: `\`demo\` tipi dolaylı erişim: \`${demoTipi.getText(dosya)}\``,
+      };
+    }
+
+    /* Tip referansını çöz: önce YEREL alias, sonra kanonik ad. */
+    let cozulen: ts.TypeNode = demoTipi;
+    const referanslar: string[] = [];
+    const refGez = (n: ts.Node): void => {
+      if (ts.isTypeReferenceNode(n)) referanslar.push(n.typeName.getText(dosya));
+      ts.forEachChild(n, refGez);
+    };
+    refGez(demoTipi);
+
+    for (const r of referanslar) {
+      const yerel = yerelAlias.get(r);
+      if (yerel) cozulen = yerel;
+    }
+
+    const lit = [...new Set(literalleriTopla(cozulen))];
+    const gecerli = lit.filter((x) => (DURUMLAR as readonly string[]).includes(x));
+
+    if (gecerli.length > 0 && gecerli.length === lit.length) {
+      return { tur: "durumlar", durumlar: gecerli };
+    }
+    /* Yerelde çözülemeyen ama KANONİK adı taşıyan referans: dış dosyadan
+       gelen `DemoState`. Bu tek meşru dolaylılık. */
+    if (lit.length === 0 && referanslar.includes("DemoState")) {
+      return { tur: "durumlar", durumlar: [...DURUMLAR] };
+    }
+    /* Geri kalan her şey — `Props["demo"]`, bilinmeyen alias, karışık
+       union — SESSİZ MUAFİYET DEĞİL, KIRMIZI (kusur 2). */
+    return {
+      tur: "cozulemedi",
+      neden: `\`demo\` tipi çözülemedi: \`${demoTipi.getText(dosya).replace(/\s+/g, " ")}\``,
+    };
+  }
+
+  return { tur: "yok" };
 }
 
-const demoScreens = screens.filter(
-  (f) => beyanEdilenDurumlar(readFileSync(f, "utf8")).length > 0
-);
+/* ÇÖZÜLEMEYEN tip de matrise girer — kapı orada KIRMIZI verecek.
+   Sessizce dışarıda bırakmak, denetimin "sessiz muafiyet" dediği şeyin
+   ta kendisiydi (UI-ADR-178). */
+const demoScreens = screens.filter((f) => {
+  const b = beyanEdilenDurumlar(readFileSync(f, "utf8"));
+  return b.tur !== "yok";
+});
 
 const rel = (f: string) =>
   f.slice(process.cwd().length + 1).split("\\").join("/");
@@ -235,9 +302,27 @@ describe("ekran kapısı — HER ekran (UI-ADR-151 → 153)", () => {
     (rel) => {
       const storyPath = storyPathOf(join(process.cwd(), rel));
       const src = readFileSync(storyPath, "utf8");
-      const beyan = beyanEdilenDurumlar(
+      const sonuc = beyanEdilenDurumlar(
         readFileSync(join(process.cwd(), rel), "utf8")
       );
+
+      /* ÇÖZÜLEMEYEN TİP KIRMIZIDIR — UI-ADR-178 (denetim 2/2).
+         Önce sessizce boş dönüyordu ve ben bunu "güvenli yön" diye
+         yazmıştım. Değildi: ekran matristen düşüyor, hiçbir story
+         istenmiyor ve KİMSE FARK ETMİYOR — bu oturumda kapattığım her
+         sessiz muafiyetin aynısı. Kural üç dallı ve net:
+           `demo` yok            → ekran bu matrise tabi değil
+           `demo` var, çözülüyor → beyan edilen durumlar istenir
+           `demo` var, çözülmüyor → KIRMIZI: ya tipi basitleştir ya kapıyı güncelle */
+      expect(
+        sonuc.tur,
+        `${rel}: ${sonuc.tur === "cozulemedi" ? sonuc.neden : ""} — kapı bu ` +
+          `tipten hangi durum story'lerini isteyeceğini ÇIKARAMIYOR. Sessizce ` +
+          `muaf tutmak yerine kırmızı veriyor: tipi doğrudan yaz ` +
+          `(\`demo?: DemoState\` ya da \`demo?: "loading"\`) veya ayrıştırıcıyı güncelle.`
+      ).toBe("durumlar");
+
+      const beyan = sonuc.tur === "durumlar" ? sonuc.durumlar : [];
 
       /* Dosyayı `export const` sınırlarından bloklara ayır — `play`in
          DOĞRU story'de olduğunu ancak böyle sorabiliriz. */
@@ -292,4 +377,84 @@ describe("ekran kapısı — HER ekran (UI-ADR-151 → 153)", () => {
       }
     }
   );
+});
+
+/* --------------------------------------------------------------------------
+   AYRIŞTIRICININ KENDİ TESTİ — UI-ADR-178
+   -------------------------------------------------------------------------- */
+
+/**
+ * Bu oturumun en pahalı dersi: **kuralın kendi testi, kuralın kendisinden
+ * önemlidir.** Ayrıştırıcı bu kapıda DÖRT kez yanıldı ve üçünü yalnız
+ * bağımsız denetim gördü; artık her kaçak burada kilitli.
+ */
+describe("beyanEdilenDurumlar — ayrıştırıcı (UI-ADR-177 → 178)", () => {
+  const S = (govde: string) =>
+    `export function Ekran({ demo }: { ${govde} }) { return null; }`;
+
+  it("`DemoState` → üç durum", () => {
+    expect(beyanEdilenDurumlar(S("demo?: DemoState;"))).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading", "empty", "error"],
+    });
+  });
+
+  it.each([`demo?: "loading";`, `demo?: 'loading';`])(
+    "tek durum beyanı (%s) → yalnız o",
+    (govde) => {
+      expect(beyanEdilenDurumlar(S(govde))).toEqual({
+        tur: "durumlar",
+        durumlar: ["loading"],
+      });
+    }
+  );
+
+  it("çok satırlı union", () => {
+    const r = beyanEdilenDurumlar(S(`demo?:
+    | "loading"
+    | "empty";`));
+    expect(r).toEqual({ tur: "durumlar", durumlar: ["loading", "empty"] });
+  });
+
+  it("`demo` yoksa ekran bu matrise TABİ DEĞİL", () => {
+    expect(beyanEdilenDurumlar(S("baska?: string;"))).toEqual({ tur: "yok" });
+  });
+
+  /* ⬇️ DÖRT KAÇAK — hepsi bağımsız denetimde bulundu, hepsi burada kilitli. */
+
+  it("KAÇAK 1 — yorumdaki ÖRNEK gerçek beyan sanılmaz", () => {
+    const kaynak = `/** ornek: demo?: DemoState */
+` + S(`demo?: "loading";`);
+    expect(beyanEdilenDurumlar(kaynak)).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading"],
+    });
+  });
+
+  it("KAÇAK 2 — YARDIMCI bileşenin props'u önce gelse bile EXPORT edilen okunur", () => {
+    const kaynak =
+      `function Yardimci({ demo }: { demo?: "error" }) { return null; }
+` +
+      S(`demo?: "loading";`);
+    expect(beyanEdilenDurumlar(kaynak)).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading"],
+    });
+  });
+
+  it("KAÇAK 3 — ÇÖZÜLEMEYEN tip SESSİZ MUAFİYET değil, KIRMIZI", () => {
+    const kaynak = `type P = { demo?: "loading" };
+` + S(`demo?: P["demo"];`);
+    const r = beyanEdilenDurumlar(kaynak);
+    expect(r.tur).toBe("cozulemedi");
+  });
+
+  it("KAÇAK 4 — YEREL `DemoState` gölgelemesi gerçek tipi verir", () => {
+    const kaynak = `type DemoState = "loading";
+` + S("demo?: DemoState;");
+    expect(beyanEdilenDurumlar(kaynak)).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading"],
+    });
+  });
 });

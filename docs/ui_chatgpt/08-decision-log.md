@@ -6474,3 +6474,87 @@ geldiğinde yükseltme yolu budur.
 **storybook 56 dosya / 213 test** (alt sınır 211),
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
 Ayrıştırıcı ayrıca **dokuz vakada** tek tek doğrulandı.
+
+---
+
+## UI-ADR-178 — AST'nin üç kusuru: sessiz muafiyet, yanlış prop, gölgeleme
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-176 · 177
+
+`ask_yazilimcilar` **2/4** cevap verdi (Qwen zaman aşımı, DeepSeek 529).
+UI-ADR-177'nin AST ayrıştırıcısında **üç kusur** buldular; üçü de
+kapatıldı ve **dokuzu kalıcı teste bağlandı**.
+
+### KUSUR 1 — "çözülemedi" sessizce boş dönüyordu
+
+177'de `demo?: Props["demo"]` gibi dolaylı tiplerin boş dönmesini
+**"güvenli yön"** diye yazmıştım. İki üye de aynı şeyi söyledi:
+**hayır, bu SESSİZ MUAFİYET.** Ekran matristen düşüyor, hiçbir story
+istenmiyor ve kimse fark etmiyor — bu oturumda kapattığım her sessiz
+muafiyetin aynısı, bu kez kendi elimle konmuş.
+
+Kural artık üç dallı ve net:
+
+| durum | sonuç |
+|---|---|
+| `demo` yok | ekran bu matrise tabi değil |
+| `demo` var, tip çözülüyor | beyan edilen durumlar istenir |
+| `demo` var, tip çözülmüyor | **KIRMIZI** — tipi basitleştir ya da kapıyı güncelle |
+
+### KUSUR 2 — İLK `demo` prop'unu alıyordu
+
+Dosyada bir YARDIMCI bileşenin props tipi önce gelirse yanlış tipe
+bağlanıyordu. Artık yalnız **export edilen fonksiyonun ilk
+parametresine** bakılıyor.
+
+### KUSUR 3 — yerel `type DemoState = "loading"` gölgelemesi
+
+Ada bakıyordum. Biri aynı dosyada daha DAR bir alias tanımlarsa kapı üç
+story ister, ekran tek durum çizerdi. Yerel alias artık önce çözülüyor.
+
+### VE KENDİ TESTİM BİR KUSUR DAHA GÖSTERDİ
+
+`Props["demo"]` testini yazınca ayrıştırıcı **kırmızı vermedi** —
+`P`'nin gövdesinden literalleri toplayıp **kazara doğru** cevabı
+üretmişti. `P`'de ikinci bir alan olsaydı onunkini de toplar ve
+**sessizce yanlış** cevap verirdi.
+
+> **Kazara doğru bir ayrıştırıcı, yanlış bir ayrıştırıcıdır.**
+
+`IndexedAccessTypeNode` artık açıkça reddediliyor. Bunu kurul değil,
+**kuralın kendi testi** buldu — bu oturumun en pahalı dersinin
+(*kuralın kendi testi kuralın kendisinden önemlidir*) bir kez daha
+karşılığı.
+
+### Dokuz kalıcı test
+
+Ayrıştırıcı bu kapıda **dört kez** yanıldı ve üçünü yalnız bağımsız
+denetim gördü. Artık her kaçak kendi testinde kilitli: `DemoState` ·
+tek durum (iki tırnak biçimi) · çok satırlı union · `demo` yok ·
+**yorumdaki örnek** · **yardımcı bileşen önce** · **çözülemeyen tip** ·
+**yerel gölgeleme**.
+
+### Ve UI-ADR-176'nın kuralı ilk sınavını verdi
+
+Dokuz test eklenince ölçüm 270 → **279** oldu ve pay 12'ye çıktı — yani
+176'da kapattığım kaçağın aynısı, bir tur sonra. Kural hemen uygulandı:
+`unit` **267 → 276**. *Bir kere-yap alışkanlığı* tam olarak böyle
+başlıyordu.
+
+### Alınmayan öneri — gerekçesiyle
+
+Kurul `ts.TypeChecker` + tsconfig'den tam `Program` kurmayı önerdi ve
+teknik olarak haklılar: gerçek tip çözümlemesi imported alias'ı da
+çözerdi. **Alınmadı** çünkü tüm programı kurmak kapı süresini ölçülebilir
+biçimde uzatır ve bugünkü üç kusur sözdizimiyle kapandı. **Yükseltme
+yolu yazılı**; ölçmeden geçilmeyecek.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 279 test** (alt sınır **276**),
+**storybook 56 dosya / 213 test** (alt sınır 211),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
+Ayrıştırıcının kendi testi: **9 senaryo**, dördü enjekte kaçak.
