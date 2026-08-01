@@ -95,7 +95,14 @@ export function a11yBloklari(kaynak) {
 }
 
 /**
- * A11Y KAPISI SÖKÜLEMEZ — UI-ADR-165 → 166 → **167'de üçüncü kez yazıldı.**
+ * A11Y KAPISININ KİLİDİ — UI-ADR-165 → 166 → **167'de üçüncü kez yazıldı.**
+ *
+ * ⚠️ BAŞLIK BİLEREK "SÖKÜLEMEZ" DEMİYOR. 165 ve 166 öyle diyordu ve İKİSİ
+ * DE YANILDI — birincisi dört, ikincisi altı ölçülmüş yoldan sökülüyordu.
+ * Bir kilit ancak "bugün ölçülen şu yolları kapatıyor" diyebilir; bunu
+ * "sökülemez"e yuvarlamak, sonraki okuyucuyu aramayı bırakmaya ikna eder.
+ * Aşağıda kapatılanlar VE bilinen sınır yazılı. Yeni bir yol bulursan
+ * listeye ekle — kapatılamadığını değil, HENÜZ kapatılmadığını varsay.
  *
  * `addon-a11y` `test: "todo"` iken ihlalleri GÖSTERİR ama hiçbir testi
  * düşürmez. Tek kelimelik bir düzenleme 206 testin hepsini yeşil bırakarak
