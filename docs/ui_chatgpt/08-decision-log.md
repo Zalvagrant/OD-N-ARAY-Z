@@ -7295,3 +7295,47 @@ BULUNAMADI.
 Kod değiştirilmedi; kapı UI-ADR-187'deki hâliyle duruyor:
 `tsc` 0 · `lint` 0/0 · unit 18 dosya / 321 test · storybook 58 dosya /
 226 test · atlanan 0 · düşen 0 · a11y ihlali 0, koşum kanıtı 226/226.
+
+---
+
+## UI-ADR-189 — Triyaj: kalan beş maddenin BEŞİ de sahibin kararı (meclis 2/2)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-183…188
+
+Denetim kapandı. Sahibin duran kuralı — *"en önemlileri bana sakla ama
+normal ve az önemlileri gavadolarla hallet"* — gereği kalan maddeleri
+**kendim sınıflandırmıştım ve bu bir atlamaydı**: sınıflandırmanın
+kendisini meclise sormamıştım. Soruldu.
+
+### Hüküm (gavadolar 2/2, oybirliği)
+
+| # | madde | hüküm | gerekçe |
+|---|---|---|---|
+| 1 | `caseLabel` eksi işareti | **SAHİP** | düzeltme doğru olsa da ekrandaki anlamı ve davranışı değiştirir; yazılı yasağı yalnız sahip istisnalandırabilir |
+| 2 | `<button>` → `<Link>` | **SAHİP** | semantiği, erişilebilirliği ve kullanıcı etkileşimini değiştirir; ayrı bugfix olarak dahi onay gerekir |
+| 3 | 13 kullanılmayan bileşen | **SAHİP** | silmek açıkça özellik kaldırmadır ve ürün kapsamı kararıdır |
+| 4 | E2E akış testi | **SAHİP** | yeni kapsam ve gerçek ortam gerektirir; sahte veri yasağı altında sahip karar vermeli |
+| 5 | 13. boyut (veri yaşam döngüsü) | **SAHİP** | denetim kapsamını ve risk önceliğini genişletir |
+
+**Beşte beş.** Meclisin hiçbir üyesi hiçbirini "az önemli" saymadı.
+
+Dikkat çekici olan 1. madde: geçen turlarda iki meclis toplamında **3
+"düzelt" / 2 "eskale"** çıkmıştı. Doğrudan triyaj sorulduğunda hüküm
+**oybirliğiyle SAHİP**'e döndü. Fark, sorunun kendisinde: *"bu kusur mu?"*
+ile *"bunu kim kapatır?"* aynı soru değildir. Birincisi teknik, ikincisi
+yetki sorusudur ve meclis yetkiyi devralmayı reddetti.
+
+### Sonuç
+
+Denetimin **kendi kapsamında ölçülmemiş madde kalmadı.** Kalan her şey —
+yukarıdaki beşi ve ayrıca `origin`'e itme / `main`'e merge — sahibin
+onayına bağlıdır. İtme ve merge meclise hiç sorulmadı: dışa dönük ve geri
+alması zor işlerde meclis zaten yetkili değildir.
+
+### Ölçüm
+
+Kod değiştirilmedi. Kapı UI-ADR-187'deki hâliyle:
+`tsc` 0 · `lint` 0/0 · unit 18 dosya / 321 test · storybook 58 dosya /
+226 test · atlanan 0 · düşen 0 · a11y ihlali 0, koşum kanıtı 226/226.
