@@ -1,5 +1,26 @@
 # Executive UI Completion Certificate
 
+```
+STATUS = FROZEN
+STATUS = COMPLETE
+STATUS = REFERENCE IMPLEMENTATION
+```
+
+> **⛔ BU FAZ DONDURULDU — 2 Ağustos 2026, sahip kararı.**
+>
+> Executive UI için **yeni ADR yazılmaz · yeni refactor önerilmez · yeni
+> teknik borç aranmaz · yeni performans denetimi yapılmaz · yeni mimari
+> önerilmez.**
+>
+> **Tek yeniden açılma sebebi: kritik production bug.** Başka hiçbir
+> gerekçe geçerli değildir; *"şunu da düzeltebiliriz"* bu fazda yasaktır.
+>
+> Bundan sonraki çalışmalar **yeni modüller** üzerindedir ve Executive UI
+> onlar için **referans mimaridir**: design system, veri katmanı, mutation
+> yapısı, hata sözleşmesi, test standardı ve release kapıları **yeniden
+> tasarlanmaz, tekrar kullanılır.** Ayrıntı: bu belgenin sonundaki
+> *Reference Implementation* bölümü.
+
 > Bu belge bir **ölçüm tutanağıdır**, bir beyan değil. Her satır o gün
 > koşturulmuş bir komutun çıktısına dayanır. Ölçülmeyen alan **UNKNOWN**
 > yazar (CLAUDE.md kural 2).
@@ -230,3 +251,45 @@ Bu hüküm **localhost · tek kullanıcı · owner-only** dağıtım için geçe
 
 Kalan üç madde (itme · merge · canlı onay denemesi) kod işi değil,
 **sahibin kararıdır**.
+
+---
+
+## Reference Implementation — yeni modüller bunları TEKRAR KULLANIR
+
+Executive UI 2 Ağustos 2026'da dondurulurken **referans mimari** ilan
+edildi. Yeni bir modül yazarken aşağıdakiler **yeniden tasarlanmaz**;
+mevcut olan alınır ve genişletilir.
+
+| katman | nerede | ne verir |
+|---|---|---|
+| Design system + token kuralı | `components/ui/` · `styles/tokens.css` | token dışı değer ESLint'te düşer; `noInlineConfig` ile susturulamaz |
+| Veri katmanı — **tek okuma kapısı** | `lib/data/use-odin-query.ts` · `client.ts` · `policy.ts` | zarf doğrulama · tazelik · iptal · modül başına önbellek politikası |
+| **Tek yazma kapısı** | `lib/data/command.ts` · `use-verdict.ts` | `POST /api/command` · yanıt biçimi ayrımı · yazma politikası |
+| Hata sözleşmesi | `lib/data/errors.ts` → `OdinError` | beş adımlı anlatı (ne oldu / neden / etkisi / çözüm) + retry sınıflaması |
+| Ekran durum makinesi | `features/shell/screen-state.ts` | loading / error / empty / reloadAll tek karardan |
+| Sahte veri kapıları | `mocks/registry.ts` · `assert-no-mock-in-bundle.mjs` | mock gerçek modda erişilemez; release paketine sızamaz |
+| Test standardı | story `play` = **sözleşme testi** · unit = **politika testi** | görünüm değil davranış ölçülür |
+| Release kapıları | `test:ci` · `assert-release-mode` · `inventory.test.ts` · a11y koşum kanıtı | dördü fail-closed ve **alt sınırlı** |
+
+### Taşınan kararlar — yeniden tartışılmaz
+
+| karar | gerekçe |
+|---|---|
+| Yazma yollarında **`retry: false`** | komut idempotent olduğunu beyan etmedikçe sessiz tekrar çift kayıt üretir; defter silinmez (ADR-0005) |
+| **Optimistic update yok** | geri alınacak şey sahibin kararıysa, "oldu" deyip geri almak sahte göstergedir |
+| **Red metni değiştirilmeden** gösterilir | kuralı uygulayan taraf metni de yazar; arayüz yeniden ifade ederse kural değişince eskisini söyler |
+| **Ölçülmemiş sayı ekrana çıkmaz** | eksik veri, yanlış veriden dürüsttür |
+| Kapılar **fail-closed ve alt sınırlı** | sessizce kaybolan bir test, hiç olmayan testten kötüdür |
+| **Elle cache işlemi yok** | anahtar uyuşmazlığı bug *sınıfını* imkânsız kılar |
+
+### Bu fazın en pahalı dersi
+
+**Bir sözleşmenin iki ucu vardır ve yalnız biri kapandığında kayıt
+"bitti" der, sistem "bitmedi" der.** ER-0025 backend'de "implemented"
+damgalıydı, 7 yeşil testi vardı — ve arayüz o çağrıyı hiç yapmıyordu.
+Ne backend'in testleri ne arayüzün 244 testi bunu yakalayabildi; **ikisi
+de kendi tarafında haklıydı.**
+
+Yeni modüllerde bir uç kapatılırken **karşı ucun kim olduğu ve ne zaman
+bağlanacağı yazılmalıdır**; "sonra bağlanacak" notu bir sprint adı taşıyorsa,
+o sprint geçtiğinde notu kimse okumaz.
