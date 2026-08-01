@@ -6558,3 +6558,83 @@ yolu yazılı**; ölçmeden geçilmeyecek.
 **storybook 56 dosya / 213 test** (alt sınır 211),
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
 Ayrıştırıcının kendi testi: **9 senaryo**, dördü enjekte kaçak.
+
+---
+
+## UI-ADR-179 — Kısıtlı dilbilgisi: "her şeyi anla" yerine "dar olanı tanı"
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-174 · 177 · 178
+
+`ask_yazilimcilar` **4/4** cevap verdi (bu oturumda ilk kez tam kurul).
+Teşhis tek cümleydi ve ayrıştırıcının dört turdur neden yanıldığını
+açıklıyor:
+
+> Ayrıştırıcı **her şeyi anlamaya çalışıyor** ve anlamadığında sessizce
+> bir şey uyduruyordu. Doğrusu tersi: **DAR bir dilbilgisi tanı, geri
+> kalan her şeye KIRMIZI de.**
+
+### ⭐ EN AĞIR BULGU — `DemoState` yedeği KANITSIZ İDDİAYDI
+
+Kodda şu vardı: *"referans `DemoState` adını taşıyorsa üç durum varsay."*
+terra bunu işaretledi:
+
+> *"Yerel olarak çözülemeyen veya import edilen `DemoState` için üç
+> durumu **kanıtsız iddia eder**. Repo kuralına göre bunu kaldırın."*
+
+Haklı. Bu, CLAUDE.md §2'nin (karşılığı olmayan gösterge çizilmez) test
+tarafındaki ihlaliydi — ve **kapının kendisi işliyordu.** Yedek
+kaldırıldı; import artık **gerçekten okunuyor** (tek hop, dosya
+açılıyor, alias orada çözülüyor). Bulunamazsa **kırmızı**.
+
+### Kısıtlı dilbilgisi
+
+Tanınan (hepsi bu): dize literali · `A | B` · `(A)` · `A | undefined` ·
+YEREL alias (özyinelemeli) · TEK HOP import edilen alias.
+**Geri kalan her şey kırmızı.**
+
+### Kapatılan dokuz kaçak — hepsi kalıcı testte
+
+| # | kaçak | eski davranış |
+|---|---|---|
+| 1 | yorumdaki örnek | gerçek beyan sanılırdı |
+| 2 | yardımcı bileşenin props'u | ilk bulunan alınırdı |
+| 3 | `Props["demo"]` | kazara doğru / sessiz |
+| 4 | **alias arkasına saklanan** dolaylı erişim | **kaçıyordu** |
+| 5 | yerel `DemoState` gölgelemesi | üç durum sanılırdı |
+| 6 | **arrow bileşen** (`export const X = () =>`) | **sessizce matristen düşerdi** |
+| 7 | export edilen çağrılabilir yok | sessizce "yok" |
+| 8 | **iç içe `demo`** (`{ x: { demo } }`) | **üst seviye sanılırdı** |
+| 9 | nesne tipi (`{ state: "loading" }`) | literal kazınırdı |
+
+Ayrıca: bilinmeyen durum adı artık **adıyla** söyleniyor · döngüsel alias
+(`type A = B; type B = A`) sonsuza dönmüyor · generic kırmızı · **iki
+export'ta birden `demo` belirsizdir** ve "ilkini al" sessiz bir tahmindi.
+
+### Ayrıştırıcı kendi modülüne taşındı
+
+`src/features/demo-beyani.ts` — kapı dosyasının içinde 150 satırlık bir
+çözücü barındırmak, testin ne sınadığını gizliyordu. Artık ayrı dosya,
+ayrı testler (**19 senaryo**), tek sorumluluk.
+
+### Alınmayan öneri, gerekçesiyle
+
+Kurul yine `ts.TypeChecker` + tsconfig'den tam `Program` önerdi. Alınmadı:
+tüm programı kurmak kapı süresini ölçülebilir biçimde uzatır ve **tek hop
+import çözümü bu repodaki gerçek kullanımın tamamını** kapatıyor (altı
+ekranın altısı `@/features/shell/screen-state`ten alıyor). Çok hoplu
+zincir bugün yok; olduğu gün kırmızı verir ve **sessiz kalmaz** — fark
+budur.
+
+### Ve UI-ADR-176'nın kuralı ikinci sınavını verdi
+
+Ölçüm 279 → **290**. Sınır **276 → 287**.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 290 test** (alt sınır **287**),
+**storybook 56 dosya / 213 test** (alt sınır 211),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
+Ayrıştırıcının kendi testi: **19 senaryo**, dokuzu enjekte kaçak.

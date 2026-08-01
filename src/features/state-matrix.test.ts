@@ -28,8 +28,9 @@
  * story'nin İÇERİĞİNİN doğruluğunu `play`in kendisi doğrular.
  */
 
-import ts from "typescript";
 import { describe, expect, it } from "vitest";
+
+import { beyanEdilenDurumlar } from "./demo-beyani";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -66,149 +67,11 @@ const screens = walk(FEATURES).filter((f) => f.endsWith("screen.tsx"));
  * beyanı daraltmak, "bu dalı çizmiyorum" demenin makinece okunabilir hâli
  * oluyor.
  */
-const DURUMLAR = ["loading", "empty", "error"] as const;
-
-/**
- * `demo` prop'unun tipini AST'den çözer — UI-ADR-177, **178'de üç kusuru
- * kapatıldı** (`ask_yazilimcilar` 2/4).
- *
- * ⚠️ ÖNCE REGEX'Tİ ve üç kez yamandı; her yama bir ÖRNEĞİ kapatıyordu,
- * SINIFI değil. AST'ye geçince yorum/dizge sınıfı yapısal olarak kapandı
- * ama üç kusur kaldı ve denetim üçünü de buldu:
- *
- *  1. **İLK `demo` prop'unu alıyordu.** Dosyada bir yardımcı bileşenin
- *     props tipi ÖNCE gelirse yanlış tipe bağlanırdı. Artık yalnız
- *     EXPORT EDİLEN fonksiyonun ilk parametresine bakılıyor.
- *  2. **Çözülemeyen tip SESSİZCE boş dönüyordu** (`Props["demo"]` gibi).
- *     Bunu "güvenli yön" diye yazmıştım; denetim ikisi de **"hayır, bu
- *     SESSİZ MUAFİYET"** dedi ve haklılar — ekran matristen düşüyor ve
- *     kimse fark etmiyor. Artık **KIRMIZI**.
- *  3. **Yerel `type DemoState = "loading"` gölgelemesi.** Ada bakıyordum;
- *     biri aynı dosyada daha dar bir alias tanımlarsa kapı üç story
- *     isterdi ama ekran tek durum çizerdi. Artık yerel alias önce
- *     çözülüyor.
- *
- * Tam çözüm `ts.TypeChecker` ister (denetimin önerdiği) ve o, tek dosya
- * yerine tsconfig'den TÜM PROGRAMI kurmayı gerektirir — kapı süresini
- * ölçülebilir biçimde uzatır. Bugün sözdizimi üç kusuru da kapatıyor;
- * yükseltme yolu yazılı.
- */
-type BeyanSonucu =
-  | { tur: "durumlar"; durumlar: string[] }
-  | { tur: "yok" }
-  | { tur: "cozulemedi"; neden: string };
-
-function beyanEdilenDurumlar(kaynak: string): BeyanSonucu {
-  const dosya = ts.createSourceFile(
-    "screen.tsx",
-    kaynak,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TSX
-  );
-
-  /* Yerel alias'lar — `type DemoState = "loading"` gölgelemesi (kusur 3). */
-  const yerelAlias = new Map<string, ts.TypeNode>();
-  for (const st of dosya.statements) {
-    if (ts.isTypeAliasDeclaration(st)) yerelAlias.set(st.name.text, st.type);
-  }
-
-  /* YALNIZ EXPORT EDİLEN fonksiyonun ilk parametresi (kusur 1). */
-  const parametreTipleri: ts.TypeNode[] = [];
-  for (const st of dosya.statements) {
-    const disaAcik = ts.canHaveModifiers(st)
-      ? ts
-          .getModifiers(st)
-          ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
-      : false;
-    if (!disaAcik) continue;
-    if (ts.isFunctionDeclaration(st) && st.parameters[0]?.type) {
-      parametreTipleri.push(st.parameters[0].type);
-    }
-  }
-
-  const literalleriTopla = (t: ts.TypeNode): string[] => {
-    const bulunan: string[] = [];
-    const gez = (n: ts.Node): void => {
-      if (ts.isLiteralTypeNode(n) && ts.isStringLiteral(n.literal)) {
-        bulunan.push(n.literal.text);
-      }
-      ts.forEachChild(n, gez);
-    };
-    gez(t);
-    return bulunan;
-  };
-
-  for (const pt of parametreTipleri) {
-    let demoTipi: ts.TypeNode | undefined;
-    const bul = (n: ts.Node): void => {
-      if (
-        ts.isPropertySignature(n) &&
-        n.name.getText(dosya) === "demo" &&
-        n.questionToken &&
-        n.type
-      ) {
-        demoTipi = n.type;
-      }
-      ts.forEachChild(n, bul);
-    };
-    bul(pt);
-    if (!demoTipi) continue;
-
-    /* DOLAYLI ERİŞİM AÇIKÇA REDDEDİLİR — UI-ADR-178.
-       `P["demo"]` yazımında yerel alias'ı çözüp GÖVDESİNDEN literal
-       toplamak KAZARA doğru cevap verebiliyor (`P = { demo?: "loading" }`
-       örneğinde verdi) — ama `P`'de ikinci bir alan olsaydı onun
-       literalini de toplar ve SESSİZCE yanlış cevap verirdi. Kazara
-       doğru bir ayrıştırıcı, yanlış bir ayrıştırıcıdır. */
-    if (ts.isIndexedAccessTypeNode(demoTipi)) {
-      return {
-        tur: "cozulemedi",
-        neden: `\`demo\` tipi dolaylı erişim: \`${demoTipi.getText(dosya)}\``,
-      };
-    }
-
-    /* Tip referansını çöz: önce YEREL alias, sonra kanonik ad. */
-    let cozulen: ts.TypeNode = demoTipi;
-    const referanslar: string[] = [];
-    const refGez = (n: ts.Node): void => {
-      if (ts.isTypeReferenceNode(n)) referanslar.push(n.typeName.getText(dosya));
-      ts.forEachChild(n, refGez);
-    };
-    refGez(demoTipi);
-
-    for (const r of referanslar) {
-      const yerel = yerelAlias.get(r);
-      if (yerel) cozulen = yerel;
-    }
-
-    const lit = [...new Set(literalleriTopla(cozulen))];
-    const gecerli = lit.filter((x) => (DURUMLAR as readonly string[]).includes(x));
-
-    if (gecerli.length > 0 && gecerli.length === lit.length) {
-      return { tur: "durumlar", durumlar: gecerli };
-    }
-    /* Yerelde çözülemeyen ama KANONİK adı taşıyan referans: dış dosyadan
-       gelen `DemoState`. Bu tek meşru dolaylılık. */
-    if (lit.length === 0 && referanslar.includes("DemoState")) {
-      return { tur: "durumlar", durumlar: [...DURUMLAR] };
-    }
-    /* Geri kalan her şey — `Props["demo"]`, bilinmeyen alias, karışık
-       union — SESSİZ MUAFİYET DEĞİL, KIRMIZI (kusur 2). */
-    return {
-      tur: "cozulemedi",
-      neden: `\`demo\` tipi çözülemedi: \`${demoTipi.getText(dosya).replace(/\s+/g, " ")}\``,
-    };
-  }
-
-  return { tur: "yok" };
-}
-
 /* ÇÖZÜLEMEYEN tip de matrise girer — kapı orada KIRMIZI verecek.
    Sessizce dışarıda bırakmak, denetimin "sessiz muafiyet" dediği şeyin
    ta kendisiydi (UI-ADR-178). */
 const demoScreens = screens.filter((f) => {
-  const b = beyanEdilenDurumlar(readFileSync(f, "utf8"));
+  const b = beyanEdilenDurumlar(readFileSync(f, "utf8"), f);
   return b.tur !== "yok";
 });
 
@@ -302,9 +165,8 @@ describe("ekran kapısı — HER ekran (UI-ADR-151 → 153)", () => {
     (rel) => {
       const storyPath = storyPathOf(join(process.cwd(), rel));
       const src = readFileSync(storyPath, "utf8");
-      const sonuc = beyanEdilenDurumlar(
-        readFileSync(join(process.cwd(), rel), "utf8")
-      );
+      const tamYol = join(process.cwd(), rel);
+      const sonuc = beyanEdilenDurumlar(readFileSync(tamYol, "utf8"), tamYol);
 
       /* ÇÖZÜLEMEYEN TİP KIRMIZIDIR — UI-ADR-178 (denetim 2/2).
          Önce sessizce boş dönüyordu ve ben bunu "güvenli yön" diye
@@ -388,15 +250,26 @@ describe("ekran kapısı — HER ekran (UI-ADR-151 → 153)", () => {
  * önemlidir.** Ayrıştırıcı bu kapıda DÖRT kez yanıldı ve üçünü yalnız
  * bağımsız denetim gördü; artık her kaçak burada kilitli.
  */
-describe("beyanEdilenDurumlar — ayrıştırıcı (UI-ADR-177 → 178)", () => {
+describe("beyanEdilenDurumlar — ayrıştırıcı (UI-ADR-174 → 179)", () => {
+  const IMP = `import { type DemoState } from "@/features/shell/screen-state";
+`;
   const S = (govde: string) =>
     `export function Ekran({ demo }: { ${govde} }) { return null; }`;
 
-  it("`DemoState` → üç durum", () => {
-    expect(beyanEdilenDurumlar(S("demo?: DemoState;"))).toEqual({
+  it("import edilen `DemoState` GERÇEKTEN okunur → üç durum", () => {
+    expect(beyanEdilenDurumlar(IMP + S("demo?: DemoState;"))).toEqual({
       tur: "durumlar",
       durumlar: ["loading", "empty", "error"],
     });
+  });
+
+  /* ⭐ EN ÖNEMLİ TEST — UI-ADR-179. Eskiden "referans `DemoState` adını
+     taşıyorsa üç durum VARSAY" diye bir yedek vardı. Denetim (terra) bunu
+     KANITSIZ İDDİA diye işaretledi ve haklıydı: çözülemeyen bir tip için
+     üç durum iddia etmek, kural 2'nin test tarafındaki ihlalidir. */
+  it("import EDİLMEMİŞ `DemoState` → KIRMIZI (kanıtsız iddia yok)", () => {
+    const r = beyanEdilenDurumlar(S("demo?: DemoState;"));
+    expect(r.tur).toBe("cozulemedi");
   });
 
   it.each([`demo?: "loading";`, `demo?: 'loading';`])(
@@ -410,51 +283,99 @@ describe("beyanEdilenDurumlar — ayrıştırıcı (UI-ADR-177 → 178)", () => 
   );
 
   it("çok satırlı union", () => {
-    const r = beyanEdilenDurumlar(S(`demo?:
+    expect(beyanEdilenDurumlar(S(`demo?:
     | "loading"
-    | "empty";`));
-    expect(r).toEqual({ tur: "durumlar", durumlar: ["loading", "empty"] });
+    | "empty";`)))
+      .toEqual({ tur: "durumlar", durumlar: ["loading", "empty"] });
+  });
+
+  it("`| undefined` bir DURUM değil, yokluğudur", () => {
+    expect(beyanEdilenDurumlar(S(`demo?: "loading" | undefined;`))).toEqual({
+      tur: "durumlar",
+      durumlar: ["loading"],
+    });
   });
 
   it("`demo` yoksa ekran bu matrise TABİ DEĞİL", () => {
     expect(beyanEdilenDurumlar(S("baska?: string;"))).toEqual({ tur: "yok" });
   });
 
-  /* ⬇️ DÖRT KAÇAK — hepsi bağımsız denetimde bulundu, hepsi burada kilitli. */
+  /* ⬇️ DOKUZ KAÇAK — hepsi bağımsız denetimde bulundu, hepsi kilitli. */
 
   it("KAÇAK 1 — yorumdaki ÖRNEK gerçek beyan sanılmaz", () => {
-    const kaynak = `/** ornek: demo?: DemoState */
-` + S(`demo?: "loading";`);
-    expect(beyanEdilenDurumlar(kaynak)).toEqual({
-      tur: "durumlar",
-      durumlar: ["loading"],
-    });
+    expect(
+      beyanEdilenDurumlar(`/** ornek: demo?: DemoState */
+` + S(`demo?: "loading";`))
+    ).toEqual({ tur: "durumlar", durumlar: ["loading"] });
   });
 
-  it("KAÇAK 2 — YARDIMCI bileşenin props'u önce gelse bile EXPORT edilen okunur", () => {
-    const kaynak =
-      `function Yardimci({ demo }: { demo?: "error" }) { return null; }
+  it("KAÇAK 2 — YARDIMCI bileşenin props'u sayılmaz", () => {
+    const k = `function Yardimci({ demo }: { demo?: "error" }) { return null; }
 ` +
       S(`demo?: "loading";`);
-    expect(beyanEdilenDurumlar(kaynak)).toEqual({
-      tur: "durumlar",
-      durumlar: ["loading"],
-    });
+    expect(beyanEdilenDurumlar(k)).toEqual({ tur: "durumlar", durumlar: ["loading"] });
   });
 
-  it("KAÇAK 3 — ÇÖZÜLEMEYEN tip SESSİZ MUAFİYET değil, KIRMIZI", () => {
-    const kaynak = `type P = { demo?: "loading" };
+  it("KAÇAK 3 — dolaylı erişim KIRMIZI", () => {
+    const k = `type P = { demo?: "loading" };
 ` + S(`demo?: P["demo"];`);
-    const r = beyanEdilenDurumlar(kaynak);
-    expect(r.tur).toBe("cozulemedi");
+    expect(beyanEdilenDurumlar(k).tur).toBe("cozulemedi");
   });
 
-  it("KAÇAK 4 — YEREL `DemoState` gölgelemesi gerçek tipi verir", () => {
-    const kaynak = `type DemoState = "loading";
+  it("KAÇAK 4 — ALIAS ARKASINA saklanan dolaylı erişim de KIRMIZI", () => {
+    const k = `type P = { demo?: "loading" };
+type D = P["demo"];
+` +
+      S("demo?: D;");
+    expect(beyanEdilenDurumlar(k).tur).toBe("cozulemedi");
+  });
+
+  it("KAÇAK 5 — YEREL gölgeleme gerçek tipi verir", () => {
+    const k = `type DemoState = "loading";
 ` + S("demo?: DemoState;");
-    expect(beyanEdilenDurumlar(kaynak)).toEqual({
-      tur: "durumlar",
-      durumlar: ["loading"],
-    });
+    expect(beyanEdilenDurumlar(k)).toEqual({ tur: "durumlar", durumlar: ["loading"] });
+  });
+
+  it("KAÇAK 6 — ARROW bileşen de görülür (eskiden sessizce düşerdi)", () => {
+    const k = `export const Ekran = ({ demo }: { demo?: "empty" }) => null;`;
+    expect(beyanEdilenDurumlar(k)).toEqual({ tur: "durumlar", durumlar: ["empty"] });
+  });
+
+  it("KAÇAK 7 — export edilen çağrılabilir YOKSA kırmızı", () => {
+    expect(beyanEdilenDurumlar(`const x = 1;`).tur).toBe("cozulemedi");
+  });
+
+  it("KAÇAK 8 — İÇ İÇE `demo` üst seviye sanılmaz", () => {
+    const k = `export function Ekran({ x }: { x: { demo?: "loading" } }) { return null; }`;
+    expect(beyanEdilenDurumlar(k)).toEqual({ tur: "yok" });
+  });
+
+  it("KAÇAK 9 — nesne tipi literal-union değildir, KIRMIZI", () => {
+    expect(beyanEdilenDurumlar(S(`demo?: { state: "loading" };`)).tur)
+      .toBe("cozulemedi");
+  });
+
+  it("BİLİNMEYEN durum adı KIRMIZI ve adıyla söylenir", () => {
+    const r = beyanEdilenDurumlar(S(`demo?: "loading" | "baska";`));
+    expect(r.tur).toBe("cozulemedi");
+    if (r.tur === "cozulemedi") expect(r.neden).toContain("baska");
+  });
+
+  it("DÖNGÜSEL alias sonsuza kadar dönmez, KIRMIZI", () => {
+    const k = `type A = B;
+type B = A;
+` + S("demo?: A;");
+    expect(beyanEdilenDurumlar(k).tur).toBe("cozulemedi");
+  });
+
+  it("GENERIC tip KIRMIZI", () => {
+    expect(beyanEdilenDurumlar(S(`demo?: Partial<DemoState>;`)).tur)
+      .toBe("cozulemedi");
+  });
+
+  it("İKİ export'ta birden `demo` → BELİRSİZ, kırmızı", () => {
+    const k = S(`demo?: "loading";`) + `
+export const Baska = ({ demo }: { demo?: "empty" }) => null;`;
+    expect(beyanEdilenDurumlar(k).tur).toBe("cozulemedi");
   });
 });
