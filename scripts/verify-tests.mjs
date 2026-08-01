@@ -44,7 +44,15 @@ const REPORT = `.artifacts/${PROJECT}-vitest.json`;
    (`ZORUNLU.storybook` yalnız kanaryayı arıyor, diğer 54 dosya
    korumasız). Sentetik raporla doğrulandı: 190 geçenli koşu YEŞİL,
    189 kırmızı. Sınır ölçümün HEMEN altında durmalı; 17'lik pay
-   "dalgalanma" değil, kayıp payıdır. */
+   "dalgalanma" değil, kayıp payıdır.
+
+   **255 → 267 / 208 → 211 (UI-ADR-176).** Kendi kuralımı ihlal etmişim:
+   ölçüm 270/213 iken sınırlar 255/208'de duruyordu, yani `unit`te **15
+   testlik pay** vardı — UI-ADR-171'de "kayıp payı" diye eleştirdiğim
+   17'nin neredeyse aynısı. Sınır her yükseltmede ölçümün hemen altına
+   çekilmeli; bunu bir kez yapıp bırakmak, kuralı yazıp uygulamamaktır.
+   Pay artık 3 ve 2: gerçek bir refactor sırasında tek bir testin
+   kalkmasına yer bırakır, kayba bırakmaz. */
 const FLOOR = Number(process.argv[3] ?? 190);
 
 /* ponytail: kapı testlerin SAYISINI doğruluyor, KİMLİKLERİNİ değil. Meclis

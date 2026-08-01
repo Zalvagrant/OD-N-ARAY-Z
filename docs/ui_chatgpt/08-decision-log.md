@@ -6361,3 +6361,46 @@ Kural 2'nin aynısı: kanıtsız iddia yazılmaz.
 `tsc` 0 · `lint` 0 hata 0 uyarı ·
 `state-matrix` **12/12** · `loading-state` + `intelligence-feed`
 story'leri **4/4** · ayrıştırıcı altı vakada doğrulandı.
+
+---
+
+## UI-ADR-176 — Kuralı yazmak, uygulamak değildir: alt sınırlar ölçüme çekildi
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-171
+
+UI-ADR-171'de şunu yazmıştım:
+
+> *"Sınır ölçümün HEMEN altında durmalı; 17'lik pay 'dalgalanma' değil,
+> **kayıp payıdır**."*
+
+Ve sonra kendi kuralımı uygulamayı bıraktım. Ölçüldü:
+
+| proje | ölçüm | sınır | PAY |
+|---|---|---|---|
+| unit | 270 | 255 | **15** |
+| storybook | 213 | 208 | 5 |
+
+`unit`teki **15 testlik pay**, eleştirdiğim 17'nin neredeyse aynısı —
+yani `a11y-gate.test.ts`in 25 senaryosunun yarısından çoğu sessizce
+silinebilir ve kapı yeşil kalırdı.
+
+**Kök hata bir kere-yap alışkanlığı:** sınırı bir sprintte ölçüme çektim
+ve sonraki üç ADR'de 8 test eklendiğinde geri dönüp güncellemedim. Bir
+"düşüş dedektörü" ancak ölçüme yapışık kaldığı sürece dedektördür;
+geride kalan sınır, koruduğunu sandığın bir boşluktur.
+
+`unit` **255 → 267**, `storybook` **208 → 211**. Pay artık 3 ve 2:
+gerçek bir refactor sırasında tek bir testin kalkmasına yer bırakır,
+kayba bırakmaz.
+
+**Kalıcı kural (dosyaya yazıldı):** *sınır her test eklemesinde
+güncellenir; bunu bir kez yapıp bırakmak, kuralı yazıp uygulamamaktır.*
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 270 test** (alt sınır **267**),
+**storybook 56 dosya / 213 test** (alt sınır **211**),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
