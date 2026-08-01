@@ -1,5 +1,6 @@
 /** S5 · 17 — ActivityFeed (Executive Intelligence Feed) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, userEvent, within } from "storybook/test";
 import type { IntelligenceItem } from "@/types/screens";
 import { ActivityFeed } from "./activity-feed";
 import { ago, envelope } from "./stories.fixtures";
@@ -31,6 +32,28 @@ export const AltiGorunur: StoryObj = {
       <ActivityFeed env={envelope(items, { source: "mock" })} />
     </div>
   ),
+  /**
+   * UI-ADR-186. Hikâye başlığı sözleşmeyi zaten İDDİA EDİYOR ("on öğe var,
+   * altısı görünür") ve hiçbir şey onu koşturmuyordu.
+   *
+   * Kesme bir SUNUM kararıdır, veri kaybı değil — ama ancak gizlenenin
+   * sayısı söylendiği ve geri getirilebildiği sürece. Buton kopar ya da
+   * sayı yanlış hesaplanırsa (`sorted.length - shown.length`) kullanıcı
+   * akışın altı öğeden ibaret olduğunu sanır; kritik risk 7. sırada
+   * olabilir. Kısaltma yolu da ölçülüyor: tek yönlü bir "göster" düğmesi
+   * listeyi bir daha asla toparlanamaz hale getirir.
+   */
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    const liste = c.getByRole("list", { name: "Executive Intelligence Feed" });
+    await expect(within(liste).getAllByRole("listitem")).toHaveLength(6);
+
+    await userEvent.click(c.getByRole("button", { name: "4 öğe daha göster" }));
+    await expect(within(liste).getAllByRole("listitem")).toHaveLength(10);
+
+    await userEvent.click(c.getByRole("button", { name: "Kısalt" }));
+    await expect(within(liste).getAllByRole("listitem")).toHaveLength(6);
+  },
 };
 
 export const AkisBos: StoryObj = {

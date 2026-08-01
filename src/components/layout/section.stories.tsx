@@ -1,5 +1,6 @@
 /** S5 · Section — bölüm çerçevesi ve dört durumu */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { Section } from "./section";
 import { Text } from "@/components/ui/typography";
 
@@ -36,8 +37,9 @@ export const Bos: StoryObj = {
   ),
 };
 
-export const Hata: StoryObj = {
-  render: () => (
+export const Hata: StoryObj<{ onRetry: () => void }> = {
+  args: { onRetry: fn() },
+  render: (args) => (
     <Section
       title="Kritik riskler"
       error={{
@@ -46,7 +48,21 @@ export const Hata: StoryObj = {
         impact: "Aksiyon gerektiren uyarılar görünmüyor; karar verilmemeli.",
         fix: "ODIN sunucusunu başlat, sonra yeniden dene.",
       }}
-      onRetry={() => {}}
+      onRetry={args.onRetry}
     />
   ),
+  /**
+   * UI-ADR-186 — meclisin (terra) TEK itirazı buydu ve haklıydı.
+   *
+   * `ErrorState`in kendi retry testi (`states.stories.tsx`) bu bileşeni
+   * KANITLAMAZ: `Section` bir pass-through değil, HANGİ DALIN çizileceğine
+   * karar veren yer. `onRetry`ı iletmeyi unutursa `ErrorState` kusursuz
+   * çalışmaya devam eder — buton çizilir, basılır, hiçbir şey olmaz.
+   * Ölçülen şey iletim; ekranların hata dalı bu bileşenden geçiyor.
+   */
+  play: async ({ canvasElement, args }) => {
+    const b = within(canvasElement).getByRole("button", { name: "Yeniden dene" });
+    await userEvent.click(b);
+    await expect(args.onRetry).toHaveBeenCalledTimes(1);
+  },
 };

@@ -1,5 +1,6 @@
 /** S3 · 12 — EmptyState / ErrorState / LoadingState (10-...md §11) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { EmptyState } from "./empty-state";
 import { ErrorState } from "./error-state";
 import { LoadingState } from "./loading-state";
@@ -29,17 +30,30 @@ export const Empty: StoryObj = {
 };
 
 /** Ne oldu → Neden oldu → Etkisi → Çözüm → [Retry] */
-export const Error: StoryObj = {
-  render: () => (
+export const Error: StoryObj<{ onRetry: () => void }> = {
+  args: { onRetry: fn() },
+  render: (args) => (
     <ErrorState
       what="Amazon verisi alınamadı"
       why="SP-API belirteci süresi doldu."
       impact="Ciro, ACOS ve stok KPI'ları şu an güncel değil; gösterilen son değerler eski."
       fix="Settings → Veri Kaynakları altından Amazon bağlantısını yenile."
       technical="HTTP 401 · x-amzn-ErrorType: UnauthorizedException"
-      onRetry={() => {}}
+      onRetry={args.onRetry}
     />
   ),
+  /**
+   * UI-ADR-186. Bu, arayüzdeki TEK KURTULUŞ YOLUdur: veri gelmediğinde
+   * kullanıcının elindeki tek eylem bu butondur. Bağlanmazsa ekran
+   * DOĞRU görünür — beş adımlı açıklama yerli yerinde, buton çizili — ama
+   * basmak hiçbir şey yapmaz ve kullanıcı sayfayı yeniler, sorunu
+   * "arayüz bozuk" diye okur. Sessizce kopan türden bir tel.
+   */
+  play: async ({ canvasElement, args }) => {
+    const b = within(canvasElement).getByRole("button", { name: "Yeniden dene" });
+    await userEvent.click(b);
+    await expect(args.onRetry).toHaveBeenCalledTimes(1);
+  },
 };
 
 export const Loading: StoryObj = {
