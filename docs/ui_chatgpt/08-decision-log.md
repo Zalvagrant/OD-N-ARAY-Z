@@ -6404,3 +6404,73 @@ güncellenir; bunu bir kez yapıp bırakmak, kuralı yazıp uygulamamaktır.*
 **unit 17 dosya / 270 test** (alt sınır **267**),
 **storybook 56 dosya / 213 test** (alt sınır **211**),
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
+
+---
+
+## UI-ADR-177 — Ayrıştırıcı AST'ye geçti: sınıf yamandı değil, KALDIRILDI
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-174 · 175
+
+Kurul (`ask_yazilimcilar`) **iki kez** AST önerdi; ben iki kez "bu
+kapının kapsamını aşan yeniden yazım" diye erteledim. Yanılmışım —
+ve gerekçem de yanlıştı: **`typescript` zaten bir `devDependency`**,
+yani AST yeni bir bağımlılık değil **kullanılmayan bir yetenekti.**
+
+### Regex üç kez yamandı ve her yama bir ÖRNEĞİ kapattı
+
+| tur | kaçak | yama |
+|---|---|---|
+| UI-ADR-174 | JSDoc'taki örnek gerçek beyan sanıldı | `^\s*` çapası |
+| UI-ADR-175 | tek tırnak · çok satırlı union | `['"]` · `[^;}]` |
+| UI-ADR-175 | `DemoStateish` yanlış pozitifi | `DemoState` |
+
+Üçü de **örnek** düzeltmesiydi. Sınıf duruyordu ve kalan kaçaklar
+gerçekti: dizge içindeki `demo?:`, tip takma adları, başka bir
+`interface`teki `demo` alanı.
+
+Bu oturumun kendi dersi bunu zaten söylüyordu (UI-ADR-171 · 169):
+**bir sınıfı ortadan kaldırmak, o sınıfı tespit etmeye çalışmaktan
+iyidir.** Ayrıştırıcıda uygulamamışım.
+
+### AST: `PropertySignature` düğümü
+
+Artık "bir yerde `demo?:` yazan satır" değil **gerçek bir prop
+bildirimi** aranıyor. Yorum, dizge ve `@example` blokları AST'ye hiç
+girmez — ayrıştırıcının bu oturumda **dört kez** kandığı sınıf
+yapısal olarak kapandı. Tip referansı da AST'de **tam eşleşir**,
+substring kazası olmaz.
+
+**Dokuz vaka ölçüldü, dokuzu doğru:**
+
+| girdi | sonuç |
+|---|---|
+| `demo?: DemoState` | üçü |
+| `demo?: "loading"` · `demo?: 'loading'` | biri |
+| `demo?: DemoState \| undefined` | üçü |
+| çok satırlı union | ikisi |
+| `demo?: DemoStateish` | **boş** (yanlış pozitif yok) |
+| **JSDoc'ta `demo?: DemoState` örneği** | **kanmıyor** |
+| **dizgede `demo?: DemoState`** | **kanmıyor** |
+| `demo?: Props["demo"]` | boş — sınır, aşağıda |
+
+### Bilinen sınır — dürüstçe
+
+`demo?: Props["demo"]` gibi **dolaylı** tipler hâlâ çözülmez: burada
+tip ÇÖZÜMLEMESİ değil sözdizimi okunuyor. Ama davranış artık
+**güvenli yönde**: sessizce üç durum istemek yerine BOŞ dönüyor, yani
+ekran matristen düşüyor — ve tüm ekranlar birden düşerse "kapı boşa
+çalışmıyor" testi (`demoScreens.length > 0`) bunu görür.
+
+Tam çözüm `ts.TypeChecker` ister ve o, tek dosya yerine tüm programı
+kurmayı gerektirir; kapı süresini ölçülebilir biçimde uzatır. O gün
+geldiğinde yükseltme yolu budur.
+
+### Ölçüm
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyarı,
+**unit 17 dosya / 270 test** (alt sınır 267),
+**storybook 56 dosya / 213 test** (alt sınır 211),
+atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 213/213.
+Ayrıştırıcı ayrıca **dokuz vakada** tek tek doğrulandı.

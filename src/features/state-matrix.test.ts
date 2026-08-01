@@ -28,6 +28,7 @@
  * story'nin İÇERİĞİNİN doğruluğunu `play`in kendisi doğrular.
  */
 
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -65,28 +66,79 @@ const screens = walk(FEATURES).filter((f) => f.endsWith("screen.tsx"));
  * beyanı daraltmak, "bu dalı çizmiyorum" demenin makinece okunabilir hâli
  * oluyor.
  */
+const DURUMLAR = ["loading", "empty", "error"] as const;
+
+/**
+ * `demo` prop'unun tipini AST'den çözer — UI-ADR-177.
+ *
+ * ⚠️ ÖNCE REGEX'Tİ ve üç kez yamandı: tek tırnak · çok satırlı union ·
+ * `DemoStateish` yanlış pozitifi. Her yama bir ÖRNEĞİ kapatıyordu,
+ * SINIFI değil — ve kurul iki kez AST önerdi, ben "kapsam dışı" diye
+ * erteledim. Kalan kaçaklar gerçekti: `demo?: Props["demo"]`, tip takma
+ * adları, `interface` bloğundaki başka bir `demo` alanı.
+ *
+ * `typescript` zaten bir devDependency; AST yeni bir bağımlılık değil,
+ * KULLANILMAYAN bir yetenekti. Artık **PropertySignature** düğümü
+ * aranıyor, yani "bir yerde `demo?:` yazan satır" değil GERÇEK bir prop
+ * bildirimi. Yorum, dizge ve `@example` blokları AST'ye hiç girmez —
+ * bu oturumda ayrıştırıcının DÖRT kez kandığı sınıf tamamen kapanır.
+ *
+ * Sınır dürüstçe: `demo?: Props["demo"]` gibi dolaylı tipler hâlâ
+ * çözülemez (tip ÇÖZÜMLEMESİ değil, sözdizimi okunuyor) — ama artık
+ * sessizce ÜÇ durum istemek yerine BOŞ dönüyor, yani ekran matristen
+ * düşüyor ve "kapı boşa çalışmıyor" testi bunu görür.
+ */
 function beyanEdilenDurumlar(kaynak: string): string[] {
-  /* `^\s*` ÇAPASI ŞART. Çapasız hâli bu oturumda kendi belgesine kandı:
-     `intelligence-feed`in JSDoc'unda geçen "diğer ekranlar `demo?:
-     DemoState` alır" cümlesini GERÇEK BEYAN sanıp üç story istedi.
-     Gerçek beyan satır başında (girintiden sonra) durur; JSDoc satırları
-     `*` ile başlar ve artık eşleşemez. Yorumu yeniden yazmak geçici
-     çözümdü — imler metnin içinde de imdir, ayrıştırıcı düzeltilir. */
-  /* `[^;}]` — ÇOK SATIRLI union için (kurul bulgusu). Eski `[^;\n]`
-     satır sonunda kesiyordu, yani
-         demo?:
-           | "loading"
-           | "empty"
-     yazımında BOŞ dönüyor ve ekran sessizce muaf kalıyordu. `}` sınırı
-     satır içi tip literallerinde bir sonraki prop'a taşmayı engelliyor. */
-  const m = kaynak.match(/^\s*demo\?:\s*([^;}]+)/m);
-  if (!m) return [];
-  const tip = m[1].trim();
-  /* `\b` ŞART: çapasız `/DemoState/` bir gün `DemoStateish` diye bir tipi
-     de yakalar ve o ekrandan yanlışlıkla üç story ister (kurul bulgusu). */
-  if (/\bDemoState\b/.test(tip)) return ["loading", "empty", "error"];
-  /* Tek tırnak da geçerli TS: `demo?: 'loading'` eskiden kaçıyordu. */
-  return [...tip.matchAll(/['"](loading|empty|error)['"]/g)].map((x) => x[1]);
+  const dosya = ts.createSourceFile(
+    "screen.tsx",
+    kaynak,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  );
+  let bulunan: string[] = [];
+
+  const gez = (n: ts.Node): void => {
+    if (
+      ts.isPropertySignature(n) &&
+      n.name.getText(dosya) === "demo" &&
+      n.questionToken &&
+      n.type &&
+      bulunan.length === 0
+    ) {
+      const tip = n.type.getText(dosya);
+      /* `DemoState` bir TİP REFERANSIDIR; `DemoStateish` başka bir
+         referans. AST'de ad tam eşleşir, substring kazası olmaz. */
+      const referanslar: string[] = [];
+      const tipGez = (t: ts.Node): void => {
+        if (ts.isTypeReferenceNode(t)) referanslar.push(t.typeName.getText(dosya));
+        ts.forEachChild(t, tipGez);
+      };
+      tipGez(n.type);
+
+      if (referanslar.includes("DemoState")) {
+        bulunan = [...DURUMLAR];
+      } else {
+        /* Literal union: `"loading"` · `'loading' | 'empty'` — tırnak
+           türü AST'de zaten normalleşmiş. */
+        const lit: string[] = [];
+        const litGez = (t: ts.Node): void => {
+          if (ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal)) {
+            const v = t.literal.text;
+            if ((DURUMLAR as readonly string[]).includes(v)) lit.push(v);
+          }
+          ts.forEachChild(t, litGez);
+        };
+        litGez(n.type);
+        bulunan = [...new Set(lit)];
+      }
+      void tip;
+    }
+    ts.forEachChild(n, gez);
+  };
+
+  gez(dosya);
+  return bulunan;
 }
 
 const demoScreens = screens.filter(
