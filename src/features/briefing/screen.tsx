@@ -1,5 +1,6 @@
 "use client";
 
+
 /**
  * Executive Briefing — ODIN'in açılış ekranı (05-dashboard.md §3).
  *
@@ -34,9 +35,11 @@ import { useOdinFixture } from "@/lib/data/odin-fixture";
    DÖNDÜRÜLMEDİ. `useMockData` ve `@/mocks/mock-badge` ise S13'ün tek veri
    borusuyla (UI-ADR-135) değiştirildi: main o borudan önceki hâldeydi. */
 import {
+  useOdinAlerts,
   useOdinDirectors,
   useOdinOpportunities,
   useOdinTimeline,
+  type Opportunity,
 } from "@/lib/data/odin-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
@@ -54,7 +57,7 @@ import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { DecisionQueue } from "@/components/executive/decision-queue";
 import type { VerdictInput } from "@/components/executive/decision-card";
-import { RuntimeDirectorCard } from "@/components/executive/runtime-director-card";
+import { RuntimeDirectorGrid } from "@/components/executive/runtime-director-card";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { SystemReadiness } from "@/components/executive/system-readiness";
 import { TrustSignal } from "@/components/executive/trust-signal";
@@ -151,6 +154,59 @@ const DEMO_ERROR = demoError(
 );
 
 
+/**
+ * FIRSAT SATIRI — `useNow` BURAYA İNDİ (UI-ADR-183, mimari denetim).
+ *
+ * ⚠️ NEDEN ÇIKARILDI: `useNow()` EKRANIN KÖKÜNDE çağrılıyordu ve arkasında
+ * gerçek bir `setInterval(1000)` var (`lib/clock/tick.ts:18,28`). Kökteki
+ * tek bir tick, **tüm `ExecutiveBriefing` ağacını saniyede bir** yeniden
+ * render ediyordu: Hero · DecisionQueue · AlertStack · KPI kartları ·
+ * RuntimeDirectorGrid · 40 kayıtlık Timeline · AIPulse.
+ *
+ * Ve maliyetin tamamı **tek bir zaman etiketi** içindi (aşağıdaki
+ * `relativeTime`). Repoda hiç `React.memo` yok (tarandı) ve React
+ * Compiler kapalı — yani hiçbir çocuk bu render'dan korunmuyordu.
+ *
+ * Bu dosya doğrusunu ZATEN yapıyordu: `HeroView` kendi `useNow()`'unu
+ * ihtiyacı olan yerde çağırıyor. Burada aynı desen tekrarlandı; çıktı
+ * birebir aynı, değişen tek şey render'ın YARIÇAPI.
+ */
+function OpportunityRow({ o }: { o: Opportunity }) {
+  const now = useNow();
+
+  return (
+    <div className="odin-ai-region flex flex-col gap-2 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-content font-medium">{o.title}</span>
+        {/* Glyph KAPALI: badge'in ○ işareti bir DURUM göstergesidir,
+            öncelik seviyesi değil — ve metin ("high"/"medium")
+            seviyeyi zaten açıkça söylüyor. Renk semantiği de
+            verilmedi: ODIN önceliği ETİKET olarak yayınlıyor,
+            arayüz ona kendi ciddiyet skalasını giydiremez. */}
+        {o.priorityLevel ? (
+          <Badge variant="tertiary" showGlyph={false}>
+            {o.priorityLevel}
+          </Badge>
+        ) : null}
+      </div>
+      <Text size="sm" tone="secondary">
+        {o.summary}
+      </Text>
+      <Text size="sm">
+        <strong>Önerilen adım:</strong> {o.suggestedAction}
+      </Text>
+      {o.evidence.length > 0 ? (
+        <Text size="sm" tone="tertiary">
+          Kanıt: {o.evidence.join(" · ")}
+        </Text>
+      ) : null}
+      <Text size="sm" tone="tertiary">
+        {o.source} · {relativeTime(o.asOf, now)}
+      </Text>
+    </div>
+  );
+}
+
 export function ExecutiveBriefing({
   demo,
 }: {
@@ -158,11 +214,16 @@ export function ExecutiveBriefing({
   demo?: DemoState;
 }) {
   const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
-  const now = useNow();
 
   const hero = useOdinFixture("briefing.hero");
   const decisions = useOdinFixture("briefing.decisions");
-  const risks = useOdinFixture("briefing.risks");
+  /* CANLI — ODIN ADR-0151 kanonik Alert zarfı (`/api/state.alerts`).
+     Mission Control bunu zaten okuyordu; brifing mock'ta kalmıştı.
+     BUGÜN LİSTE BOŞ ve bu DOĞRU cevaptır: ölçüldü, üst üste patlayan iş
+     yok. `state.risks` AYRI bir şekildir (name/level/status) ve Alert'e
+     çevrilmez — genel bir risk sinyalinden kanonik alarm üretmek, ODIN'in
+     kurmadığı bir kaydı kurmak olurdu. */
+  const risks = useOdinAlerts();
   /* CANLI — ODIN ADR-0154 (main'de UI-ADR-141, S16). Fırsat AYRI KAYIT
      DEĞİL: ODIN mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM
      yayınlıyor. Filtre (`detected` + uygulanabilir adım) ve sıralama
@@ -296,35 +357,7 @@ export function ExecutiveBriefing({
               geçmek uydurmak olurdu. */}
           <div className="flex flex-col gap-4">
             {opportunities.envelope?.data.map((o) => (
-              <div key={o.id} className="odin-ai-region flex flex-col gap-2 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-content font-medium">{o.title}</span>
-                  {/* Glyph KAPALI: badge'in ○ işareti bir DURUM göstergesidir,
-                      öncelik seviyesi değil — ve metin ("high"/"medium")
-                      seviyeyi zaten açıkça söylüyor. Renk semantiği de
-                      verilmedi: ODIN önceliği ETİKET olarak yayınlıyor,
-                      arayüz ona kendi ciddiyet skalasını giydiremez. */}
-                  {o.priorityLevel ? (
-                    <Badge variant="tertiary" showGlyph={false}>
-                      {o.priorityLevel}
-                    </Badge>
-                  ) : null}
-                </div>
-                <Text size="sm" tone="secondary">
-                  {o.summary}
-                </Text>
-                <Text size="sm">
-                  <strong>Önerilen adım:</strong> {o.suggestedAction}
-                </Text>
-                {o.evidence.length > 0 ? (
-                  <Text size="sm" tone="tertiary">
-                    Kanıt: {o.evidence.join(" · ")}
-                  </Text>
-                ) : null}
-                <Text size="sm" tone="tertiary">
-                  {o.source} · {relativeTime(o.asOf, now)}
-                </Text>
-              </div>
+              <OpportunityRow key={o.id} o={o} />
             ))}
           </div>
         </Section>
@@ -385,14 +418,7 @@ export function ExecutiveBriefing({
         emptyTitle="Director verisi yok"
         emptyDescription="Heartbeat servisi bağlı değil."
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
-          {directors.envelope?.data.map((d) => (
-            <RuntimeDirectorCard
-              key={d.id}
-              env={{ data: d, meta: directors.envelope!.meta }}
-            />
-          ))}
-        </div>
+        <RuntimeDirectorGrid env={directors.envelope} />
       </Section>
 
       {/* 7 + 8 — Timeline ve AI Core */}
