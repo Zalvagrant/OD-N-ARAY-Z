@@ -13,7 +13,25 @@ import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ActivityFeed } from "@/components/executive/activity-feed";
 
-export function IntelligenceFeed() {
+/**
+ * ⚠️ BEYAN DAR VE BİLEREK ÖYLE — UI-ADR-174 (kurul kararı, gavadolar 2/2).
+ *
+ * Diğer dört ekran `demo?: DemoState` alır ve üç durumu da zorlayabilir.
+ * Bu ekran **yalnızca iki dal çiziyor**: `loading` ve veri. Hata ve boş
+ * durumu burada HİÇ çizilmiyor — `ActivityFeed`e devredilmiş ve onun
+ * kendi story dosyası var.
+ *
+ * `demo?: DemoState` yazmak, ekran durum kapısından üç story istetirdi ve
+ * ikisi **olmayan bir davranışı test ediyormuş gibi görünen** iddialar
+ * olurdu. Kapı artık BEYAN EDİLENİ istiyor, üçü birden değil: tipi
+ * daraltmak, "bu dalı ben çizmiyorum" demenin makinece okunabilir hâli.
+ */
+export function IntelligenceFeed({
+  demo,
+}: {
+  /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
+  demo?: "loading";
+}) {
   const feed = useOdinFixture("feed.items");
 
   return (
@@ -25,7 +43,7 @@ export function IntelligenceFeed() {
         <MockBadge />
       </div>
 
-      {feed.loading ? (
+      {demo === "loading" || feed.loading ? (
         <LoadingState layout="list" count={6} label="İstihbarat akışı yükleniyor" />
       ) : (
         <ActivityFeed env={feed.envelope} maxVisible={6} />

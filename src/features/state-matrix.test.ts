@@ -43,9 +43,44 @@ function walk(dir: string): string[] {
 /** HER ekran — muafiyet yok (UI-ADR-153). */
 const screens = walk(FEATURES).filter((f) => f.endsWith("screen.tsx"));
 
-/** Bunların üstüne AYRICA üç durumluk matris istenir. */
-const demoScreens = screens.filter((f) =>
-  /demo\?:\s*DemoState/.test(readFileSync(f, "utf8"))
+/**
+ * EKRANIN BEYAN ETTİĞİ DURUMLAR — UI-ADR-174 (kurul kararı, gavadolar 2/2).
+ *
+ * Kapı önce `demo?: DemoState` gören her ekrandan ÜÇ durumu birden
+ * istiyordu. Bu `intelligence-feed`de tıkandı: o ekran YALNIZCA iki dal
+ * çiziyor (yükleniyor ve veri); hata/boş dalı orada hiç yok, alt bileşene
+ * devredilmiş ve onun kendi story dosyası var. Üç story istemek, **olmayan
+ * bir davranışı test ediyormuş gibi görünen** iddialar yazdırırdı — bu
+ * reponun 2 numaralı kuralının (karşılığı olmayan gösterge çizilmez) test
+ * tarafındaki karşılığı.
+ *
+ * Kurul ölçütü: *"çizilen ve kullanıcıya görünür her durum dalını uyandır;
+ * matris simetrisi için prop ekleme."* Statik olarak ölçülebilir kılmanın
+ * yolu, ekranın hangi durumları zorlayabildiğini **TİPİYLE beyan etmesi**:
+ *
+ *     demo?: DemoState    → üçü de istenir
+ *     demo?: "loading"    → yalnız o istenir
+ *
+ * Böylece kural insan yargısına değil ekranın kendi imzasına bağlanıyor ve
+ * beyanı daraltmak, "bu dalı çizmiyorum" demenin makinece okunabilir hâli
+ * oluyor.
+ */
+function beyanEdilenDurumlar(kaynak: string): string[] {
+  /* `^\s*` ÇAPASI ŞART. Çapasız hâli bu oturumda kendi belgesine kandı:
+     `intelligence-feed`in JSDoc'unda geçen "diğer ekranlar `demo?:
+     DemoState` alır" cümlesini GERÇEK BEYAN sanıp üç story istedi.
+     Gerçek beyan satır başında (girintiden sonra) durur; JSDoc satırları
+     `*` ile başlar ve artık eşleşemez. Yorumu yeniden yazmak geçici
+     çözümdü — imler metnin içinde de imdir, ayrıştırıcı düzeltilir. */
+  const m = kaynak.match(/^\s*demo\?:\s*([^;\n]+)/m);
+  if (!m) return [];
+  const tip = m[1].trim();
+  if (/DemoState/.test(tip)) return ["loading", "empty", "error"];
+  return [...tip.matchAll(/"(loading|empty|error)"/g)].map((x) => x[1]);
+}
+
+const demoScreens = screens.filter(
+  (f) => beyanEdilenDurumlar(readFileSync(f, "utf8")).length > 0
 );
 
 const rel = (f: string) =>
@@ -134,16 +169,20 @@ describe("ekran kapısı — HER ekran (UI-ADR-151 → 153)", () => {
   );
 
   it.each(demoScreens.map(rel))(
-    "%s — AYRICA üç durumun ÜÇÜ de ayrı story",
+    "%s — BEYAN ETTİĞİ her durumun ayrı story'si var",
     (rel) => {
       const storyPath = storyPathOf(join(process.cwd(), rel));
       const src = readFileSync(storyPath, "utf8");
+      const beyan = beyanEdilenDurumlar(
+        readFileSync(join(process.cwd(), rel), "utf8")
+      );
 
       /* Dosyayı `export const` sınırlarından bloklara ayır — `play`in
          DOĞRU story'de olduğunu ancak böyle sorabiliriz. */
       const bloklar = src.split(/^export const /m).slice(1);
 
-      for (const s of STATES) {
+      /* BEYAN EDİLENİ iste, üçünü birden değil — UI-ADR-174. */
+      for (const s of STATES.filter((x) => beyan.includes(x.key))) {
         const blok = bloklar.find((b) => s.demo.test(b));
 
         expect(

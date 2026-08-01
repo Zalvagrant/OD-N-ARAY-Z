@@ -6193,3 +6193,92 @@ kayda geçiyor. Gerçek sınır **branch protection**tır, kod değil.
 atlanan 0, düşen 0, a11y ihlali 0, a11y kanıtı 210/210.
 `a11y-gate.test.ts`: **25 senaryo.** Saldırı testi tarayıcıda ayrıca
 koşturuldu (enjekte → kırmızı → geri alındı → yeşil).
+
+---
+
+## UI-ADR-174 — Kapı BEYAN EDİLENİ ister, üçünü birden değil
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-151 · 153 · 172
+
+Kurul (`ask_gavadolar` **2/2**) ekran durum kapsamının son parçası için
+ölçüt verdi: *"çizilen ve kullanıcıya görünür her durum dalını uyandır;
+matris simetrisi için prop ekleme."* Üç maddede de hemfikirdiler.
+
+### Ölçüm önce, karar sonra
+
+- **`amazon/sku` BİTMİŞ.** Dört story'si var (Seçili · Ölçümsüz ·
+  KayıtYok · SeçimYok) ve kapı zaten her story'nin anlamlı bir `expect`
+  taşımasını zorluyor. Ekran hiç prop almıyor; durumları store+query'den
+  geliyor. **Dokunulmadı** — devir belgesindeki "dört story vardı, hiçbiri
+  iddia etmiyordu" tespiti UI-ADR-153'te zaten kapanmış.
+- **`intelligence-feed` 35 satır ve YALNIZCA İKİ dal çiziyor:**
+  `loading` ve veri. Hata/boş dalı orada **hiç yok** — `ActivityFeed`e
+  devredilmiş ve onun kendi story dosyası var.
+
+### İkilem ve çözümü
+
+`loading`i uyandırmanın tek yolu `demo` prop'uydu; ama kapı `demo?:
+DemoState` gören her ekrandan ÜÇ durumu istiyordu. Bu ekranda empty/error
+DALI YOK — o iki story'yi yazmak **olmayan bir davranışı test ediyormuş
+gibi görünen** iddialar üretirdi. Bu, kural 2'nin (karşılığı olmayan
+gösterge çizilmez) test tarafındaki hâli.
+
+Kurul (c) şıkkını seçti: **kapı, ekranın gerçekten çizdiği dalları
+istesin.** Statik olarak ölçülebilir kılmanın yolu, ekranın hangi
+durumları zorlayabildiğini **TİPİYLE beyan etmesi**:
+
+```ts
+demo?: DemoState    // üçü de istenir  (briefing · mission-control · amazon-director · goals)
+demo?: "loading"    // yalnız o istenir (intelligence-feed)
+```
+
+Kural artık insan yargısına değil **ekranın kendi imzasına** bağlı ve
+beyanı daraltmak, "bu dalı çizmiyorum" demenin makinece okunabilir hâli.
+
+**Kanıt:** loading story'sinin `demo` zorlaması geçici kaldırıldı — kapı
+*"loading durumunun story'si yok"* diyerek kırmızı verdi.
+
+### `LoadingState` — envanter kapısının sustuğu yer
+
+Bileşenin hiç story'si yoktu; envanter kapısı yalnız **tüketicisi
+olmayan** bileşenlerden ister ve bunun tüketicisi var. Kurul: *"ortak ve
+kullanıcıya görünür bir durum primitifi olarak bağımsız görsel kanıtı
+eksik."* İki story yazıldı: iskeletin **çağırandan gelen adla**
+duyurulması (aynı sayfada iki bölge yüklenirken ikisinin de "Yükleniyor"
+demesi hangisinin beklediğini söylemez) ve `count`un **gerçekten yerleşimi
+belirlemesi** (tutmazsa içerik gelince layout kayar ve spinner yerine
+skeleton kullanmanın gerekçesi düşer).
+
+### Ayrıştırıcı dördüncü kez kendi belgesine kandı
+
+Beyan okuyucusunun ilk hâli çapasızdı ve `intelligence-feed`in JSDoc'unda
+geçen *"diğer ekranlar `demo?: DemoState` alır"* cümlesini GERÇEK BEYAN
+sanıp üç story istedi. **Bu oturumda dördüncü kez aynı sınıf.** Bu kez
+yorumu yeniden yazmadım — ayrıştırıcıyı satır başına çapaladım
+(`/^\s*demo\?:/m`); JSDoc satırları `*` ile başlar ve artık eşleşemez.
+*İmler metnin içinde de imdir; çözüm ayrıştırıcıyı düzeltmektir.*
+
+### ⚠️ PUSH EDİLMEDİ — paralel oturum
+
+Bu commit **yalnız yereldir.** Ölçüldü: bu worktree'de İKİNCİ bir oturum
+çalışıyor — HEAD benim atmadığım `83c84ac`'ye taşınmış (brifing zaman
+çizelgesi) ve `briefing/screen.tsx` ile `director-card.stories.tsx`te
+onların yarım işi duruyor. **O commit push'lanmamış**; push etseydim
+onların işini onlar karar vermeden yayınlamış olurdum.
+
+Bu yüzden: `git add -A` KULLANILMADI (yalnız kendi dosyalarım), tam paket
+koşulmadı (onların yarım işi kırmızı verip benim hatam sanılabilirdi),
+push yapılmadı. Kendi dosyalarım ayrı ayrı sınandı: state-matrix 12/12,
+iki story dosyası 4/4.
+
+**Kök neden [[odin-worktree-per-branch]]:** her dal kendi worktree'sini
+alır. Bu iş sırasında düzenlemelerim iki kez sessizce silindi.
+
+### Ölçüm
+
+`vitest --project unit src/features/state-matrix.test.ts`: **12/12**.
+`vitest --project storybook` (loading-state + intelligence-feed): **4/4**.
+Kapı enjekte ihlalle sınandı: `demo` zorlaması kalkınca kırmızı.
+Tam `test:ci` paralel oturum çekilince koşturulacak.

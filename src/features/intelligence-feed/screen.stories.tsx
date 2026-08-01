@@ -76,3 +76,38 @@ export const Akis: Story = {
     await expect(satirlar.length).toBeGreaterThan(0);
   },
 };
+
+/**
+ * YÜKLENİYOR — UI-ADR-174.
+ *
+ * Bu ekranın ÇİZDİĞİ iki daldan biri hiç uyandırılmıyordu. Kurulun
+ * ölçütü (gavadolar 2/2): *"çizilen ve kullanıcıya görünür her durum
+ * dalını uyandır; matris simetrisi için prop ekleme."*
+ *
+ * Bu yüzden burada `empty`/`error` story'si YOK ve olmaması bir eksiklik
+ * değil, bir BEYAN: o iki dal bu ekranda çizilmiyor, `ActivityFeed`e
+ * devredilmiş. Ekranın tipi de bunu söylüyor (`demo?: "loading"`) ve
+ * kapı artık beyan edileni istiyor.
+ */
+export const Yukleniyor: StoryObj = {
+  name: "loading — iskelet basılır, boş akış DEĞİL",
+  render: () => <IntelligenceFeed demo="loading" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    /* İskelet bölgesi DURUR ve erişilebilir adıyla durur — yüklenirken
+       sessiz kalmak, ekran okuyucu kullanıcısına "burada bir şey yok"
+       demektir. */
+    /* ⚠️ `getByRole("status", { name })` DEĞİL: `status` bir "name from
+       content" rolü değildir. `SkeletonRegion` etiketi `sr-only` span
+       olarak basar — duyurulan şey odur. */
+    await expect(
+      await canvas.findByText("İstihbarat akışı yükleniyor", {}, { timeout: 15_000 }),
+    ).toBeInTheDocument();
+    await expect(canvas.getByRole("status")).toHaveAttribute("aria-busy", "true");
+
+    /* Ve akış satırları AYNI ANDA basılmaz: yarı yüklenmiş bir liste,
+       "akış bu kadar" diye okunur. */
+    await expect(canvas.queryAllByRole("listitem")).toHaveLength(0);
+  },
+};
