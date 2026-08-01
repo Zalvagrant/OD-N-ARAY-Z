@@ -21,6 +21,7 @@ import { IS_MOCK } from "./mode";
 import {
   alertSchema,
   councilPanelSchema,
+  executiveKpiSchema,
   goalSchema,
   opportunitySchema,
   runtimeDirectorSchema,
@@ -452,6 +453,90 @@ export function useOdinCouncil(): OdinQueryResult<CouncilPanel[]> {
             throw contractError("/api/state", "ODIN panel kaydını okuyamadı");
           }
           return internalEnvelope(parsed.generated_at, parsed.panel_log);
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Şirket KPI'ları — ODIN `/api/state` (05-dashboard.md §3.3)
+   -------------------------------------------------------------------------- */
+
+/**
+ * Brifingin üç şirket KPI'ı. HESAP YOK: yayınlanan sayılar olduğu gibi
+ * taşınır, oran/toplam türetilmez.
+ *
+ *  · Gelir      `revenue.actual` — kaynağı ve ölçüm anı ODIN'den gelir.
+ *  · Nakit akışı `finance_position.cash_flow_net` — borç servisinden SONRAKİ
+ *    net; sahibin beyan ettiği açılış bakiyesinden türetilmiş provenance'ı
+ *    ODIN taşıyor.
+ *  · Net kâr    ÖLÇÜLEMİYOR. `contribution_margin` COGS ve komisyonu
+ *    içeriyor ama `excludes: ["refunds","advertising"]` — yani katkı
+ *    marjıdır, net kâr DEĞİLDİR. Katkı marjını "net kâr" diye yayınlamak
+ *    UI-ADR-116'nın tam olarak yasakladığı şeydir, bu yüzden
+ *    `status: "data_required"` ve gerekçesi yazılır.
+ */
+const companyKpiStateSchema = z.object({
+  generated_at: z.string(),
+  revenue: z.object({
+    actual: z.number(),
+    currency: z.string().min(1),
+    as_of: z.string().nullable(),
+  }),
+  finance_position: z.object({
+    currency: z.string().min(1),
+    cash_flow_net: z.number(),
+    cash_provenance: z.object({ as_of: z.string().nullable() }).nullable(),
+  }),
+  contribution_margin: z
+    .object({ excludes: z.array(z.string()) })
+    .nullable(),
+});
+
+export function useOdinCompanyKpis(): OdinQueryResult<
+  z.infer<typeof executiveKpiSchema>[]
+> {
+  return useOdinQuery({
+    key: ["odin", "company-kpis"],
+    module: "default",
+    schema: z.array(executiveKpiSchema),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.kpis")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const p = companyKpiStateSchema.parse(raw);
+          const excludes = p.contribution_margin?.excludes ?? [];
+          return internalEnvelope(p.generated_at, [
+            {
+              id: "company.revenue",
+              label: "Gelir",
+              status: "available" as const,
+              value: p.revenue.actual,
+              unit: "currency" as const,
+              currency: p.revenue.currency,
+              asOf: p.revenue.as_of,
+            },
+            {
+              id: "company.net_profit",
+              label: "Net kâr",
+              status: "data_required" as const,
+              value: null,
+              unit: "currency" as const,
+              currency: p.revenue.currency,
+              reason:
+                "Katkı marjı ölçülüyor ama net kâr değil — hariç tutulanlar: " +
+                (excludes.join(", ") || "bildirilmedi"),
+              asOf: null,
+            },
+            {
+              id: "company.cash_flow",
+              label: "Nakit akışı",
+              status: "available" as const,
+              value: p.finance_position.cash_flow_net,
+              unit: "currency" as const,
+              currency: p.finance_position.currency,
+              asOf: p.finance_position.cash_provenance?.as_of ?? null,
+            },
+          ]);
         },
   });
 }

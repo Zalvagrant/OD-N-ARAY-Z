@@ -36,6 +36,7 @@ import { useOdinFixture } from "@/lib/data/odin-fixture";
    borusuyla (UI-ADR-135) değiştirildi: main o borudan önceki hâldeydi. */
 import {
   useOdinAlerts,
+  useOdinCompanyKpis,
   useOdinDirectors,
   useOdinOpportunities,
   useOdinTimeline,
@@ -234,7 +235,11 @@ export function ExecutiveBriefing({
      geri döndürür ve repo kuralı #2'yi ihlal ederdi. İskelet S13'ten,
      fırsat kaynağı main'den. */
   const opportunities = useOdinOpportunities();
-  const kpis = useOdinFixture("briefing.kpis");
+  /* CANLI — üç şirket KPI'ı `/api/state`ten. Gelir ve nakit akışı
+     yayınlanan sayılar (hesap YOK); net kâr `data_required` çünkü
+     `contribution_margin` iadeleri ve reklamı HARİÇ tutuyor — katkı
+     marjını "net kâr" diye yayınlamak UI-ADR-116'nın yasağı. */
+  const kpis = useOdinCompanyKpis();
   const brief = useOdinFixture("briefing.brief");
   /* CANLI — ODIN ADR-0148 (`/api/state.directors`, 8 kayıt).
      `AgentHealth` mock'u BIRAKILDI: gecikme, başarı oranı, token, maliyet,
