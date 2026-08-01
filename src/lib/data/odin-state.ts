@@ -23,6 +23,7 @@ import {
   goalSchema,
   opportunitySchema,
   runtimeDirectorSchema,
+  systemHealthSchema,
   timelineEventSchema,
 } from "./schemas";
 import type { TimelineItem } from "@/types/screens";
@@ -333,6 +334,80 @@ export function useOdinTimeline(): OdinQueryResult<TimelineItem[]> {
               actor: e.actor,
             }))
           );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   System Director — ODIN `/api/state` işletim sinyalleri
+   -------------------------------------------------------------------------- */
+
+/**
+ * "ODIN şu anda sağlıklı çalışıyor mu?" sorusunun ÖLÇÜLEN kısmı.
+ *
+ * Spesifikasyonun KPI şeridi sekiz kalem istiyor; ODIN bugün beşini
+ * yayınlıyor: System Health · Storage · Active Services · Critical Alerts ·
+ * Current Version. `Uptime`, `CPU` ve `Memory` (RAM) hiçbir uçta YOK ve
+ * ekranda gerekçesiyle boş görünürler — süreç başlangıcından uptime
+ * TÜRETMEK, ölçülmemiş bir sayıyı ölçülmüş gibi göstermek olurdu.
+ *
+ * Sağlık skoru ve bileşenleri ODIN'de hesaplanır (ADR-0129); arayüz
+ * ortalamayı yeniden kurmaz, kapsamı (`measured/expected`) olduğu gibi
+ * taşır — kaç eksenin ölçülebildiği skorun kendisi kadar bilgidir.
+ */
+const systemStateSchema = z.object({
+  generated_at: z.string(),
+  version: z.string(),
+  disk_used_pct: z.number(),
+  health: z.object({
+    last_event_ts: z.string().nullable(),
+    last_seq: z.number(),
+    event_log_bytes: z.number(),
+  }),
+  health_score: z.object({
+    critical: z.array(z.unknown()).nullable(),
+    operational: z.object({
+      score: z.number().nullable(),
+      coverage: z.string(),
+      measured: z.number(),
+      expected: z.number(),
+      components: z.array(
+        z.object({
+          name: z.string(),
+          value: z.number().nullable(),
+          detail: z.string(),
+        })
+      ),
+    }),
+  }),
+});
+
+export function useOdinSystem(): OdinQueryResult<
+  z.infer<typeof systemHealthSchema>
+> {
+  return useOdinQuery({
+    key: ["odin", "system"],
+    module: "runtime",
+    schema: systemHealthSchema,
+    load: IS_MOCK
+      ? async () => loadMock("system.health")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const p = systemStateSchema.parse(raw);
+          const ops = p.health_score.operational;
+          return internalEnvelope(p.generated_at, {
+            version: p.version,
+            diskUsedPct: p.disk_used_pct,
+            score: ops.score,
+            coverage: ops.coverage,
+            measured: ops.measured,
+            expected: ops.expected,
+            components: ops.components,
+            lastEventAt: p.health.last_event_ts,
+            lastSeq: p.health.last_seq,
+            eventLogBytes: p.health.event_log_bytes,
+            criticalCount: (p.health_score.critical ?? []).length,
+          });
         },
   });
 }

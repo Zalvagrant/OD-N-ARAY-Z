@@ -724,3 +724,43 @@ export function runtimeDirectorsMock(): DataEnvelope<RuntimeDirector[]> {
     },
   ]);
 }
+
+/* --------------------------------------------------------------------------
+   System Director — 06-workspaces.md §8
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in `/api/state` işletim sinyallerinin mock ikizi.
+ *
+ * Alanlar ODIN'in GERÇEK yayınıyla birebir: `health_score.operational`
+ * altı bileşen yayınlıyor ve altıncısı (`Güvenlik`) kaynaksız olduğu için
+ * `value: null` geliyor — mock da onu `null` tutuyor. Ölçülemeyen ekseni
+ * mock'ta doldurmak, ekranın gerçekte hiç görmeyeceği bir hâli test etmek
+ * olurdu (ADR-0169).
+ */
+export function systemHealthMock() {
+  return mockEnvelope({
+    version: "0.21.0",
+    diskUsedPct: 84,
+    score: 72,
+    coverage: "5/6",
+    measured: 5,
+    expected: 6,
+    components: [
+      { name: "Stok sağlığı", value: 92, detail: "4/48 SKU kritik" },
+      { name: "AI hazırlığı", value: 100, detail: "12/12 sağlayıcı anahtarlı" },
+      { name: "Workspace erişimi", value: 50, detail: "1/2 vault erişilebilir" },
+      { name: "Bilgi akışı", value: 30, detail: "340 kayıt gate'te bekliyor" },
+      { name: "Director sağlığı", value: 87, detail: "7/8 director healthy" },
+      {
+        name: "Güvenlik",
+        value: null,
+        detail: "güvenlik telemetrisi yayınlanmıyor",
+      },
+    ],
+    lastEventAt: new Date().toISOString(),
+    lastSeq: 25_395,
+    eventLogBytes: 5_886_744,
+    criticalCount: 2,
+  });
+}

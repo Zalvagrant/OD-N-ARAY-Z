@@ -378,3 +378,31 @@ export const ppcOverviewSchema = z.object({
   roas: z.number(),
   profitAfterAds: moneySchema.nullable(),
 });
+
+/* --------------------------------------------------------------------------
+   SystemHealth — ODIN `/api/state` işletim sinyalleri (ADR-0129)
+   -------------------------------------------------------------------------- */
+
+/**
+ * Bileşenin `value`si `null` olabilir: ODIN ölçemediği ekseni BEYAN EDER,
+ * listeden düşürmez (ADR-0169). `0` ile `null` ayrı iddialardır.
+ */
+export const systemHealthSchema = z.object({
+  version: z.string().min(1),
+  diskUsedPct: z.number().min(0).max(100),
+  score: z.number().nullable(),
+  coverage: z.string().min(1),
+  measured: z.number().int().min(0),
+  expected: z.number().int().min(0),
+  components: z.array(
+    z.object({
+      name: z.string().min(1),
+      value: z.number().nullable(),
+      detail: z.string(),
+    })
+  ),
+  lastEventAt: isoDate.nullable(),
+  lastSeq: z.number().int().min(0),
+  eventLogBytes: z.number().int().min(0),
+  criticalCount: z.number().int().min(0),
+});
