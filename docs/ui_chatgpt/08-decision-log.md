@@ -7195,3 +7195,103 @@ gösteren bileşenin modu bilmesi gerekir.
 **unit 18 dosya / 321 test** (alt sınır 318) ·
 **storybook 58 dosya / 226 test** (alt sınır 223) ·
 atlanan 0 · düşen 0 · **a11y ihlali 0, koşum kanıtı 226/226**.
+
+---
+
+## UI-ADR-188 — `amazon/director/screen.tsx` BÖLÜNMEYECEK: eşik ekrana körlemesine uygulanmaz
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Ağustos 2026
+**İlgili:** UI-ADR-096 · 183 · 187
+
+Denetimin tek "BÖLÜNMELİ" dosyası (422 kod satırı / 552 ham) ölçüldü ve
+**bölünmemesine karar verildi.** Bu bir erteleme değil, gerekçeli bir
+karardır; bir sonraki oturum aynı analizi yeniden yapmasın diye yazıldı.
+
+### Meclis ne dedi (gavadolar 2/2)
+
+Seçenek **(c)** — yalnız kendi kendine yeten ağır JSX blokları çıkarılsın,
+kancalar/`screenState`/`<Section>` iskeleti ekranda kalsın. Ölçüt:
+
+1. kesintisiz tek bir JSX alt ağacı,
+2. kanca / `useUiStore` / `screenState` / `reloadAll` ÇAĞIRMAZ,
+3. yeni state, effect ya da DOM sarmalayıcı eklemez,
+4. **props bölümün veri modelini temsil eder, ekranın tüm kaynaklarını taşımaz.**
+
+Ve ikisi de ayrıca şunu söyledi: **422 satır tek başına kusur kanıtı
+değildir.** Bir ekran doğası gereği orkestratördür; 8 kaynağı çağırmak,
+ortak durum kararını üretmek ve 11 bölümü sıraya dizmek onun meşru işidir.
+
+### Ölçüm: kendi ölçütlerine göre üç adayın üçü de kalıyor
+
+| aday | gövde | prop yüzeyi | hüküm |
+|---|---|---|---|
+| Inventory Intelligence | **3 satır** | — | çıkarılacak gövde YOK |
+| SKU Health | ~25 satır | **6 prop** (2 setter · 2 veri · 2 durum) | ölçüt 4'ü ihlal: tutarlı bir veri modeli değil |
+| PPC Intelligence Center | ~22 satır | 3 tutarlı prop | ölçütü geçer — kazanç **~22 satır** |
+
+SKU Health'i çıkarmak, boyut 4'te (prop drilling) kapatılan kusuru boyut
+1'i (dosya boyutu) kapatmak için geri açmak olurdu. Kalan tek geçerli aday
+422'yi 400'e indiriyor — eşiğin altına bile inmiyor.
+
+### Ağırlık nerede: JSX'in %41'i `<Section>` proplarında
+
+| bölge | kod satırı |
+|---|---|
+| orkestrasyon (8 kanca + türetmeler + `screenState`) | 152 |
+| JSX ağacı | 298 |
+| ...bunun `<Section>` **açılış propları** | **123** |
+| ...gövde | 175 |
+
+İlk bakışta bu bir tekrar gibi duruyor: `onRetry={reloadAll}` on kez,
+`error={error}` sekiz, `loading={loading}` yedi kez. Sayılar tutmuyordu ve
+tutarsızlık sandım.
+
+### ⚠️ Tutarsızlık YOKTU — kendi regex'imin artefaktıydı
+
+Bölüm bölüm okundu:
+
+- **Canlı bölümler** (`Executive KPI Strip`, `Alerts`) düz `loading={loading}`
+  yazmıyor; `loading={loading || kpis.loading}` ve
+  `error={sectionError(kpis.error)}` yazıyor. Yani kendi uç noktasının
+  hatasını gösteriyorlar, ekran geneli hatayı değil — **S8 dersinin ta
+  kendisi** (bir bölüm gerçek uç noktadan besleniyorsa, o uç düştüğünde
+  ekranda beş adımlı açıklama görünmeli).
+- **Sözleşmesi olmayan bölümler** (`Orders`, `Sales & Profit Analytics`)
+  `{...noContract(...)}` yayıyor ve bilerek hiçbir durum propu almıyor
+  (UI-ADR-096).
+
+Düz sayım bunların hiçbirini göremiyordu. **Aklımdan geçen "üç propu tek
+`{...durum}` nesnesinde topla" fikri uygulansaydı bu ayrımı EZECEKTİ** —
+canlı bölüm kendi hatası yerine ekran geneli hatayı gösterirdi ve S8'de
+öğrenilen ders geri alınırdı. Tekrar sanılan şey, ekranın en dikkatli
+yazılmış yeriydi.
+
+### Kanıt sorunu — bölmemenin ikinci gerekçesi
+
+Meclis 2/2 aynı uyarıyı verdi: elimdeki kapılar (`tsc`, lint, 226 story
++ `play`, a11y 226/226) **tip, erişilebilirlik ve kapsanan etkileşimleri**
+doğrular; **DOM/piksel eşdeğerliğini doğrulamaz.** Görsel baseline yok.
+terra'nın hükmü: *"Görsel baseline oluşturulamıyorsa, risk nedeniyle
+bölmeyi ertelemek makuldür."*
+
+### Karar
+
+**Bölme yapılmadı.** Gerekçe üç katmanlı:
+
+1. Meclisin kendi ölçütü üç adaydan ikisini eliyor, üçüncüsü ~22 satır
+   kazandırıyor ve eşiğin altına indirmiyor.
+2. Dosyanın ağırlığı (`<Section>` propları) **tekrar değil, ayrım** —
+   sadeleştirmek bilgi kaybettirir.
+3. Eşdeğerlik kanıtı yok; geri alması pahalı bir değişiklik için yetersiz.
+
+**Eşik korunuyor ama yorumu netleşiyor:** 400+ satır bir EKRAN dosyasında
+otomatik kusur değildir. Bölme gerekçesi satır sayısı değil, bağımsız
+render bölgelerinin ayrılmasıdır — ve burada o gerekçe ölçülüp
+BULUNAMADI.
+
+### Ölçüm
+
+Kod değiştirilmedi; kapı UI-ADR-187'deki hâliyle duruyor:
+`tsc` 0 · `lint` 0/0 · unit 18 dosya / 321 test · storybook 58 dosya /
+226 test · atlanan 0 · düşen 0 · a11y ihlali 0, koşum kanıtı 226/226.
