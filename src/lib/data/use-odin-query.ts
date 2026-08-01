@@ -103,7 +103,8 @@ export function useOdinQuery<T>({
  * Sunucuda daima `true` döner: sunucunun bağlantısı kullanıcınınki değildir
  * ve "çevrimdışı" damgası sunucu HTML'ine basılırsa hydration çatlar.
  */
-export function useOnline(): boolean {
+/* Dosya İÇİNDE kullanılıyor (satır 64); dışarıdan çağıranı yok. */
+function useOnline(): boolean {
   return useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
 }
 
