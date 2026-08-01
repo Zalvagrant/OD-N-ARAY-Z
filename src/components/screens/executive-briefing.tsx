@@ -26,6 +26,7 @@ import {
   useOdinDirectors,
   useOdinFeed,
   useOdinHealthKpis,
+  useOdinHero,
   useOdinOpportunities,
 } from "@/lib/data/odin-state";
 import { MockBadge } from "@/mocks/mock-badge";
@@ -161,7 +162,10 @@ export function ExecutiveBriefing({
   const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
   const now = useNow();
 
-  const hero = useMockData("briefing.hero");
+  /* CANLI — `/api/state.health_score` (S10 · G3). Özet ODIN'in KENDİ
+     `critical[].label` cümlelerinden aktarılıyor; arayüz cümle kurmuyor.
+     `todaysMission`/`currentFocus` ODIN'de kavram olarak YOK → null. */
+  const hero = useOdinHero();
   const decisions = useMockData("briefing.decisions");
   /* CANLI — `/api/state.alerts` (S10 · G3). `useOdinAlerts` bu mock
      anahtarının tayin edilmiş karşılığıydı ve zaten yazılıydı; yeni
@@ -193,7 +197,7 @@ export function ExecutiveBriefing({
   const isEmpty = demo === "empty";
 
   const reloadAll = () => {
-    hero.reload();
+    hero.refetch();
     decisions.reload();
     risks.refetch();
     opportunities.refetch();
@@ -216,7 +220,7 @@ export function ExecutiveBriefing({
       <WorkspaceHeader
         title="Executive Briefing"
         context="Bugün neye karar vermeliyim?"
-        lastSync={hero.data?.meta.lastUpdated ?? null}
+        lastSync={hero.envelope?.meta.lastUpdated ?? null}
         actions={
           <>
             <MockBadge />
@@ -236,7 +240,7 @@ export function ExecutiveBriefing({
       ) : error ? (
         <Section title="Executive Summary" error={error} onRetry={reloadAll} />
       ) : (
-        <DataGuard env={hero.data} reason="Brifing özeti üretilmedi">
+        <DataGuard env={hero.envelope} reason="Brifing özeti üretilmedi">
           {(data, meta) => <HeroView hero={data} meta={meta} />}
         </DataGuard>
       )}

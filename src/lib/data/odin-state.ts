@@ -15,7 +15,11 @@
 import { z } from "zod";
 
 import type { DataEnvelope } from "@/types/data-envelope";
-import type { IntelligenceCategory, IntelligenceItem } from "@/types/screens";
+import type {
+  ExecutiveHero,
+  IntelligenceCategory,
+  IntelligenceItem,
+} from "@/types/screens";
 import { httpLoad } from "./client";
 import { IS_MOCK } from "./mode";
 import {
@@ -399,6 +403,62 @@ export function useOdinHealthKpis(): OdinQueryResult<ExecutiveKpiParsed[]> {
               reportPeriod: null,
             }))
           );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Executive Hero — `/api/state.health_score` (S10 · G3)
+   -------------------------------------------------------------------------- */
+
+const heroStateSchema = z.object({
+  generated_at: z.string(),
+  health_score: z
+    .object({
+      score: z.number().nullable(),
+      coverage: z.string(),
+      critical: z
+        .array(z.object({ label: z.string() }))
+        .nullable()
+        .optional(),
+    })
+    .nullable(),
+});
+
+export function useOdinHero(): OdinQueryResult<ExecutiveHero> {
+  return useOdinQuery({
+    key: ["odin", "hero"],
+    module: "default",
+    schema: z.custom<ExecutiveHero>(),
+    load: IS_MOCK
+      ? async () => loadMock("briefing.hero")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = heroStateSchema.parse(raw);
+          if (parsed.health_score === null) {
+            throw new Error("ODIN şirket sağlık skorunu okuyamadı");
+          }
+          const hs = parsed.health_score;
+          /* Özet ODIN'in KENDİ cümleleridir — `critical[].label` ölçülmüş
+             durumları kendi kelimeleriyle yayınlıyor ("Likidite riski:
+             nakit akışı -70,188 TL/ay, runway 1.3 ay"). Arayüz onları
+             AKTARIR; cümle KURMAZ. Kritik durum yoksa geriye yalnız
+             yayınlanmış sayılar kalır. */
+          const labels = (hs.critical ?? []).map((c) => c.label);
+          return envelope(parsed.generated_at, {
+            executiveSummary:
+              labels.length > 0
+                ? labels.join(" · ")
+                : `Şirket sağlığı ${hs.score ?? "ölçülmedi"} · kapsam ${hs.coverage}`,
+            /* ODIN'de "günün hedefi" / "şu anki odak" diye bir kavram YOK.
+               `goals` sekiz kayıt taşıyor ama hiçbiri "bugün" demiyor —
+               birini seçmek arayüzün öncelik icat etmesi olurdu. */
+            todaysMission: null,
+            currentFocus: null,
+            systemHealthScore: hs.score,
+            /* 13-backend-recommendations.md §14.1 — karşılığı YOK. */
+            aiReadiness: null,
+          });
         },
   });
 }
