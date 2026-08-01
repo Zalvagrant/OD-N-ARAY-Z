@@ -170,8 +170,15 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-148)
        değil — `command-palette` odak tuzağını ondan alıyor. Kapının
        KÜÇÜLMEYİ de fark etmesi doğrudur: envanterden çıkan bir bileşen,
        artık gerçek bir tüketicisi olan bileşendir ve bu iyi haberdir. */
+    /* ♻️ `director-card` GİRDİ: brifing artık `RuntimeDirectorCard`
+       kullanıyor, çünkü `AgentHealth`in sekiz metriğini üreten
+       `AgentHealthMonitor.snapshot()` ODIN'de BOŞ dizi yayınlıyor
+       (`state.agents`). Kart silinmedi — ODIN o metrikleri yayınladığı gün
+       çizecek bileşen bu; envanterde durması UI-ADR-148'in tam olarak
+       öngördüğü hâl. Sayı yeniden DOKUZ: sahip kararının tavanı. */
     expect(orphans.map(moduleId).sort()).toMatchInlineSnapshot(`
       [
+        "components/executive/director-card",
         "components/executive/telemetry-bar",
         "components/ui/avatar",
         "components/ui/chart",

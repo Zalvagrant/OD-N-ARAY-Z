@@ -33,7 +33,11 @@ import { useOdinFixture } from "@/lib/data/odin-fixture";
 /* CANLI fırsat görünümü main'den (S16 / UI-ADR-141) — mock'a GERİ
    DÖNDÜRÜLMEDİ. `useMockData` ve `@/mocks/mock-badge` ise S13'ün tek veri
    borusuyla (UI-ADR-135) değiştirildi: main o borudan önceki hâldeydi. */
-import { useOdinOpportunities, useOdinTimeline } from "@/lib/data/odin-state";
+import {
+  useOdinDirectors,
+  useOdinOpportunities,
+  useOdinTimeline,
+} from "@/lib/data/odin-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
@@ -50,7 +54,7 @@ import { ConfidenceBadge } from "@/components/executive/confidence-badge";
 import { DataGuard } from "@/components/executive/data-guard";
 import { DecisionQueue } from "@/components/executive/decision-queue";
 import type { VerdictInput } from "@/components/executive/decision-card";
-import { DirectorCard } from "@/components/executive/director-card";
+import { RuntimeDirectorCard } from "@/components/executive/runtime-director-card";
 import { ExecutiveKPICard } from "@/components/executive/executive-kpi-card";
 import { SystemReadiness } from "@/components/executive/system-readiness";
 import { TrustSignal } from "@/components/executive/trust-signal";
@@ -171,7 +175,13 @@ export function ExecutiveBriefing({
   const opportunities = useOdinOpportunities();
   const kpis = useOdinFixture("briefing.kpis");
   const brief = useOdinFixture("briefing.brief");
-  const directors = useOdinFixture("briefing.directors");
+  /* CANLI — ODIN ADR-0148 (`/api/state.directors`, 8 kayıt).
+     `AgentHealth` mock'u BIRAKILDI: gecikme, başarı oranı, token, maliyet,
+     kuyruk gibi alanları `AgentHealthMonitor.snapshot()` üretir ve ODIN onu
+     `state.agents` altında **boş dizi** olarak yayınlıyor. Ölçülmeyen sekiz
+     metriği çizmek yerine, gerçekten ölçülen heartbeat sağlığı gösteriliyor —
+     hüküm (`status`) ODIN'de hesaplanır, arayüz eşik tutmaz (UI-ADR-111). */
+  const directors = useOdinDirectors();
   /* CANLI — ODIN `/api/state.timeline` (40 kayıtlık pencere, sunucuda
      kesiliyor). `tone` ve `description` BOŞ: ODIN olay için ton
      yayınlamıyor ve arayüz onu türetmez (UI-ADR-111 eşik yasağı). */
@@ -377,8 +387,8 @@ export function ExecutiveBriefing({
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
           {directors.envelope?.data.map((d) => (
-            <DirectorCard
-              key={d.agentId}
+            <RuntimeDirectorCard
+              key={d.id}
               env={{ data: d, meta: directors.envelope!.meta }}
             />
           ))}
