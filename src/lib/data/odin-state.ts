@@ -14,7 +14,7 @@
 
 import { z } from "zod";
 
-import type { DataEnvelope } from "@/types/data-envelope";
+import { internalEnvelope } from "@/types/data-envelope";
 import type { PulseChannelStates } from "@/types/executive";
 import type {
   ExecutiveHero,
@@ -22,6 +22,7 @@ import type {
   IntelligenceItem,
 } from "@/types/screens";
 import { httpLoad } from "./client";
+import { contractError } from "./errors";
 import { IS_MOCK } from "./mode";
 import {
   alertSchema,
@@ -50,21 +51,6 @@ export const stateSchema = z.object({
   ),
 });
 
-/**
- * Ham `/api/state` → zarf.
- *
- * `source: "internal"` çünkü veri SP-API'den DEĞİL, ODIN'in kendi
- * projeksiyonundan geliyor (`DataSource` union'ında tanımlı değer).
- * `freshness` burada yazılmaz: `parseEnvelope` onu `lastUpdated`tan
- * modül eşiğine göre İSTEMCİDE hesaplar (UI-ADR-115) — adaptörün
- * "live" damgalaması yanıltıcı olurdu.
- */
-function envelope<T>(generatedAt: string, data: T): DataEnvelope<T> {
-  return {
-    data,
-    meta: { source: "internal", lastUpdated: generatedAt, freshness: "live" },
-  };
-}
 
 /** snake_case → camelCase. Değer DÖNÜŞTÜRÜLMEZ, yalnız yeniden adlandırılır. */
 export function adaptGoals(raw: z.infer<typeof stateSchema>) {
@@ -94,7 +80,7 @@ export function useOdinGoals(): OdinQueryResult<Goal[]> {
       : async (signal) => {
           const raw = await httpLoad("/api/state", { signal });
           const parsed = stateSchema.parse(raw);
-          return envelope(parsed.generated_at, adaptGoals(parsed));
+          return internalEnvelope(parsed.generated_at, adaptGoals(parsed));
         },
   });
 }
@@ -135,10 +121,18 @@ export function useOdinDirectors(): OdinQueryResult<RuntimeDirectorParsed[]> {
           const parsed = directorsStateSchema.parse(raw);
           if (parsed.directors === null) {
             /* Fail-closed: ODIN sağlık durumunu okuyamadığını söylüyor.
-               Boş dizi göstermek "hiçbir direktör yok" iddiası olurdu. */
-            throw new Error("ODIN direktör sağlığını okuyamadı");
+               Boş dizi göstermek "hiçbir direktör yok" iddiası olurdu.
+
+               `OdinError` olarak atılır: düz `Error` atıldığında
+               `classifyError` bunu "unknown" dalına düşürüyordu ve
+               kullanıcı, sebebi TAM OLARAK bilinen bir durum için
+               "kaynağı sınıflandırılamadı" görüyordu. */
+            throw contractError(
+              "/api/state",
+              "directors alanı null — ODIN direktör sağlığını okuyamadığını bildirdi."
+            );
           }
-          return envelope(parsed.generated_at, parsed.directors);
+          return internalEnvelope(parsed.generated_at, parsed.directors);
         },
   });
 }
@@ -197,7 +191,7 @@ export function useOdinAlerts(): OdinQueryResult<z.infer<typeof alertSchema>[]> 
           if (parsed.alerts === null) {
             throw new Error("ODIN çalışma zamanı sağlığını okuyamadı");
           }
-          return envelope(
+          return internalEnvelope(
             parsed.generated_at,
             parsed.alerts.map((a) => ({
               id: a.id,
@@ -271,7 +265,7 @@ export function useOdinOpportunities(): OdinQueryResult<Opportunity[]> {
           if (parsed.opportunities === null) {
             throw new Error("ODIN iyileştirme kayıtlarını okuyamadı");
           }
-          return envelope(
+          return internalEnvelope(
             parsed.generated_at,
             parsed.opportunities.map((o) => ({
               id: o.id,
@@ -341,7 +335,7 @@ export function useOdinFeed(): OdinQueryResult<IntelligenceItem[]> {
       : async (signal) => {
           const raw = await httpLoad("/api/state", { signal });
           const parsed = timelineStateSchema.parse(raw);
-          return envelope(
+          return internalEnvelope(
             parsed.generated_at,
             parsed.timeline.map((e) => ({
               id: String(e.seq),
@@ -385,7 +379,7 @@ export function useOdinHealthKpis(): OdinQueryResult<ExecutiveKpiParsed[]> {
       : async (signal) => {
           const raw = await httpLoad("/api/state", { signal });
           const parsed = healthScoreStateSchema.parse(raw);
-          return envelope(
+          return internalEnvelope(
             parsed.generated_at,
             parsed.health_score.components.map((c) => ({
               id: c.name,
@@ -446,7 +440,7 @@ export function useOdinHero(): OdinQueryResult<ExecutiveHero> {
              AKTARIR; cümle KURMAZ. Kritik durum yoksa geriye yalnız
              yayınlanmış sayılar kalır. */
           const labels = (hs.critical ?? []).map((c) => c.label);
-          return envelope(parsed.generated_at, {
+          return internalEnvelope(parsed.generated_at, {
             executiveSummary:
               labels.length > 0
                 ? labels.join(" · ")
@@ -488,7 +482,7 @@ export function useOdinPulse(): OdinQueryResult<PulseChannelStates> {
              AIPulse bunu "Ölçülebilir kanal yok" diye basıyor ve halka
              ÇİZİLMİYOR. Zarfın zamanı ODIN'den geliyor, yani "şu an
              itibarıyla" iddiası gerçek. */
-          return envelope(parsed.generated_at, {} as PulseChannelStates);
+          return internalEnvelope(parsed.generated_at, {} as PulseChannelStates);
         },
   });
 }

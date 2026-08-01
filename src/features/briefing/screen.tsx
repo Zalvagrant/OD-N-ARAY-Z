@@ -18,26 +18,37 @@
 
 import { useState } from "react";
 import type { Decision } from "@/types/executive";
-import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
+import type { DataMeta } from "@/types/data-envelope";
 import type { ExecutiveHero } from "@/types/screens";
 import { relativeTime, useNow } from "@/lib/clock/tick";
+import { MockBadge } from "@/components/ui/mock-badge";
+import {
+  demoError,
+  emptied,
+  screenState,
+  type DemoState,
+} from "@/features/shell/screen-state";
+import { greeting } from "@/features/executive/presentation/greeting";
+import { useOdinFixture } from "@/lib/data/odin-fixture";
+/* CANLI fırsat görünümü main'den (S16 / UI-ADR-141) — mock'a GERİ
+   DÖNDÜRÜLMEDİ. `useMockData` ve `@/mocks/mock-badge` ise S13'ün tek veri
+   borusuyla (UI-ADR-135) değiştirildi: main o borudan önceki hâldeydi. */
 import {
   useOdinAlerts,
   useOdinDirectors,
   useOdinFeed,
   useOdinHealthKpis,
   useOdinHero,
-  useOdinPulse,
   useOdinOpportunities,
+  useOdinPulse,
 } from "@/lib/data/odin-state";
-import { MockBadge } from "@/mocks/mock-badge";
-import { useMockData } from "@/mocks/use-mock";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardFooter } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Timeline } from "@/components/ui/timeline";
-import { Heading, Num, Text } from "@/components/ui/typography";
-import { Section, type SectionError } from "@/components/layout/section";
+import { Caption, Heading, Num, Text } from "@/components/ui/typography";
+import { Stat } from "@/components/ui/stat";
+import { Section } from "@/components/layout/section";
 import { WorkspaceHeader } from "@/components/layout/workspace-header";
 import { AIBrief } from "@/components/executive/ai-brief";
 import { AIPulse } from "@/components/executive/ai-pulse";
@@ -55,16 +66,6 @@ import { TrustSignal } from "@/components/executive/trust-signal";
 /* --------------------------------------------------------------------------
    Hero — 05-dashboard.md §3.1. Ekranın TEK Hero Element'i.
    -------------------------------------------------------------------------- */
-
-/** Saat istemciden gelir; gelmeden selamlama YAZILMAZ (uydurma yok). */
-function greeting(now: number | null): string | null {
-  if (now === null) return null;
-  const h = new Date(now).getHours();
-  if (h < 6) return "İyi geceler";
-  if (h < 12) return "Günaydın";
-  if (h < 18) return "İyi günler";
-  return "İyi akşamlar";
-}
 
 function HeroView({ hero, meta }: { hero: ExecutiveHero; meta: DataMeta }) {
   const now = useNow();
@@ -86,49 +87,54 @@ function HeroView({ hero, meta }: { hero: ExecutiveHero; meta: DataMeta }) {
 
         {/* min-w-0: uzun metinler grid hücresini şişirip komşusunun üstüne
             binmesin (S4'te görsel incelemede yakalanan hata). */}
+        {/* Dördü de `Stat`tır (UI-ADR-136). Elle yazılmış `<dt>/<dd>`
+            çiftleriydi; `Stat`ın kendisiyle aynı sınıf dizesini taşıyor
+            ama onun hizalama kuralını (sayı SATIR İÇİ) kaybediyorlardı. */}
         <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>div]:min-w-0">
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-content-tertiary">
-              Today&apos;s Mission
-            </dt>
-            <dd className="mt-1 text-sm text-content">
-              {hero.todaysMission ?? <NoData reason="Günün hedefi belirlenmedi" />}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-content-tertiary">
-              Current Focus
-            </dt>
-            <dd className="mt-1 text-sm text-content">
-              {hero.currentFocus ?? <NoData reason="Odak konusu belirlenmedi" />}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-content-tertiary">
-              System Status
-            </dt>
-            <dd className="mt-1">
-              <Num
-                value={hero.systemHealthScore}
-                size="lg"
-                noDataReason="Sistem sağlık skoru ölçülmedi"
-              />
-              <span className="ml-1 text-xs text-content-tertiary">/ 100</span>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-content-tertiary">
-              AI Readiness
-            </dt>
-            <dd className="mt-1">
-              {/* Sözleşmede karşılığı YOK — uydurulmaz (13-...md §14.1). */}
+          <Stat
+            label="Today's Mission"
+            value={
+              hero.todaysMission ? (
+                <Text size="sm">{hero.todaysMission}</Text>
+              ) : (
+                <NoData reason="Günün hedefi belirlenmedi" />
+              )
+            }
+          />
+          <Stat
+            label="Current Focus"
+            value={
+              hero.currentFocus ? (
+                <Text size="sm">{hero.currentFocus}</Text>
+              ) : (
+                <NoData reason="Odak konusu belirlenmedi" />
+              )
+            }
+          />
+          <Stat
+            label="System Status"
+            value={
+              <>
+                <Num
+                  value={hero.systemHealthScore}
+                  size="lg"
+                  noDataReason="Sistem sağlık skoru ölçülmedi"
+                />
+                <Caption>/ 100</Caption>
+              </>
+            }
+          />
+          <Stat
+            label="AI Readiness"
+            /* Sözleşmede karşılığı YOK — uydurulmaz (13-...md §14.1). */
+            value={
               <Num
                 value={hero.aiReadiness}
                 size="lg"
                 noDataReason="AI hazırlık göstergesi henüz üretilmiyor (13-backend-recommendations.md §14.1)"
               />
-            </dd>
-          </div>
+            }
+          />
         </dl>
       </CardBody>
 
@@ -143,74 +149,58 @@ function HeroView({ hero, meta }: { hero: ExecutiveHero; meta: DataMeta }) {
    Ekran
    -------------------------------------------------------------------------- */
 
-const DEMO_ERROR: SectionError = {
-  what: "Brifing verisi yüklenemedi",
-  why: "ODIN yerel sunucusu (127.0.0.1) yanıt vermedi.",
-  impact: "Bugünün kararları, riskleri ve KPI'ları güncel değil; onay verilmemeli.",
-  fix: "ODIN sunucusunu başlat, sonra yeniden dene.",
-};
+const DEMO_ERROR = demoError(
+  "Brifing verisi yüklenemedi",
+  "Kritik kararlar ve riskler güncel değil."
+);
 
-function empty<T>(env: DataEnvelope<T[]> | null): DataEnvelope<T[]> | null {
-  return env ? { data: [], meta: env.meta } : null;
-}
 
 export function ExecutiveBriefing({
   demo,
 }: {
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
-  demo?: "loading" | "empty" | "error";
+  demo?: DemoState;
 }) {
   const [verdicts, setVerdicts] = useState<Record<string, VerdictInput>>({});
   const now = useNow();
 
   /* CANLI — `/api/state.health_score` (S10 · G3). Özet ODIN'in KENDİ
-     `critical[].label` cümlelerinden aktarılıyor; arayüz cümle kurmuyor.
-     `todaysMission`/`currentFocus` ODIN'de kavram olarak YOK → null. */
+     `critical[].label` cümlelerinden aktarılıyor; arayüz cümle kurmuyor. */
   const hero = useOdinHero();
-  const decisions = useMockData("briefing.decisions");
-  /* CANLI — `/api/state.alerts` (S10 · G3). `useOdinAlerts` bu mock
-     anahtarının tayin edilmiş karşılığıydı ve zaten yazılıydı; yeni
-     kanca yazılmadı. Liste bugün BOŞ ve doğru cevap bu: çalışma
-     zamanında alarm yok. `risks` AYRI bir kavram, buraya girmez. */
+  const decisions = useOdinFixture("briefing.decisions");
+  /* CANLI — `/api/state.alerts` (S10 · G3). `useOdinAlerts` bu anahtarın
+     tayin edilmiş karşılığıydı; yeni kanca yazılmadı. */
   const risks = useOdinAlerts();
-  /* CANLI — ODIN ADR-0154 (UI-ADR-141). Fırsat AYRI KAYIT DEĞİL: ODIN
-     mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM yayınlıyor. Filtre
-     (`detected` + uygulanabilir adım) ve sıralama ODIN'de; arayüz ikisini
-     de icat etmiyor. */
+  /* CANLI — ODIN ADR-0154 (main'de UI-ADR-141, S16). Fırsat AYRI KAYIT
+     DEĞİL: ODIN mevcut iyileştirme kayıtları üzerinde bir GÖRÜNÜM
+     yayınlıyor. Filtre (`detected` + uygulanabilir adım) ve sıralama
+     ODIN'de; arayüz ikisini de icat etmiyor.
+
+     ⚠️ MERGE NOTU: S13 dalı bu yuvayı `useOdinFixture` yapıyordu çünkü
+     dal, S16 inmeden ÖNCE açılmıştı. Naif bir merge canlı veriyi mock'a
+     geri döndürür ve repo kuralı #2'yi ihlal ederdi. İskelet S13'ten,
+     fırsat kaynağı main'den. */
   const opportunities = useOdinOpportunities();
   /* CANLI — `/api/state.health_score.components` (S10 · G3). Altı iş
      bileşeni; ölçülemeyen `value: null` + gerekçe ile geliyor. */
   const kpis = useOdinHealthKpis();
-  const brief = useMockData("briefing.brief");
+  const brief = useOdinFixture("briefing.brief");
   /* CANLI — `/api/state.directors` (S10 · G3). `agents` SIFIR kayıt
-     taşıyor, `directors` 8; bu yüzden AgentHealth yerine runtime
-     direktörleri gösteriliyor — mission-control'ün UI-ADR-127'de
-     verdiği kararın aynısı, yeni bir tasarım değil. */
+     taşıyor; runtime direktörleri gösteriliyor (UI-ADR-127 emsali). */
   const directors = useOdinDirectors();
-  /* CANLI — `/api/state.timeline` (S10 · G3). YENİ KANCA YOK: `useOdinFeed`
-     zaten aynı yükü okuyor, burada yalnız TimelineItem şekline eşleniyor.
-     `tone` ATANMIYOR — ODIN olayında ton yok, uydurulmaz. */
+  /* CANLI — `/api/state.timeline` (S10 · G3). Yeni kanca YOK: `useOdinFeed`
+     aynı yükü okuyor, aşağıda TimelineItem şekline eşleniyor. */
   const timeline = useOdinFeed();
-  /* CANLI — `/api/state` (S10 · G3). ODIN hiçbir AI kanalı için durum
-     yayınlamıyor; boş kanal kümesi eksiklik değil ÖLÇÜM, ve AIPulse onu
-     "Ölçülebilir kanal yok" diye basıyor — halka çizilmiyor. */
+  /* CANLI — `/api/state` (S10 · G3). ODIN AI kanalı yayınlamıyor; boş
+     küme ÖLÇÜMÜN kendisi, halka çizilmiyor. */
   const pulse = useOdinPulse();
 
-  const loading = demo === "loading" || hero.loading;
-  const error = demo === "error" ? DEMO_ERROR : null;
-  const isEmpty = demo === "empty";
-
-  const reloadAll = () => {
-    hero.refetch();
-    decisions.reload();
-    risks.refetch();
-    opportunities.refetch();
-    kpis.refetch();
-    brief.reload();
-    directors.refetch();
-    timeline.refetch();
-    pulse.refetch();
-  };
+  const { loading, error, isEmpty, reloadAll } = screenState({
+    demo,
+    primary: hero,
+    sources: [hero, decisions, risks, opportunities, kpis, brief, directors, timeline, pulse],
+    error: DEMO_ERROR,
+  });
 
   /* Verdict S7'de POST /api/command'a bağlanacak (ER-0025). Şimdilik
      oturum içi işaretlenir ve KAYDEDILMEDIGI açıkça yazılır. */
@@ -260,7 +250,7 @@ export function ExecutiveBriefing({
         onRetry={reloadAll}
       >
         <DecisionQueue
-          env={isEmpty ? empty(decisions.data) : decisions.data}
+          env={isEmpty ? emptied(decisions.envelope) : decisions.envelope}
           limit={3}
           onVerdict={onVerdict}
         />
@@ -287,7 +277,7 @@ export function ExecutiveBriefing({
           {/* Kart başlığı FİLTRE KURALINI söyler; boş bırakılırsa kartın
               üstünde boş bir şerit kalır ve eleme kuralı görünmez olur. */}
           <AlertStack
-            env={isEmpty ? empty(risks.envelope) : risks.envelope}
+            env={isEmpty ? emptied(risks.envelope) : risks.envelope}
             title="Aksiyon gerektirenler"
           />
         </Section>
@@ -366,10 +356,7 @@ export function ExecutiveBriefing({
             `md` değil `lg`de açılır. */}
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 [&>*]:min-w-0">
           {kpis.envelope?.data.map((k) => (
-            <ExecutiveKPICard
-              key={k.id}
-              env={{ data: k, meta: kpis.envelope!.meta }}
-            />
+            <ExecutiveKPICard key={k.id} env={{ data: k, meta: kpis.envelope!.meta }} />
           ))}
         </div>
       </Section>
@@ -384,7 +371,7 @@ export function ExecutiveBriefing({
         error={error}
         onRetry={reloadAll}
       >
-        <AIBrief env={isEmpty ? null : brief.data} />
+        <AIBrief env={isEmpty ? null : brief.envelope} />
       </Section>
 
       {/* 6 — Director aktivitesi (UI-ADR-074 ile dondurulmuş 6 Director) */}

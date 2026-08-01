@@ -12,6 +12,7 @@
  * çıkar (UI-ADR-096).
  */
 
+import type { ReactNode } from "react";
 import type { Money } from "./executive";
 
 /* --------------------------------------------------------------------------
@@ -211,4 +212,23 @@ export interface SkuHealth {
   };
 
   price: Money | null;
+}
+
+/**
+ * Zaman çizelgesi kaydı — UI-ADR-130.
+ *
+ * `components/ui/timeline.tsx` içinde tanımlıydı ve `mocks/briefing.ts`
+ * onu ORADAN import ediyordu: veri üreten katman, kendisini çizen
+ * bileşene bağımlıydı. Şekil bir VERİ şeklidir; bileşen onu tüketir,
+ * sahibi değildir.
+ */
+export interface TimelineItem {
+  id: string;
+  /** ISO 8601. Bilinmiyorsa null — tahmini zaman yazılmaz. */
+  at: string | null;
+  title: ReactNode;
+  description?: ReactNode;
+  tone?: "neutral" | "ai" | "success" | "warning" | "danger" | "info";
+  /** Olayı kimin ürettiği: "Amazon Director", "Sen", "Sistem". */
+  actor?: string;
 }

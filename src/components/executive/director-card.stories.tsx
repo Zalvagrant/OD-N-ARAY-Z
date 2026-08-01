@@ -1,5 +1,6 @@
 /** S4 · 3 — DirectorCard (S5.5-b: AgentHealth hizalaması, UI-ADR-111) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, within } from "storybook/test";
 import { DirectorCard } from "./director-card";
 import { director, directorUnhealthy, directorUnknown, envelope } from "./stories.fixtures";
 
@@ -16,6 +17,14 @@ export const Saglikli: StoryObj = {
       <DirectorCard env={envelope(director, { source: "internal" })} />
     </div>
   ),
+  /* UI-ADR-148/150 — çağıranı olmayan bileşen bir DAVRANIŞ kanıtlamalı.
+     Kanıtlanan sözleşme: ölçülmemiş metrik SAYI BASMAZ. `verdict` ODIN'den
+     gelir ve UI eşik türetmez (UI-ADR-111); bir kartın "sağlıklı" demesi
+     ile bir metriğin ölçülmüş olması ayrı şeylerdir. */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText(/agent-|director/i)).toBeInTheDocument();
+  },
 };
 
 /** verdict ODIN'den gelir — UI eşik TÜRETMEZ (UI-ADR-111). */

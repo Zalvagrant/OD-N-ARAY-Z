@@ -10,6 +10,7 @@
 import { notFound, redirect } from "next/navigation";
 import { findWorkspaceByPath } from "@/lib/navigation/registry";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Heading, Label } from "@/components/ui/typography";
 
 const TYPE_LABEL: Record<string, string> = {
   executive: "Executive Workspace",
@@ -39,12 +40,13 @@ export default async function WorkspacePlaceholder({
   return (
     <div className="max-w-3xl space-y-6">
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-wide text-content-tertiary">
-          {TYPE_LABEL[workspace.type]}
-        </p>
-        <h1 className="text-xl font-semibold text-content">
+        {/* Tipografi primitive'leri kullanılır — diğer her ekran öyle
+            yapıyor; ham <h1>/<p> ölçek değişince bu sayfayı geride
+            bırakırdı (UI-ADR-133). */}
+        <Label>{TYPE_LABEL[workspace.type]}</Label>
+        <Heading level={1} size={2}>
           {child ? `${workspace.label} · ${child.label}` : workspace.label}
-        </h1>
+        </Heading>
       </header>
 
       <EmptyState

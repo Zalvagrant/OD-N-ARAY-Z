@@ -32,7 +32,7 @@ import type {
   SimulationCase,
 } from "@/types/executive";
 import type { MetricPeriod, ScoreFactor, SkuHealth } from "@/types/screens";
-import { ago, ahead, mockEnvelope } from "./envelope";
+import { ago, ahead, mockEnvelope, mockKpi } from "./envelope";
 
 /* Ekranda TEK para birimi — UI-ADR-103, sahip kararıyla USD.
    Gerekçe: Amazon US marketplace'inde satış, ücret ve reklam USD'dir;
@@ -333,38 +333,30 @@ export function snapshotMock(): DataEnvelope<AmazonSnapshot> {
    şeridin altında yazılır.
    -------------------------------------------------------------------------- */
 
-/* ADR-0143 §2: sınır zarfı DÜZ. Sparkline/forecast/insight sözleşme dışı,
-   bu yüzden mock'ta da yok. */
-function kpi(
-  over: Partial<ExecutiveKPI> & Pick<ExecutiveKPI, "id" | "label" | "unit">
-): ExecutiveKPI {
-  return { status: "available", value: null, asOf: ago(30 * 60_000), ...over };
-}
-
 export function amazonKpisMock(): DataEnvelope<ExecutiveKPI[]> {
   return mockEnvelope([
-    kpi({
+    mockKpi({
       id: "net_sales",
       label: "Net Sales",
       value: 99_600,
       unit: "currency",
       currency: USD,
     }),
-    kpi({
+    mockKpi({
       id: "gross_profit",
       label: "Gross Profit (ücretler hariç)",
       value: 62_860,
       unit: "currency",
       currency: USD,
     }),
-    kpi({
+    mockKpi({
       id: "acos",
       label: "ACOS",
       value: 18.1,
       unit: "percent",
       scale: "0-100",
     }),
-    kpi({
+    mockKpi({
       id: "tacos",
       /* 135.000 / 4.182.000 — PPC harcaması ile ciro arasındaki gerçek oran
          (UI-ADR-103). Eskiden 9,4 yazıyordu; o değer ekrandaki harcamayla
@@ -374,7 +366,7 @@ export function amazonKpisMock(): DataEnvelope<ExecutiveKPI[]> {
       unit: "percent",
       scale: "0-100",
     }),
-    kpi({
+    mockKpi({
       id: "roas",
       /* PPC kartıyla AYNI değer: 745.900 / 135.000 = 5,5 (UI-ADR-103).
          Şerit ile kart farklı ROAS söylerse ikisi de inandırıcılığını
@@ -383,20 +375,20 @@ export function amazonKpisMock(): DataEnvelope<ExecutiveKPI[]> {
       value: 5.5,
       unit: "score",
     }),
-    kpi({
+    mockKpi({
       id: "active_skus",
       label: "Active SKUs",
       value: 41,
       unit: "count",
     }),
-    kpi({
+    mockKpi({
       id: "inventory_value",
       label: "Inventory Value",
       value: 45_950,
       unit: "currency",
       currency: USD,
     }),
-    kpi({
+    mockKpi({
       id: "buybox_rate",
       label: "BuyBox Rate",
       value: 91.6,

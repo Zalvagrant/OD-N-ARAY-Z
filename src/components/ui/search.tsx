@@ -17,7 +17,7 @@
  * değer değildir. Hatalı sorgu diye bir şey yoktur; sonuç ya vardır ya yoktur.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Search as SearchIcon, X, Loader2 } from "lucide-react";
 
 const HISTORY_LIMIT = 5;
@@ -79,7 +79,11 @@ export function Search({
     historyKey ? readHistory(historyKey) : []
   );
   const [historyOpen, setHistoryOpen] = useState(false);
+  /** Klavye imleci. -1 = liste açık ama hiçbir öğe seçili değil. */
+  const [active, setActive] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
+  const optionId = (i: number) => `${listId}-opt-${i}`;
 
   /* Debounce: her tuşta değil, kullanıcı durunca ara.
      onSearch bilerek bağımlılıkta değil — çağıran memoize etmezse her
@@ -93,14 +97,84 @@ export function Search({
   const commit = (value: string) => {
     setQuery(value);
     setHistoryOpen(false);
+    setActive(-1);
     if (historyKey && value.trim()) setHistory(pushHistory(historyKey, value));
     onSubmit?.(value);
   };
 
   const showHistory = historyOpen && !query && history.length > 0;
 
+  /**
+   * KLAVYE — UI-ADR-149. Öncesi ölçüldü ve üç ayrı kusur vardı:
+   *
+   *  1. Geçmiş listesi `role="listbox"` DEĞİLDİ, öğeler `option` değildi:
+   *     ekran okuyucu "5 seçenekli liste" diye duyurmuyordu.
+   *  2. Ok tuşu YOKTU: listeye yalnız Tab'la, öğe öğe girilebiliyordu.
+   *  3. Liste **120 ms'lik bir blur zamanlayıcısıyla** kapanıyordu. Bu bir
+   *     YARIŞTIR: odağın nereye gittiğine değil, saate bağlıydı. Yavaş bir
+   *     makinede tıklama zamanlayıcıdan sonra gelir ve seçim kaybolur.
+   *
+   * Zamanlayıcı kaldırıldı; kapanma artık ODAĞIN NEREDE OLDUĞUNA bakıyor
+   * (kökün `onBlur`unda `relatedTarget`). Ölçülebilir bir olgu, tahmin
+   * edilen bir süre değil.
+   */
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const canOpen = !query && history.length > 0;
+    const last = history.length - 1;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!showHistory && canOpen) return setHistoryOpen(true);
+      if (showHistory) setActive((i) => (i >= last ? 0 : i + 1));
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!showHistory && canOpen) {
+        setHistoryOpen(true);
+        return setActive(last);
+      }
+      if (showHistory) setActive((i) => (i <= 0 ? last : i - 1));
+      return;
+    }
+    if (e.key === "Home" && showHistory) {
+      e.preventDefault();
+      return setActive(0);
+    }
+    if (e.key === "End" && showHistory) {
+      e.preventDefault();
+      return setActive(last);
+    }
+    if (e.key === "Enter") {
+      /* İmleç bir geçmiş öğesindeyse ONU gönder, kutudaki metni değil. */
+      return commit(showHistory && active >= 0 ? history[active]! : query);
+    }
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      /* ARIA combobox kalıbı: ilk Escape LİSTEYİ kapatır, ikinci Escape
+         metni siler. Tek adımda ikisini birden yapmak, yalnızca listeyi
+         kapatmak isteyen kullanıcının yazdığını da silerdi. */
+      if (showHistory) {
+        setHistoryOpen(false);
+        return setActive(-1);
+      }
+      setQuery("");
+    }
+  };
+
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      /* Kapanma ODAĞA bağlı: odak kökün DIŞINA çıktıysa kapat. Odak
+         listedeki bir öğeye geçtiyse `relatedTarget` hâlâ kökün içindedir
+         ve liste açık kalır — zamanlayıcının çözemediği tam olarak buydu. */
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setHistoryOpen(false);
+          setActive(-1);
+        }
+      }}
+    >
       <div className="flex h-10 items-center gap-2 rounded-sm border border-line bg-surface px-3 focus-within:border-line-focus">
         {searching ? (
           <Loader2 className="h-4 w-4 animate-spin text-icon" aria-hidden />
@@ -111,23 +185,27 @@ export function Search({
         <input
           ref={inputRef}
           type="search"
-          role="searchbox"
+          /* `searchbox` → `combobox`: bu kutu bir listeyi AÇIP KAPATIYOR
+             ve içinde bir imleç geziyor. Rolü değiştirmeden `aria-expanded`
+             ve `aria-activedescendant` yazmak, ekran okuyucuya anlamadığı
+             bir sözleşme vermek olurdu. */
+          role="combobox"
+          aria-expanded={showHistory}
+          aria-controls={showHistory ? listId : undefined}
+          aria-activedescendant={
+            showHistory && active >= 0 ? optionId(active) : undefined
+          }
           value={query}
           disabled={disabled}
           aria-label={label}
           aria-busy={searching || undefined}
           placeholder={placeholder}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setHistoryOpen(true)}
-          onBlur={() => setTimeout(() => setHistoryOpen(false), 120)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit(query);
-            if (e.key === "Escape") {
-              e.stopPropagation();
-              setQuery("");
-              setHistoryOpen(false);
-            }
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setActive(-1);
           }}
+          onFocus={() => setHistoryOpen(true)}
+          onKeyDown={onKeyDown}
           className="min-w-0 flex-1 bg-transparent text-base text-content outline-none placeholder:text-content-tertiary disabled:opacity-40"
         />
 
@@ -164,19 +242,32 @@ export function Search({
 
       {showHistory && (
         <ul
+          id={listId}
+          role="listbox"
           className="absolute z-40 mt-1 w-full overflow-hidden rounded-sm border border-line bg-surface-floating shadow-e3"
           aria-label="Son aramalar"
         >
-          {history.map((h) => (
-            <li key={h}>
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => commit(h)}
-                className="w-full truncate px-3 py-2 text-left text-sm text-content-secondary hover:bg-surface-elevated hover:text-content"
-              >
-                {h}
-              </button>
+          {history.map((h, i) => (
+            /* Öğeler `role="option"` ve ODAK ALMAZ: odak kutuda kalır,
+               imleç `aria-activedescendant` ile taşınır (ARIA combobox
+               kalıbı). Odağı listeye taşımak, yazmaya devam etmeyi
+               imkânsız kılardı. */
+            <li
+              key={h}
+              id={optionId(i)}
+              role="option"
+              aria-selected={i === active}
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setActive(i)}
+              onClick={() => commit(h)}
+              className={[
+                "cursor-pointer truncate px-3 py-2 text-sm",
+                i === active
+                  ? "bg-surface-elevated text-content"
+                  : "text-content-secondary",
+              ].join(" ")}
+            >
+              {h}
             </li>
           ))}
         </ul>

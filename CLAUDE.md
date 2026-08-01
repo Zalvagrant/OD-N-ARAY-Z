@@ -94,22 +94,32 @@ bak. Varsa kullan, benziyorsa genişlet, yoksa **önce dokümana ekle**, sonra y
 
 ### 6. ADR öneki: `UI-ADR-###`
 
-Bu repodaki kararlar `UI-ADR-001…140` serisindedir (130–139 BOŞ — aşağıya bak).
+Bu repodaki kararlar `UI-ADR-001…153` serisindedir — **boşluk yok.**
+S13 merge edildiğinde `main`'in S15 için açtığı 130–139 aralığı doldu.
 ODIN'in kendi serisi `ADR-0001…` — **karıştırma.**
 
-Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-141`'den**
+Yeni bir mimari karar alırsan `08-decision-log.md`'ye **`UI-ADR-154`'ten**
 devam ederek ekle. Eski kararı silme; `♻️ Değiştirildi` işaretle.
 
 ⚠️ **Numarayı almadan önce dosyanın SONUNA VE `main`'e bak.** Bu dosyada
-DÖRT kez numara çakıştı (098; 099/100 iki kez; 116/117 — bir oturum
+YEDİ kez numara çakıştı (098; 099/100 iki kez; 116/117 — bir oturum
 099/100'ü 116/117'ye taşırken başka bir oturum 116/117'yi S8 için almıştı)
-çünkü paralel oturumlar aynı anda numara alıyor. Karar günlüğü bu repoda geri alınması en zor dosyadır.
+çünkü paralel oturumlar aynı anda numara alıyor; BEŞİNCİSİ 129 idi
+(S13 dalı lokal 129'u aldı, main aynı gün S14 için 129'u DONDURDU —
+lokal olan 135'e taşındı). Karar günlüğü bu repoda geri alınması en zor dosyadır.
 
-**BEŞİNCİ çakışma (31 Tem 2026) ve neden 130–139 boş:** `main`'de
-UI-ADR-129 (S14) varken `feature/s13-frontend-architecture` dalı da
-129–134'ü almıştı. Merge sırası çakışmayı büyütmesin diye S15
-**140'tan** devam etti. Boşluk zararsız, çakışma değil — ama asıl
-kural şu: **numarayı `main`'den al, dalından değil.**
+**ALTINCI ve YEDİNCİ çakışma (31 Tem 2026):** S13 dalı açıkken `main`
+S15 ve S16'yı aldı ve **140 ile 141'i** dondurdu; S13'ünkiler
+**148/149**'a taşındı. Aynı gün S13 merge edildi ve `main`'in S15 için
+açtığı 130–139 boşluğu doldu.
+
+**SEKİZİNCİ çakışma:** S17 ile S13 aynı gün indi, ikisi de UI-ADR-142
+yazmıştı. **S17 ÖNCE indi (`67e0bfc`)**, S13 sonra — S17'nin 142'si kaldı,
+S13'ünki **150**'ye taşındı.
+
+Kural üç cümlede: **numarayı `main`'den al, dalından değil** ·
+merge edilmiş ve yayında olan kazanır, lokal olan taşınır ·
+**dal açıkken `main` yeniden hareket edebilir — merge öncesi TEKRAR bak.**
 
 ### 7. Karar ODIN çekirdeğini etkiliyorsa
 
@@ -190,10 +200,9 @@ Bunları yeniden icat etme, mevcut interface'lere bağla:
 oturumlar bu panoyu güncellemeyi atladığı için dört kez ADR numarası
 çakıştı. **Sprint bitirince BURAYI da güncelle.**
 
-**`main` = `11dd4c9`** — S1…S7'nin tamamı ve S5.5 içinde. ADR-0143
-hizalıdır (Alert/KPI kanonik zarfları · Opportunity ayrı kayıt DEĞİL ·
-Mission reddedildi, tahta "izlenen kararlar + vadesi gelen ertelemeler"
-görünümü).
+**`main` = S1…S17 + S13** (31 Tem 2026). ADR-0143 hizalıdır (Alert/KPI
+kanonik zarfları · Opportunity ayrı kayıt DEĞİL · Mission reddedildi,
+tahta "izlenen kararlar + vadesi gelen ertelemeler" görünümü).
 
 | Sprint | Durum |
 |---|---|
@@ -204,6 +213,20 @@ görünümü).
 | **S8 Amazon Canlı Bağlantı** | ⚠️ **dalda** — `feature/s8-amazon-live-v2`, UI-ADR-118…124. Meclis: **teknik merge ✅**. `/goals` ile **ilk canlı ODIN verisi ekranda** (üretim derlemesinde doğrulandı) |
 | **S10 Amazon canlı KPI + Alert** | ⚠️ **dalda** — `feature/s10-amazon-live`, UI-ADR-126. ODIN ADR-0147'nin `GET /api/amazon` yayınına bağlandı; Amazon Director şeridi ve alarmları **gerçek veri** gösteriyor |
 | S9 AI Gateway | ⬜ başlanmadı — ölçüldü ve ERTELENDİ: `telemetry.jsonl`'de 0 model çağrısı kaydı, router modülü yok. Bugün yapılsa AI Runtime sekmesi boş bir panel olurdu (kural 2 ihlali) |
+| S14 Runtime alarmları · S15 Ölçüm penceresi · S16 Fırsat görünümü | ✅ `main`'de (UI-ADR-129 · 140 · 141) |
+| S17 Storybook kapısı | ✅ `main`'de (UI-ADR-142) — `npm run test:ci` fail-closed |
+| **S13 Kurumsal Ön Yüz Mimarisi** | ✅ **`main`'de** — UI-ADR-130…139 + 143…153. Sahip onayladı. Kapılar: katman sınırları · envanter · sahte veri kaçağı · erişilebilirlik · ekran durum matrisi |
+
+✅ **S13 kapandı ve `main`'e indi.** Geçmişi ve tuzakları
+`docs/ui_chatgpt/19-s13-devir.md`'de.
+
+⚠️ **TESTİ NASIL KOŞACAKSIN:** `npm run test:ci` (S17'nin fail-closed
+kapısı). Çıplak `npx vitest run` KULLANMA — `unit` ile `storybook` aynı
+anda koşarsa node işçileri CPU'yu tutuyor, tarayıcı bağlantısı düşüyor ve
+özet satırı yine "passed" yazıyor. Eski devir belgelerindeki *"dev
+sunucusunu kapat"* teşhisi YANLIŞTI; gerçek sebep `connectTimeout` idi
+(UI-ADR-142, soğuk önbellekle 300 sn ölçüldü — düşürmeden önce
+`rm -rf node_modules/.vite` ile SOĞUK ölç).
 
 **S8 ne teslim etti:** veri borusu + kapılar + canlı vekil + **`/goals`
 ekranı**. Sahip Goal kapsam kararını verdi (gavadolar 2/2 → ayrı ekran,

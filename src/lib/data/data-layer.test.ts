@@ -10,7 +10,8 @@ import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { FRESHNESS_THRESHOLDS_MS } from "@/types/data-envelope";
+import { FRESHNESS_THRESHOLDS_MS, internalEnvelope } from "@/types/data-envelope";
+import { mockKpi } from "@/mocks/envelope";
 import { httpLoad, parseEnvelope } from "./client";
 import { OdinError, classifyError, contractError, httpError, offlineError } from "./errors";
 import { makeQueryClient } from "./query";
@@ -335,6 +336,34 @@ describe("hata metinleri beş adımı doldurur", () => {
   it("sınıflandırılamayan hata SEBEP UYDURMAZ", () => {
     expect(classifyError({ x: 1 }, "kpi").why).toContain("UYDURULMADI");
   });
+
+  /* Ham yük doğrulaması `ZodError` atar. Bu dal yazılmadan önce hata
+     "unknown"a düşüyordu: kullanıcı, sebebi tam olarak bilinen bir
+     sözleşme farkı için "kaynağı sınıflandırılamadı" görüyordu. */
+  it("ham yükün ZodError'ı SÖZLEŞME hatasıdır, 'unknown' değil", () => {
+    let thrown: unknown;
+    try {
+      z.object({ generated_at: z.string() }).parse({ generated_at: 42 });
+    } catch (err) {
+      thrown = err;
+    }
+
+    const e = classifyError(thrown, "/api/amazon");
+    expect(e.kind).toBe("contract");
+    expect(e.what).toBe("Veri doğrulanamadı");
+    /* Zod'un ham mesajı kullanıcıya ÇIKMAZ, `technical`e gider. */
+    expect(e.technical).toContain("generated_at");
+    expect(e.why).not.toContain("generated_at");
+    /* Sözleşme ihlali tekrar denenmez — aynı sunucu aynı veriyi üretir. */
+    expect(e.retryable).toBe(false);
+  });
+
+  it("iptal hatası ŞEKİLDEN tanınır — ayrı realm'de instanceof çalışmaz", () => {
+    /* Node'un undici'si düz `Error` atabilir; `instanceof DOMException`
+       o durumda false döner ve gerçek iptal "unknown" olurdu. */
+    const plain = Object.assign(new Error("aborted"), { name: "AbortError" });
+    expect(classifyError(plain, "kpi").kind).toBe("timeout");
+  });
 });
 
 /* ------------------------------------------------------------------ 7 */
@@ -356,5 +385,42 @@ describe("gerçek modda mock sızamaz", () => {
     await expect(import("./mode")).rejects.toThrow(/geçersiz/);
     vi.unstubAllEnvs();
     vi.resetModules();
+  });
+});
+
+/* ------------------------------------------------------------------ 8 */
+
+/**
+ * UI-ADR-137 — iki fabrika birer kez yazılıyor. Bu blok onların
+ * VARSAYILANLARINI kilitler; kopyalar birleştirilmeden önce hiçbir test
+ * bu üç kararı okumuyordu ve tam olarak bu yüzden sessizce ayrılabilirlerdi.
+ */
+describe("zarf ve kayıt fabrikaları — UI-ADR-137", () => {
+  it('internalEnvelope her zaman source="internal" damgalar', () => {
+    const env = internalEnvelope("2026-07-31T10:00:00Z", [1, 2, 3]);
+    expect(env.meta.source).toBe("internal");
+    expect(env.meta.lastUpdated).toBe("2026-07-31T10:00:00Z");
+    expect(env.data).toEqual([1, 2, 3]);
+  });
+
+  it("internalEnvelope'un freshness'ı YER TUTUCUDUR — parseEnvelope yeniden hesaplar", () => {
+    /* Adaptör "live" yazıyor ama tek doğru kaynak istemcideki yeniden
+       hesaptır (UI-ADR-115). Bayat bir damga canlı görünmemeli. */
+    const old = new Date(Date.now() - 48 * 60 * 60_000).toISOString();
+    expect(internalEnvelope(old, []).meta.freshness).toBe("live");
+    expect(parseEnvelope(internalEnvelope(old, [kpi()]), z.array(executiveKpiSchema), "kpi", "amazon").meta.freshness).toBe("stale");
+  });
+
+  it("mockKpi value'yu NULL bırakır — anti-fake mock'ta da geçerlidir", () => {
+    const k = mockKpi({ id: "x", label: "X", unit: "currency" });
+    expect(k.value).toBeNull();
+    expect(k.status).toBe("available");
+    expect(typeof k.asOf).toBe("string");
+  });
+
+  it("mockKpi'nin verilen alanları varsayılanları EZER", () => {
+    const k = mockKpi({ id: "x", label: "X", unit: "count", value: 42, status: "unavailable", reason: "yok" });
+    expect(k.value).toBe(42);
+    expect(k.status).toBe("unavailable");
   });
 });

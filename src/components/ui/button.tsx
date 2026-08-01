@@ -17,7 +17,7 @@
  *   ReadOnly  — N/A. Salt okunur bir eylem yoktur; karşılığı `disabled`.
  */
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import { Loader2, WifiOff } from "lucide-react";
 
 const VARIANT = {
@@ -65,7 +65,7 @@ const ICON_ONLY_PAD: Record<ButtonSize, string> = {
   xl: "!px-4",
 };
 
-export interface ButtonProps
+interface ButtonBase
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -75,10 +75,53 @@ export interface ButtonProps
   offline?: boolean;
   /** Metnin solundaki ikon. Lucide bileşeni verilir. */
   icon?: ReactNode;
-  /** Yalnız ikon — `aria-label` ZORUNLU. */
+  /**
+   * Kare padding — YALNIZ YERLEŞİM. Erişilebilirlik iddiası TAŞIMAZ:
+   * adın zorunluluğu `children`ın yokluğundan gelir (aşağıya bak), bu
+   * bayraktan değil. Unutulması yalnız görünümü etkiler.
+   */
   iconOnly?: boolean;
   children?: ReactNode;
+  /**
+   * React 19'da `ref` sıradan bir prop'tur, ama TİPİ beyan edilmezse
+   * çağıran onu geçiremez. Gerekli: bir açılır paneli kapatan kod odağı
+   * tetikleyiciye GERİ VERMEK zorundadır (`filter.tsx`, UI-ADR-149) —
+   * yoksa odak silinen düğümde kalır ve sonraki Tab belgenin başına atlar.
+   */
+  ref?: Ref<HTMLButtonElement>;
 }
+
+/**
+ * METİN YOKSA AD ZORUNLU — derlemede (UI-ADR-149, kapanış denetiminde
+ * onarıldı).
+ *
+ * Burada bir yorum vardı: *"Yalnız ikon — `aria-label` ZORUNLU."* — ve
+ * hiçbir şey onu zorlamıyordu. Adsız bir ikon butonu ekran okuyucuda
+ * yalnızca "buton" diye okunur ve ne yaptığı ASLA anlaşılmaz. Görerek
+ * fark edilmez; bu yüzden derleyiciye verildi.
+ *
+ * ⚠️ İLK DÜZELTME DE AÇIKTI: kapı `iconOnly` BAYRAĞINA bağlanmıştı, yani
+ * bayrağı YAZMAMAK kapıyı susturuyordu. `<Button icon={<X/>} />` —
+ * `children` yok, `iconOnly` yok — derlemeden geçiyor ve adsız bir buton
+ * çiziyordu. Bağımsız denetimde bulundu ve deneyle doğrulandı.
+ *
+ * Şimdi kapı `children`a bağlı: metin varsa ad içerikten gelir, metin
+ * yoksa `aria-label` ya da `aria-labelledby` İSTENİR. `iconOnly` artık
+ * yalnız bir YERLEŞİM bayrağı (kare padding) — erişilebilirlik iddiası
+ * taşımadığı için unutulması bir şey bozmuyor. Bayrağa bağlı kapı,
+ * bayrağı yazmayı hatırlamaya bağlı kapıdır; bu da yorumdan bir adım
+ * ötesidir, kapı değildir.
+ *
+ * ponytail: `aria-label=""` tipçe `string`tir ve geçer. Tipte engellemek
+ * okunaksız bir şablon-literal tipi ister; bugün hiçbir çağıran öyle
+ * yazmıyor. Gerekirse ESLint kuralıyla.
+ */
+export type ButtonProps =
+  /* Metin varsa ad İÇERİKTEN gelir — ek bir şey istenmez. */
+  | (ButtonBase & { children: ReactNode })
+  /* Metin YOKSA ad açıkça verilmek ZORUNDA. */
+  | (ButtonBase & { children?: undefined; "aria-label": string })
+  | (ButtonBase & { children?: undefined; "aria-labelledby": string });
 
 export function Button({
   variant = "secondary",
@@ -129,7 +172,7 @@ export function Button({
         </>
       )}
       {!loading && !offline && icon}
-      {!iconOnly && children}
+      {children}
     </button>
   );
 }

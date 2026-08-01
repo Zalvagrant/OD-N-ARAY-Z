@@ -6,10 +6,9 @@
  * eşzamanlı iki isteğinin TEK yükleme yapması.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { loadMock, type MockKey } from "./registry";
-import { fillStore } from "./use-mock";
 
 const KEYS: MockKey[] = [
   "amazon.snapshot", "amazon.kpis", "amazon.skus", "amazon.ppc",
@@ -37,18 +36,36 @@ describe("kayıt defteri", () => {
   });
 });
 
-describe("eşzamanlı yükleme tekilleştirilir", () => {
-  it("aynı anahtar için ikinci istek UÇUŞTAKİ sözü bekler, yenisini başlatmaz", async () => {
-    /* İki bölüm aynı mock'u kullandığında (decisions hem Briefing'de hem
-       Mission Control'de) iki ayrı dinamik import başlardı.
+/*
+ * EŞZAMANLI YÜKLEME TEKİLLEŞTİRMESİ buradan KALDIRILDI — UI-ADR-135.
+ *
+ * Eskiden `use-mock.ts` içindeki `INFLIGHT` haritası test ediliyordu. O
+ * harita, React Query'ye PARALEL ikinci bir önbellek uygulamasıydı; fixture
+ * kaynakları tek boruya (`useOdinFixture` → `useOdinQuery`) bağlanınca
+ * tekilleştirme React Query'nin kendi sorumluluğu oldu: aynı `queryKey` ile
+ * eşzamanlı iki gözlemci tanım gereği tek istek yapar.
+ *
+ * Bu dosyanın kendi kuralı (data-layer.test.ts başlığı): "React Query'nin
+ * KENDİ önbellek/observer uygulamasını yeniden test etmeyiz." Testin
+ * silinmesi kapsam kaybı değil, o kuralın uygulanmasıdır.
+ */
 
-       Kapı: ikinci çağrı BİRİNCİNİN SÖZÜNÜ döndürmeli — referans eşitliği
-       tekilleştirmenin doğrudan kanıtıdır. INFLIGHT kaldırılırsa iki ayrı
-       söz üretilir ve bu test düşer. */
-    const key: MockKey = "amazon.simulations"; // bu dosyada fillStore ile doldurulmadı
-    const first = fillStore(key, false);
-    const second = fillStore(key, false);
-    expect(second).toBe(first);
-    await Promise.all([first, second]);
+describe("gerçek modda fixture kapısı KAPALI", () => {
+  it("her anahtar null döner — taşınmamış bölüm mock gösteremez", async () => {
+    /* FAIL-CLOSED — S7 · UI-ADR-115'in taşındığı yer.
+       Önceden bu güvence `mockGate` üzerinden ölçülüyordu; `use-mock.ts`
+       emekliye ayrılınca güvencenin KENDİSİ burada ölçülür, emekli
+       uygulamada değil. Kapı kalkarsa gerçek ve sahte sayılar aynı
+       ekranda yan yana durur ve hangisinin hangisi olduğu görünmez. */
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_ODIN_DATA_MODE", "odin");
+
+    const { loadMock: realModeLoad } = await import("./registry");
+    for (const key of KEYS) {
+      expect(await realModeLoad(key), `${key} gerçek modda sızdı`).toBeNull();
+    }
+
+    vi.unstubAllEnvs();
+    vi.resetModules();
   });
 });

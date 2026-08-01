@@ -1,0 +1,173 @@
+/**
+ * EKRAN DURUM MATRİSİ KAPISI — UI-ADR-151.
+ *
+ * Bir ekran `demo?: DemoState` alıyorsa üç durumu da (`loading` · `empty` ·
+ * `error`) çizebiliyor demektir — ve o üç durumun her biri kullanıcıya
+ * FARKLI bir şey söyler:
+ *
+ *     "yükleniyor"  ≠  "ölçüldü, sonuç boş"  ≠  "ÖLÇÜLMEDİ"
+ *
+ * Ortadaki bir CEVAPTIR; sonuncusu cevapsızlıktır. İkisini aynı gösteren
+ * bir ekran, ölçülmemiş bir şeyi ölçülmüş gibi sunar — CLAUDE.md §2'nin
+ * ekran seviyesindeki hâli.
+ *
+ * Bu kapı yalnız story'nin VARLIĞINI değil `play`ini de ister: durum
+ * story'leri bu repoda zaten vardı ve HİÇBİRİ bir şey iddia etmiyordu
+ * (yazılımcılar meclisinin bulduğu eksik test sınıfı buydu). Yalnız render
+ * eden bir durum story'si, ekranın o durumda ne gösterdiğini kanıtlamaz.
+ *
+ * ⚠️ İLK HÂLİ AÇIKTI ve kendi kapıma saldırınca çıktı: dosyadaki `play:`
+ * SAYISINI sayıyordu. Bir durum story'sinin `play`ini silip ALAKASIZ bir
+ * story'ye sahte bir `play` eklemek sayıyı koruyordu ve kapı geçiyordu.
+ * Sayı saymak, doğru yerde olup olmadığını sormaz. Şimdi her `export
+ * const` bloğu AYRI AYRI inceleniyor: `demo="..."` hangi bloktaysa `play`
+ * de O BLOKTA olmak zorunda.
+ *
+ * ponytail: blok ayrımı `export const` sınırıyla yapılıyor, AST
+ * kurulmuyor. Bu kapının yakalaması gereken hata sınıfı için yeterli;
+ * story'nin İÇERİĞİNİN doğruluğunu `play`in kendisi doğrular.
+ */
+
+import { describe, expect, it } from "vitest";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+const FEATURES = join(process.cwd(), "src", "features");
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]
+  );
+}
+
+/** HER ekran — muafiyet yok (UI-ADR-153). */
+const screens = walk(FEATURES).filter((f) => f.endsWith("screen.tsx"));
+
+/** Bunların üstüne AYRICA üç durumluk matris istenir. */
+const demoScreens = screens.filter((f) =>
+  /demo\?:\s*DemoState/.test(readFileSync(f, "utf8"))
+);
+
+const rel = (f: string) =>
+  f.slice(process.cwd().length + 1).split("\\").join("/");
+const storyPathOf = (f: string) =>
+  f.replace(/screen\.tsx$/, "screen.stories.tsx");
+
+/** `export const X` bloklarına ayır — `play`in DOĞRU story'de olduğunu
+ *  ancak böyle sorabiliriz. */
+const bloklarOf = (src: string) => src.split(/^export const /m).slice(1);
+
+/** Bir bloğun bir şey İDDİA ettiğini doğrular. */
+function iddiaVarMi(blok: string): boolean {
+  if (!/^\s*play:/m.test(blok)) return false;
+  return blok.slice(blok.search(/^\s*play:/m)).includes("expect(");
+}
+
+/** Her durum için story adında aranan iz — Türkçe adlar kullanılıyor. */
+const STATES = [
+  { key: "loading", demo: /demo="loading"/ },
+  { key: "empty", demo: /demo="empty"/ },
+  { key: "error", demo: /demo="error"/ },
+] as const;
+
+describe("ekran kapısı — HER ekran (UI-ADR-151 → 153)", () => {
+  it("kapı boşa çalışmıyor: iki liste de dolu", () => {
+    /* Kapının kendisi de körleşebilir: `screen.tsx` adlandırması değişirse
+       liste sessizce boşalır ve test hep yeşil kalır. */
+    expect(screens.length).toBeGreaterThan(0);
+    expect(demoScreens.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * MUAFİYET KALDIRILDI — UI-ADR-153. Kapı önce `demo?: DemoState`
+   * beyanına kilitliydi; o prop'u ALMAYAN üç ekran (`amazon/sku`,
+   * `goals`, `intelligence-feed`) matristen sessizce muaftı ve muafiyet
+   * gerçek bir boşluktu: `amazon/sku`ın DÖRT durum story'si vardı,
+   * hiçbiri bir şey iddia etmiyordu; diğer ikisinin hiç hikâyesi yoktu.
+   *
+   * Ekranın durumları `demo` prop'undan gelmek ZORUNDA değil —
+   * `AmazonSkuPanel` hiç prop almaz, durumları store ve sorgudan gelir.
+   * Bu yüzden kural durum ADLARINA değil ŞUNA bağlandı: her ekranın
+   * hikâyesi olacak ve HER story bir şey iddia edecek.
+   */
+  it.each(screens.map(rel))(
+    "%s — hikâyesi var ve HER story bir şey İDDİA EDİYOR",
+    (r) => {
+      const storyPath = storyPathOf(join(process.cwd(), r));
+      expect(
+        existsSync(storyPath),
+        `${r}: hikâyesi YOK. Bir ekranın ne çizdiğini kanıtlayan tek yer ` +
+          `hikâyesidir; hikâyesiz ekran yalnız gözle doğrulanabilir.`
+      ).toBe(true);
+
+      for (const blok of bloklarOf(readFileSync(storyPath, "utf8"))) {
+        const ad = blok.slice(0, Math.max(blok.indexOf(":"), 0));
+        expect(
+          iddiaVarMi(blok),
+          `${r} → "${ad}" story'si hiçbir şey İDDİA ETMİYOR (play yok ya ` +
+            `da play'inde expect yok). Yalnız render eden bir story, ` +
+            `bileşenin patlamadığını kanıtlar — DOĞRU çizdiğini değil.`
+        ).toBe(true);
+      }
+    }
+  );
+
+  it.each(demoScreens.map(rel))(
+    "%s — AYRICA üç durumun ÜÇÜ de ayrı story",
+    (rel) => {
+      const storyPath = storyPathOf(join(process.cwd(), rel));
+      const src = readFileSync(storyPath, "utf8");
+
+      /* Dosyayı `export const` sınırlarından bloklara ayır — `play`in
+         DOĞRU story'de olduğunu ancak böyle sorabiliriz. */
+      const bloklar = src.split(/^export const /m).slice(1);
+
+      for (const s of STATES) {
+        const blok = bloklar.find((b) => s.demo.test(b));
+
+        expect(
+          blok,
+          `${rel}: "${s.key}" durumunun story'si yok. Ekran o durumu ` +
+            `çizebiliyor ama ne gösterdiğini kimse kanıtlamıyor.`
+        ).toBeDefined();
+
+        /* `play` AYNI blokta olmalı. Başka bir story'deki `play` bu durumu
+           kanıtlamaz — kapının ilk hâli tam olarak buna kanıyordu. */
+        expect(
+          /^\s*play:/m.test(blok!),
+          `${rel}: "${s.key}" durum story'sinde \`play\` YOK. Yalnız render ` +
+            `eden bir durum story'si ekranın o durumda ne gösterdiğini ` +
+            `KANITLAMAZ (UI-ADR-150 ile aynı kural). Başka bir story'deki ` +
+            `play bunun yerine geçmez.`
+        ).toBe(true);
+
+        /* Bir blok İKİ durumu birden taşıyamaz: taşısaydı tek `play` üç
+           durumu birden "karşılar" görünürdü ve kapı susardı. Her durum
+           kendi story'sinde, kendi iddiasıyla. */
+        const demoSayisi = (blok!.match(/demo="(loading|empty|error)"/g) ?? [])
+          .length;
+        expect(
+          demoSayisi,
+          `${rel}: "${s.key}" story'si ${demoSayisi} farklı demo durumu ` +
+            `çiziyor. Her durum AYRI story olmalı — tek play birden fazla ` +
+            `durumu kanıtlayamaz.`
+        ).toBe(1);
+
+        /* `play` GÖVDESİ boş olamaz: `play: async () => {}` biçimsel
+           olarak geçer ve sıfır şey iddia eder. En az bir `expect` istenir.
+
+           Düz `includes` KASITLI, regex değil: ilk yazımda buraya
+           `/expect…/` konmuştu ve `` yazıya GÖRÜNMEZ bir backspace
+           baytı (0x08) olarak girmişti — regex hiçbir zaman eşleşmedi ve
+           kapı ÜÇ dosyayı da haksız yere kırmızı gösterdi. Aranan şey düz
+           bir alt dize; regex burada hiçbir şey kazandırmıyordu. */
+        const govde = blok!.slice(blok!.search(/^\s*play:/m));
+        expect(
+          govde.includes("expect("),
+          `${rel}: "${s.key}" story'sinin \`play\`inde hiç \`expect\` yok. ` +
+            `Boş bir play, olmayan bir play'dir.`
+        ).toBe(true);
+      }
+    }
+  );
+});

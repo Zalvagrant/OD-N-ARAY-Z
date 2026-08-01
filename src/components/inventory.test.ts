@@ -1,0 +1,188 @@
+/**
+ * ENVANTER KAPISI — UI-ADR-148 (sahip kararı).
+ *
+ * Dokuz bileşenin hiçbir ekran tüketicisi yok (`ui/chart` · `ui/modal` ·
+ * `ui/tabs` · `ui/tooltip` · `ui/filter` · `ui/icon` · `ui/avatar` ·
+ * `ui/sparkline` · `executive/telemetry-bar`). Sahip bunların **tasarım
+ * sistemi envanteri olarak kalmasına** karar verdi — silinmiyorlar.
+ *
+ * Bu kapı o kararı YAŞATIR. "Envanter" bir etikettir; etiket tek başına
+ * ölü kodu meşrulaştırır. Onu dürüst tutan tek şey, bileşenin GÖRÜLEBİLİR
+ * ve ÇALIŞTIRILABİLİR olmasıdır: hikâyesi olan bir bileşen Storybook'ta
+ * render edilir, addon-a11y ile taranır ve test paketinde koşar.
+ * Hikâyesi olmayan ve çağıranı da olmayan bir dosya envanter değildir —
+ * hiç kimsenin bakmadığı koddur.
+ *
+ * KURAL (iki kollu):
+ *   1. **Çağıranı yoksa hikâyesi olacak.**
+ *   2. **O hikâye bir DAVRANIŞ kanıtlayacak** (en az bir `play`) —
+ *      UI-ADR-150'de eklendi, gerekçesi aşağıda.
+ *
+ * Bu kural KASITLI OLARAK DAR: çağıranı OLAN bileşen için hikâye zorunlu
+ * değildir. Burada kilitlenen şey yalnızca envanter kararının bedelidir.
+ */
+
+import { describe, expect, it } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+const SRC = join(process.cwd(), "src");
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]
+  );
+}
+
+const all = walk(SRC).filter((f) => /\.tsx?$/.test(f));
+const isStory = (f: string) => f.endsWith(".stories.tsx");
+const isTest = (f: string) => /\.test\.tsx?$/.test(f);
+
+/** `src/components/ui/badge.tsx` → `components/ui/badge` */
+const moduleId = (f: string) =>
+  f.slice(SRC.length + 1).replace(/\\/g, "/").replace(/\.tsx?$/, "");
+
+/** Bir dosyanın import ettiği yerel modül kimlikleri. */
+function importsOf(file: string): string[] {
+  const body = readFileSync(file, "utf8");
+  const dir = moduleId(file).split("/").slice(0, -1);
+  return [...body.matchAll(/from\s+"([^"]+)"/g)].flatMap(([, spec]) => {
+    if (spec.startsWith("@/")) return [spec.slice(2)];
+    if (spec.startsWith("./")) return [[...dir, spec.slice(2)].join("/")];
+    if (spec.startsWith("../")) {
+      const up = spec.match(/^(\.\.\/)+/)![0].length / 3;
+      return [[...dir.slice(0, dir.length - up), spec.replace(/^(\.\.\/)+/, "")].join("/")];
+    }
+    return [];
+  });
+}
+
+/* `.fixtures.` hariç: hikâye verisi bir bileşen değildir, tüketicisinin
+   yalnız hikâyeler olması onun DOĞRU hâlidir. */
+const components = all.filter(
+  (f) =>
+    /[\\/]components[\\/]/.test(f) &&
+    !isStory(f) &&
+    !isTest(f) &&
+    !f.includes(".fixtures.")
+);
+
+/* Hikâyeler ve testler TÜKETİCİ SAYILMAZ: bir bileşeni yalnız kendi
+   hikâyesinin import etmesi, onun kullanıldığı anlamına gelmez. */
+const productionImports = new Set(
+  all.filter((f) => !isStory(f) && !isTest(f)).flatMap(importsOf)
+);
+
+describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-148)", () => {
+  const orphans = components.filter((f) => {
+    const id = moduleId(f);
+    return ![...productionImports].some((i) => i === id);
+  });
+
+  /** Bir modülü import eden hikâye dosyaları. */
+  const storiesFor = (id: string) =>
+    all.filter(isStory).filter((f) => importsOf(f).includes(id));
+
+  it.each(orphans.map((f) => moduleId(f)))(
+    "%s — ekran tüketicisi yok, o hâlde hikâyesi olmalı",
+    (id) => {
+      expect(
+        storiesFor(id).length > 0,
+        `${id} ne bir ekrandan çağrılıyor ne de bir hikâyesi var. ` +
+          `Envanter kararı (UI-ADR-148) GÖRÜLEBİLİR bileşenler içindir; ` +
+          `hikâye yaz ya da dosyayı sil.`
+      ).toBe(true);
+    }
+  );
+
+  /**
+   * KAPININ AÇIĞI — UI-ADR-150 (gavadolar 2/2 buldu).
+   *
+   * "Hikâyesi var" yetmez: yalnız render eden bir story kapıyı BİÇİMSEL
+   * olarak geçer ama hiçbir davranış kanıtlamaz. O hâlde etiket yine tek
+   * başına ölü kodu meşrulaştırır — UI-ADR-148'ın engellemek için var
+   * olduğu şeyin ta kendisi.
+   *
+   * Ölçüldü: kapı yazıldığında envanterdeki DOKUZ bileşenin YEDİSİNİN
+   * hikâyesinde hiç `play` yoktu.
+   *
+   * Asgari koşul: en az bir `play` — yani bileşenin kamu davranışına dair
+   * en az bir iddia.
+   *
+   * ⚠️ İLK HÂLİ DOSYA SEVİYESİNDEYDİ (UI-ADR-153'te daraltıldı):
+   * `/\bplay\s*:/.test(dosya)` diye soruyordu. Çok bileşenli bir hikâye
+   * dosyasında (`display.stories.tsx` beş bileşen kapsıyor) BAŞKA bir
+   * bileşenin `play`i yeni bir yetimi kapatıyordu — yani yeni bileşen
+   * hakkında sıfır iddiayla "davranış kanıtlandı" testi geçiyordu.
+   * Bağımsız denetimde bulundu. Artık `play`, O BİLEŞENİ render eden
+   * `export const` bloğunun İÇİNDE aranıyor.
+   */
+  it.each(orphans.map((f) => moduleId(f)))(
+    "%s — kendi story bloğunda bir DAVRANIŞ kanıtlanmalı",
+    (id) => {
+      /** `components/ui/badge` → `Badge` · `executive/telemetry-bar` → `TelemetryBar` */
+      const adlar = (src: string) => {
+        const kisa = id.split("/").pop()!;
+        const m = src.match(
+          new RegExp(`import\\s*{([^}]*)}\\s*from\\s*"(?:\\./)?${kisa}"`)
+        );
+        return (m?.[1] ?? "")
+          .split(",")
+          .map((n) => n.trim().replace(/^type\s+/, ""))
+          .filter(Boolean);
+      };
+
+      const kanit = storiesFor(id).some((f) => {
+        const src = readFileSync(f, "utf8");
+        const isimler = adlar(src);
+        if (isimler.length === 0) return false;
+        /* Bloğa ayır ve YALNIZ bu bileşeni render eden bloklara bak. */
+        return src
+          .split(/^export const /m)
+          .slice(1)
+          .filter((b) => isimler.some((n) => new RegExp(`<${n}[\\s/>]`).test(b)))
+          .some((b) => {
+            const i = b.search(/^\s*play:/m);
+            return i >= 0 && b.slice(i).includes("expect(");
+          });
+      });
+
+      expect(
+        kanit,
+        `${id}: kendi story bloğunda bir iddia YOK — yalnız render ediyor ` +
+          `(ya da iddia BAŞKA bir bileşenin bloğunda). Envanter kararı ` +
+          `(UI-ADR-148) DAVRANIŞI kanıtlanmış bileşenler içindir; bu ` +
+          `bileşeni render eden story'ye bir sözleşme iddiası yaz.`
+      ).toBe(true);
+    }
+  );
+
+  it("envanter listesi beklenenden BÜYÜMEDİ", () => {
+    /* Sayı bir tavan, bir hedef değil. Büyüdüyse yeni bir bileşen
+       çağıranı olmadan girmiş demektir — sahip kararı dokuz kalem
+       içindi, açık uçlu bir izin değil.
+
+       ONUNCU KALEM (S10 · G3): `executive/director-card`. Yeni bir bileşen
+       DEĞİL — çağıranını kaybetti. Kart `AgentHealth` bekliyor ve ODIN
+       `/api/state.agents` için SIFIR kayıt yayınlıyor; Executive Briefing
+       bu yüzden 8 gerçek kayıt taşıyan `RuntimeDirectorCard`a geçti
+       (mission-control'ün UI-ADR-127'de verdiği kararın aynısı). Silinmedi:
+       `agents` beslenince tek çağrı yeriyle geri döner. Kuralın iki kolu
+       da sağlanıyor — hikâyesi var ve o hikâye artık bir DAVRANIŞ
+       kanıtlıyor (ölçülmemiş metrik sayı basmaz). */
+    expect(orphans.map(moduleId).sort()).toMatchInlineSnapshot(`
+      [
+        "components/executive/director-card",
+        "components/executive/telemetry-bar",
+        "components/ui/avatar",
+        "components/ui/chart",
+        "components/ui/filter",
+        "components/ui/icon",
+        "components/ui/modal",
+        "components/ui/sparkline",
+        "components/ui/tabs",
+        "components/ui/tooltip",
+      ]
+    `);
+  });
+});

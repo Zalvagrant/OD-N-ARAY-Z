@@ -6,6 +6,7 @@
  */
 import { AppShell } from "@/components/layout/app-shell";
 import { OdinQueryProvider } from "@/lib/data/query";
+import { contextPanel } from "./context-panel";
 
 export default function ShellLayout({
   children,
@@ -16,7 +17,7 @@ export default function ShellLayout({
      de workspace geçişlerinde hayatta kalır (S7 D7.1). */
   return (
     <OdinQueryProvider>
-      <AppShell>{children}</AppShell>
+      <AppShell contextPanel={contextPanel}>{children}</AppShell>
     </OdinQueryProvider>
   );
 }

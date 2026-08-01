@@ -20,17 +20,24 @@ export default defineConfig({
     alias: { '@': path.join(dirname, 'src') },
   },
   test: {
-    /* Ölçüm: soğuk `node_modules/.vite` ile Storybook projesi HİÇ koşmuyordu —
-       43 dosya, "no tests", 61.86 sn, "Failed to connect to the browser
-       session". Chromium'un kendisi sağlam (1.3 sn'de açılıyor, localhost'a
-       ulaşıyor); süreyi yiyen Vite'ın ilk `optimizeDeps` geçişi ve orkestratör
-       sayfası 60 sn'lik varsayılan sınırdan sonra hazır oluyor.
-       ⚠️ Bu ayar KÖKTE olmak zorunda: vitest onu
-       `project.vitest.config.browser.connectTimeout ?? 6e4` diye okuyor
-       (`dist/chunks/cli-api.*.js`), yani proje içine yazılırsa SESSİZCE
-       yok sayılır — bir kez öyle yazıldı ve yeşil sonuç sıcak önbellekten
-       geldi, ayardan değil. Kalibrasyon değeridir; düşürmeden önce
-       `rm -rf node_modules/.vite` ile SOĞUK ölç. */
+    /* TARAYICI BAĞLANTI ZAMAN AŞIMI — KÖKTE OLMAK ZORUNDA.
+     *
+     * İKİ OTURUM AYNI KÖK NEDENİ BAĞIMSIZ BULDU (S13 ve S17): vitest bu
+     * değeri `project.vitest.config.browser.connectTimeout ?? 6e4` ile
+     * KÖK config'ten okur; proje içine yazılırsa SESSİZCE yok sayılır ve
+     * varsayılan 60 sn yürürlükte kalır. İkisi de bir kez proje içine
+     * yazıp yeşil sonucu ayara bağlama hatasını yaptı — yeşillik sıcak
+     * önbellekten geliyordu.
+     *
+     * DEĞER S17'DEN: 300 sn, SOĞUK `node_modules/.vite` ile ölçüldü.
+     * S13 merge'ünde 180 sn'ye düşürülmüştü — o ölçüm SICAK önbellekle
+     * yapılmıştı, yani düşük olan değer doğrulanmamıştı. S17'nin uyarısı
+     * geçerlidir: **düşürmeden önce `rm -rf node_modules/.vite` ile
+     * SOĞUK ölç.** Bu bir kalibrasyon değeridir, bir tercih değil.
+     *
+     * ⚠️ `unit` ile `storybook` AYNI ANDA koşturulmaz (S13 ölçümü): node
+     * işçileri CPU'yu tutunca bağlantı yine düşüyor. `npm run test:ci`
+     * ikisini sırayla çalıştırır. */
     browser: { connectTimeout: 300_000 },
     projects: [
       {
@@ -73,6 +80,8 @@ export default defineConfig({
             headless: true,
             provider: playwright({}),
             instances: [{ browser: 'chromium' }],
+            /* `connectTimeout` BURAYA YAZILMAZ — kökte olmak zorunda,
+               yukarıdaki nota bak (UI-ADR-142). */
           },
         },
       },

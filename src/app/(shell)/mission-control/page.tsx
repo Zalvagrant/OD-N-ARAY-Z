@@ -1,9 +1,9 @@
 /**
  * Mission Control rotası — 05-dashboard.md §5.
- * Ekran gövdesi `components/screens/mission-control.tsx`.
+ * Ekran gövdesi `features/mission-control/screen.tsx`.
  */
 
-import { MissionControl } from "@/components/screens/mission-control";
+import { MissionControl } from "@/features/mission-control/screen";
 
 export default function MissionControlPage() {
   return <MissionControl />;

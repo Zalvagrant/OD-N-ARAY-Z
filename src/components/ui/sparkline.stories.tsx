@@ -1,5 +1,6 @@
 /** S3 · 14 — Sparkline (KPI kartı için) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, within } from "storybook/test";
 import { Sparkline } from "./sparkline";
 import { Caption, Label, Num } from "./typography";
 import { Card, CardBody } from "./card";
@@ -48,4 +49,53 @@ export const NotEnoughData: StoryObj = {
       <Caption>İki noktadan az veri = trend değil. Çizgi çizilmez.</Caption>
     </div>
   ),
+};
+
+/**
+ * UI-ADR-150 — envanter kapısının davranış koşulu.
+ * Sparkline'ın iki anti-fake kuralı var ve ikisi de sessizce bozulabilir.
+ */
+export const IkiNoktadanAzsaCIZMEZ: StoryObj = {
+  name: "İki noktadan az veri varsa ÇİZGİ ÇİZİLMEZ",
+  render: () => (
+    <div className="flex flex-col gap-2">
+      <span data-testid="one">
+        <Sparkline values={[42]} label="Tek nokta" />
+      </span>
+      <span data-testid="nulls">
+        <Sparkline values={[null, null, 7]} label="Boşluklu" />
+      </span>
+      <span data-testid="ok">
+        <Sparkline values={[1, 5]} label="Yeterli" />
+      </span>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const at = (id: string) => canvasElement.querySelector(`[data-testid="${id}"]`)!;
+
+    /* Tek noktadan çizilen bir "trend" bir TREND DEĞİLDİR — iki noktası
+       olmayan çizgi, olmayan bir yön iddia eder. */
+    await expect(at("one").querySelector("svg")).toBeNull();
+    /* `null` bir ölçüm değildir; sayılmaz. */
+    await expect(at("nulls").querySelector("svg")).toBeNull();
+    await expect(at("ok").querySelector("svg")).not.toBeNull();
+  },
+};
+
+export const YonRENKTEN_BAGIMSIZ: StoryObj = {
+  name: "Yön yalnız renkle değil, erişilebilir ADDA da yazılı",
+  render: () => (
+    <div className="flex flex-col gap-2">
+      <Sparkline values={[1, 2, 9]} label="Satış" />
+      <Sparkline values={[9, 2, 1]} label="İade" />
+      <Sparkline values={[4, 6, 4]} label="Stok" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    /* Renk körü kullanıcı için yeşil/kırmızı hiçbir şey söylemez. */
+    await expect(canvas.getByRole("img", { name: /Satış — yükseliyor/ })).toBeInTheDocument();
+    await expect(canvas.getByRole("img", { name: /İade — düşüyor/ })).toBeInTheDocument();
+    await expect(canvas.getByRole("img", { name: /Stok — yatay/ })).toBeInTheDocument();
+  },
 };

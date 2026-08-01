@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/selection";
-import { Text } from "@/components/ui/typography";
+import { Caption, Text } from "@/components/ui/typography";
 import { ConfidenceBadge } from "./confidence-badge";
 import { DataGuard } from "./data-guard";
 import { TrustSignal } from "./trust-signal";
@@ -110,7 +110,7 @@ function SimulationView({
             </dl>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-content-tertiary">Simülasyon güveni</span>
+              <Caption>Simülasyon güveni</Caption>
               <ConfidenceBadge value={active.result.confidence} />
             </div>
 

@@ -17,7 +17,7 @@
  * değil, istemcide çağrıldığında okunur (hydration güvenliği).
  */
 
-import type { TimelineItem } from "@/components/ui/timeline";
+import type { TimelineItem } from "@/types/screens";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type {
   AIRecommendation,
@@ -32,7 +32,7 @@ import type {
   RuntimeDirector,
 } from "@/types/executive";
 import type { ExecutiveHero } from "@/types/screens";
-import { ago, ahead, mockEnvelope } from "./envelope";
+import { ago, ahead, mockEnvelope, mockKpi } from "./envelope";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -415,45 +415,36 @@ export function opportunitiesMock(): DataEnvelope<Opportunity[]> {
    Executive KPI'lar — 05-dashboard.md §3.5 (dokümandaki 9 kalem, aynı sırada)
    -------------------------------------------------------------------------- */
 
-/* ADR-0143 §2: sınır zarfı DÜZDÜR (status/value/unit/currency/scale/
-   reason/as_of). Sparkline · forecast · insight sözleşmenin PARÇASI DEĞİL,
-   bu yüzden mock'ta da yok — anti-fake mock'ta da geçerlidir. */
-function kpi(
-  over: Partial<ExecutiveKPI> & Pick<ExecutiveKPI, "id" | "label" | "unit">
-): ExecutiveKPI {
-  return { status: "available", value: null, asOf: ago(30 * 60_000), ...over };
-}
-
 export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
   return mockEnvelope([
-    kpi({
+    mockKpi({
       id: "company.revenue",
       label: "Revenue",
       value: 4_182_000,
       unit: "currency",
       currency: "TRY",
     }),
-    kpi({
+    mockKpi({
       id: "company.net_profit",
       label: "Net Profit",
       value: 1_284_000,
       unit: "currency",
       currency: "TRY",
     }),
-    kpi({
+    mockKpi({
       id: "company.cash_flow",
       label: "Cash Flow",
       value: 862_000,
       unit: "currency",
       currency: "TRY",
     }),
-    kpi({
+    mockKpi({
       id: "amazon.health_score",
       label: "Amazon",
       value: 78,
       unit: "score",
     }),
-    kpi({
+    mockKpi({
       id: "amazon.inventory_health",
       label: "Inventory",
       value: 63.4,
@@ -461,7 +452,7 @@ export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
       /* UI-ADR-093 — ölçek BİLDİRİLİR. Bu alan olmasaydı kart boş görünürdü. */
       scale: "0-100",
     }),
-    kpi({
+    mockKpi({
       id: "council.ai_confidence",
       label: "AI Confidence",
       value: 88,
@@ -471,7 +462,7 @@ export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
        telemetry registry'de `knowledge_sync` ve `memory_indexing` kanalları
        `available: false`. Kart çizilir; zarf durumu ve GEREKÇESİ gelir,
        sayı alanı null kalır (ADR-0135 sınırı). */
-    kpi({
+    mockKpi({
       id: "knowledge.health",
       label: "Knowledge Health",
       status: "unavailable",
@@ -479,7 +470,7 @@ export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
       reason: "knowledge_sync telemetri kanalı kapalı; skor üretilmiyor.",
       unit: "score",
     }),
-    kpi({
+    mockKpi({
       id: "memory.health",
       label: "Memory Health",
       status: "unavailable",
@@ -487,7 +478,7 @@ export function kpisMock(): DataEnvelope<ExecutiveKPI[]> {
       reason: "memory_indexing telemetri kanalı kapalı; skor üretilmiyor.",
       unit: "score",
     }),
-    kpi({
+    mockKpi({
       id: "executive.decision_confidence",
       label: "Decision Confidence",
       value: 81,

@@ -1,6 +1,7 @@
 /** S3 · 1 — Typography System (11-design-tokens.md §16, UI-ADR-081) */
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { Caption, Heading, Label, Mono, Num, Text } from "./typography";
+import { expect, within } from "storybook/test";
+import { Caption, Heading, Label, Mono, Num, Pct, Text } from "./typography";
 
 const meta: Meta = {
   title: "Core/1 · Typography",
@@ -67,4 +68,49 @@ export const MonoUsage: StoryObj = {
       <Caption>SKU, ASIN, ID ve kod — gövde metni için ASLA.</Caption>
     </div>
   ),
+};
+
+/**
+ * UI-ADR-138 — yüzde gösteriminin TEK yolu. Bu story görsel değil
+ * SÖZLEŞME testidir: "0,18 mi %18 mi" sorusu tahmin EDİLMEZ, bildirilir
+ * (UI-ADR-093) ve bildirilmemişse değer HİÇ gösterilmez. Yanlış tahmin
+ * %18,1 yerine %1810 yazar ve bu, eksik veriden tehlikelidir — makul görünür.
+ */
+export const Percentages: StoryObj = {
+  name: "Pct — ölçek bildirilmemişse değer GÖSTERİLMEZ",
+  render: () => (
+    <dl className="flex flex-col gap-2">
+      <div data-testid="scale-0-100">
+        <dt className="text-content-secondary">ölçek 0-100, ham 71,53</dt>
+        <dd><Pct value={71.53} scale="0-100" /></dd>
+      </div>
+      <div data-testid="scale-0-1">
+        <dt className="text-content-secondary">ölçek 0-1, ham 0,7153</dt>
+        <dd><Pct value={0.7153} scale="0-1" /></dd>
+      </div>
+      <div data-testid="scale-missing">
+        <dt className="text-content-secondary">ölçek BİLDİRİLMEDİ</dt>
+        <dd><Pct value={71.53} scale={undefined} noDataReason="ACOS ölçeği bildirilmedi" /></dd>
+      </div>
+    </dl>
+  ),
+  play: async ({ canvasElement }) => {
+    const at = (id: string) =>
+      canvasElement.querySelector(`[data-testid="${id}"] dd`)!.textContent;
+
+    /* İki ayrı ölçek AYNI yüzdeyi vermeli — dönüşüm burada yapılır,
+       çağıranda değil. Ondalık sayısı (1) da bu bileşende yaşar; altı
+       kopyada yaşarken beşi düzeltilip biri unutulabilirdi. */
+    await expect(at("scale-0-100")).toBe(at("scale-0-1"));
+    /* tr-TR yüzde işareti BAŞTA yazar ("%71,5"), sonda değil — bu satır
+       ilk yazımda ters kuruldu ve testi düşürdü. Biçimlendirme yerelden
+       gelir, elle kurulmaz. */
+    await expect(at("scale-0-100")).toBe("%71,5");
+
+    /* Ölçek yoksa 0 ya da tahmin DEĞİL, NoData. */
+    await expect(at("scale-missing")).toBe("—");
+    await expect(
+      within(canvasElement).getByLabelText(/ölçeği bildirilmedi/i)
+    ).toBeInTheDocument();
+  },
 };

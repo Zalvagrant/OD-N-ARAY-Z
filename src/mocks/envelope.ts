@@ -10,6 +10,7 @@
  */
 
 import type { DataEnvelope, DataMeta } from "@/types/data-envelope";
+import type { ExecutiveKPI } from "@/types/executive";
 
 export const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
 export const ahead = (ms: number) => new Date(Date.now() + ms).toISOString();
@@ -28,4 +29,23 @@ export function mockEnvelope<T>(
   over: Partial<Omit<DataMeta, "source">> = {}
 ): DataEnvelope<T> {
   return { data, meta: mockMeta(over) };
+}
+
+/**
+ * KPI kaydı — UI-ADR-137.
+ *
+ * `briefing.ts:404` ve `amazon.ts:338`te BİREBİR AYNI gövdeyle iki kez
+ * yazılıydı. Tekrarın maliyeti dört satır değil, bu üç varsayılanın
+ * SESSİZCE AYRILABİLMESİDİR: `status: "available"` (ADR-0143 §2 sınır
+ * zarfı) · `value: null` (anti-fake — ölçüm yoksa değer yok) · `asOf`.
+ * Birine dokunulup diğerine dokunulmadığı gün, iki ekran aynı sözleşmeyi
+ * farklı yorumlar ve fark hiçbir testte görünmez.
+ *
+ * Sparkline · forecast · insight sözleşmenin PARÇASI DEĞİL, bu yüzden
+ * burada da yok — anti-fake mock'ta da geçerlidir.
+ */
+export function mockKpi(
+  over: Partial<ExecutiveKPI> & Pick<ExecutiveKPI, "id" | "label" | "unit">
+): ExecutiveKPI {
+  return { status: "available", value: null, asOf: ago(30 * 60_000), ...over };
 }

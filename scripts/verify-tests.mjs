@@ -1,5 +1,5 @@
 /**
- * Storybook test kapısı — fail-closed.
+ * Test kapısı — fail-closed. HER İKİ proje için (UI-ADR-153).
  *
  * NEDEN VAR: 31 Temmuz 2026'da ölçüldü — `npx vitest run` şunu bastı:
  *   Test Files  12 passed (55)      ← 55 dosyanın 43'ü HİÇ KOŞMADI
@@ -18,13 +18,27 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 
-const REPORT = ".artifacts/storybook-vitest.json";
+/* PROJE VE ALT SINIR DIŞARIDAN — UI-ADR-153.
+   Kapı önce yalnız `storybook`u koruyordu ve `unit` projesi çıplaktı:
+   `state-matrix.test.ts`i `state-matrix.spec.ts` diye yeniden adlandırmak
+   (ya da silmek) kapıyı SESSİZCE buharlaştırıyordu — `include` onu görmez,
+   geriye 15 dosya kaldığı için "no test files" hatası da çıkmaz ve
+   `test:ci` YEŞİL kalırdı. Bağımsız denetimde bulundu. Aynı `evaluate()`
+   mantığı iki projeye de uygulanıyor. */
+const PROJECT = process.argv[2] ?? "storybook";
+const REPORT = `.artifacts/${PROJECT}-vitest.json`;
 
-/* Alt sınır — sahip kararı (sabit sayı değil). Sabit sayı her yeni story'de
-   kapıyı kırar; alt sınır yalnız DÜŞÜŞÜ yakalar. Bugün ölçülen: 43 dosya /
-   140 test. Bu sayı büyüdüğünde sınırı yükseltmek serbesttir, düşürmek bir
-   karardır — düşürüyorsan aynı PR'da nedenini yaz. */
-const FLOOR = 140;
+/* Alt sınır — sabit sayı değil, DÜŞÜŞ dedektörü. Sabit sayı her yeni
+   story'de kapıyı kırar; alt sınır yalnız kaybı yakalar. Yükseltmek
+   serbesttir, DÜŞÜRMEK bir karardır — düşürüyorsan aynı PR'da nedenini yaz.
+
+   140 → 190 (S13 kapanışı). Gerekçe: S17 bu sınırı koyduğunda ölçüm 43
+   dosya / 140 testti; S13 ile 51 dosya / 193 teste çıktı. 140'ta bırakmak
+   **53 testin sessizce kaybolmasına izin vermek** demekti — kapı açık
+   görünürken kapsamın üçte biri buharlaşabilirdi. Sınır ölçümün hemen
+   altında durmalı ki gerçekten bir şey korusun; 190 küçük dalgalanmaya
+   pay bırakır, kayba bırakmaz. */
+const FLOOR = Number(process.argv[3] ?? 190);
 
 /* ponytail: kapı testlerin SAYISINI doğruluyor, KİMLİKLERİNİ değil. Meclis
    (gavadolar 2/2) daha güçlüsünü önerdi: `vitest list` ile keşfedilen test
@@ -60,11 +74,19 @@ export function evaluate(report, { runFailed = false, floor = FLOOR } = {}) {
 
 if (process.argv.includes("--self-check")) {
   const { strict: assert } = await import("node:assert");
+
+  /* Self-check MANTIĞI sınar, KALİBRASYONU değil: bu yüzden `FLOOR`
+     sabitini kullanmaz, kendi sınırını AÇIKÇA verir. İlk hâli `FLOOR`a
+     bağlıydı ve sınır 140→190 yükseltilince senaryolar çöktü — oysa
+     mantıkta hiçbir şey bozulmamıştı. Kalibrasyon değişince kırılan bir
+     testi, kalibrasyonu değiştirmemek için bahane olarak kullanmak
+     kolaydır; o yüzden bağ koparıldı. */
+  const F = { floor: 140 };
   const ok = { numPassedTests: 140, numFailedTests: 0, numPendingTests: 0,
                numTodoTests: 0, testResults: new Array(43) };
-  const red = (r, o) => assert.ok(evaluate(r, o).problems.length > 0);
+  const red = (r, o) => assert.ok(evaluate(r, { ...F, ...o }).problems.length > 0);
 
-  assert.equal(evaluate(ok).problems.length, 0);              // sağlıklı koşu
+  assert.equal(evaluate(ok, F).problems.length, 0);            // sağlıklı koşu
   red({ ...ok, numPassedTests: 139 });                         // alt sınır altı
   red({ ...ok, numPassedTests: 0, testResults: [] });          // tarayıcı düştü
   red({ ...ok, numFailedTests: 1 });                           // düşen test
@@ -72,8 +94,10 @@ if (process.argv.includes("--self-check")) {
   red({ ...ok, numTodoTests: 1 });                             // todo
   red(ok, { runFailed: true });          // rapor temiz ama süreç hata verdi
   // Sınır büyüyünce eski alt sınır kapıyı körleştirmemeli:
-  assert.equal(evaluate({ ...ok, numPassedTests: 400 }).problems.length, 0);
-  console.log("self-check: 8 senaryo — kapı beklenen yerlerde kırmızı");
+  assert.equal(evaluate({ ...ok, numPassedTests: 400 }, F).problems.length, 0);
+  // Yürürlükteki FLOOR gerçekten koruyor mu: bugünkü ölçümün altı kırmızı.
+  assert.ok(evaluate({ ...ok, numPassedTests: FLOOR - 1 }).problems.length > 0);
+  console.log(`self-check: 9 senaryo — kapı beklenen yerlerde kırmızı (FLOOR=${FLOOR})`);
   process.exit(0);
 }
 
@@ -85,7 +109,7 @@ let runFailed = false;
 try {
   execFileSync(
     "npx",
-    ["vitest", "run", "--project", "storybook",
+    ["vitest", "run", "--project", PROJECT,
      "--reporter=json", `--outputFile=${REPORT}`],
     { stdio: "inherit", shell: process.platform === "win32" },
   );
@@ -97,9 +121,9 @@ try {
 
 if (!existsSync(REPORT)) {
   throw new Error(
-    `Storybook kapısı KAPALI: rapor yazılmadı (${REPORT}). ` +
+    `${PROJECT} kapısı KAPALI: rapor yazılmadı (${REPORT}). ` +
     "Testler koşmadı — tarayıcı oturumu kurulamamış olabilir. " +
-    `Teşhis: npx vitest run --project storybook  (abs: ${abs})`,
+    `Teşhis: npx vitest run --project ${PROJECT}  (abs: ${abs})`,
   );
 }
 
@@ -107,14 +131,14 @@ let report;
 try {
   report = JSON.parse(readFileSync(REPORT, "utf8"));
 } catch (e) {
-  throw new Error(`Storybook kapısı KAPALI: rapor bozuk JSON — ${e.message}`);
+  throw new Error(`${PROJECT} kapısı KAPALI: rapor bozuk JSON — ${e.message}`);
 }
 
 const { problems, files, passed } = evaluate(report, { runFailed });
 
 if (problems.length > 0) {
-  throw new Error(`Storybook kapısı KAPALI: ${problems.join(" · ")}`);
+  throw new Error(`${PROJECT} kapısı KAPALI: ${problems.join(" · ")}`);
 }
 
-console.log(`Storybook kapısı AÇIK: ${files} dosya / ${passed} test geçti ` +
+console.log(`${PROJECT} kapısı AÇIK: ${files} dosya / ${passed} test geçti ` +
             `(alt sınır ${FLOOR}, atlanan 0, düşen 0)`);
