@@ -5026,3 +5026,64 @@ bilmiyordu. (`alert-stack.tsx` ayni isi baslikla yapiyor.) `title` tipce
 `npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
 **unit 16 dosya / 241 test**, **storybook 54 dosya / 203 test**,
 atlanan 0, dusen 0.
+
+---
+
+## UI-ADR-162 - Sessiz bozulmalar: NaN, cift kimlik, duyurulmayan bolge (S13 kapanis)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-115 - 161 - CLAUDE.md §2
+
+Alti bulgu daha. Hicbiri hata vermiyor; hepsi **sessizce yanlis calisiyor.**
+
+### 1 - `NaN` / `Infinity` kapilardan GECIYORDU
+
+Ikisi de tipce `number`dir ve `v !== null` kontrolunden gecerler.
+Sonuc: `chart`ta okuma satiri **"NaN"** basiyor, `sparkline`da yol
+**`d="M NaN,NaN"`** oluyordu. Olculemeyen bir deger `null`dir.
+
+Normalizasyon **turetmenin kaynagina** kondu (`chart`ta `values` memo'su):
+alan ve noktalar da ondan hesaplandigi icin asagidaki her mantik tek bir
+"yok" kavramiyla calisiyor. *Ilk denemede sonradan temizlendi ve GEC
+KALDI* - noktalar zaten ham diziden hesaplanmisti.
+
+### 2 - `Tabs` kimlikleri GLOBALDI
+
+`id={\`tab-${item.id}\`}` - ayni sayfada iki `Tabs` varsa (iki panelde de
+"health" sekmesi) DOM'da CIFT kimlik olusur ve `aria-labelledby` YANLIS
+ogeye baglanir: ekran okuyucu kullanicisi baska bir sekmenin adini duyar.
+Kapsam `useId` ile uretilip context'le `TabPanel`e tasiniyor - ikisi AYNI
+kapsami paylasmak zorunda, yoksa bag kopar.
+
+### 3 - Canli bolge iceriğiyle BIRLIKTE mount ediliyordu
+
+`{resultCount !== null && <span aria-live="polite">}`. Bir `aria-live`
+bolgesi DOM'a iceriğiyle ayni anda girerse **cogu ekran okuyucu onu
+DUYURMAZ** - bolgeyi izlemeye ancak var olduktan sonra baslar. Yani arama
+sonucu sessizce beliriyordu ve yalniz GOREN kullanici ogreniyordu.
+Kap kosulsuz, icerik kosullu. (`ui/chart.tsx:161` ayni isi zaten dogru
+yapiyordu.)
+
+### 4 - Bilinen sebep "bilinmeyen hata" diye gosteriliyordu
+
+`odin-state.ts`te iki yerde duz `throw new Error(...)`. `classifyError`
+bunu `unknown` dalina dusuruyor ve kullaniciya *"Beklenmeyen bir hata
+olustu — kaynagi UYDURULMADI"* yaziliyordu. Oysa sebep tam olarak
+biliniyor: ODIN `alerts: null` / `opportunities: null` yayinladi. Ayni
+dosyanin `:122` satiri bunu ZATEN `contractError` ile dogru yapiyor; iki
+cagri yeri atlanmis.
+
+### 5 - Secim hafizasi acik kartlari SILIYORDU
+
+`rememberSelection` yalniz `scrollTop`u elle tasiyip `entry`yi yaymiyordu:
+`expandedIds` DUSUYOR ve bir satir secildiginde o workspace'te acik
+birakilmis kartlar sessizce kapaniyordu. Hemen ustteki `rememberScroll`
+bunu zaten dogru yazmis - iki kardes ayrismisti. **Alan eklendikce elle
+tasima unutulur; yayma unutulmaz.**
+
+### Olcum
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 203 test**,
+atlanan 0, dusen 0.

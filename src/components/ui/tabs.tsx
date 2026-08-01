@@ -14,7 +14,7 @@
  * render edilmez; sekmenin içeriği kendi durumunu gösterir.
  */
 
-import { useRef, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext, useId, useRef } from "react";
 
 export interface TabItem<T extends string> {
   id: T;
@@ -23,6 +23,20 @@ export interface TabItem<T extends string> {
   /** Sağda küçük sayaç. Bilinmiyorsa VERİLMEZ — sıfır uydurulmaz. */
   count?: number;
 }
+
+/**
+ * KİMLİK KAPSAMI — UI-ADR-162.
+ *
+ * `id={`tab-${item.id}`}` GLOBAL bir kimlikti: aynı sayfada iki `Tabs`
+ * varsa (örn. iki panelde de "health" sekmesi) DOM'da çift kimlik oluşur
+ * ve `aria-labelledby` YANLIŞ öğeye bağlanır — ekran okuyucu kullanıcısı
+ * başka bir sekmenin adını duyar.
+ *
+ * Kapsam `useId` ile üretilip context'le `TabPanel`e taşınıyor: ikisi
+ * AYNI kapsamı paylaşmak zorunda, yoksa bağ kopar. Kapsamsız kullanım
+ * (tek başına `TabPanel`) eski davranışa düşer ve bozulmaz.
+ */
+const TabScope = createContext("");
 
 export function Tabs<T extends string>({
   items,
@@ -37,6 +51,7 @@ export function Tabs<T extends string>({
   label: string;
   className?: string;
 }) {
+  const scope = `${useId()}-`;
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   if (items.length === 0) return null;
@@ -50,6 +65,7 @@ export function Tabs<T extends string>({
   };
 
   return (
+    <TabScope.Provider value={scope}>
     <div
       role="tablist"
       aria-label={label}
@@ -81,9 +97,9 @@ export function Tabs<T extends string>({
             }}
             type="button"
             role="tab"
-            id={`tab-${item.id}`}
+            id={`${scope}tab-${item.id}`}
             aria-selected={active}
-            aria-controls={`tabpanel-${item.id}`}
+            aria-controls={`${scope}tabpanel-${item.id}`}
             tabIndex={active ? 0 : -1}
             disabled={item.disabled}
             onClick={() => onChange(item.id)}
@@ -106,6 +122,7 @@ export function Tabs<T extends string>({
         );
       })}
     </div>
+    </TabScope.Provider>
   );
 }
 
@@ -118,12 +135,13 @@ export function TabPanel({
   active: boolean;
   children: ReactNode;
 }) {
+  const scope = useContext(TabScope);
   if (!active) return null;
   return (
     <div
       role="tabpanel"
-      id={`tabpanel-${id}`}
-      aria-labelledby={`tab-${id}`}
+      id={`${scope}tabpanel-${id}`}
+      aria-labelledby={`${scope}tab-${id}`}
       tabIndex={0}
     >
       {children}

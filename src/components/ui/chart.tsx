@@ -109,7 +109,20 @@ function ChartFrame({
   const { ref, width } = useWidth();
   const [active, setActive] = useState<number | null>(null);
 
-  const values = useMemo(() => data.map((d) => d.value), [data]);
+  /**
+   * NaN / Infinity SAYI DEĞİLDİR — UI-ADR-162.
+   *
+   * `NaN` ve `Infinity` tipçe `number`dır ve `v !== null` kapısından
+   * GEÇERLER; grafikte okuma satırı **"NaN"** basıyordu. Normalleştirme
+   * BURADA, türetmenin kaynağında: alan (`domain`) ve noktalar da bundan
+   * hesaplanıyor, yani aşağıdaki her mantık tek bir "yok" kavramıyla
+   * çalışıyor. Sonradan temizlemek geç kalırdı — ilk denemede tam olarak
+   * o hata yapıldı.
+   */
+  const values = useMemo(
+    () => data.map((d) => (Number.isFinite(d.value as number) ? d.value : null)),
+    [data]
+  );
   const domain = useMemo(
     () => getDomain(values.filter((v): v is number => v !== null), { includeZero }),
     [values, includeZero]

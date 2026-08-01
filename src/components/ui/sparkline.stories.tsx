@@ -99,3 +99,31 @@ export const YonRENKTEN_BAGIMSIZ: StoryObj = {
     await expect(canvas.getByRole("img", { name: /Stok — yatay/ })).toBeInTheDocument();
   },
 };
+
+/**
+ * UI-ADR-162 — NaN / Infinity SAYI DEĞİLDİR.
+ *
+ * İkisi de tipçe `number`dır ve `v !== null` kapısından GEÇERLER: yol
+ * `d="M NaN,NaN"` oluyordu — sessiz, ama ekranda. Ölçülemeyen bir değer
+ * `null`dır ve bu bileşen `null`ı zaten doğru işliyordu; kapı yanlış
+ * soruyu soruyordu.
+ */
+export const OlculemeyenDegerKirilmaz: StoryObj = {
+  name: "NaN / Infinity yol bozmaz — null gibi işlenir",
+  render: () => (
+    <Sparkline
+      label="Bozuk seri"
+      values={[10, Number.NaN, 30, Number.POSITIVE_INFINITY, 20]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const yol = canvasElement.querySelector("path,polyline");
+    await expect(yol).not.toBeNull();
+
+    /* ASIL İDDİA: çizilen yolda "NaN" GEÇMEZ. */
+    const d = yol!.getAttribute("d") ?? yol!.getAttribute("points") ?? "";
+    await expect(d).not.toContain("NaN");
+    await expect(d).not.toContain("Infinity");
+    await expect(d.length).toBeGreaterThan(0);
+  },
+};

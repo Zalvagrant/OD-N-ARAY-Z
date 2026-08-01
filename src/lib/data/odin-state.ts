@@ -181,7 +181,13 @@ export function useOdinAlerts(): OdinQueryResult<z.infer<typeof alertSchema>[]> 
           const raw = await httpLoad("/api/state", { signal });
           const parsed = alertsStateSchema.parse(raw);
           if (parsed.alerts === null) {
-            throw new Error("ODIN çalışma zamanı sağlığını okuyamadı");
+            /* SEBEP BİLİNİYOR — "bilinmeyen hata" DEĞİL (UI-ADR-162).
+               Düz `Error` `classifyError`ın `unknown` dalına düşüyor ve
+               kullanıcı "Beklenmeyen bir hata oluştu — kaynağı
+               UYDURULMADI" görüyordu. Oysa sebep tam olarak biliniyor:
+               ODIN `alerts: null` yayınladı. Aynı dosyanın :122 satırı
+               bunu ZATEN doğru yapıyor; iki çağrı yeri atlanmış. */
+            throw contractError("/api/state", "ODIN çalışma zamanı sağlığını okuyamadı");
           }
           return internalEnvelope(
             parsed.generated_at,
@@ -255,7 +261,7 @@ export function useOdinOpportunities(): OdinQueryResult<Opportunity[]> {
           const raw = await httpLoad("/api/state", { signal });
           const parsed = opportunitiesStateSchema.parse(raw);
           if (parsed.opportunities === null) {
-            throw new Error("ODIN iyileştirme kayıtlarını okuyamadı");
+            throw contractError("/api/state", "ODIN iyileştirme kayıtlarını okuyamadı");
           }
           return internalEnvelope(
             parsed.generated_at,

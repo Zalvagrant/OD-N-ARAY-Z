@@ -417,7 +417,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 | Nerede | Ne | Ne zaman yanlis |
 |---|---|---|
 | `amazon/director/screen.tsx` stok bolumu | Hizi `unknown` olan SKU'lar listeye BILEREK alinmiyor ama bos durum "hicbir SKU riskli degil" diyor | 29 SKU olculmemis, 19'u iyi -> ekran "hicbir SKU riskli degil" |
-| `ui/table.tsx:187` | Filtre sonucu bos = "Bu tabloda gosterilecek veri bulunmuyor" | Veri VAR, filtre eslesmiyor |
 | `ui/chart.tsx:219` | Eksen daima `compact`, okuma satiri `percent` - ayni grafikte iki olcek | `format="percent"` grafiginde eksen "0,4", okuma "%42" |
 
 ### 7.2 COKME riski
@@ -425,7 +424,6 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 | Nerede | Ne |
 |---|---|
 | `lib/data/odin-amazon.ts:251` | `toPeriod`: gecersiz `end` -> `toISOString()` RangeError; `window_days: 0` -> `from > to` |
-| `ui/chart.tsx:140` - `ui/sparkline.tsx:52` | `NaN`/`Infinity` tip olarak `number`dir: chart "NaN" basar, sparkline `d="M NaN,NaN"` uretir |
 
 ### 7.3 Klavye / odak sozlesmesi
 
@@ -440,15 +438,12 @@ kaynaktan dogrulandi, hicbiri elenmedi.
 | `executive/decision-card.tsx:233` | Bayat-veri kilidi yalniz butonlara; `VerdictForm` gonderimi engellenmiyor |
 | `layout/section.tsx:80` | Bos bolum bayragi ekran degiskeninden geliyor, diziden degil -> basligi olan ama icerigi de bos durumu da olmayan bolumler |
 | `ui/search.tsx:212` | `aria-live` bolgesi icerigiyle BIRLIKTE mount ediliyor -> cogu ekran okuyucu duyurmaz. `ui/chart.tsx:161` ayni isi dogru yapiyor |
-| `ui/tabs.tsx:84` | `id={`tab-${item.id}`}` `useId` ile kapsanmamis -> ayni sayfada iki `Tabs` cakisir |
 
 ### 7.5 Veri katmani
 
 | Nerede | Ne |
 |---|---|
-| `lib/data/odin-state.ts:184,258` | Duz `Error` -> `classifyError` "unknown" der, kullanici "kaynagi UYDURULMADI" gorur; oysa sebep tam olarak biliniyor (`:122` dogru yapmis) |
 | `lib/data/odin-amazon.ts:270` | `adaptSkus` `status` bos olan satiri sessizce DUSURUYOR: reklam harcamasi OLCULMUS bir SKU tablodan tamamen kaybolur, "N satir dusuruldu" bilgisi yok |
-| `lib/store/navigation.ts:60` | `rememberSelection` `entry`yi yaymadigi icin `expandedIds` duser - satir secilince acik kartlar kapanir (`rememberScroll` ayni dosyada dogru yazilmis) |
 
 ### 7.6 ODIN'e talep (kural 7 - kendin yapma)
 

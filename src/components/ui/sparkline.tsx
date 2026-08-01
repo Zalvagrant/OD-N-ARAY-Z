@@ -37,7 +37,18 @@ export function Sparkline({
   height?: number;
   tone?: "auto" | keyof typeof TONE;
 }) {
-  const known = values.filter((v): v is number => v !== null && Number.isFinite(v));
+  /**
+   * NaN / Infinity SAYI DEĞİLDİR — UI-ADR-162.
+   *
+   * `NaN` ve `Infinity` tipçe `number`dır ve `v !== null` kapısından
+   * GEÇERLER. Sonuç: grafikte okuma satırı **"NaN"** basıyor,
+   * sparkline'da yol `d="M NaN,NaN"` oluyordu — ikisi de sessiz, ikisi de
+   * ekranda. Ölçülemeyen bir değer `null`dır; burada bir kez
+   * normalleştirilip aşağıdaki tüm mantık tek bir "yok" kavramıyla
+   * çalışıyor.
+   */
+  const temiz = values.map((v) => (Number.isFinite(v as number) ? v : null));
+  const known = temiz.filter((v): v is number => v !== null);
   if (known.length < 2) {
     return <NoData reason={`${label}: trend için yeterli veri yok`} />;
   }
@@ -49,7 +60,7 @@ export function Sparkline({
 
   const domain = getDomain(known);
   /* strokeWidth taşmasın diye üstten/alttan 1px pay bırakılır. */
-  const points = toPoints(values, width - 2, height - 2, domain);
+  const points = toPoints(temiz, width - 2, height - 2, domain);
 
   return (
     <svg

@@ -61,7 +61,13 @@ export const useNavigationStore = create<NavigationState>((set) => ({
     set((s) => ({
       memory: {
         ...s.memory,
-        [id]: { scrollTop: s.memory[id]?.scrollTop ?? 0, selectionId },
+        /* GİRDİ YAYILIR — UI-ADR-162. Önce yalnız `scrollTop` elle
+           taşınıyordu ve `expandedIds` DÜŞÜYORDU: bir satır seçildiğinde
+           o workspace'te açık bırakılmış kartlar sessizce kapanıyordu.
+           Hemen üstteki `rememberScroll` bunu zaten doğru yazmış — iki
+           kardeş ayrışmıştı. Alan eklendikçe elle taşıma unutulur;
+           yayma unutulmaz. */
+        [id]: { ...s.memory[id], scrollTop: s.memory[id]?.scrollTop ?? 0, selectionId },
       },
     })),
 

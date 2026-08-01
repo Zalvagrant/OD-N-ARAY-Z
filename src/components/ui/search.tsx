@@ -208,15 +208,24 @@ export function Search({
           className="min-w-0 flex-1 bg-transparent text-base text-content outline-none placeholder:text-content-tertiary disabled:opacity-40"
         />
 
-        {/* Sonuç sayısı — yalnızca gerçekten biliniyorsa. */}
-        {resultCount !== null && !searching && (
-          <span
-            className="odin-num shrink-0 text-xs text-content-tertiary"
-            aria-live="polite"
-          >
-            {resultCount} sonuç
-          </span>
-        )}
+        {/**
+          * CANLI BÖLGE HER ZAMAN DOM'DA — UI-ADR-162.
+          *
+          * Önce `{resultCount !== null && ...}` ile İÇERİĞİYLE BİRLİKTE
+          * mount ediliyordu. Bir `aria-live` bölgesi DOM'a içeriğiyle aynı
+          * anda girerse çoğu ekran okuyucu onu DUYURMAZ — bölgeyi
+          * "izlemeye" ancak var olduktan sonra başlar. Yani sayı sessizce
+          * beliriyordu ve arama sonucunu yalnız GÖREN kullanıcı öğreniyordu.
+          *
+          * Kap koşulsuz, içerik koşullu. (`ui/chart.tsx:161` aynı işi
+          * zaten doğru yapıyor.)
+          */}
+        <span
+          className="odin-num shrink-0 text-xs text-content-tertiary"
+          aria-live="polite"
+        >
+          {resultCount !== null && !searching ? `${resultCount} sonuç` : ""}
+        </span>
 
         {query && (
           <button
