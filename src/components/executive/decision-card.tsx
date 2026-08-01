@@ -301,25 +301,28 @@ function DecisionView({
                   Ertele
                 </Button>
               </div>
-            ) : stale ? (
-              /**
-               * BAYAT KİLİT FORMA DA UYGULANIR — UI-ADR-163.
-               *
-               * `stale` yalnız üç butonu `disabled` yapıyordu. Ama form
-               * KURULDUKTAN sonra veri bayatlarsa (poll gelir, gerekçe
-               * yazılırken) gönderim engellenmiyordu: kullanıcı taze
-               * veriyle "Onayla"ya basıp bayat veriye dayanan bir kararı
-               * kaydedebiliyordu. Kilit bir ANIN değil, İŞLEMİN kilididir.
-               */
-              <Text size="sm" tone="warning">
-                Veri bu işlem sürerken bayatladı — karar KAYDEDİLMEDİ.
-                Yenile ve yeniden dene; bayat bir sayıya dayanarak karar
-                vermek, kararı kaydetmemekten kötüdür.
-              </Text>
             ) : (
+              /**
+               * BAYAT KİLİT FORMA DA UYGULANIR — UI-ADR-163 → 164.
+               *
+               * `stale` yalnız üç butonu `disabled` yapıyordu; form
+               * KURULDUKTAN sonra veri bayatlarsa (poll gelir, kullanıcı
+               * gerekçe yazarken) gönderim engellenmiyordu. Kilit bir
+               * ANIN değil, İŞLEMİN kilididir.
+               *
+               * ⚠️ İLK DÜZELTME FORMU SÖKÜYORDU ve YAZILAN GEREKÇEYİ
+               * ATIYORDU — regresyon denetimi yakaladı. Butonlar zaten
+               * `disabled={stale}` olduğu için `pending` ancak veri
+               * TAZEYKEN kurulabilir; yani o dal her zaman "kullanıcı
+               * gerekçe yazarken poll geldi" demekti ve metni geri
+               * dönüşsüz siliyordu. Bir kilit, korumak istediği emeği
+               * yok etmemeli. Form kalır, yalnız GÖNDERİM kilitlenir.
+               */
               <VerdictForm
                 decision={decision}
                 pending={pending}
+                blocked={stale}
+                blockedReason="Veri bu işlem sürerken bayatladı — kayıt için yenile. Yazdığın gerekçe duruyor."
                 onCancel={() => setPending(null)}
                 onSubmit={(v) => {
                   setPending(null);

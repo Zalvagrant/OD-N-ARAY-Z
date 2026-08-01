@@ -105,7 +105,7 @@ export function MonitoredDecisionsBoard({
    * görünürken arama kutusu ham toplamı duyuruyordu — `aria-live` ile
    * ekran okuyucuya da. Sayının sahibi filtreyi uygulayan katmandır.
    */
-  onFilteredCount?: (n: number) => void;
+  onFilteredCount?: (n: number | null) => void;
 }) {
   const now = useNow();
 
@@ -133,7 +133,10 @@ export function MonitoredDecisionsBoard({
      çağıran da onu geçiyor. Kararsız bir fonksiyon geçen, `useCallback`
      yazar — bu, gizlenecek değil söylenecek bir gerekliliktir. */
   useEffect(() => {
-    onFilteredCount?.(shown ?? 0);
+    /* `?? 0` DEĞİL — UI-ADR-164. Zarf yokken tahta "Karar verisi yok"
+       derken arama kutusu `aria-live` ile "0 sonuç" okutuyordu: ölçülmemiş
+       bir şeyi ölçülmüş gibi duyurmak (UI-ADR-155'in doğrudan ihlali). */
+    onFilteredCount?.(shown);
   }, [shown, onFilteredCount]);
 
   return (

@@ -315,7 +315,22 @@ export function adaptSkus(raw: z.infer<typeof amazonSkusSchema>): SkuHealth[] {
       /* ODIN skor YAYINLAMIYOR ve arayüz TÜRETMEZ (ADR-0149). */
       healthScore: null,
       healthScoreExplanation: null,
-      status: s.status!,
+      /**
+       * NULL DURUM `unknown`A EŞLENİR — UI-ADR-164 (regresyon düzeltmesi).
+       *
+       * UI-ADR-163 `status`ü filtreden çıkardı ki envanterde olmayan ama
+       * reklam harcaması ÖLÇÜLMÜŞ SKU kaybolmasın. Ama satır `s.status!`
+       * ile geçiliyordu: `!` yalnız TİPİ susturur, değeri değiştirmez.
+       * Çıktı `skuHealthSchema` ile doğrulanıyor ve orada `status`
+       * nullable DEĞİL — yani null bir durum TÜM diziyi reddettiriyor ve
+       * 48 SKU birden kararıyordu.
+       *
+       * Yani "bir satırı gizleme" hatası, "tüm tabloyu karartma" hatasına
+       * dönüşmüştü — UI-ADR-158'in fail-total olarak kapattığı şeyin ta
+       * kendisi, ters yönden. Yorum eşlemeyi ANLATIYORDU ama kod
+       * yapmıyordu: karşılığı olmayan bir iddia.
+       */
+      status: s.status ?? "unknown",
       statusBasis: s.status_basis === "health_score" ? "health_score" : "rule_set",
       ...(s.threshold_provenance === "unapproved_default" ||
       s.threshold_provenance === "owner_policy"

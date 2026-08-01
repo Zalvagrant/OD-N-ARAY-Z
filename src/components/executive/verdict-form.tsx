@@ -51,11 +51,20 @@ export function VerdictForm({
   pending,
   onSubmit,
   onCancel,
+  blocked = false,
+  blockedReason,
 }: {
   decision: Decision;
   pending: OdinVerdict;
   onSubmit: (v: VerdictInput) => void;
   onCancel: () => void;
+  /**
+   * Gönderim kilidi — UI-ADR-164. Form KURULDUKTAN sonra veri bayatlarsa
+   * kayıt engellenmeli ama yazılan gerekçe KORUNMALI: bir kilit, korumak
+   * istediği emeği yok etmemeli.
+   */
+  blocked?: boolean;
+  blockedReason?: string;
 }) {
   const [reason, setReason] = useState("");
   const [revisitAt, setRevisitAt] = useState("");
@@ -134,7 +143,7 @@ export function VerdictForm({
         <Button
           variant={pending === "rejected" ? "danger" : "primary"}
           size="sm"
-          disabled={!reasonOk || !dateOk}
+          disabled={blocked || !reasonOk || !dateOk}
           onClick={() =>
             onSubmit({
               verdict: pending,
@@ -145,6 +154,11 @@ export function VerdictForm({
         >
           {LABEL[pending]}
         </Button>
+        {blocked && blockedReason && (
+          <Text size="sm" tone="warning" className="w-full">
+            {blockedReason}
+          </Text>
+        )}
         <Button variant="ghost" size="sm" onClick={onCancel}>
           Vazgeç
         </Button>

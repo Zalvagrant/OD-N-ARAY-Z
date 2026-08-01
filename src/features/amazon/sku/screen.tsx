@@ -113,7 +113,8 @@ export function AmazonSkuPanel() {
     );
   }
 
-  const status = SKU_STATUS[sku.status];
+  /* Bilinmeyen durum çökertmez (UI-ADR-162 deseni). */
+  const status = SKU_STATUS[sku.status] ?? SKU_STATUS.unknown;
   const stockout = remainingTime(sku.estimatedStockoutAt, now);
 
 

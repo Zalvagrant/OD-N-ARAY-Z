@@ -5162,3 +5162,111 @@ Sessiz bir bolum, cevap degildir.
 Uretim derlemesi 7 sayfa; dort rota 200. Tarayicida `/amazon`: konsol
 hatasiz, `NaN` yok, izgara ciziliyor, yuzdeler tek ondalikla, tazelik
 etiketi yasla TUTARLI ("canli · 2 dk once").
+
+---
+
+## UI-ADR-164 - Duzeltmelerin denetimi: iki KRITIK regresyon kendi islerimde (S13 kapanis)
+
+**Durum:** DONDURULDU
+**Tarih:** 1 Agustos 2026
+**Ilgili:** UI-ADR-155…163
+
+Ucuncu denetimin 41 bulgusu kapatilmisti ama **duzeltmeleri kimse
+denetlememisti.** Dorduncu tur onlari denetledi: **2 kritik, 3 orta,
+3 dusuk — sekizi de benim son nokuz ADR'imde.**
+
+Bu turun tek cumlelik dersi: *bir hatayi duzeltmek, yeni bir hata
+yapmamak demek degildir.*
+
+### KRITIK 1 - SKU duzeltmem tabloyu TAMAMEN karartiyordu
+
+UI-ADR-163 `status`u filtreden cikardi ki envanterde olmayan ama reklam
+harcamasi OLCULMUS SKU kaybolmasin. Ama satir `status: s.status!` ile
+geciliyordu — **`!` yalniz TIPI susturur, degeri degistirmez.** Ham
+`status` nullable; cikti `skuHealthSchema` ile dogrulaniyor ve orada
+nullable DEGIL.
+
+Sonuc: `status: null` gelen tek bir satir TUM diziyi reddettiriyor ve
+**48 SKU birden kariyordu.** Yani "bir satiri gizleme" hatasi, "tum
+tabloyu karartma" hatasina donusmustu — UI-ADR-158'in fail-total olarak
+kapattigi seyin ta kendisi, ters yonden.
+
+**Ve yorumum yalan soyluyordu:** *"durumu bilinmeyen satir `unknown`
+etiketiyle listede kalir"* diye yazmisim; kod o eslemeyi YAPMIYORDU.
+Karsiligi olmayan bir iddia — bu repoda sahte veriyle ayni sinifta.
+`status: s.status ?? "unknown"`.
+
+### KRITIK 2 - "en icteki kapanir" AYNI DERINLIKTE calismiyordu
+
+UI-ADR-157 kimligi ic icelik DERINLIGI yapmisti (mount sirasina dayanan
+ilk cozumden iyiydi) ama **ayni derinlikteki iki diyalog ayirt
+edilemiyordu.** Teorik degil: UI-ADR-159 `command-palette`i bu hook'a
+bagladi ve palet `app-shell`de ekran icerigin KARDESI olarak mount
+ediliyor -> derinligi 1; ekran seviyesindeki her `Modal`/`Drawer` da 1.
+
+Onay modali acikken Ctrl+K ile palet acilip Escape'e basilinca **ikisi
+birden kapaniyordu** — 157'nin duzelttigini iddia ettigi davranis.
+Ayrica govde kaydirma kilidi `Set<number>` oldugu icin siziyordu:
+ikincinin `add(1)`i no-op, ilkinin kapanisindaki `delete(1)` kumeyi
+bosaltip kilidi digeri hala acikken serbest birakiyordu.
+
+Artik her diyalog **benzersiz bir token** alir; siralama derinlige,
+esitlikte ekleme sirasina gore. Kilit de yigin gercekten bosalinca ve
+**ILK kaydedilen** degerle geri yazilir.
+
+### ORTA 3 - `Tabs` kapsami PANELE HIC ULASMIYORDU
+
+UI-ADR-162 kimlik cakismasini bir context ile cozmeye calisti. Ama `Tabs`
+`children` ALMIYOR: Provider yalnizca kendi `<div role="tablist">`ini
+sariyordu ve `TabPanel` yapisal olarak onun React cocugu OLAMAZ ->
+`scope` her zaman `""`.
+
+Sonuc: sekme tarafi kapsamli, panel tarafi kapsamsiz — `aria-controls` ve
+`aria-labelledby` **her iki yonde de var olmayan kimlige** isaret
+ediyordu. Duzeltmeden ONCE iliski KURULUYORDU; net bir gerileme.
+Context kaldirildi, acik `scope` prop'u kondu: **calismayan sihirden acik
+prop iyidir.**
+
+### ORTA 4 - "damgasiz sayi gecmez" bir DILEKTI, kural degil
+
+UI-ADR-158 `asOf`u nullable yapti ve tipin yorumuna *"boyle bir kayit
+zaten `status !== available` gelir"* yazdi. Sema'da bunu zorlayan hicbir
+sey yoktu: `{status:"available", value:42, asOf:null}` GECIYORDU. Adi bu
+garantiyi veren test ise `asOf` DOLU bir kaydi parse edip
+`.not.toBeNull()` diyordu — iddiayi hic sinamiyordu. Artik `refine`.
+
+### ORTA 5 - Palet odak tuzagi testi KORMUZI OLAMIYORDU
+
+`expect(activeElement).not.toBe(arkadaki)` idi. Panelin tek odaklanabilir
+ogesi `<input>`; tuzak kaldirilsa odak `<body>`ye duserdi ve iddia YINE
+gecerdi. UI-ADR-159'un bas iddiasi korumasizdi. Dogru iddia olumsuz degil
+**OLUMLU**: odak panelin ICINDE kalmali.
+
+### DUSUK 6-8
+
+- **`shown ?? 0`**: zarf yokken tahta "Karar verisi yok" derken arama
+  kutusu `aria-live` ile **"0 sonuc"** okutuyordu — UI-ADR-155'in
+  (olculmedi ≠ bos) dogrudan ihlali. Tip `number | null` oldu.
+- **Bayat kilit formu SOKUYORDU** ve yazilan gerekceyi atiyordu. Butonlar
+  zaten `disabled={stale}` oldugu icin o dal her zaman "kullanici gerekce
+  yazarken poll geldi" demekti. **Bir kilit, korumak istedigi emegi yok
+  etmemeli.** Form kalir, yalniz GONDERIM kilitlenir (`blocked` prop'u).
+- **`telemetry-bar` birimsiz tutar basiyordu**: `Num` artik lira
+  uydurmuyor (161) ama birimsiz bir sayi "para mi adet mi" sorusunu
+  cevaplamiyor. Kanal para birimi bildirmedigi surece gosterge gerekceli
+  bos kaliyor.
+
+### Denetimin TEMIZ buldugu yerler
+
+`Math.max` bos kume sorunu yok · `table`ta sonsuz dongu yok (iki cagiran
+da kararli, React ayni degerde bail-out ediyor) · `btnRefs` bayat dugum
+tutmuyor · `no_movement` dogru siniflandirilmis · `periodLabel` null'lari
+her iki cagiranda da eleniyor · NaN normalizasyonu, `navigation` yayma,
+`verdict-form` fail-closed, odak devri ve canli tazelik iddialariyla
+ortusuyor.
+
+### Olcum
+
+`npm run test:ci`: `tsc` 0, `lint` 0 hata 0 uyari,
+**unit 16 dosya / 241 test**, **storybook 54 dosya / 206 test**,
+atlanan 0, dusen 0.

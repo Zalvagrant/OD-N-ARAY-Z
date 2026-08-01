@@ -52,7 +52,17 @@ function ChannelValue({
 
   switch (channel.format) {
     case "currency":
-      return <Num value={value} format="currency" size="sm" />;
+      return <Num
+                    value={value}
+                    format="currency"
+                    size="sm"
+                    /* Para birimi bildirilmiyor: `Num` artık lira
+                       UYDURMUYOR (UI-ADR-161) ama birimsiz bir tutar da
+                       "para mı adet mi" sorusunu cevaplamıyor. Kanal
+                       sözleşmesi para birimini taşımadığı sürece bu
+                       gösterge bir gerekçeyle boş kalır (UI-ADR-164). */
+                    noDataReason="Para birimi bildirilmiyor — tutar birimsiz gösterilemez"
+                  />;
     case "duration":
       return (
         <span className="text-content">

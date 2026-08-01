@@ -84,9 +84,42 @@ const DRAWER_SIZE = {
  */
 const DialogDepth = createContext(0);
 
+/**
+ * AÇIK DİYALOG YIĞINI — kimlik DERİNLİK DEĞİL (UI-ADR-164).
+ *
+ * UI-ADR-157 kimliği iç içelik derinliği yapmıştı ve o, mount sırasına
+ * dayanan ilk çözümden iyiydi — ama YETMİYORDU: **aynı derinlikte iki
+ * diyalog ayırt edilemiyor.** Bu teorik değil; UI-ADR-159 `command-palette`i
+ * bu hook'a bağladı ve palet `app-shell`de ekran içeriğinin KARDEŞİ olarak
+ * mount ediliyor → derinliği 1. Ekran seviyesindeki her `Modal`/`Drawer`
+ * da 1.
+ *
+ * Sonuç: onay modalı açıkken Ctrl+K ile palet açılıp Escape'e basılınca
+ * İKİSİ BİRDEN kapanıyordu — UI-ADR-157'nin düzelttiğini iddia ettiği
+ * davranışın ta kendisi. Ve gövde kaydırma kilidi `Set<number>` olduğu
+ * için sızıyordu: ikinci diyalogun `add(1)`i no-op, ilkinin kapanışındaki
+ * `delete(1)` kümeyi boşaltıp kilidi diğeri hâlâ açıkken serbest
+ * bırakıyordu.
+ *
+ * Artık her diyalog BENZERSİZ bir token alır; sıralama derinliğe, eşitlik
+ * hâlinde ekleme sırasına göre yapılır. Kilit de yığın gerçekten
+ * boşalınca ve İLK kaydedilen değerle geri yazılır.
+ */
+type AcikDiyalog = { token: number; depth: number };
+const acikDiyaloglar: AcikDiyalog[] = [];
+let dialogSeq = 0;
+let ilkOverflow: string | null = null;
+
+/** En içteki: en büyük derinlik; eşitlikte EN SON açılan. */
+function enIcteki(): AcikDiyalog | undefined {
+  return acikDiyaloglar.reduce<AcikDiyalog | undefined>(
+    (best, d) => (best === undefined || d.depth >= best.depth ? d : best),
+    undefined
+  );
+}
+
 /** Bir diyalogun iç içelik derinliği — çağıran bunu `useDialogBehavior`e verir. */
 export const useDialogDepth = () => useContext(DialogDepth) + 1;
-const openDepths = new Set<number>();
 
 /**
  * DIŞARI AÇILDI — UI-ADR-159. `command-palette` `aria-modal="true"` diyor
@@ -122,18 +155,21 @@ export function useDialogBehavior(
   useEffect(() => {
     if (!open) return;
 
-    openDepths.add(depth);
+    const token = ++dialogSeq;
+    acikDiyaloglar.push({ token, depth });
 
     const opener = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
+    /* İLK diyalog gövde kaydırmasının ÖZGÜN değerini saklar; sonrakiler
+       zaten "hidden" görür ve onu saklarsa geri yazma bozulur. */
+    if (acikDiyaloglar.length === 1) ilkOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     panelRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        /* Yalnız EN İÇTEKİ (en derin) diyalog kapanır. */
-        if (depth !== Math.max(...openDepths)) return;
+        /* Yalnız EN İÇTEKİ diyalog kapanır — kimlik TOKEN, derinlik değil. */
+        if (enIcteki()?.token !== token) return;
         closeRef.current();
         return;
       }
@@ -165,11 +201,15 @@ export function useDialogBehavior(
     return () => {
       document.removeEventListener("keydown", onTab, true);
       document.removeEventListener("keydown", onKey, false);
-      openDepths.delete(depth);
-      /* Gövde kaydırması yalnız SON diyalog kapanınca serbest kalır;
-         iç içe diyalogda dıştaki hâlâ açıkken kilidi açmak sayfayı
-         diyalogun arkasında kaydırılabilir yapardı. */
-      if (openDepths.size === 0) document.body.style.overflow = overflow;
+      const i = acikDiyaloglar.findIndex((d) => d.token === token);
+      if (i >= 0) acikDiyaloglar.splice(i, 1);
+      /* Gövde kaydırması yalnız SON diyalog kapanınca ve İLK kaydedilen
+         değerle serbest kalır. Yanlış sırada unmount olsa bile kilit ne
+         sızar ne de kalıcı takılır. */
+      if (acikDiyaloglar.length === 0) {
+        document.body.style.overflow = ilkOverflow ?? "";
+        ilkOverflow = null;
+      }
       opener?.focus();
     };
   }, [open, depth]);

@@ -258,3 +258,64 @@ export const IcIceEscape: StoryObj = {
     });
   },
 };
+
+/**
+ * UI-ADR-164 — AYNI DERİNLİKTEKİ iki diyalog da ayırt edilir.
+ *
+ * UI-ADR-157 kimliği iç içelik DERİNLİĞİ yapmıştı; regresyon denetimi
+ * yetmediğini gösterdi: `command-palette` ekran içeriğinin KARDEŞİ olarak
+ * mount ediliyor, yani derinliği ekran seviyesindeki her `Modal` ile AYNI.
+ * Onay modalı açıkken Ctrl+K ile palet açılıp Escape'e basılınca ikisi
+ * birden kapanıyordu — 157'nin düzelttiğini iddia ettiği davranış.
+ *
+ * Bu story o senaryoyu KARDEŞ iki diyalogla kurar (iç içe DEĞİL).
+ */
+export const AyniDerinliktekiIkiDiyalog: StoryObj = {
+  name: "Kardeş iki diyalog — Escape yalnız SON açılanı kapatır",
+  render: function Render() {
+    const [a, setA] = useState(true);
+    const [b, setB] = useState(false);
+    return (
+      <>
+        <Modal open={a} onClose={() => setA(false)} title="Birinci">
+          <Text>Birinci gövde.</Text>
+        </Modal>
+        <Button onClick={() => setB(true)}>İkinciyi aç</Button>
+        <Modal open={b} onClose={() => setB(false)} title="İkinci">
+          <Text>İkinci gövde.</Text>
+        </Modal>
+      </>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(document.body);
+    await body.findByRole("dialog", { name: "Birinci" }, { timeout: 10_000 });
+
+    /* İkisi de KARDEŞ: derinlikleri aynı. */
+    await userEvent.click(
+      await within(canvasElement).findByRole("button", { name: "İkinciyi aç" })
+    );
+    await waitFor(async () => {
+      await expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(2);
+    });
+
+    /* ASIL İDDİA: bir Escape BİR diyalog kapatır — SON açılanı. */
+    await userEvent.keyboard("{Escape}");
+    await waitFor(async () => {
+      await expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+    });
+    await expect(document.querySelector('[role="dialog"]')!.textContent).toMatch(
+      /Birinci/
+    );
+
+    /* Ve gövde kilidi HÂLÂ kapalı — biri açıkken serbest kalmamalı. */
+    await expect(document.body.style.overflow).toBe("hidden");
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(async () => {
+      await expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(0);
+    });
+    /* Son diyalog kapanınca kilit İLK kaydedilen değere döner. */
+    await expect(document.body.style.overflow).not.toBe("hidden");
+  },
+};

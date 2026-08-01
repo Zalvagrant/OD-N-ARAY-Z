@@ -96,3 +96,66 @@ export const KlavyeGezinmesi: StoryObj = {
     await expect(tabs[0]).toHaveAttribute("aria-selected", "true");
   },
 };
+
+/**
+ * UI-ADR-164 — İKİ `Tabs` aynı sayfada ÇAKIŞMAZ.
+ *
+ * UI-ADR-162 bunu bir context ile çözmeye çalıştı ve KIRDI: `Tabs`
+ * `children` almadığı için Provider `TabPanel`i hiç kapsamıyordu ve
+ * `aria-labelledby`/`aria-controls` HER İKİ yönde var olmayan kimliklere
+ * işaret ediyordu — düzeltmeden ÖNCE ilişki kuruluyordu, yani net bir
+ * gerilemeydi. Regresyon denetimi yakaladı.
+ */
+export const IkiTabsCakismaz: StoryObj = {
+  name: "İki Tabs aynı sayfada — kimlikler çakışmaz, bağ KURULUR",
+  render: function Render() {
+    const [a, setA] = useState("health");
+    const [b, setB] = useState("health");
+    const items = [
+      { id: "health", label: "Sağlık" },
+      { id: "cost", label: "Maliyet" },
+    ];
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <Tabs items={items} value={a} onChange={setA} label="Sol" scope="sol-" />
+          <TabPanel id="health" active={a === "health"} scope="sol-">
+            Sol sağlık
+          </TabPanel>
+        </div>
+        <div>
+          <Tabs items={items} value={b} onChange={setB} label="Sağ" scope="sag-" />
+          <TabPanel id="health" active={b === "health"} scope="sag-">
+            Sağ sağlık
+          </TabPanel>
+        </div>
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    /* Kimlikler BENZERSİZ — çift id, sayfadaki her IDREF'i bozar. */
+    const idler = [...canvasElement.querySelectorAll("[id]")].map((e) => e.id);
+    await expect(new Set(idler).size).toBe(idler.length);
+
+    /* ASIL İDDİA: bağ GERÇEKTEN kurulu. `aria-controls` ve
+       `aria-labelledby` var olan öğelere işaret etmeli — kırık bir IDREF,
+       hiç IDREF olmamasından kötüdür. */
+    for (const sekme of canvas.getAllByRole("tab")) {
+      const hedef = sekme.getAttribute("aria-controls");
+      if (!hedef) continue;
+      const panel = document.getElementById(hedef);
+      if (panel) {
+        await expect(panel.getAttribute("aria-labelledby")).toBe(sekme.id);
+      }
+    }
+
+    const paneller = canvas.getAllByRole("tabpanel");
+    await expect(paneller.length).toBeGreaterThan(0);
+    for (const p of paneller) {
+      const etiket = p.getAttribute("aria-labelledby")!;
+      await expect(document.getElementById(etiket)).not.toBeNull();
+    }
+  },
+};

@@ -14,7 +14,7 @@
  * render edilmez; sekmenin içeriği kendi durumunu gösterir.
  */
 
-import { createContext, type ReactNode, useContext, useId, useRef } from "react";
+import { type ReactNode, useRef } from "react";
 
 export interface TabItem<T extends string> {
   id: T;
@@ -24,25 +24,12 @@ export interface TabItem<T extends string> {
   count?: number;
 }
 
-/**
- * KİMLİK KAPSAMI — UI-ADR-162.
- *
- * `id={`tab-${item.id}`}` GLOBAL bir kimlikti: aynı sayfada iki `Tabs`
- * varsa (örn. iki panelde de "health" sekmesi) DOM'da çift kimlik oluşur
- * ve `aria-labelledby` YANLIŞ öğeye bağlanır — ekran okuyucu kullanıcısı
- * başka bir sekmenin adını duyar.
- *
- * Kapsam `useId` ile üretilip context'le `TabPanel`e taşınıyor: ikisi
- * AYNI kapsamı paylaşmak zorunda, yoksa bağ kopar. Kapsamsız kullanım
- * (tek başına `TabPanel`) eski davranışa düşer ve bozulmaz.
- */
-const TabScope = createContext("");
-
 export function Tabs<T extends string>({
   items,
   value,
   onChange,
   label,
+  scope = "",
   className = "",
 }: {
   items: TabItem<T>[];
@@ -50,8 +37,18 @@ export function Tabs<T extends string>({
   onChange: (id: T) => void;
   label: string;
   className?: string;
+  /**
+   * KİMLİK KAPSAMI — UI-ADR-164. Aynı sayfada İKİ `Tabs` varsa ikisine de
+   * FARKLI bir `scope` verilir; aksi hâlde DOM'da çift kimlik oluşur ve
+   * `aria-labelledby` yanlış öğeye bağlanır.
+   *
+   * ⚠️ `TabPanel`e AYNI değer geçilmek zorunda — ikisi kimliği paylaşır.
+   * UI-ADR-162 bunu bir context ile çözmeye çalıştı ve KIRDI: `Tabs`
+   * `children` almıyor, yani Provider `TabPanel`i hiç kapsamıyordu ve
+   * bağ HER İKİ yönde koptu. Açık prop, çalışmayan sihirden iyidir.
+   */
+  scope?: string;
 }) {
-  const scope = `${useId()}-`;
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   if (items.length === 0) return null;
@@ -65,7 +62,6 @@ export function Tabs<T extends string>({
   };
 
   return (
-    <TabScope.Provider value={scope}>
     <div
       role="tablist"
       aria-label={label}
@@ -122,20 +118,22 @@ export function Tabs<T extends string>({
         );
       })}
     </div>
-    </TabScope.Provider>
   );
 }
 
 export function TabPanel({
   id,
   active,
+  scope = "",
   children,
 }: {
   id: string;
   active: boolean;
+  /** `Tabs`a verilen `scope` ile AYNI olmalı (UI-ADR-164). */
+  scope?: string;
   children: ReactNode;
 }) {
-  const scope = useContext(TabScope);
+
   if (!active) return null;
   return (
     <div

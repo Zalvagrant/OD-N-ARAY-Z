@@ -51,7 +51,8 @@ function Acik() {
 export const KlavyeSozlesmesi: StoryObj = {
   name: "Odak hapsolur · imleç duyurulur · Escape her yerde çalışır",
   render: () => <Acik />,
-  play: async ({ canvasElement }) => {
+  play: async () => {
+    /* Palet portal kullanmıyor ama diyalog gövdede aranır — tek kaynak. */
     const body = within(document.body);
     const kutu = await body.findByRole(
       "combobox",
@@ -78,11 +79,15 @@ export const KlavyeSozlesmesi: StoryObj = {
     const aktif = kutu.getAttribute("aria-activedescendant")!;
     await expect(document.getElementById(aktif)).not.toBeNull();
 
-    /* 3. ODAK HAPSOLUR. Sonuçların sayısından fazla Tab'a bassak bile
-          odak paletin dışına — arkadaki butona — çıkmamalı. */
+    /* 3. ODAK HAPSOLUR — İDDİA PANELİN İÇİNDE OLMAK.
+          ⚠️ İlk yazımda `expect(activeElement).not.toBe(arkadaki)` idi ve
+          KORUMASIZDI: panelin tek odaklanabilir öğesi `<input>`; tuzak
+          kaldırılsa odak `<body>`ye düşerdi ve "arkadaki değil" iddiası
+          YİNE geçerdi. Regresyon denetimi yakaladı. Doğru iddia olumsuz
+          değil OLUMLU: odak paletin İÇİNDE kalmalı. */
+    const panel = body.getByRole("dialog", { name: "Komut paleti" });
     for (let i = 0; i < secenekler.length + 3; i++) await userEvent.tab();
-    const arkadaki = canvasElement.querySelector('[data-testid="arkadaki"]');
-    await expect(document.activeElement).not.toBe(arkadaki);
+    await expect(panel.contains(document.activeElement)).toBe(true);
 
     /* 4. ESCAPE HER ODAK DURUMUNDA ÇALIŞIR — yalnız kutuda değil. */
     await userEvent.keyboard("{Escape}");

@@ -104,7 +104,7 @@ export function DataTable<T>({
    * Filtreyi ekranda TEKRARLAMAK yerine sayı buradan bildiriliyor: iki
    * uygulama bir gün ayrışır, tek kaynak ayrışamaz.
    */
-  onFilteredCount?: (n: number) => void;
+  onFilteredCount?: (n: number | null) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selected, setSelected] = useState<string | null>(null);

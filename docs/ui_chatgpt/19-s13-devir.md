@@ -424,6 +424,20 @@ Ucuncu tur KODUN KENDISINE bakti: **6 kritik, 21 orta, 14 dusuk = 41 bulgu.**
    `??` var, digerinde yok.
 3. **Escape/odak sozlesmesinin capture katmaninda sessizce yutulmasi.**
 
+### DORDUNCU TUR: duzeltmelerin denetimi (UI-ADR-164)
+
+41 bulgu kapatildi ama duzeltmeleri kimse denetlememisti. Dorduncu tur
+onlari denetledi: **2 kritik, 3 orta, 3 dusuk — sekizi de son dokuz
+ADR'de.** Hepsi kapatildi.
+
+Iki kritik: SKU duzeltmesi `s.status!` ile tipi susturup TUM tabloyu
+karartiyordu (ve yorum yapmadigi bir eslemeyi anlatiyordu) · "en icteki
+kapanir" ayni derinlikteki iki diyalogda calismiyordu (palet ekran
+seviyesinde, her Modal ile ayni derinlikte).
+
+**Bu turun dersi:** *bir hatayi duzeltmek, yeni bir hata yapmamak demek
+degildir.* Duzeltmeler de denetlenir.
+
 ### Devam eden tek acik: erisilebilirlik token karari
 
 Bkz. §6.7 — sahip karari bekliyor.

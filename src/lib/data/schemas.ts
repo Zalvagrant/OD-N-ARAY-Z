@@ -136,6 +136,23 @@ export const executiveKpiSchema = z
       path: ["value"],
     }
   )
+  /**
+   * DAMGASIZ SAYI GEÇMEZ — UI-ADR-164.
+   *
+   * UI-ADR-158 `asOf`u nullable yaptı (ODIN promote edilmemiş kayıtta
+   * `None` yayınlıyor) ve tipin yorumunda *"böyle bir kayıt zaten
+   * `status !== available` gelir, damgasız bir SAYI göstermiyoruz"*
+   * yazdı — ama bu bir DİLEKTİ, kural değil. Regresyon denetimi yakaladı:
+   * `{status:"available", value:42, asOf:null}` şemadan GEÇİYORDU.
+   *
+   * İddia artık kural: değer varsa veri anı da olmak ZORUNDA. Ne zaman
+   * ölçüldüğü bilinmeyen bir sayı, tazeliği hiç sorgulanamayan bir
+   * sayıdır ve `TrustSignal` onu etiketleyemez.
+   */
+  .refine((k) => k.status !== "available" || k.asOf !== null, {
+    message: "damgasız sayı kabul edilmez: status=available ise asOf zorunlu",
+    path: ["asOf"],
+  })
   .refine((k) => k.unit !== "percent" || !!k.scale, {
     message: "unit=percent ise scale zorunlu (0-1 | 0-100)",
     path: ["scale"],
