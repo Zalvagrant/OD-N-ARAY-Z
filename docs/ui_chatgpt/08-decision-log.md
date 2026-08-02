@@ -8384,3 +8384,71 @@ Git olguları artık süreç başına sabit. **2,03 sn → 0,002 sn.**
 commit `4021fd8` (fix/master-operation) · Python 3.13.12 · KİRLİ ağaç
 uyarısı görünür · 155 ADR / 16 şema · 4 faz. Settings → 8765/3000 ·
 heartbeat 30 sn (bayat 180) · autostart kurulu · 19 komut.
+
+---
+
+## UI-ADR-212 — Amazon Forecast: ölçülen menzil, REDDEDİLEN tarih
+
+**Durum:** DONDURULDU
+**Tarih:** 3 Ağustos 2026
+**İlgili:** ODIN ADR-0149 · ADR-0144 · ADR-0146 · UI-ADR-111
+
+Gece taraması "tahmin üreticisi yok" demişti — doğru ama eksik: **üretici
+YOK ÇÜNKÜ ÜRETİLMESİ REDDEDİLDİ.** `amazon_api.py` bunu açıkça yazıyor:
+*"bir stokta tükenme TARİHİ bir tahmin politikasının çıktısıdır, bir
+bölme işleminin değil"* ve tüketici sözleşmesi onu günlük-menzilden
+türetmeyi yasaklıyor.
+
+Bir üretici yazmak, kayıtlı bir kararı sessizce iptal etmek olurdu. Bu
+ekranın en pahalı hatası uydurma bir tarih olurdu — **sahip ona bakarak
+sipariş verir.**
+
+**GÖSTERİLEN:** 19/48 SKU için günlük menzil GERÇEKTEN ölçülü (kaydın
+beyan ettiği 7 günlük pencereden, `days_of_supply`). En kısa menzil
+üstte — bir sıralama, hüküm değil.
+
+**ÖLÇÜLMEMİŞ MENZİL "SONSUZ" DEĞİLDİR:** kalan 29 SKU'da pencerede satış
+yok, yani hız bilinmiyor. "Sonsuz menzil" yazmak, ölçülmemişi ölçülmüş
+göstermenin en sinsi hâli olurdu; ayrı bölümde stoklarıyla listeleniyorlar.
+
+**REDDİN BEDELİ ADIYLA YAZILI:** sahip TEDARİK SÜRESİNİ ve EMNİYET
+STOĞUNU beyan ederse tarih ve yeniden sipariş miktarı ölçülebilir hale
+gelir. Ekran bunu bir dilek olarak değil, bir gereklilik listesi olarak
+söylüyor.
+
+**KANIT [00:41, üretim 3000]:** 48 SKU · 19 ölçülen · 29 bilinmeyen ·
+satış penceresi 2026-07-25 → 07-31 · en kısa menzil CapDome-Xs-10 (1
+adet stok, 3,5 gün).
+
+---
+
+## UI-ADR-213 — ODIN HQ: götüren ekran, yapan ekran değil
+
+**Durum:** DONDURULDU
+**Tarih:** 3 Ağustos 2026
+**İlgili:** UI-ADR-073 · UI-ADR-111 · 05-dashboard.md
+
+Gece taraması "ayrı veri kaynağı yok — mevcut ekranların toplamı" demişti
+ve kompozit olduğu DOĞRU. Kopya olmasını engelleyen şey: **hiçbir şeyi
+yeniden çizmemesi.** HQ'da tek bir tablo, tek bir döküm, tek bir grafik
+yok — story `queryByRole("table")`ın null olduğunu kilitliyor. Yalnızca
+"bugün beni ne bekliyor" sorusunun sayısal cevabı ve cevabın bulunduğu
+ekrana giden bağlantı var.
+
+**YENİ UÇ YOK:** üç mevcut kanca (karar kuyruğu · alarmlar · sistem
+sağlığı). Yeni istek açmıyor; coalescing ile ekranlarınkine biniyor.
+
+**BİLEŞİK SKOR YOK:** her rakam bir listenin uzunluğu ya da çekirdeğin
+yayınladığı bir değer. Bir "genel durum skoru", ODIN'in tek tek
+reddettiği her şeyi tek yerde toplamak olurdu.
+
+**ÜÇÜNCÜ BÖLÜM BİLİNÇLİ:** "Ölçülemeyenler" — çekirdeğin *"bunu
+ölçemiyorum"* dediği her bileşen, gerekçesiyle. Bu listenin BOŞ olması
+iyi haberdir ve ekran öyle yazar.
+
+**Kapı bir kusur yakaladı:** `empty` durumunda `sistem` nullanıyordu ve
+bölümün boş durumu hiç çizilmiyordu — zarf artık boşaltılıyor, nullanmıyor
+(bu oturumda dördüncü kez aynı ders).
+
+**KANIT [00:42, üretim 3000]:** bekleyen karar / eylem isteyen alarm /
+ölçülemeyen bileşen sayıları canlı; altı geçiş bağlantısı çalışıyor.
