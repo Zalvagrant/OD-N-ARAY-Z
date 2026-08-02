@@ -1397,3 +1397,135 @@ export function useOdinBrief(): OdinQueryResult<ExecutiveBrief> {
         },
   });
 }
+
+/* --------------------------------------------------------------------------
+   Kâr zinciri — `/api/state.contribution_margin` (UI-ADR-204)
+   -------------------------------------------------------------------------- */
+
+/**
+ * ODIN'in ölçtüğü kâr zinciri: ciro → COGS → brüt → ücretler → KATKI.
+ *
+ * BU NET KÂR DEĞİLDİR ve öyle adlandırılamaz (UI-ADR-116). Kayıt neyi
+ * hariç tuttuğunu KENDİSİ söylüyor (`excludes: refunds, advertising`);
+ * ekran o listeyi olduğu gibi gösterir.
+ *
+ * HESAP YOK: tutarlar da yüzdeler de çekirdekten gelir (ODIN 2 Ağu'da
+ * `gross_profit`/`contribution` yayınlamaya başladı, tam da arayüz üç
+ * alanı çıkarmak zorunda kalmasın diye).
+ *
+ * `dated: false` GİZLENMEZ: maliyet beyanları 2026-07-21'den geçerli ama
+ * ölçülen dönem 2026-06-30'da bitiyor — kayıt kendi tarihlemesinin
+ * eksikliğini bildiriyor ve ekran bunu okur.
+ */
+const profitTargetSchema = z
+  .object({
+    value: z.string(),
+    direction: z.string(),
+    period: z.string().nullish(),
+    effective_date: z.string().nullish(),
+    source: z.string().nullish(),
+  })
+  .nullish();
+
+export const profitStateSchema = z.object({
+  generated_at: z.string(),
+  contribution_margin: z
+    .object({
+      revenue: z.number(),
+      cogs: z.number(),
+      fees: z.number(),
+      gross_profit: z.number().nullish(),
+      contribution: z.number().nullish(),
+      margin_pct: z.number(),
+      gross_margin_pct: z.number(),
+      units: z.number(),
+      asins_matched: z.number(),
+      asins_total: z.number(),
+      unmatched_units: z.number(),
+      currency: z.string().nullable(),
+      excludes: z.array(z.string()),
+      dated: z.boolean().nullish(),
+      declarations: z.number().nullish(),
+      declared_from: z.string().nullish(),
+      period_end: z.string().nullish(),
+      target: profitTargetSchema,
+    })
+    .nullable(),
+});
+
+export type ProfitChain = {
+  currency: string | null;
+  revenue: number;
+  cogs: number;
+  fees: number;
+  /** Eski çekirdek yayınlamıyordu — arayüz TÜRETMEZ, null bırakır. */
+  grossProfit: number | null;
+  contribution: number | null;
+  marginPct: number;
+  grossMarginPct: number;
+  units: number;
+  asinsMatched: number;
+  asinsTotal: number;
+  unmatchedUnits: number;
+  excludes: string[];
+  dated: boolean | null;
+  declaredFrom: string | null;
+  periodEnd: string | null;
+  target: {
+    value: string;
+    direction: string;
+    period: string | null;
+    effectiveDate: string | null;
+    source: string | null;
+  } | null;
+};
+
+export function adaptProfit(
+  raw: z.infer<typeof profitStateSchema>
+): ProfitChain | null {
+  const m = raw.contribution_margin;
+  if (!m) return null;
+  return {
+    currency: m.currency,
+    revenue: m.revenue,
+    cogs: m.cogs,
+    fees: m.fees,
+    grossProfit: m.gross_profit ?? null,
+    contribution: m.contribution ?? null,
+    marginPct: m.margin_pct,
+    grossMarginPct: m.gross_margin_pct,
+    units: m.units,
+    asinsMatched: m.asins_matched,
+    asinsTotal: m.asins_total,
+    unmatchedUnits: m.unmatched_units,
+    excludes: m.excludes,
+    dated: m.dated ?? null,
+    declaredFrom: m.declared_from ?? null,
+    periodEnd: m.period_end ?? null,
+    target: m.target
+      ? {
+          value: m.target.value,
+          direction: m.target.direction,
+          period: m.target.period ?? null,
+          effectiveDate: m.target.effective_date ?? null,
+          source: m.target.source ?? null,
+        }
+      : null,
+  };
+}
+
+export function useOdinProfit(): OdinQueryResult<ProfitChain | null> {
+  return useOdinQuery({
+    key: ["odin", "profit"],
+    module: "amazon",
+    schema: z.custom<ProfitChain | null>(),
+    load: IS_MOCK
+      ? async () => loadMock("amazon.profit")
+      : async (signal) => {
+          const raw = profitStateSchema.parse(
+            await httpLoad("/api/state", { signal })
+          );
+          return internalEnvelope(raw.generated_at, adaptProfit(raw));
+        },
+  });
+}

@@ -492,7 +492,7 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 |---|---|
 | `/amazon/orders` | ✅ AÇILDI (UI-ADR-202). İDDİA ÇÜRÜDÜ: core/'da 7 adet `KO-spapi-orders-*` var (en yenisi 49 sipariş). Kayıt vardı, uç yoktu — `GET /api/orders` eklendi. |
 | `/amazon/listings` | ✅ AÇILDI (UI-ADR-203). İDDİA ÇÜRÜDÜ: `KO-amazon-asin-catalog-2026H1-0001` promote edilmiş, 42 ASIN. `GET /api/catalog` eklendi. |
-| `/amazon/profit` | SKU bazlı gerçek kâr COGS ister; COGS kapsamı SAHİP KARARI bekliyor (math-audit) — `PROFIT_NEEDS_COGS` zaten UI'da. |
+| `/amazon/profit` | ✅ AÇILDI (UI-ADR-204). Bekleyen sahip kararı SKU KIRILIMI içinmiş; TOPLAM zincir 42/42 ASIN ile tamamen ölçülü. Çekirdek `gross_profit`/`contribution` tutarlarını da yayınlıyor. |
 | `/amazon/forecast` | Tahmin üreticisi yok (ADR-0149 stockout tahmini dahil 48/48 null; `probabilistic_forecast` finance'ta da "bağlı değil"). |
 | `/amazon/suppliers` | Tedarikçi verisi hiçbir uçta yok (goals'ta metin olarak geçiyor, yapılandırılmış kaynak değil). |
 | `/amazon/returns` | ✅ AÇILDI (UI-ADR-203). İDDİA ÇÜRÜDÜ: `KO-amazon-customer-satisfaction-2026H1-0001` promote edilmiş, 43 satır ASIN bazlı iade. Aynı uçtan. |

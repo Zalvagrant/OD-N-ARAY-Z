@@ -995,3 +995,32 @@ export function returnsMock() {
     ],
   });
 }
+
+/** `/api/state.contribution_margin` mock'u — YALNIZ Storybook. */
+export function profitMock() {
+  return mockEnvelope({
+    currency: "USD",
+    revenue: 70246.54,
+    cogs: 34414.62,
+    fees: 13741.87,
+    grossProfit: 35831.92,
+    contribution: 22090.05,
+    marginPct: 31.4,
+    grossMarginPct: 51.0,
+    units: 1467,
+    asinsMatched: 42,
+    asinsTotal: 42,
+    unmatchedUnits: 0,
+    excludes: ["refunds", "advertising"],
+    dated: false,
+    declaredFrom: "2026-07-21",
+    periodEnd: "2026-06-30",
+    target: {
+      value: "40",
+      direction: "floor",
+      period: "2026",
+      effectiveDate: "2026-01-01",
+      source: "owner-declared",
+    },
+  });
+}

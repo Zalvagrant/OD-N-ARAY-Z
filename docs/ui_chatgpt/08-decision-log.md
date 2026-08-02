@@ -8069,3 +8069,40 @@ yüzden kırmızıydı.
 lideri B0GCHNCCXT 2.090 oturum → 82 adet → 19.963,54 (%3,92 dönüşüm,
 %98,9 Buy Box). Returns özet %9,22 iade · 5,0/5 · 26 yorum · 1.508 birim
 / 72.171,34 USD; en yüksek iade %100,00 (7 birim), yorumsuz satır "—".
+
+---
+
+## UI-ADR-204 — Amazon Profit: ölçülen zincir + adıyla bildirilen boşluk
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-116 · UI-ADR-111 · UI-ADR-203 · ODIN ADR-0157
+
+Gece taraması `/amazon/profit` için "SKU bazlı gerçek kâr COGS ister;
+COGS kapsamı SAHİP KARARI bekliyor" demişti. Doğru ama **eksik**: bekleyen
+karar **SKU KIRILIMI** içindir. **TOPLAM zincir bugün tamamen ölçülü** —
+42/42 ASIN eşleşmiş, 0 eşleşmemiş birim. Ekran ölçüleni gösterir,
+bekleyeni adıyla bildirir; ikisini birbirine karıştırmaz.
+
+**Core (tek satırlık ekleme):** `contribution_margin` artık `gross_profit`
+ve `contribution` TUTARLARINI da yayınlıyor. Yeni hesap değil — iki yüzde
+zaten aynı ifadeden üretiliyordu; amaç arayüzün üç alanı çıkarıp sonuca
+"kâr" dememesi (UI-ADR-111'in çıkarma hâli). Çekirdek testi yayınlanan
+tutarla yayınlanan yüzdenin ayrışmasını yasaklıyor.
+
+**"NET KÂR" DENMİYOR (UI-ADR-116):** zincirin son halkası KATKI. Kayıt
+neyi hariç tuttuğunu kendisi söylüyor (`refunds`, `advertising`) ve ekran
+o listeyi rozet olarak basıyor. Reklam AYRI katman, kendi kaydından
+(`/api/amazon` PPC kalemleri) — birleştirilmiyor.
+
+**`dated:false` GİZLENMİYOR:** maliyet beyanları 21 Tem'den geçerli,
+ölçülen dönem 30 Haz'da bitiyor. Kayıt kendi tarihleme eksikliğini
+bildiriyor; ekran bunu cümleyle yazıyor.
+
+**Eşleşmeyen birim uyarısı bilerek koşullu:** bugün 0. Sıfırken metin
+çizilseydi olmayan bir sorun ekranda dururdu.
+
+**KANIT [18:41, üretim 3000]:** 70.246,54 ciro − 34.414,62 COGS =
+35.831,92 brüt (%51,0) − 13.741,87 ücret = **22.090,05 katkı (%31,4)**,
+sahip tabanı %40. Reklam katmanı: 689,05 harcama / 8.380,43 satış /
+%8,20 ACOS / ROAS 12,16 / 1.733,38 reklam sonrası.
