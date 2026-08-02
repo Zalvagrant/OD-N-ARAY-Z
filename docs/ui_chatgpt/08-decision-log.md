@@ -7830,3 +7830,27 @@ sınırlı ve ürün adı taşımıyor.
   içerik sağlayıcısı değişken (§7); ikinci bir SKU detayı yazılmadı.
 - **Boş tablo bir cevaptır:** "SP-API'den SKU gelmedi" der, "katalog
   boş" iddiasına çevrilmez (story kilitledi).
+
+---
+
+## UI-ADR-197 — Amazon PPC sayfası: Katman 1 canlı, kampanya kırılımı fail-closed
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-156 · ODIN ADR-0112 · FR-0026 · backend-istekleri.md
+
+`/amazon/ppc` nav'da vardı, ekranı yoktu. Director'ın kanonik
+`useAmazonPpc` kancası + `PPCOverviewCard` tüketildi — beş reklam KPI'ı
+bugün CANLI (spend $689,05 · sales $8.380,43 · ACOS %8,2 · ROAS 12,2 ·
+net after ads $1.733,38; canlı sayfada doğrulandı).
+
+- **Kampanya kırılımı FAIL-CLOSED:** ODIN `/api/amazon`da kırılım
+  yayınlamıyor; veri çekirdekte var (94 satırlık reklam raporu KO'su)
+  ama sözleşme açılmadı — talep backend-istekleri.md'de zaten kayıtlı.
+  `CampaignIntelligenceList` null zarfla "üretilmedi" basar. 94 satırı
+  arayüzün KO'dan okuyup kendi kırılımını üretmesi, çekirdeğin yapmadığı
+  değerlendirmeyi arayüzde icat etmek olurdu (UI-ADR-111) — yapılmadı.
+- **Story dersi:** NoData gerekçesi GÖRÜNÜR metin değil `aria-label`dır
+  (UI-ADR-156); durum story'leri metinle değil `getByRole("note",
+  {name})` ile sorgular. İlk yazım metinle sorguladı ve kapı koşumu
+  durdurulup düzeltildi.
