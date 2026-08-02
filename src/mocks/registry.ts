@@ -76,6 +76,7 @@ export interface MockMap {
   "memory.executive": ReturnType<BriefingMocks["executiveMemoryMock"]>;
   "system.ai": ReturnType<BriefingMocks["aiRuntimeMock"]>;
   "system.capability": ReturnType<BriefingMocks["capabilityMock"]>;
+  "projects.requests": ReturnType<BriefingMocks["requestsMock"]>;
   "feed.items": ReturnType<FeedMocks["feedMock"]>;
   "finance.position": ReturnType<FinanceMocks["financePositionMock"]>;
   "goals.items": ReturnType<GoalMocks["goalsMock"]>;
@@ -146,6 +147,8 @@ export async function loadMock<K extends MockKey>(key: K): Promise<MockMap[K] | 
       return (await import("./briefing")).aiRuntimeMock() as MockMap[K];
     case "system.capability":
       return (await import("./briefing")).capabilityMock() as MockMap[K];
+    case "projects.requests":
+      return (await import("./briefing")).requestsMock() as MockMap[K];
     case "briefing.kpis":
       return (await import("./briefing")).kpisMock() as MockMap[K];
     case "briefing.opportunities":

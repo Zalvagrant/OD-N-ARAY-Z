@@ -8223,3 +8223,52 @@ tıklar, yeniden getirme bitene kadar bekler, başlığın yerinde ve
 — tıklamadan önce **3.091 dosya / 63,9 MB**, tıklamadan sonra **3.133
 dosya / 64,9 MB**. Düğme gerçekten yeniden ölçtü; ekran arada bir kez
 çalışan sistemin büyümesini yakaladı.
+
+---
+
+## UI-ADR-208 — Projects: R-006 talep defteri, gerçekten filtreleyen filtre
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-148 · UI-ADR-156 · ODIN ADR-0050 · ADR-0124
+
+Gece taraması "/projects: proje varlığı core'da yok" demişti — **ALTINCI
+çürüyen iddia.** ODIN'in işi ADR-0050'den beri R-006'da izleniyor: 129
+tipli talep, yedi epic altında, öncelik ve durumla. Proje panosu buydu;
+çalışma zamanında hiç okunmuyordu (`validate_docs.py` aynı tabloyu yalnız
+kimlik tekilliği için ayrıştırıyordu).
+
+**Core:** `odin/requests.py` + `GET /api/requests`.
+
+**DURUM NORMALLEŞTİRİLMİYOR:** sütun serbest metin ve beş değerli bir
+enum'a sıkıştırmak sahibin yazdığı kısmı silerdi. Tam metin `status`,
+ilk kelimenin okunuşu `state` olarak YAN YANA. Boş durum "open" değil
+**"unknown"** — yazılmamış bir durum açık değildir.
+
+**MUTABAKAT TABLOSU SAYILMIYOR:** 140 gevşek eşleşmeden 11'i eski
+kimlikleri adlandıran ayrı bir tablodur; saysaydım defter hayaletlerle
+şişerdi (129 gerçek satır).
+
+**FİLTRE VE ARAMA DEKORATİF DEĞİL:** `FilterBar` epic/tip/durum/öncelik
+ile daraltır, `Search` kimlik ve başlıkta arar, sayaç ÖLÇÜLMÜŞ değeri
+yazar. Filtre sonucu boş olmak ile DEFTERİN boş olması **ayrı iki
+cümleyle** söylenir.
+
+**Envanter kapısı bir bileşeni listeden düşürdü:** `ui/filter` UI-ADR-148
+listesinde "çağıranı yok" diye duruyordu; artık gerçek bir tüketicisi
+var ve kapı bunu anlık görüntü farkı olarak bildirdi (beklenen, iyi
+yönde bir kırılma).
+
+**İKİ KUSURU KENDİ KAPILARIM YAKALADI — ikisi de gerçekti:**
+1. `value={x ?? 0}` — ESLint "SAHTE VERİ" dedi. Doğru: sayı adaptörde,
+   gerekçesiyle birlikte üretilmeli (`stateCounts`, bölüntü olduğu için
+   eksik kova gerçekten sıfırdır).
+2. **Mock sözleşmeden saptı ve ekran Storybook'ta ÇÖKTÜ.**
+   `mockEnvelope<T>` çıkarımla çalıştığından `stateCounts` eksikliği
+   derlemede görünmüyordu. `requestsMock(): DataEnvelope<RequestLedger>`
+   yazıldı — sapma artık tsc hatası.
+
+**KANIT [20:26, üretim 3000, GERÇEK TARAYICI]:** 129 talep · açık 65 /
+bitti 63 / düşürüldü 1 · EPIC-0005 47 … EPIC-0007 2. Arama kutusuna
+"velocity" yazıldı → **"4 / 129 talep gösteriliyor"** ve liste dörde
+indi (ER-0012, ER-0003, FR-0005, …).

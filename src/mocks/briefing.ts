@@ -18,6 +18,7 @@
  */
 
 import type { TimelineItem } from "@/types/screens";
+import type { RequestLedger } from "@/lib/data/odin-requests";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type {
   AIRecommendation,
@@ -1053,5 +1054,87 @@ export function capabilityMock() {
       "MOCK — Sahip bir yedek politikası beyan etmeli (kapsam, sıklık, hedef).",
     evidence: ["MOCK archive/: 21 dosya", "MOCK backup-policy.json: YOK"],
     measuredAt: "2026-08-02T16:00:00.000000+00:00",
+  });
+}
+
+/**
+ * `/api/requests` mock'u — YALNIZ Storybook. R-006'nın küçültülmüş ikizi.
+ *
+ * ⚠️ TİP AÇIKÇA YAZILI ve bu bir DÜZELTMEDİR: adaptöre `stateCounts`
+ * eklendiğinde bu mock güncellenmedi ve ekran Storybook'ta ÇÖKTÜ
+ * ("Cannot read properties of undefined"). `mockEnvelope<T>` çıkarımla
+ * çalıştığı için sapma derleme zamanında görünmüyordu — `RequestLedger`
+ * yazılınca artık tsc yakalıyor (UI-ADR-208).
+ */
+export function requestsMock(): DataEnvelope<RequestLedger> {
+  return mockEnvelope<RequestLedger>({
+    available: true,
+    reason: null,
+    source: "MOCK docs/registries/request-registry.md",
+    total: 4,
+    rows: [
+      {
+        id: "FR-0001",
+        type: "FR" as const,
+        epic: "EPIC-0001",
+        title: "MOCK — SP-API adapter",
+        priority: "P1",
+        status: "implemented v1 (ADR-0051)",
+        state: "done" as const,
+        closedBy: "ADR-0051",
+      },
+      {
+        id: "ER-0002",
+        type: "ER" as const,
+        epic: "EPIC-0002",
+        title: "MOCK — Dinamik nakit rezervi",
+        priority: "P2",
+        status: "open — sırada",
+        state: "open" as const,
+        closedBy: null,
+      },
+      {
+        id: "BR-0003",
+        type: "BR" as const,
+        epic: "EPIC-0001",
+        title: "MOCK — Kampanya atıf hatası",
+        priority: "P1",
+        status: "open — düzeltilmedi",
+        state: "open" as const,
+        closedBy: null,
+      },
+      {
+        id: "RR-0004",
+        type: "RR" as const,
+        epic: "EPIC-0003",
+        title: "MOCK — Banka adaptörü fizibilitesi",
+        priority: "P3",
+        status: "RETIRED (kapsam dışı)",
+        state: "dropped" as const,
+        closedBy: null,
+      },
+    ],
+    byEpic: [
+      { name: "EPIC-0001", count: 2 },
+      { name: "EPIC-0002", count: 1 },
+      { name: "EPIC-0003", count: 1 },
+    ],
+    byType: [
+      { name: "FR", count: 1 },
+      { name: "ER", count: 1 },
+      { name: "BR", count: 1 },
+      { name: "RR", count: 1 },
+    ],
+    byState: [
+      { name: "open", count: 2 },
+      { name: "done", count: 1 },
+      { name: "dropped", count: 1 },
+    ],
+    stateCounts: { open: 2, done: 1, dropped: 1, unknown: 0 },
+    byPriority: [
+      { name: "P1", count: 2 },
+      { name: "P2", count: 1 },
+      { name: "P3", count: 1 },
+    ],
   });
 }

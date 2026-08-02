@@ -1,0 +1,1375 @@
+{
+  "generated_at": "2026-08-02T17:02:41.516613+00:00",
+  "available": true,
+  "reason": null,
+  "source": "docs\\registries\\request-registry.md",
+  "total": 129,
+  "rows": [
+    {
+      "id": "FR-0001",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "SP-API adapter — orders/inventory/fees ingestion to Staging",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0051: read-only orders/inventory LIVE, key in vault 2026-07-22; fees = future slice)",
+      "state": "done",
+      "closed_by": "ADR-0051"
+    },
+    {
+      "id": "FR-0024",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "Ads OAuth authorize helper — one-time loopback+PKCE to obtain the Advertising-scoped refresh token and write it straight to the vault (no chat/clipboard exposure)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0105; odin/ads.py authorize/build_authorize_url/exchange_code + `ads authorize` CLI; OAuth authcode+PKCE-S256, 127.0.0.1-only single-purpose server, state/CSRF, stray-request-safe loop, socket timeout, atomic write, token never in return/log/chat; gavadolar security review added PKCE+127.0.0.1+stray-safe+socket-timeout+atomic; prereq owner registers http://127.0.0.1:8451/callback; injectable opener/transport → 9 offline tests incl full loopback, 938 total green)",
+      "state": "done",
+      "closed_by": "ADR-0105"
+    },
+    {
+      "id": "FR-0002",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "Ads API adapter — PPC data to Staging",
+      "priority": "P1",
+      "status": "implemented v1 base (ADR-0103; owner Ads API access APPROVED 2026-07-24 → unblocked; odin/ads.py read-only AdsApiAdapter [profiles + SP campaigns] mirroring spapi ADR-0051, separate per-field vault secrets amazon-ads-*, injectable transport → 5 offline tests green, `ads check\\",
+      "state": "done",
+      "closed_by": "campaigns` CLI + ads_ingest heartbeat job self-healing; async performance reports [spend/ACOS] = next slice once creds live)"
+    },
+    {
+      "id": "RR-0001",
+      "type": "RR",
+      "epic": "EPIC-0002",
+      "title": "Bank adapter feasibility per institution (Mercury, Pinpong, Garanti, Akbank, Enpara, QNB) — API availability, auth model, security review scope",
+      "priority": "P2",
+      "status": "RETIRED (owner directive 2026-07-24: ODIN will NEVER connect to a banking system). Replaced by the Owner Cash Journal (FR-0021, ADR-0100) — owner records money in/out, ODIN reads it",
+      "state": "dropped",
+      "closed_by": "ADR-0100"
+    },
+    {
+      "id": "FR-0023",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Amazon reads Finance ledger read-model — Amazon uses the Finance Director's authoritative ledger-derived monthly installment (via ledger_finance_snapshot passed by AmazonAgent) instead of the stale static KO-finance-model; static model demoted to fallback fixture",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0102; finance.director.ledger_finance_snapshot + amazon_director.financial_summary finance_snapshot param + amazon_agent wiring; gavadolar review fixed silent-static-fallback: empty ledger=valid 0, read-failure=unavailable→marked DOĞRULANMADI not silently trusted; live: Amazon now 234k finance-ledger not stale 175.7k; tests/test_amazon_finance_snapshot.py 5 green, 929 total; tech debt: move snapshot to finance read-model module)",
+      "state": "done",
+      "closed_by": "ADR-0102"
+    },
+    {
+      "id": "FR-0022",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Dynamic cash reserve — reserve = personal floor (owner's 50k home/personal) + known this-month installment obligations from the ledger (no forecast), replacing the flat number; capacity gate + runway use it, breakdown shipped for audit",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0101; director.required_reserve threaded via current_position → capacity.safe_ceiling/assess_capacity; deterministic ACR-0007, active installments capped at remaining, critical_reorder_cash deferred; gavadolar-designed; live: reserve 284k (50k+234k) vs cash 93.6k reveals true ~0 discretionary capacity that flat 50k hid; 923 tests green backward-compat)",
+      "state": "done",
+      "closed_by": "ADR-0101"
+    },
+    {
+      "id": "FR-0021",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Owner Cash Journal (M5) — manual money-in/out with no bank connection ever; live cash = opening snapshot + net journal movements after as_of; replaces bank adapters (RR-0001)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0100; odin/finance/cash_journal.py + `finance cash-in\\",
+      "state": "done",
+      "closed_by": "cash-out`; append-only ADR-0005, owner-declared, snapshot cutoff prevents double-count, non-TRY requires explicit fx>0, corrupt line fails-closed, second-snapshot refused w/o --revise; wired into director/conflict/plan unified cash; gavadolar review fixed cutoff+fx+corrupt-line+snapshot-guard; tests/test_finance_cash_journal.py 7 green; demo: opening 93.6k + 50k in − 20k out = 123.6k TRY)"
+    },
+    {
+      "id": "ER-0001",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "Owner enters baseline.json → first live what-if scenario (ADR-0047 surface)",
+      "priority": "P2",
+      "status": "CORRECTED 2026-07-29 — the row was stale: it said \"needs owner numbers\" but odin-data/baseline.json HAS existed since 2026-07-22 (cash 9,313 / revenue 11,634 / costs 7,250 / installments 3,738 USD) and `simulate` runs on it. The real problem is worse than missing numbers: they CONTRADICT the live ledger by up to 4.7x and are denominated in a different currency (ADR-0137). Superseded in substance by ER-0024 (reconcile or fail closed); this row stays for history",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0002",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "First real decision record → checkpoint flow exercised (ADR-0046 surface)",
+      "priority": "P2",
+      "status": "package prepared, owner verdict pending (2026-07-30. Transcribing the Wave-2 promote decision was REJECTED — gavadolar confirmed: the decision-record schema demands a full recommendation contract [confidence_breakdown, consensus, flip_conditions] and back-filling machine metrics that trust.confidence() never produced is fabrication [ADR-0046/ACR-0020]. Instead the FIRST record rides a real machine recommendation: REC-c6bc0a7774818fcf, generated 2026-07-30 13:52 from the freshly promoted Wave-2 data — \"3 SKU kritik stokta → reorder listesi\", confidence 46.05 [real trust.confidence output], evidence chain = today's Core KOs. Owner inputs drafted at odin-data/pending-decision-inputs-REC-c6bc0a7774818fcf.json; owner types outcome+reasoning, then `odin decision promote REC-c6bc0a7774818fcf <inputs.json>` creates decision #1 and the checkpoint lands when the reorder outcome is measurable. A reorder is a cash commitment — the blanket process approval does not cover it)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0003",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "Return Intelligence Engine — Returns Report ingest → root-cause classification + Return Risk Index (0-100) per SKU",
+      "priority": "P2",
+      "status": "proposed (Commerce Intelligence v2 spec, owner 2026-07-22; needs Returns Report source/SP-API returns; analysis.py + orders/inventory live; Decision/Risk/Alert core already live — compose, don't rebuild)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0004",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "True Profit Intelligence Engine — multi-layer P&L + real margin/ROI/ROAS per SKU; \"sells but unprofitable\" detection",
+      "priority": "P1",
+      "status": "proposed (owner: \"en önemli modül\"; orders/inventory + finances role live; COGS DONE via FR-0015 [58 cost_line]; **Ads spend UNBLOCKED 2026-07-28 — FR-0026/ADR-0112 ships per-SKU spend/ACOS/ROAS and Net Profit After Advertising**; remaining input = Amazon fees [referral/FBA/settlement] via the SP-API Finances/Settlement adapter, still `source_not_connected`)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0012",
+      "type": "ER",
+      "epic": "EPIC-0001",
+      "title": "Amazon reorder velocity from sku_sales — derive avg_daily_units from the promoted sku_sales window so the stockout/reorder engine produces recommendations (FBA inventory carries no velocity)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0095; odin/amazon_director.py `merge_velocity()` merged before stockout_risk; never overwrites explicit velocity, no-sales SKUs stay honestly unknown; tests/test_amazon_velocity.py 5 green; verified on real Core: 1 critical SKU + 1 reorder Recommendation surfaced where 0 before; coverage stays 2/3 — 3rd dim is offers/pricing ADR-0030, not velocity)",
+      "state": "done",
+      "closed_by": "ADR-0095"
+    },
+    {
+      "id": "ER-0003",
+      "type": "ER",
+      "epic": "EPIC-0001",
+      "title": "Sales Velocity Intelligence Engine — momentum/forecast/reorder over analysis.py (1–365d, EMA/SMA, Recommended Order)",
+      "priority": "P1",
+      "status": "slice 1 implemented (ADR-0147; `odin/velocity.py` read_windows/measure/report + `python -m odin velocity`; per-SKU shipped units, shipped/day, on-hand, inbound, days-of-cover from the ONE period-declaring window; decimal-string rates, cover days round DOWN; excluded windows published with their reason; four distinct states velocity_unknown / no_movement / not_in_inventory / real rate; NO score and NO band — banding days-of-cover needs owner thresholds and ODIN does not invent the boundary (ADR-0017), so the ADR-0141 commerce layer gains its first consumer in the thresholds commit; live 48 rows / 19 measured / 18 with cover / 3 under 4 days; tests/test_velocity.py 9 green, 1233 total). Slice 2 = owner thresholds → ScoreSet through CommerceService; momentum unblocks when a 2nd declaring window is promoted. Took FR-0005's slot (ADR-0144 §2, 2026-07-30; its inputs were promoted the same day by ADR-0139 Wave-2: a period-declaring `sku_sales` window + live inventory). Honest scope fixed by ADR-0144 §5: undeclared snapshots excluded not merged, `sku_sales` is the velocity source (orders carry no sellerSku), shipped units is the base unit, momentum is Data Required until a second comparable window is promoted, forecast stays deferred (ACR-0007)  Slice 2 (ADR-0146): the owner asked gavadolar to set the cover-day thresholds from real data and pre-approved the answer; BOTH members REFUSED to derive them — 18 SKUs over one 7-day window at 1-6 units each is noise, and the lead_time_days=30 behind the existing band is recorded nowhere. So: no band, no stock alarm; `exposure()` publishes a deterministic review queue (longest cover first, tie-break on SKU) + descriptive summary + data_coverage_pct, and `stockout_risk` now carries threshold_provenance=unapproved_default\\",
+      "state": "open",
+      "closed_by": "owner_policy. Live: median cover 159.2d, 1487 on hand vs 38 shipped/week, 2 inbound, 12 SKUs zero-on-hand, coverage 37.5% — the exposure is idle capital, not stockout. NOTE: pending ER-0002 (REC-c6bc0a7774818fcf, '3 SKUs critical -> reorder') rests on the unapproved boundary. 16 tests green."
+    },
+    {
+      "id": "FR-0005",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "Listing Intelligence Engine — catalog/listing audit → Listing Health Score (0-100) + prioritized fixes",
+      "priority": "P2",
+      "status": "frozen — not rejected, scheduled behind its inputs (ADR-0144, 2026-07-30. The roadmap's \"Catalog + Listings SP-API roles live\" is true of VAULT PERMISSIONS and false of CODE: `odin/spapi.py` has no catalog/listings surface at all. The only listing-shaped Core data is the owner's Seller Central export KO-amazon-asin-catalog-2026H1-0001 — 7 fields (asin, title, sessions, units, revenue, conversion_pct, avg_buybox_pct); bullets/description/A+/images/backend-keywords/attributes/identifiers all absent. Against the C.1 headline that is 55% of the weight with zero input, and ADR-0144 §4 forbids publishing a re-normalized partial headline. Unblocks when FR-0048 lands)",
+      "state": "open",
+      "closed_by": "ADR-0144"
+    },
+    {
+      "id": "FR-0006",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "Competitive Intelligence Engine — Buy Box / price / BSR / share-of-voice (owner's 5th module)",
+      "priority": "P2",
+      "status": "proposed (Pricing role live; competitor BSR/stock = external data adapter, own ADR + security review)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "RR-0002",
+      "type": "RR",
+      "epic": "EPIC-0001",
+      "title": "Commerce Intelligence Core — research how the 5 engine scorers compose with the EXISTING Decision/Forecast/Risk/Alert/Recommendation/Executive engines",
+      "priority": "P2",
+      "status": "proposed (→ likely ACR; spec's \"Core\" layer reinvents live machinery: Decision/Consensus/Briefing/Execution already shipped per ADR-0033/0018/0044 — Core = view over layers, not new engines)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0007",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Executive Council engine — 12 domain councils + 9 consultation modes over the real 7-model nvidia-council; Confidence Report + append-only discussion memory",
+      "priority": "P2",
+      "status": "implemented v1 (odin/council.py + registries/councils.json + tests/test_council.py, 11 tests green; `python -m odin council list\\",
+      "state": "done",
+      "closed_by": "modes\\"
+    },
+    {
+      "id": "FR-0008",
+      "type": "FR",
+      "epic": "EPIC-0004",
+      "title": "Runtime heartbeat supervisor — always-on loop (drain/dispatch/monitor + anchored sabah/aksam briefings), restart-safe, job-isolated; Windows logon autostart",
+      "priority": "P1",
+      "status": "implemented v1 (odin/runtime.py + tests/test_runtime.py, 12 tests green; `python -m odin runtime [--once\\",
+      "state": "done",
+      "closed_by": "status\\"
+    },
+    {
+      "id": "FR-0009",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Legal Director runtime v1 — CLO decision-support: Legal Risk Engine (13-field scored risk, LOW→CRITICAL) + policy/compliance/trademark monitoring + IP-complaint & account-health intake + severity notification routing + CEO/owner advisory (Legal Council 2nd opinion) + executive legal-watch report + event pipeline + scheduler pass/loop",
+      "priority": "P1",
+      "status": "implemented v1 (odin/legal.py + odin/legal_monitor.py + registries/agents/legal-director-agent.json + tests/test_legal.py, 26 tests green; `python -m odin legal risk\\",
+      "state": "done",
+      "closed_by": "monitor\\"
+    },
+    {
+      "id": "FR-0010",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Legal Director Phase 2 — CLO enterprise depth: Legal Knowledge Base (9 rule domains + 8 country profiles) + Document Analyzer + Contract Risk AI + Amazon Appeal drafter (never sends) + Product & Country Compliance Engine + Legal Memory + Decision-History audit trail + Executive Legal Dashboard (10 metrics, into CEO dashboard) + CEO Legal Advisor Mode",
+      "priority": "P1",
+      "status": "implemented v1 (odin/legal_kb.py + legal_docs.py + legal_compliance.py + legal_memory.py + legal_dashboard.py + legal.advisor_report + registries/legal-kb.json; 37 new tests green, 366 total; `python -m odin legal advisor\\",
+      "state": "done",
+      "closed_by": "dashboard\\"
+    },
+    {
+      "id": "FR-0011",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Innovation Director Foundation (M1) — 11 domain models + 13 `innovation.*` event contracts + config layer + deterministic scoring kernel (Opportunity/Risk/ROI/Confidence)",
+      "priority": "P1",
+      "status": "implemented v1 (odin/innovation/{config,models,events,scoring}.py + schemas/innovation.schema.json + tests/test_innovation_{models,scoring}.py, 36 tests green, 402 total; stdlib-only ADR-0015; reuses schema.py + experiment.schema.json — no duplicate schema; event payloads metadata-only Content-Guard-safe ADR-0021; NO publisher/crawler/IO — those are later separately-approved modules; implements planned A-012-08, doc A-012-08-M1)",
+      "state": "done",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0015",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "COGS / cost-line import adapter — image-transcribed supplier order → structured JSON → same staged-candidate→confirm pipeline as FR-0014; `cost_line` entity; fail-closed on qty×unit≠line_total (printed grand total = end-to-end transcription check)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0094 v1.1.0; odin/finance/cost_import.py + `python -m odin finance import-cost <lines.json>`; reuses FileFinanceStore + confirm + archive; owner's hearing-aid COGS = Finance Director profit input; real import: 58 lines / 50 products / 2.595.203 TL Duyum Ses orders, arithmetic verified against source total; owner clarified image=full orders vs Excel=remaining installment debt; tests in test_finance_import.py 15 green)",
+      "state": "done",
+      "closed_by": "ADR-0094"
+    },
+    {
+      "id": "FR-0014",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Finance Initial Import — one-time Excel bootstrap → normalized staged preview → human promotion → append-only finance ledger (Finance Director's first real data source)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0094; odin/finance/{xlsx,normalize,workbook_map,store,importer}.py + `python -m odin finance import\\",
+      "state": "done",
+      "closed_by": "confirm\\"
+    },
+    {
+      "id": "FR-0013",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Executive Memory in the morning briefing — read-only \"Yönetim Hafızası\": recent human decisions + status + owner-confirmed checkpoint outcome/lesson, so ODIN recalls yesterday's decisions and how they turned out",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0093; owner's flagged \"biggest addition\"; odin/briefing.py `executive_memory()` + section, odin/stores.py `FileDecisionLog.summaries()` read-only accessor, tests/test_executive_memory.py 6 tests green; reads governed FileDecisionLog + ADR-0046 checkpoints, never writes/promotes/infers; EIP + auto-conflict-resolution deferred — ADR-0093 boundaries; informed by gavadolar Terra/Luna consult)",
+      "state": "done",
+      "closed_by": "ADR-0093"
+    },
+    {
+      "id": "FR-0012",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Innovation Director Discovery Engine (M2) — kind-agnostic pipeline: source registry (config) + read-only connector port (+ HTTP/file connectors) + extractor registry + numeric signal normalizer + opportunity builder + scoring adapter → scored `Opportunity` candidates into Staging",
+      "priority": "P1",
+      "status": "accepted (design v1.1 frozen, ADR-0090, doc A-012-08-M2; architecture: kind-agnostic core over a `SignalLike` contract + `kind→mapper` registry, Staging-only ADR-0004, no-delete ADR-0005, stdlib-only ADR-0015, deterministic ADR-0056, operational `discovery.*` events Content-Guard-safe ADR-0021; reuses scoring kernel + schema.py + FileStagingStore + spapi retry + `scan` seam; publisher=M3 / scheduler=M4 / cache deferred; implementing module-by-module under mandatory approval gate)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0020",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Finance Data Quality M4 — read-only ledger validator (negative/invalid-numeric/installment-inconsistent=critical; possible-duplicate/future-dated/invalid-date/currency-unknown/stale-cash/large-reconciliation=warning) + ledger↔model reconciliation; reports only, never mutates (ADR-0005)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0099; odin/finance/quality.py + `python -m odin finance quality`; gavadolar review fixed TL→TRY alias false-positive + date-parse + numeric-validation + active-status/dual-threshold reconciliation; live surfaced real finding: model monthly installment 175.7k diverges ~33% from ledger 234k = stale model; tests/test_finance_quality.py 11 green; per-calculation critical gating across M1-M3 = follow-up)",
+      "state": "done",
+      "closed_by": "ADR-0099"
+    },
+    {
+      "id": "FR-0019",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Finance Planning M3 — obligation breakdown (mandatory installments capped at remaining + mandatory-classified expenses vs discretionary), category spending envelope (observed avg, owner target when set), shared-ceiling basket allocation closing M2's multi-SKU tech debt",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0098; odin/finance/planning.py + `python -m odin finance plan`; deterministic recommend-only, no forecast; mandatory classification explicit-override>hint with recorded source, disjoint buckets; basket all-or-nothing default [partial opt-in via divisible], never exceeds shared safe_ceiling; gavadolar review caught installment-over-count + partial-qty-0 + MOQ bugs, fixed; live: mandatory 347.7k/discretionary 27.8k TRY, basket ceiling 0→deferred; tests/test_finance_planning.py 9 green; dup/stale/currency validation = M4)",
+      "state": "done",
+      "closed_by": "ADR-0098"
+    },
+    {
+      "id": "FR-0018",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Amazon↔Finance Capacity Gate (M2) — deterministic reorder conflict surfacing: Amazon ReorderProposal (critical SKU, qty, upfront COGS) ↔ Finance CapacityAssessment (allow/reduce/defer), matched by structured SKU + cash/runway (never text); ODIN surfaces options, owner decides (ACR-0009/0010)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0097; odin/finance/capacity.py + `python -m odin finance conflict`; safe ceiling honours BOTH cash reserve AND runway floor, baseline_breach flagged, fail-closed on missing cost/FX/qty=0; gavadolar adversarial review caught reduce-ignores-runway + false-zero-cost-allow bugs, fixed; live: O-Recevier reorder 13u/28k TL → DEFER, runway already <policy; tests/test_finance_capacity.py 12 green; basket/multi-SKU budget = M3 tech debt)",
+      "state": "done",
+      "closed_by": "ADR-0097"
+    },
+    {
+      "id": "FR-0017",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Finance Director M1 — live CFO read-only runtime: current position (operating net vs cash-flow-after-debt), installment/payment calendar, runway, 4 deterministic what-if scenarios (owner chooses), shared-contract Recommendation via unified path",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0096; odin/finance/director.py FinanceDirector+FinanceAgent, scenario.py upfront_cash extension, `python -m odin finance director\\",
+      "state": "done",
+      "closed_by": "cash`; recommend-only ACR-0009/0010, no forecast ACR-0007, cash=owner as-of snapshot with provenance, source_not_connected for tax/bank-recon/AR-AP/card-balance/FX/payroll; wired into operating cycle → DecisionSink [verified: source_director=finance rec persisted]; real data: runway 1.3mo, recommends defer-spend; tests/test_finance_director.py + test_finance_import.py 22 green; cfo-agent.json planned→live; M2=Amazon↔Finance capacity gate next)"
+    },
+    {
+      "id": "FR-0016",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "OdinBridge read-only export — expose per-SKU **net margin** (FR-0004 output), live **stock** (FR-0001), **sales velocity** (ER-0004), traffic + **search-terms/keywords** to the external HEIMDALL social-arm via a **versioned read-only MCP/contract** (`get_product_priority`; Mock→Replay→Live)",
+      "priority": "P1",
+      "status": "proposed (HEIMDALL F2 profit-engine consumer, per HEIMDALL-Mimari-v3; margin depends on FR-0004 + FR-0015 COGS done [58 cost_line]; needs product→ASIN map + FX + Amazon fees from Finances/Settlement adapter; **read-only pull only — ODIN never writes to HEIMDALL, HEIMDALL never writes to ODIN**; unblocks HEIMDALL attribution/priority engine; owner-authorized filing 2026-07-24)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0034",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Knowledge Intelligence Evolution — Slice A: learning metrics (progress: total/processed/remaining videos, KO count, processed/extracted today, throughput, ETA; quality: duplicate ratio, merged, rejected, avg confidence, conflicts, density), read-only over Staging+telemetry",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0107; odin/knowledge_metrics.py pure functions + learning_metrics(data_dir); offline-tested tests/test_knowledge_metrics.py 3 green; live: 274 videos/17 processed/257 remaining/203 KOs, dup 0.01, avg conf 27, density 11.9; extends curator ADR-0104/0106, no rewrite)",
+      "state": "done",
+      "closed_by": "ADR-0107"
+    },
+    {
+      "id": "FR-0035",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Knowledge Intelligence Evolution — Slice B: Executive Briefing \"Knowledge Intelligence\" section (videos today, extracted, remaining+ETA, KB size+density, dedup/merged/conflicts/avg-confidence, learning+quota status) — extend existing briefing, no new dashboard",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0108; briefing.py `_knowledge_section` + build_briefing render + run() populates state[\"knowledge\"] via ADR-0107; graceful when absent; live briefing shows section; tests/test_knowledge_metrics.py BriefingSection 2 green; quota field = hook for ADR-0109)",
+      "state": "done",
+      "closed_by": "ADR-0108"
+    },
+    {
+      "id": "FR-0036",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Knowledge Intelligence Evolution — Slice C: adaptive scheduler (AIMD: +5 healthy cap 40, halve on quota/rate-limit floor 5, hold idle; minimal persisted state runtime/learning.json) + freshness priority (updated>newest-staged, not FIFO); quota status → briefing",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0109; runtime.next_amount + load_learning + _job_curator adaptive; curation.prioritized; briefing wires learning_quota; no retry loop, heartbeat-isolated; tests/test_curator.py AdaptiveScheduler 3 green; DAILY_BACKFILL stays seed)",
+      "state": "done",
+      "closed_by": "ADR-0109"
+    },
+    {
+      "id": "FR-0037",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Knowledge Intelligence Evolution — Slice D: Obsidian Knowledge Bridge (curated-active KO → claim/topic/creator markdown notes with [[wiki links]] in repo-internal odin-data/obsidian/, NOT the owner vault; stable filenames, clean folders, incremental, edit-safe ODIN:START/END region, no dupes) — auto after nightly curate + `curate obsidian` CLI",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0110; odin/obsidian_bridge.py export/write_note; wired into _job_curator + CLI; live 198 claims → 219 notes 9 topics/12 creators, re-run writes only changed; tests/test_obsidian_bridge.py 3 green; read-only Staging, no Core)",
+      "state": "done",
+      "closed_by": "ADR-0110"
+    },
+    {
+      "id": "FR-0025",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Knowledge Intelligence Evolution — Slice E: knowledge graph preparation — knowledge_graph(records) node/edge projection (family→topic→concept→source + superseded/duplicate/conflict relationship edges), persisted odin-data/obsidian/graph.json, no visualization",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0111; obsidian_bridge.knowledge_graph + graph.json in export; live 224 nodes/405 edges; deterministic sorted edges; tests/test_obsidian_bridge.py Graph green; read-only, no store)",
+      "state": "done",
+      "closed_by": "ADR-0111"
+    },
+    {
+      "id": "FR-0026",
+      "type": "FR",
+      "epic": "EPIC-0006",
+      "title": "ACIE (Autonomous Continuous Improvement Engine) — Slice A: structured Opportunity model (business/technical value, complexity, risk, confidence, evidence, priority_score, owner_approval_required=True, status) + append-only no-delete ImprovementRegistry (idempotent stable-hash id, lifecycle detected/implemented/rejected/deferred/merged/superseded, query) — proposals only, never modifies code/docs/runtime",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0112; odin/improvement.py; owner approval structurally mandatory; tests/test_improvement.py 5 green; foundation for detectors/prioritization/draft-gen B-F)",
+      "state": "done",
+      "closed_by": "ADR-0112"
+    },
+    {
+      "id": "FR-0027",
+      "type": "FR",
+      "epic": "EPIC-0006",
+      "title": "ACIE — Slice B: evidence-based opportunity detectors (arch-health reuse fitness, knowledge-gap reuse knowledge_metrics, telemetry repeated-failure, tech-debt FIXME/ponytail scan) — pure functions + detect_all wiring, idempotent, detector-isolated, read-only; never invents problems",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0113; odin/improvement_detectors.py; live 8 opportunities [7 tech-debt/1 knowledge-gap], re-run new=0; tests/test_improvement_detectors.py 5 green; reuses fitness/knowledge_metrics/telemetry)",
+      "state": "done",
+      "closed_by": "ADR-0113"
+    },
+    {
+      "id": "FR-0028",
+      "type": "FR",
+      "epic": "EPIC-0006",
+      "title": "ACIE — Slice C: prioritization engine — deterministic weighted score (business/technical value, risk-reduction, urgency, confidence, arch-importance, minus effort/complexity; sum-100 weights) with full breakdown + level (critical/high/medium/low); rank() sorts descending deterministic",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0114; improvement.prioritize + rank + PRIORITY_WEIGHTS; explainable no-black-box, Trust-Standard-style breakdown; tests/test_improvement.py Prioritization 4 green)",
+      "state": "done",
+      "closed_by": "ADR-0114"
+    },
+    {
+      "id": "FR-0029",
+      "type": "FR",
+      "epic": "EPIC-0006",
+      "title": "ACIE — Slice D: draft generator — deterministic DRAFT artifacts (ADR/FR/spec/plan/test-strategy/rollback + META.json) into odin-data/improvement/drafts/<OPP-id>/, draft-only banner + evidence + confidence + owner-approval-required; selective (confidence≥70 AND priority≥55); NEVER touches governed docs or code",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0115; odin/improvement_drafts.py generate_drafts + generate_for; ADR draft has no governed number; idempotent; tests/test_improvement_drafts.py 3 green; real opps currently medium-priority=no auto-draft, correct)",
+      "state": "done",
+      "closed_by": "ADR-0115"
+    },
+    {
+      "id": "FR-0030",
+      "type": "FR",
+      "epic": "EPIC-0006",
+      "title": "ACIE — Slice E: Executive Briefing \"Continuous Improvement\" section (detected opportunities, highest priority, arch/tech debt, drafts, deferred/completed; states owner-approval-mandatory) via improvement.summary read-only; extend existing briefing, no new dashboard, graceful when empty",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0116; improvement.summary + briefing._improvement_section + run() populates state[\"improvement\"]; live briefing shows 10 opps [3 knowledge-gap/7 tech-debt]; tests/test_improvement.py Summary 3 green; 1001 suite green)",
+      "state": "done",
+      "closed_by": "ADR-0116"
+    },
+    {
+      "id": "FR-0031",
+      "type": "FR",
+      "epic": "EPIC-0006",
+      "title": "ACIE — Slice F: heartbeat loop — daily _job_acie at 04:00 (detect_all → prioritize → generate_for → registry), job-isolated + lightweight; writes ONLY improvement registry + drafts workspace, never code/docs/runtime; owner approval gates every real change (structural)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0117; runtime._job_acie + JOBS entry; completes Observe→Detect→Prioritize→Draft→Registry→Report lifecycle; tests/test_improvement_detectors.py AcieHeartbeat 2 green; 1003 suite green, fitness ok)",
+      "state": "done",
+      "closed_by": "ADR-0117"
+    },
+    {
+      "id": "FR-0032",
+      "type": "FR",
+      "epic": "EPIC-0007",
+      "title": "ETE (Executive Thinking Engine) — shared reasoning framework `odin/thinking.py`: ExecutiveThinking builder + Option model (Exec Summary/Observations/Evidence/Context/Root-Cause/Hypotheses/Options/Trade-offs/Risks/Outcomes/Impl-Outline/Confidence/Open-Questions/Owner-Decision-Required); build() enforces ≥2 options + trade-offs + evidence + confidence; reuses trust.confidence; emits no command/decision; ADDITIVE (no existing module touched)",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0118; every agent can adopt by composing the builder, existing directors unchanged=zero regression; impact analysis confirmed no name-collision/contract-conflict; tests/test_thinking.py 6 green [framework completeness, determinism, all-sections, owner-decision ending, trust reuse]; 1009 suite green; agent retrofit = future owner-gated slices)",
+      "state": "done",
+      "closed_by": "ADR-0118"
+    },
+    {
+      "id": "BR-0001",
+      "type": "BR",
+      "epic": "EPIC-0001",
+      "title": "`stockout_risk().level` gained a fourth value `no_movement` (ADR-0120) — every consumer that matches the enum exhaustively must be told BEFORE it binds: UI S8 contract, `feature/amazon-ads` branch merge, cockpit `/api/state` Amazon projection",
+      "priority": "P2",
+      "status": "open (contract change shipped; notification obligation outstanding — close when the UI contract doc and the merged Ads branch both carry the new value)",
+      "state": "open",
+      "closed_by": "ADR-0120"
+    },
+    {
+      "id": "BR-0002",
+      "type": "BR",
+      "epic": "EPIC-0003",
+      "title": "Bus/telemetry `chs` changed type from `number` to `number \\| null` (ADR-0121); historical `runtime.monitor` events before 2026-07-29 still carry the `-1` sentinel and are NOT rewritten (ADR-0005) — any reader of the series must treat `-1` and `null` as the same \"unpublishable\" meaning",
+      "priority": "P2",
+      "status": "open (close when the cockpit/UI CHS surface renders the null case as \"ölçülemedi\" with coverage, never 0)",
+      "state": "open",
+      "closed_by": "ADR-0121"
+    },
+    {
+      "id": "BR-0003",
+      "type": "BR",
+      "epic": "EPIC-0002",
+      "title": "Finance basket response gained `funded: \"invalid_input\"` and allocations moved from float to integer kuruş (ADR-0123) — no external consumer today, filed so the next one is not surprised",
+      "priority": "P3",
+      "status": "open",
+      "state": "open",
+      "closed_by": "ADR-0123"
+    },
+    {
+      "id": "BR-0013",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "`GET /api/amazon` gained an OPTIONAL `threshold_provenance` field on the stockout Alert and the `critical_stock_skus` KPI (ADR-0146): present only on threshold-bearing metrics, values `unapproved_default` \\| `owner_policy`. Additive — absent means the metric has no threshold. Filed because the UI repo is building these screens now: a `critical` carrying `unapproved_default` must NOT be rendered as an approved business boundary",
+      "priority": "P2",
+      "status": "open (close when the UI renders the provisional marker)",
+      "state": "open",
+      "closed_by": "ADR-0146"
+    },
+    {
+      "id": "BR-0014",
+      "type": "BR",
+      "epic": "EPIC-0004",
+      "title": "Every scheduled AI extraction had been failing silently since 2026-07-27. `extract.default_generator` defaulted to `qwen/qwen3-next-80b-a3b-instruct`; NVIDIA retired that model on 07-27 and it answers 410. Evidence: `odin-data/telemetry.jsonl` holds **0 `provider.call`** against **10 `provider.error`** (nvidia/HTTPError) in two bursts — 07-30 04:32 and 07-31 00:00, five per run, one per queued subject. Nothing surfaced it: the runtime job raised, the task failed, and no screen, event or heartbeat said so. The retired id is the trigger; **the invisibility is the defect** — a model id will rot again",
+      "priority": "P1",
+      "status": "fixed v1 — BOTH halves. **Mechanism correction:** the first commit said \"one failure per queued subject\"; wrong, and the correction matters. There has never been a single `task.*` event — the queue was never exercised. The failures come from the `creator_curator` heartbeat job (`curation.backfill_extract`, 5 transcripts per run). The event log shows `runtime.creator_curated {extracted: 0, failed: 5}` followed immediately by `runtime.heartbeat {ran: 2, failed: 0}` — the counts were published in plain sight while the health verdict said clean. Probed live against the vault key before changing anything: qwen=HTTPError, llama-3.3-70b=returns text, gpt-oss-120b=200 + tokens but EMPTY text (reasoning model; this adapter does not read `reasoning_content`, so it would have produced silently empty extractions — worse than the error it replaced), deepseek=60s timeout. Default is now `llama`; `qwen` removed from the model table AND from `router.DEFAULT_CHAIN`, whose first hop was therefore a guaranteed failure. Recorded while there: `provider_chain` is published by `resolve()` and consumed by NOBODY — failover is declared, not implemented (own row when it matters). ACCEPTANCE MET: first successful `provider.call` in ODIN's history — model `meta/llama-3.3-70b-instruct`, 45 in / 7 out tokens, latency 14553 ms, `cost_known: false` (no NVIDIA pricing — honest, not zero). VISIBILITY HALF: `_job_curator` now RAISES when a batch extracted zero and failed some — the downstream machinery (FAILED status, `runtime.job_failed`, owner-notify reflex ADR-0045) was wired the whole time and simply never fired, because the job returned normally. Partial batches stay successes on purpose (AIMD already halves; paging on 1-of-40 trains the owner to ignore the alert that matters). SECOND FABRICATION FOUND AND REMOVED: `cockpit.py` published `agents` as the hand-written literal `[\"watcher\",\"transcript\",\"analyze\",\"extract\",\"briefing\"]` — it consulted nothing, and the real `AgentHealthMonitor` has observed ZERO agents while `/api/tasks` honestly answered `agents: []`. Two surfaces of one system disagreed and the fabricated one was the reassuring one. Now publishes the real snapshot (`[]` today — a finding, not a placeholder); unreadable health state publishes `null`, not an empty list. 7 offline regression tests (3 model-table + 4 curator-failure); 1265 total green",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "BR-0015",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "`/api/state` and `/api/amazon` publish CONTRADICTORY numbers for the same fact. Measured 2026-07-31: `sales_snapshot.critical_stock_skus = 29, as_of 2026-07-21` while the promoted-core KPI says `3, as_of 2026-07-30`. The stale one is on the MORE prominent surface and it is what `briefing.recommendations()` turns into the owner-facing advice \"29 SKU kritik stokta — yeniden sipariş listesi çıkar\". Root cause is the half of `backend-istekleri.md` #1 that ADR-0147 deliberately left: that ADR gave promoted data its OWN surface and explicitly deferred retiring the staging-fed `sales_snapshot` as \"a separate, breaking change with its own row\" — this is that row. Four consumers read it: briefing.py×3 (company_health_score, recommendations, brief text) and opportunity.py. Blast radius is why it was deferred, not an argument for leaving it: a wrong number that DRIVES A REORDER RECOMMENDATION is worse than a wrong number on a card",
+      "priority": "P1",
+      "status": "**fixed** (ADR-0152) — `sales_snapshot` now reads the PROMOTED core only; `cockpit.py:255` names this row in the code that closed it. Live 2026-08-01: `critical_stock_skus 4, sku_total 48, as_of 2026-07-31, source KO-spapi-inventory-2026-07-31` — a promoted record, not staging. ROW WAS STALE AND MALFORMED: it still read `open` after ADR-0152 shipped, and its ADR cell was missing entirely so the table rendered it short. Found by a closing sweep, not by a test",
+      "state": "open",
+      "closed_by": "ADR-0152"
+    },
+    {
+      "id": "ER-0004",
+      "type": "ER",
+      "epic": "EPIC-0004",
+      "title": "Runtime Reliability Layer — 7/24 hardening on FR-0008: minute/hourly/daily/weekly scheduler, Notification Engine (severity-routed owner alerts, dedupe), process watchdog (restart dead daemon), per-service health + metrics, boot sequence (preflight→ordered boot), recovery wiring",
+      "priority": "P1",
+      "status": "implemented v1 (odin/notify.py + odin/runtime.py + tests/test_notify.py + tests/test_reliability.py, 15 tests green; `python -m odin runtime watchdog\\",
+      "state": "done",
+      "closed_by": "health\\"
+    },
+    {
+      "id": "ER-0005",
+      "type": "ER",
+      "epic": "EPIC-0004",
+      "title": "Director Agent Runtime + CEO (Chief of Staff) event loop — directors run as per-cadence scheduled services (registry-driven, honest live/dynamic/planned), emit domain events on the Event Bus; CEO listens and runs analyze→decision-support→executive-memory→notify→flag-Council per signal",
+      "priority": "P1",
+      "status": "implemented v1 (odin/directors.py + odin/ceo.py + registries/director-runtime.json + tests/test_directors.py + test_ceo.py, 11 tests green; `python -m odin directors\\",
+      "state": "done",
+      "closed_by": "ceo memory`; live Risk Director on main, amazon/legal/innovation auto-activate on merge; CEO advises/records only — never decides, ADR-0017; Council live-calls flagged not fabricated; ceo.*/director events metadata-only — ADR-0021)"
+    },
+    {
+      "id": "ER-0006",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "Executive Recommendation Contract — Owner Approval classification (Class A informational / B needs-approval / C protected-never-auto) + mandatory \"not executed\" disclaimer on every B/C recommendation (Notification Policy); wired into the CEO loop so each executive decision carries its class",
+      "priority": "P1",
+      "status": "implemented v1 (odin/executive.py + wired odin/ceo.py + tests/test_executive.py, 7 tests green; `python -m odin executive classify\\",
+      "state": "done",
+      "closed_by": "classes`; advisory labelling only — real gate stays R11/execution.py; Amazon writes/transfers/deletes = Class C; ODIN advises, owner decides — ADR-0017)"
+    },
+    {
+      "id": "ER-0007",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "Executive Decision Lifecycle + Behavioral Learning — recommendation→owner verdict(approve/reject/defer)→outcome(met/partial/diverged)+lesson, append-only; owner Behavioral Model learned ONLY from confirmed verdicts (confidence · supporting · counter-examples · success-rate); each CEO recommendation gets a rec_id",
+      "priority": "P1",
+      "status": "implemented v1 (odin/lifecycle.py + odin/behavior.py + rec_id on ceo decisions + tests/test_lifecycle.py + test_behavior.py, 13 tests green; `python -m odin ceo verdict\\",
+      "state": "done",
+      "closed_by": "outcome\\"
+    },
+    {
+      "id": "ER-0008",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "Proactive CEO Reviews — the CEO operates continuously (not only on events): scheduled morning/midday/evening/weekly/monthly/quarterly executive reviews that synthesize CHS + open director signals + recent decisions + owner behavioral model + pending approvals + runtime health into one structured brief (Executive Communication template)",
+      "priority": "P1",
+      "status": "implemented v1 (odin/review.py + monthly cadence in runtime._due + 5 review jobs wired + tests/test_review.py, 8 tests green; `python -m odin review [kind]`; honest — real signals only, missing sources say so; surfaces pending owner approvals, never acts; review.generated events metadata-only; ODIN advises owner decides — ADR-0017)",
+      "state": "done",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0009",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "Opportunity Engine — Executive Strategic Advisor: evidence-based opportunity discovery across domains, each with the full executive structure + MULTIPLE competing strategies (why-succeed/why-fail/assumptions/missing-info), Class A/B/C via the Recommendation Contract, priority scoring; owner preference influences RANKING ONLY (never suppresses strong-evidence opportunities); continuous discovery job records new ones into the executive loop",
+      "priority": "P1",
+      "status": "implemented v1 (odin/opportunity.py + opportunity_scan runtime job + tests/test_opportunity.py, 6 tests green; `python -m odin opportunity [record]`; HONEST — no signal = no opportunity (no fabrication, R-005); never executes, routes protected/business to owner approval — ADR-0017; opportunity.detected events metadata-only)",
+      "state": "done",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0010",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "Executive Goal Management — owner-authored company objectives (odin-data/goals.json, ADR-0034) scored for strategic alignment against every opportunity; opportunity priority now uses real goal alignment (replacing the placeholder), CEO reviews show goal progress; ODIN reads/aligns, never invents goals",
+      "priority": "P1",
+      "status": "implemented v1 (odin/goals.py + goal-alignment wired into opportunity.generate + goals section in review.py + tests/test_goals.py, 5 tests green; `python -m odin goals`; neutral alignment when no goals defined — honest; owner authors goals — ADR-0017)",
+      "state": "done",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0011",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "Executive Challenge Mode — ODIN respectfully challenges an owner decision/plan when strong evidence contradicts it (active same-domain risk, low CHS + costly move, contradicts owner's own strong pattern), explaining objections + evidence + alternatives + trade-offs + consequences + confidence; ADVISORY ONLY, never blocks/refuses; auto-runs (advisory) on `ceo verdict … approved` for approval-requiring recs; also surfaces the executive CLI (goals, challenge)",
+      "priority": "P1",
+      "status": "implemented v1 (odin/challenge.py + wired ceo-verdict + goals/challenge CLI in __main__ + tests/test_challenge.py, 4 tests green; `python -m odin challenge \"<action>\" <action_type>`; honest — no objection when no contradicting evidence; owner always has final decision — ADR-0017)",
+      "state": "done",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0039",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "ODIN-published versioned contract fixtures — `contracts/api/<surface>/v<N>/{manifest,valid,minimal,invalid-*}.json` generated deterministically from the canonical models, verified byte-for-byte in this repo, and consumed by the UI repo's CI at a pinned immutable ODIN ref so a silently-dropped field fails a build instead of a screen. Fields ODIN does not expose are marked `not_exposed`/`planned`, never \"available\"",
+      "priority": "P2",
+      "status": "proposed (gavadolar-designed: terra + luna both independently reached the same shape; needs its own ADR before implementation; blocks nothing today but must land before UI S8 binds real data — see docs/ui-contract-location.md)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0038",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "Amazon Ads Performance Intelligence — async `spAdvertisedProduct` SUMMARY report (create→poll→download-gzip) → normalized `ads_report` Staging → owner promote → Core → Amazon Director \"Advertising Economics\" + Net Profit After Advertising (Gross − ad spend), 2 observations, default attribution sales7d",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0112; completes FR-0002's deferred reporting slice; supplies the ad-spend input FR-0004 True Profit was blocked on. odin/ads.py create_report/report_status/download_report/performance_report [spAdvertisedProduct SUMMARY, create→poll exp-backoff ~5min cap→download-gzip] + injectable byte-download _default_download [presigned S3, no auth header] + report_dates/normalize_report_row/ingest_report [heartbeat-safe: missing credential=skip, timeout/failure=failed, never raises] + `ads report [days]` CLI; odin/amazon_director.py read_ads_performance [promoted-KO reader, per-SKU aggregation across campaigns] + net_after_ads [Gross − ad spend; ACOS/ROAS derived, never stored] + ad_observations [exactly 2 types] + \"Reklam Ekonomisi\" briefing section + ppc drops from the gated list when ads are live; Gross Profit byte-identical when no ads KO; default attribution sales7d, sales14d/30d stored raw; commits 060f266→910e508, tests/test_ads_report.py 11 + test_amazon_director.py ads cases 8 + offline end-to-end stage→promote→core→briefing, 986 total green; built in the isolated ODIN-ads worktree. OWNER-PENDING: live `ads report` run + promote, which also verifies REPORT_MEDIA/column names)",
+      "state": "done",
+      "closed_by": "ADR-0112"
+    },
+    {
+      "id": "FR-0033",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "Ads report two-phase collection — request on one run, collect on a later one (persisted `odin-data/ads/pending-report.json`), so the ~45-minute Amazon generation time never blocks and the hourly heartbeat obtains advertising data unattended",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0119; odin/ads.py read_pending/write_pending/clear_pending + two-phase ingest_report [phase1 request→persist id, phase2 single status call→download/stage/clear], stale-request guard 3 days, corrupt-state-reads-None, transient-poll-error keeps waiting, expired-url re-requests; `ads report` now returns in ~3s instead of failing after 5 min; new hourly `ads_report` heartbeat job in odin/runtime.py; blocking performance_report kept as a primitive; 6 offline two-phase tests, 993 total green; live-verified request+pending both ~3s)",
+      "state": "done",
+      "closed_by": "ADR-0119"
+    },
+    {
+      "id": "ER-0013",
+      "type": "ER",
+      "epic": "EPIC-0001",
+      "title": "Ads campaign metadata consumer — `ads_campaigns` (21 campaigns, staged) currently has NO reader, so promoting it gives the Director nothing. Campaign **state** and **daily budget** exist only there (absent from `ads_report`), enabling \"paused but still spending\" and \"budget-capped — raising it could sell more\" observations",
+      "priority": "P3",
+      "status": "proposed (owner decision 2026-07-28: SKIP for now, filed so it is not lost; the profit analysis needs nothing from it — `ads_report` already carries campaign name/spend/sales. Pick up as a separate budget/state slice)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0014",
+      "type": "ER",
+      "epic": "EPIC-0004",
+      "title": "`tools/validate_docs.py` hard-codes `ROOT` to the main working directory, so in a git worktree the pre-commit hook validates the WRONG tree — a sibling session's transient state can block an unrelated commit, and the worktree's own docs go unchecked",
+      "priority": "P3",
+      "status": "proposed (evidence 2026-07-28: a commit in the ODIN-ads worktree was blocked by `ADR NOT IN INDEX: adr-0118…`, a file belonging to the parallel CKC stream; retry succeeded. Fix = derive ROOT like `tools/fitness.py` does (`Path(__file__).resolve().parent.parent`), but note the ads worktree then surfaces one pre-existing broken link in `acr-0020` that must be fixed first)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0015",
+      "type": "ER",
+      "epic": "EPIC-0001",
+      "title": "Configurable ads attribution window — `sales14d`/`sales30d` are already stored raw; only `sales7d` is used (Sponsored Products console default)",
+      "priority": "P3",
+      "status": "proposed (deliberately deferred by the approved ADR-0112 design for console consistency; revisit if the owner wants longer-window ROAS)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0016",
+      "type": "ER",
+      "epic": "EPIC-0001",
+      "title": "`sku_sales` knowledge objects carry no period metadata — the window (`spapi.ingest` `days=7`) is invisible at read time, so any consumer combining them with another period silently compares mismatched windows",
+      "priority": "P2",
+      "status": "proposed (root cause of the ADR-0112 net-profit defect found 2026-07-28: 30-day ad spend was subtracted from a 7-day gross basis, producing a self-contradicting briefing. Worked around for advertising by deriving gross from the ads report's own attributed units; the underlying KO gap remains and will bite the next consumer)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0040",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Innovation M1 refactors from `feature/innovation-director` — pluggable `ScoringStrategy` (ABC + `WeightedStrategy` + `register_strategy`/`available_strategies`, `score(..., strategy=None)` backward-compatible), versioned event envelope (`ENVELOPE_FIELDS`, `EVENT_VERSIONS`, tracing ids), strongly-typed nested score on Opportunity/Idea",
+      "priority": "P3",
+      "status": "proposed (branch merged 2026-07-29 so the history is joined and nothing is lost, but its five M1 files were NOT taken: that branch refactored M1 in isolation while this trunk grew M2/M3 — discovery/director/radar/publisher/agent — on the same files. Its `config.py` has no `signal_bounds`/`signal_kinds`/`opportunity_kind_map`, so swapping it in broke 68 tests. Apply each refactor deliberately on the M2/M3-bearing files with tests, not by file swap. Note the strategy layer is currently an ABC with ONE implementation — confirm it earns its keep before adopting)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "BR-0004",
+      "type": "BR",
+      "epic": "EPIC-0001",
+      "title": "Ads campaign attribution — a SKU advertised in several campaigns had its whole spend charged to whichever campaign appeared first in the report, so a wasteful campaign (ACOS 6000%) hid behind a profitable one (ACOS 5%) and ODIN advised killing the profitable one",
+      "priority": "P1",
+      "status": "fixed (ADR-0127; aggregate_ads_rows keeps the full `campaigns` list and only sets the singular `campaign_name` when there is exactly one; new spend_by_campaign computes from RAW report rows; ad_observations takes ads_perf and the degraded fallback skips multi-campaign SKUs instead of guessing; tests/test_math_audit.py::TestCampaignAttribution written red-first, 1128 green)",
+      "state": "open",
+      "closed_by": "ADR-0127"
+    },
+    {
+      "id": "FR-0041",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "SP-API Finances/Settlement fee adapter — referral + FBA + settlement fees per SKU into Staging, the last missing input for FR-0004 True Profit. Scheduled to run CONCURRENTLY with slices 1-2 (FR-0005, ER-0003) so the fee source is connected before FR-0004's turn arrives",
+      "priority": "P1",
+      "status": "proposed (ADR-0128 schedules it; per ACR-0020 §Decision-4 it needs its OWN ADR + security review before any credential is used — ADR-0128 does not approve it. If the review rejects it, FR-0004 ships with the fee layer rendering \"Data Required\" and this row records why; no guessed fee, ever)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0048",
+      "type": "FR",
+      "epic": "EPIC-0001",
+      "title": "SP-API Catalog/Listings adapter — catalog item attributes + listings issues per ASIN/SKU into Staging; the missing input FR-0005 Listing was assumed to already have. Runs in parallel with ER-0003, the same construction ADR-0128 used for the fee adapter ahead of FR-0004",
+      "priority": "P1",
+      "status": "proposed (ADR-0144 §3 schedules it and explicitly does NOT approve it: it is a new read surface beyond ADR-0051's three, so per ACR-0020 §Decision-4 it needs its OWN ADR + security review before any credential is used. If the review rejects it, FR-0005 stays frozen and this row records why — no guessed image, A+ or bullet data, ever)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0049",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "`GET /api/amazon` — promoted Core Amazon data gets a surface. The UI measured that `odin-data/core/` holds today's verified SP-API + Ads records (44 orders / 19 sku_sales / 48 inventory / 94 Ads rows) while `/api/state` published NONE of them and served a nine-day-old hand-entered STAGING record instead (`backend-istekleri.md` #1). The two contracts needed were already frozen by ADR-0143 — nothing was awaiting a decision, only writing",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0147; odin/amazon_api.py projects AmazonDirector.assess_from_core() into the frozen ADR-0143 KPI/Alert envelopes — a view, never a second engine; staging never published; each KPI carries source + as_of + its record's OWN report_period (ADR-0138: 7d rolling / instant / 2026-07-01→30 are genuinely different windows and one invented as_of would erase that); \"Data Required\" never enters a numeric field (ADR-0135) and kpi() REFUSES a null without a reason; read has no side effects (Director built without bus/telemetry so a GET cannot emit a business signal); AmazonProjection caches on core mtime signature so first paint runs one assessment not six. Live: 11 KPIs — 10 measured, 1 honestly data_required (sales_change_pct has no denominator, prior window had zero sales) — plus 1 critical stock Alert with evidence. tests/test_amazon_api.py 15 + cockpit endpoint test, 1256 total green. NOT published and why: SkuHealth/PPCOverview contracts still 🟡 proposal UI-ADR-104; Opportunity is a view per ADR-0143 §3)",
+      "state": "done",
+      "closed_by": "ADR-0147"
+    },
+    {
+      "id": "FR-0050",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Director/agent liveness publication — the interface's request #6. `/api/state.agents` was a hand-written list of five names that consulted nothing, while the runtime's real jobs (18 with recorded metrics; 19 in the table today) and their measured metrics went unpublished",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0148; `runtime.job_health()` + `director_health()` are PURE — `now` injected, no disk — and roll the jobs table up by the agent each job DECLARES it serves, so a director exists only because a real job names it; ODIN computes the verdict (healthy\\",
+      "state": "done",
+      "closed_by": "stale\\"
+    },
+    {
+      "id": "FR-0051",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Per-SKU projection on `GET /api/amazon` — the interface's request #7 (`SkuHealth`). Real per-SKU data exists across four promoted records; what does not exist is a scoring policy",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0149; 48 rows — identity from the inventory record's own asin/productName so no catalog join is needed; `health_score`, `health_score_explanation`, `estimated_stockout_at`, `reorder_units` all null BY DECISION, not by omission; `status` ships with `status_basis: rule_set` + `threshold_provenance: unapproved_default` so a provisional rule never reads as a verdict; ODIN keeps its own five-value vocabulary because 29 of 48 SKUs are `unknown` and the consumer enum has no such value — squeezing would relabel unmeasured stock as healthy; each sub-object carries its OWN period and source (instant / 7-day rolling / 2026-07-01→30). `buy_box_rate` + `conversion_rate` WITHHELD: their only source is the owner catalog export whose report_period is null — \"2026H1\" is readable from the filename, not from a declaration, and publishing a guess as provenance is the one thing this boundary exists to prevent. No PPCOverview contract (council 2/2: it would duplicate existing KPI totals). 8 new tests; 1283 total green)",
+      "state": "done",
+      "closed_by": "ADR-0149"
+    },
+    {
+      "id": "FR-0052",
+      "type": "FR",
+      "epic": "EPIC-0004",
+      "title": "Minimum AI gateway slice — one gate every model call passes and ONE place model ids live. The plan's S9 called for a router, cache, tier classification and eight AI features; measurement deferred all of it (zero successful calls existed) and BR-0014 showed the real defect was that a model id buried in extract.py could rot for four days unseen",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0150; registries/ai-policy.json = ODIN-MR-008 maps task → provider/model/limits so the next retirement is one JSON line; odin/ai.py DEFAULT DENY — an unlisted task gets AIRefused and no adapter is even constructed, which is the assertable form of the council's \"does this need AI?\" gate; unreadable policy fails CLOSED because an unreadable file is not an empty allowlist; ai.usage() reads provider.call/error the adapters already emit and sums cost ONLY over calls that reported one, publishing cost_known_calls beside it so a small total cannot read as small spend — today cost is honestly null, NVIDIA has no pricing table; `retired` list in the registry so an offline test proves no task defaults to a withdrawn model. EXCLUDED by council 2/2: cache, failover, tier classification, AI Pulse/Brief/Recommendation, evidence, Assisted Input, ai_queue/ai_cost channels, generated confidence. Live read: 3 calls, 12 errors, 10971 ms avg — ODIN's first honest AI usage figure. 12 new tests; 1292 total green. FOLLOW-UP same day: `python -m odin ai policy\\",
+      "state": "done",
+      "closed_by": "usage` + the verb whitelisted for the cockpit console — the read-model needed a REAL consumer, and publishing an /api/state payload no screen reads is exactly the trap CLAUDE.md rule 6 was added for (a System Director screen does not exist yet; building one speculatively to host a panel is the opposite lesson). Verb is read-only and a test asserts it can construct no adapter. Telemetry channels `ai_queue`/`ai_cost` STAY `available:false`: measured, there is no queue at all and no pricing table, so cost is honestly null — drawing either channel would be the fake-telemetry ban. 14 tests; 1301 total green)"
+    },
+    {
+      "id": "FR-0053",
+      "type": "FR",
+      "epic": "EPIC-0004",
+      "title": "Sustained job failure as a canonical Alert — the piece between BR-0014's per-failure notify reflex and ADR-0148's health card, which needs someone to be looking",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0151; a STREAK is now measured — `consecutive_failures` + `failing_since` per job, reset to zero on the first success, because the existing `failures` is cumulative and one old failure poisons it forever; `runtime` admitted into ADR-0143's Alert module vocabulary since infrastructure failure IS a business signal; threshold 3, not every failure — retries and AIMD exist for transient errors and paging on one trains the owner to ignore the alert that matters; ONE alert per job carrying occurrence_count / first_seen / last_seen / affected_job, while all raw telemetry and health increments stay — the evidence is not collapsed, only the operator-facing event; resolution needs no dismissal because the derived alert stops being produced; unreadable health publishes null not [], since an empty alert list is a claim that everything is fine. Live today: EMPTY, which is the correct output — no job has failed three times running. 7 new tests; 1299 total green)",
+      "state": "done",
+      "closed_by": "ADR-0151"
+    },
+    {
+      "id": "FR-0054",
+      "type": "FR",
+      "epic": "EPIC-0002",
+      "title": "Owner COGS entry path — the interface's request #8. 58 real per-SKU costs already feed realized_net_profit; what was missing was any way for the owner to enter or change one",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0153; odin/finance/sku_cost_journal.py — append-only JSONL following the Cash Journal precedent ADR-0100, NO promotion gate because a cost the owner types is a declaration not an external claim to verify [council 2/2]; money stored as string and compared as Decimal; recorded_at written by ODIN never the caller; the promoted 58-cost table stays as an UNDATED baseline and is NOT migrated — its effective dates were never recorded and inventing them would put a fabricated date in an audit trail, so resolve_sku_cost returns dated:False for it; unknown SKU is None never 0. `odin cogs set\\",
+      "state": "done",
+      "closed_by": "list`, both console-whitelisted. DEVIATION FROM COUNCIL, with evidence: both members required realized_net_profit to use the cost in force on the SALE DATE and rejected \"current cost for now\". Not buildable — realized profit comes from the sku_sales AGGREGATE which has no per-sale dates, and the order rows that DO have dates carry no SKU [measured: 44 rows, 0 with a SKU]. No (sku,date) pair exists in ODIN today. The resolver is built and tested but deliberately NOT wired into the profit calc; SP-API order items would unblock it. 14 tests; 1315 total green)"
+    },
+    {
+      "id": "FR-0055",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Opportunity view — the interface's request #4. ADR-0143 refused Opportunity as a RECORD and pointed at the improvement pipeline; the request stayed open because /api/state.recommendations is {type,text,reason} with no id/date/action",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0154; measurement found the 17 improvement records already carry id/source/title/description/recommended_next_step/detected_at/evidence + ADR-0114's deterministic priority — nothing needed inventing. `improvement.build_opportunities()` is a PROJECTION and a test asserts the registry is byte-identical before and after; only `detected` records appear because an implemented one is history; a record with no actionable step is DROPPED per ADR-0143's own rule; evidence rendered key=value so the NUMBER survives; unreadable registry publishes null not []. Live: 10 envelopes. RECORDED NOT PATCHED: the top entry is stale — 'ads_ingest failing 14x' detected 07-28, fixed 07-29, 38 clean runs since (CORRECTED: '65' was written from memory, never measured; `runtime/metrics.json#ads_ingest` reads runs=38 failures=0) — and it carries owner_approval_required:true so ODIN must not close it; the systemic gap is that detectors OPEN opportunities and nothing closes them, which is a detector-side resolution pass with its own row, not a filter smuggled into a serialiser. 6 tests; 1321 total green)",
+      "state": "done",
+      "closed_by": "ADR-0154"
+    },
+    {
+      "id": "BR-0016",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "Stale opportunity: a detector's frozen count keeps pointing at a solved problem while ODIN, correctly, may not close an owner-approval record",
+      "priority": "P2",
+      "status": "resolved v1 (ADR-0154 addendum, council yazılımcılar 2/2). Split the gap: CLOSING is a decision (still the owner's, unchanged), REPORTING current job health is a measurement (no approval — it changes nothing). The view appends `job_health_on_record=38 runs, 0 failures, last 2026-07-31T18:39` beside the record's own `failures=14`, so the contradiction is visible without ODIN resolving it. Three tested constraints: stored record byte-identical (no mutation), `priority_level`/`status` untouched (no measurement that quietly demotes), absent/corrupt metrics add nothing and never raise. NOT claimed: 'clean runs since detection' — metrics are cumulative and the exact answer needs a 4 MB event-log scan per request, so the field is named for what the counters prove. Also corrected an unmeasured '65' to the measured 38 in ADR-0154 and FR-0055. 4 tests; 1325 total green",
+      "state": "open",
+      "closed_by": "ADR-0154"
+    },
+    {
+      "id": "FR-0056",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "`meta.universeId` on every response — the interface's request #12, so a screen could verify the payload belongs to the universe it displays",
+      "priority": "P2",
+      "status": "REFUSED v1 (ADR-0155, council 2/2). Measured first: the word \"universe\" occurs ZERO times in ODIN — source, registries, and all 154 ADRs. It is an interface concept with no counterpart in the system that would populate it, i.e. the FR-0046 situation again. A constant value would be a fabricated distinction and false confidence that a boundary is enforced; a real tenancy model solves a problem one owner with one business does not have. The underlying question is legitimate and already answered BETTER per record: every KPI/Alert/SKU carries `source` (the KO id), `as_of` and its own `report_period` — a response-level tag would say \"right universe\" while saying nothing about which record, from when, over what window. Revisit when ODIN actually holds a second business's data",
+      "state": "open",
+      "closed_by": "ADR-0155"
+    },
+    {
+      "id": "FR-0057",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "`/api/state.ai_spend` published `{total_usd: 0.0, unknown_cost_calls: 0, input_tokens: 0, output_tokens: 0}` all-time while `ai.usage()` measured `calls=3 errors=12 tokens_in=155 tokens_out=25 cost_usd=None` from the same data directory — a zero indistinguishable from a measurement, on a money field",
+      "priority": "P1",
+      "status": "fixed v1 (ADR-0156). Root cause is NOT the event name the earlier note claimed: `providers.py:151` publishes `provider.called`, exactly what `dashboard.py:51` matched. The bus was empty — `events.jsonl` held ZERO `provider.*` against telemetry's 3+12 — because `events.py::emit_to_bus` returns silently on `bus=None` (S-022 grandfathering) and 3 of 4 adapter construction sites pass no bus (`ai.py:107`, `extract.py:216`, `run_panel.py:43`; only `__main__.py:456` wires one). Wiring the bus could not fix it: the bus is durable and replayed from `events.jsonl`, so the three calls that already happened are unrecoverable there. The projection now DELEGATES to `ai.usage()` — telemetry is written unconditionally — and `total_usd` publishes `null`, not `0.0`, when nothing was priced; renderers print `unknown` instead of `$0.0`. The old test published onto the bus by hand, which is why the gap survived a year; the new `AiSpendSourceTestCase` seeds telemetry the way `providers.py` writes it. Live reading after the fix: `{total_usd: None, unknown_cost_calls: 3, input_tokens: 155, output_tokens: 25}`. No interface consumer exists to break (scan found one comment, zero renders). 2 tests; 1327 total green",
+      "state": "open",
+      "closed_by": "ADR-0156"
+    },
+    {
+      "id": "BR-0017",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "The canonical event surface loses provider events entirely: `provider.called`/`provider.failed` never reach `events.jsonl`, so `activity_by_domain` has no `provider` domain and the timeline shows no model activity. Shared with 46 `emit_to_bus` call sites across 20 modules that all drop silently when unwired",
+      "priority": "P2",
+      "status": "open — deliberately NOT bundled with ADR-0156 (ADR-0048: one commit, one decision). The council's proposed `required=True` flag on `emit_to_bus` is measured as blocked: 24 adapter constructions in `tests/` pass no bus, so the flag turns 24 green tests red before preventing a single real drop. Needs its own decision with an AST audit of which producers may legitimately stay telemetry-only",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0058",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Company Health Score has published `null` since ADR-0129 (`coverage 0/6`, `measured 0`) because `briefing.py` hard-coded all six business components as `kaynak bağlı değil` — while four of them had promoted, owner-approved sources sitting unread in `core/`",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0157). Measured: `KO-amazon-sales-2026H1-0001` carries `ytd_2026_07_21.revenue = 72,335.04 USD` + a monthly series; `KO-amazon-customer-satisfaction-2026H1-0001` carries 5.0 stars / 26 reviews / 9.22% refund / 1508 units. The blocker was never data, it was the DENOMINATOR: $72,335 is a fact, \"36/100\" is a fact only against a target, and ODIN had none to read (the 8 `goals.json` rows are project goals with prose targets; `finance/planning.py` takes targets as an unpersisted call parameter). Deriving one from the data is what ADR-0146 refused. Owner declared 2026 revenue target = 200,000 USD. New `odin/finance/target_journal.py` (ADR-0153 shape: dated, append-only, no promotion gate, money as string, corrupt line raises rather than reading as \"no target\"). Gelir = min(100, 100×actual/target) with both raw numbers + true ratio + declaration date in the detail; WITHOUT a target it stays `None` but the detail says the revenue was measured — two different absences now look different. Müşteri memnuniyeti = stars/5 only; the 9.22% refund rate rides in the detail marked `skora dahil değil` because blending two signals without an owner-declared weight invents the weight. **Live: score 68, coverage 2/6** — first number CHS has published since ADR-0129, and `publishable_score()` now passes ADR-0121's financial gate. 13 tests; 1340 total green",
+      "state": "done",
+      "closed_by": "ADR-0157"
+    },
+    {
+      "id": "ER-0028",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "Kâr, Büyüme, Nakit akışı and Borç remain uncovered — each for a DIFFERENT reason, and the reasons are not interchangeable",
+      "priority": "P2",
+      "status": "open (ADR-0157 Consequences). **Kâr:** both halves exist (USD revenue + 58 TL `cost_line` records) but YTD revenue over TOTAL PURCHASE cost is not a margin — purchased stock is not sold stock — so publishing it would be the rule-2 violation this work exists to prevent; needs period-matched COGS. FX is the smaller half and already decided: `cash_journal.py` rules owner-declared, never auto-fetched (ADR-0100), and the cost lines carry no rate field so there is nothing to freeze until a declaration supplies one (council split terra=(A)/luna=(C) resolves this way in the code). **Büyüme:** monthly series present, no natural denominator, no declared target — same refusal as Gelir-without-a-target. **Nakit akışı / Borç:** `KO-finance-model` content is Turkish prose about the 50/50 partnership and six-instalment card policy; there are no numbers in it to read",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0059",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Kâr and Büyüme components — ADR-0157 left Kâr blocked on \"period-matched COGS\" and named CURRENCY as the blocker",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0158). Currency was the WRONG diagnosis: the promoted cost table `KO-jarvis-0001` is denominated in USD, so the 58 TL supplier lines are a purchases statement answering a different question, not a COGS source. The chain was already complete in promoted core — `KO-amazon-asin-catalog-2026H1` (42 ASINs / 1467 units / $70,246.54, one period) joined via `identity_index()` (48 SKUs → 48 UNIQUE ASINs, zero multi-SKU) to the 45-SKU USD cost table. Join is total: 42/42 ASINs matched, 1467/1467 units covered, zero unmatched. Period is matched BY CONSTRUCTION (units and revenue from the same record); the first attempt used `sku_sales`, which is a declared 7-day ROLLING window whose 07-23 and 07-24 snapshots are byte-identical — summing three would have counted one week three times. Measured: contribution margin 31.4% (gross 51.0%), growth +119% (2026-01–03 avg $6,555 → 2026-04–06 avg $14,357, July excluded on its own `days: 19`). Named contribution margin NOT profit (council 2/2): the table covers product cost + Amazon commission + prep/inbound/shipping but EXCLUDES refunds (9.22% overall, 15.79% by June) and advertising, and `excludes` ships with the payload. Uncosted units are reported not dropped — dropping them raises the margin by removing exactly the rows that cannot be priced. NEITHER IS SCORED: council 2/2 — 31.4% is good in this business and \"31/100\" reads as bad, and the thing producing that impression is a denominator nobody declared. 9 tests; 1349 total green",
+      "state": "done",
+      "closed_by": "ADR-0158"
+    },
+    {
+      "id": "ER-0029",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "Two owner declarations move coverage from 2/6 to 4/6 with no code change: a 2026 target contribution margin and a 2026 growth target",
+      "priority": "P1",
+      "status": "**closed** — owner declared margin 40% and growth 100% on 2026-07-31 (effective 2026-01-01). Kar scored 78 (31.4 against a 40 target), Buyume 100 (+119 against 100, capped). Coverage reached 4/6 the same session and 6/6 after the runway and leverage declarations (ER-0031, ER-0032). ROW WAS STALE: it still read owner-pending after the declarations landed",
+      "state": "done",
+      "closed_by": "ADR-0158"
+    },
+    {
+      "id": "BR-0018",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "The promoted SKU cost table carries NO effective dates, so today's cost is applied to 2026H1 units — if a receiver cost $20 in March and $30 in June the H1 margin is systematically wrong (council 2/2 named this the concrete break)",
+      "priority": "P2",
+      "status": "carried, not hidden (ADR-0158). `dated: False` travels with the payload and the rendered detail prints `maliyetler TARİHSİZ`. Resolves when the owner declares dated per-SKU costs — the ADR-0153 journal for exactly this has existed since 2026-07-31 and holds ZERO entries",
+      "state": "open",
+      "closed_by": "ADR-0153"
+    },
+    {
+      "id": "FR-0060",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Declare the last two denominators (target margin, growth target) and move the 45 promoted SKU costs into the dated ADR-0153 journal",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0159). Owner declared margin 40% and growth 100% for 2026 -> **coverage 4/6, CHS 78, publishable 78** (Gelir 36 / Memnuniyet 100 / Kar 78 / Buyume 100 capped from +119%). The 45 costs were written with `effective_date = provenance.collection_date (2026-07-21)`, each entry citing record version, trust and origin path — ADR-0153's refusal to migrate them is ANSWERED not overruled, because that date is measured rather than invented, and understating (read date) is the safe direction versus claiming January. RECORDED NOT WORKED AROUND: writing them did NOT date the H1 margin. `dated` stopped being a hardcoded False and is now earned — 45 declarations, in force from 2026-07-21, period ends 2026-06-30 -> still False. A declaration starting after a period does not date that period. The two undated situations are now told apart in the rendered detail (\"no declaration\" vs \"declared, but from after the window\"), because the second is one owner sentence from being fixed. 2 tests; 1351 total green",
+      "state": "done",
+      "closed_by": "ADR-0159"
+    },
+    {
+      "id": "ER-0030",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "One owner declaration would date the 2026H1 margin: the date those 45 SKU prices STARTED applying (not 2026-07-21, which is when the table was read). `record_cost(..., effective_date=...)` takes it and the margin re-dates itself with no code change",
+      "priority": "P2",
+      "status": "owner-pending (ADR-0159)",
+      "state": "open",
+      "closed_by": "ADR-0159"
+    },
+    {
+      "id": "FR-0061",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Connect Nakit akisi and Borc from the owner's imported accounting ledger",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0160). The source existed all along: `odin-data/finance/records/` holds 196 rows from the ADR-0094 Excel import (63 income, 58 cost_line, 54 expense, 9 credit_card, 7 purchase, 5 asset) plus an owner-declared cash snapshot. `finance/director.current_position()` already separates OPERATING net from CASH-FLOW net, so nothing was recomputed. Measured (9-month window, TRY): cash 93,600 · operating net +163,824 · debt service 234,012 · **cash-flow net -70,188** · remaining debt 959,127 · **runway 1.3 months** · cards 16.3% utilised. **Borc = debt-service coverage 70** (operating net / monthly service; the denominator is the debt's own service, 1.0 its natural threshold) — council 2/2 REFUSED card utilisation, which would have scored 84 and read as \"debt is fine\" while hiding 959,127 remaining and 234,012/month. **Nakit akisi measured, UNSCORED**: runway has no natural denominator, and it is the same economic signal as Borc, so scoring both would put one deficit into the average twice. **Cash deficit published as a CONDITION above the score** — council 2/2 found the flat average structurally absorbs it (100 satisfaction + 100 growth round a 70,188/month deficit into 77) and both refused clipping the score as a new invented threshold; zero is a sign change, not a chosen cut-off. The condition carries `operating_net` so \"liquidity warning\" is not misread as \"losing money\". Coverage 5/6, score 77 — DOWN from 78 by measuring more, which is the intended direction. 6 tests; 1357 total green",
+      "state": "done",
+      "closed_by": "ADR-0160"
+    },
+    {
+      "id": "BR-0019",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "ADR-0157 recorded Nakit akisi and Borc as `kaynak bagli degil` after reading only `KO-finance-model` (prose) — while the imported ledger with 196 structured rows had been sitting in `odin-data/finance/` since the ADR-0094 import",
+      "priority": "P2",
+      "status": "fixed (ADR-0160). Recorded rather than quietly corrected: the reusable lesson is that a component declared sourceless must name which sources were checked",
+      "state": "open",
+      "closed_by": "ADR-0160"
+    },
+    {
+      "id": "ER-0031",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "One owner declaration completes coverage at 6/6: minimum acceptable runway in months",
+      "priority": "P1",
+      "status": "**closed** — owner declared 5 months (2026-07-31, effective 2026-01-01). Nakit akisi scores 26 (runway 1.3 / 5). **COVERAGE 6/6, CHS 68, publishable 68** — every component of the owner's own formula now measured and scored: Gelir 36 · Memnuniyet 100 · Kar 78 · Buyume 100 · Nakit akisi 26 · Borc 70. Score fell 77 -> 68 by measuring more, the intended direction. The liquidity condition still leads the headline",
+      "state": "done",
+      "closed_by": "ADR-0160"
+    },
+    {
+      "id": "BR-0020",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "The same deficit entered the average TWICE: Borc scored operating_net/debt_service (70) and Nakit akisi scored runway/target (26), and runway = cash / \\|operating_net - debt_service\\| embeds that same relationship",
+      "priority": "P2",
+      "status": "**fixed** (ADR-0161, council 2/2 gavadolar). Borc becomes a CONTEXT component: computed, published and rendered in full, but not averaged. `CONTEXT_COMPONENTS` joins `OPERATIONAL_COMPONENTS` as a named bucket and coverage now counts SCORE-ELIGIBLE components, so it reads 5/5 not 6/6 — claiming 6/6 for a mean built from five is the same error class as a score with no coverage beside it. Measured BEFORE deciding: removing Borc does not move the number (6 components 68.33->68, 5 components 68.00->68), so the decision was about independence only. Being context is STATED (`BAĞLAM (skora girmiyor)`), not left to be inferred from a null — unscored has meant \"no source\" or \"no declared target\" everywhere else. Debt STOCK added as the non-overlapping metric both members proposed: leverage 5.9 months of operating net (959,127 / 163,824), measured and unscored pending an owner-declared ceiling. 4 assertions in 3 older test files updated to the new published contract",
+      "state": "open",
+      "closed_by": "ADR-0161"
+    },
+    {
+      "id": "ER-0032",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "Early-warning gap: runway can improve on a cash injection while the debt STOCK does not, and an unscored Borc no longer pulls the score down. The compensating alarm was deliberately NOT built in ADR-0161 — any leverage threshold would have been invented (ADR-0146)",
+      "priority": "P2",
+      "status": "**closed** (ADR-0162). Owner declared a leverage ceiling of 4 months, so the threshold stopped being invented and became the owner's own number. `Borc` returns to the score with a DIFFERENT denominator — debt stock (remaining / operating net = 5.9 months) against the ceiling, which runway does NOT contain; ADR-0161's reasoning is untouched and the service ratio stays as context marked `BAĞLAM — skoru bu üretmiyor`. Score 68 (100 × 4/5.9), coverage back to 6/6. `leverage_over_ceiling` condition now fires above the score beside the cash deficit",
+      "state": "done",
+      "closed_by": "ADR-0162"
+    },
+    {
+      "id": "BR-0021",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "A CEILING target scored with FLOOR arithmetic does not fail — it congratulates. Leverage 5.9 against a 4-month ceiling computed 100 × 5.9/4 = 147, capped to 100, i.e. a perfect score for being 46% over the owner's own limit",
+      "priority": "P1",
+      "status": "fixed before it shipped (ADR-0162). `direction` (floor\\",
+      "state": "open",
+      "closed_by": "ceiling) is now STORED on every target entry and validated at write time, never inferred from the metric name — inference works until a metric arrives whose name does not announce its direction, and the failure mode is silent. Ceilings score `100 × ceiling / actual` and the detail prints the breach (`tavanın %146'inde`). Entries predating the field are floors, which is what they were written and scored as. ALSO fixed alongside: `_target_ratio` printed `%{goal}` for every target and rendered a ceiling measured in MONTHS as `2026 tavanı %4` — it does not know the unit and no longer claims one"
+    },
+    {
+      "id": "ER-0033",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "The staging queue held 599 pending records and was never read. Measured: it is TWO populations sharing one counter — 24 machine-collected SP-API/Ads rows (trust 85, ~5/day, ongoing) and 575 knowledge records (573 of them trust 50-69, batch-imported over 4 days in July, static since). 15 of the 24 have NO counterpart in core/, including every `ads_campaigns` record (never promoted) and all of today's collection",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0163). `promote --source A,B` promotes every pending record from those sources; batch DEFAULTS TO DRY RUN (a mistyped flag must not promote hundreds into a delete-free store, ADR-0005) while the single-id form keeps REFUSED+exit 2. `--source` selects, never flushes; a \"promote everything\" verb is deliberately absent. The gate is untouched: --approve still required, approved_by still HUMAN_OWNER (ADR-0004) — only the BATCH SIZE of one approval changed. TWO SUSPICIONS CHECKED AND DROPPED: `promote` does mark the staging copy, so the 9 core-and-staging overlaps are not a marking bug (staged_at is later than promoted_at in each — they are later re-collections carrying 0-2 extra late-arriving order rows); and there are ZERO duplicate contents across all 599, so no dedup shortcut exists. 7 tests; 1366 total green",
+      "state": "done",
+      "closed_by": "ADR-0163"
+    },
+    {
+      "id": "ER-0034",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "The 575 knowledge records need a promotion criterion; source-batching is the wrong instrument",
+      "priority": "P2",
+      "status": "**criterion set** (ADR-0164). Three candidates measured and two eliminated by evidence. TRUST FLOOR IS IMPOSSIBLE, structurally: the flat `scores.trust` is a per-TYPE constant (all 274 transcripts exactly 60, all 101 `number` exactly 55), and the per-record curation trust (ADR-0104, 283 records) lands 22.0-32.3 with NONE above 40 because seven of ten components are flat zero — historical_accuracy (weight 15), experiment_results, verification_status, human_validation, ai_agreement, contradiction_level, consensus. Those move only when a claim is validated or tested, i.e. by the review itself, so a threshold is circular and re-running curation cannot lift the ceiling. `curated-active` (273) is not an endorsement either — it means \"not duplicate/superseded/conflict\". CRITERION IS CONTACT, NOT SCORE: a claim becomes promotable when a validation component leaves zero, i.e. when checked against something ODIN measured (now possible — ACOS 8.2%, ROAS 12.16, margin 31.4%, refunds 9.22% over 48 SKUs). Today it admits ZERO records, which is the honest answer: the queue was never unread, it is correctly parked awaiting a validation mechanism that does not exist. 6 tests; 1371 total green",
+      "state": "open",
+      "closed_by": "ADR-0164"
+    },
+    {
+      "id": "ER-0035",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "274 transcripts closed as `source-material` — consumed input, not knowledge. The extraction agent (ADR-0032) already produced 301 claims from them and 73 name their source transcript in provenance; promoting a raw YouTube caption would make it citable as fact",
+      "priority": "P2",
+      "status": "done (ADR-0164). New `stage-mark --type <t> --as <status> [--approve]`: dry-run by default, appends a new version so the `pending` state stays readable (ADR-0005), and REFUSES `--as promoted` by name because it writes a status and not the Core — granting promotion there would bypass the owner's gate (ADR-0004). Queue 577 -> 303. No automation built for future transcripts: they arrived in 4 batch days in July and none since, so an on-arrival rule would be speculation",
+      "state": "done",
+      "closed_by": "ADR-0164"
+    },
+    {
+      "id": "ER-0036",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "Build the validation mechanism ADR-0164's criterion depends on",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0165). THREE MECHANISMS DIED ON EVIDENCE FIRST: deterministic semantic agreement is unavailable (claims are free-form Turkish prose, `content` holds only claim+evidence_quote, and the existing `consensus` uses `SequenceMatcher.ratio()` on normalised text — near-duplicate detection that found exactly ONE pair across 283 records); topic-level agreement would fabricate confidence (`tag_topic` proves five creators discussed bidding, not that they agreed); the model path is measured-unreliable (3 successful calls vs 12 errors, no price table). THE ACTUAL BLOCKER WAS AN UNWIRED INPUT: `claim_trust()` passes only source_reliability/evidence_quality/freshness/consensus and NEVER human_validation or verification_status, so an owner ruling would have changed nothing — reachable max 50, ~27 at real values, exactly the measured 22.0-32.3 band. New `owner_verdict()` writes both components and rescores through the SAME TrustScorer (no second score). `refuted` -> status `obsolete` (terminal) but verification_status still rises: \"checked and wrong\" is knowledge, and treating it as unknown discards the work. Reason mandatory (ADR-0131). New `claims [--match\\",
+      "state": "done",
+      "closed_by": "--topic]` PULLS claims with evidence quote — 301 records are not a reading list. Append-only via annotate (ADR-0005). Live: `claims --match acos` surfaces \"önerilen ACOS hedefi %25\" against a measured 8.2%. 6 tests; 1377 total green"
+    },
+    {
+      "id": "ER-0037",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "The outcome loop: a ruled claim still could not be cited, so `experiment_results` (10) and `historical_accuracy` (15) could never move",
+      "priority": "P1",
+      "status": "**half fixed** (ADR-0166). Root cause was NOT decay: `publish_year` reads the year from claim TEXT, so only 8 of 281 claims had one and 273 took a flat unknown-year default of 50 — what separated a citable claim from an uncitable one was whether its sentence contained a four-digit number. Decay rate and unknown-year default now depend on the claim's KIND: evergreen (`method`) 5/year and 85 when undated, perishable 15/year and 40 — the default FELL for figures nobody can date and rose only where time is weakly informative. With a supported verdict, claims clearing CITABLE_MIN go **8 -> 124**; WITHOUT a verdict **0 of 283** clear it, pinned by a test, because freshness alone opening the gate would restore the defect in a new form. REMAINING HALF STILL OPEN: experiment_results and historical_accuracy are zero for every claim and moving them means attributing an outcome to a claim without separating it from everything else that changed in the same period — manufacturing causality. Council has NOT reviewed ADR-0166's policy values (MCP unavailable); question pack ready in ER-0037-MECLIS-SORUSU.md",
+      "state": "open",
+      "closed_by": "ADR-0166"
+    },
+    {
+      "id": "BR-0022",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "R-006 rows rendered with SHIFTED COLUMNS when their prose held an UNESCAPED pipe: the `status` cell showed a mid-sentence fragment and the ADR cell showed whatever followed. Separately, BR-0015 was missing its ADR cell entirely",
+      "priority": "P2",
+      "status": "fixed (8 rows escaped + BR-0015's cell added). THE FIRST ATTEMPT MADE IT WORSE and was reverted: it counted every pipe character, so rows whose pipes were ALREADY escaped were double-escaped into a literal backslash — the same failure class this session kept finding, a check measuring the wrong thing and producing confident wrong action. The rerun splits on UNESCAPED pipes only and asserts that unescaping the output reproduces the input byte for byte; that assertion fired on the first run and stopped the write. `validate_docs` still does not check column counts — a gate is cheap but the 11 remaining hits are a legitimate 4-column table, so it needs a row-scoped rule rather than a global one",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0038",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "`publish_year` read only the claim text, dating 8 of 281 claims — so ADR-0166's corrected decay curve was applied to a year almost nobody had",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0167). `provenance.origin_path` is the SOURCE DOCUMENT's file name, a property of the source rather than of the scrape, so it sits on the right side of criterion F while `collection_date` stays unread (asserted by a test). Measured: text 8, origin_path 56, combined 62; across the 2 claims where both signals fired they AGREED, so coverage widened without a conflict to arbitrate. With a supported verdict, claims clearing CITABLE_MIN go 124 -> 143; unruled claims clearing it stays 0. SIDE EFFECT RECORDED: re-curation moved `superseded` 3 -> 13 and `curated-active` 273 -> 263 — the supersede rule decides which of two near-duplicates is later and could not decide anything while 273 claims were undated. Not an intended effect; recorded because an unexplained count shift is discovered late. NOT ADOPTED: version numbers / API versions / RFC dates / release ids — sound in principle, absent from this corpus (creator videos about Amazon selling), so extractors for them would be code written against imagined data. 4 tests; 1383 total green",
+      "state": "done",
+      "closed_by": "ADR-0167"
+    },
+    {
+      "id": "ER-0039",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "**Freshness classification will need redesigning when a second knowledge family arrives.** Today `EVERGREEN_TYPES` has ONE member and the evergreen/perishable split maps cleanly onto `type`, because the whole corpus is creator videos about Amazon selling (281 claims: method/number/fact/note). A second family — regulation, API behaviour, a dated standard, a scientific finding — will not split on `type` alone: an API-behaviour claim decays on the vendor's release cadence, a regulation on its effective date, neither on a per-year percentage. When that arrives the classification must be reconsidered as a whole rather than extended by another row",
+      "priority": "P2",
+      "status": "**open BY DESIGN, deliberately NOT implemented.** Owner ruling 2026-08-01: an ER is an architectural note about a future trigger, not today's code; a policy engine built now would be flexibility written against data ODIN does not have (the same class as the refused `ai_queue` channel and `universeId`). What WAS built is the smaller thing the owner asked for: `FreshnessClassifier` (ADR-0168) isolates the one decision and returns the rule that fired, so the redesign has a single place to happen. Trigger to reopen: the first claim whose `type` is not in (method, number, fact, note, observation)",
+      "state": "open",
+      "closed_by": "ADR-0168"
+    },
+    {
+      "id": "ER-0040",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "**Outcome learning must publish EVIDENCE STRENGTH, never a truth verdict.** ODIN should not say \"this claim is true\" but \"evidence that acting on this claim succeeded: 68%\", with Claim -> Recommendation -> Observed Outcome -> Alternative Explanations -> Confidence and the alternatives as a first-class field. Owner specified the target shape 2026-08-01: a Claim Assessment carrying evidence_strength, historical_success, missing_information, alternative_explanations, uncertainty, confidence, confidence_reason",
+      "priority": "P1",
+      "status": "open — design recorded, NOT implemented (needs its own ADR + council round). WHY THIS DISSOLVES THE BLOCKER: attributing an outcome to a claim manufactures causality, but publishing evidence strength WITH the unexcluded alternatives does not — it states what is known and what is not. **SIX OF THE SEVEN FIELDS ALREADY HAVE CANONICAL ODIN NAMES and must reuse them, or ODIN ends up with two vocabularies for one concept (the drift ADR-0129 and ADR-0143 both fought):** evidence_strength (20,+1), historical_success (15,+1) and missing_information (5,**-1**, i.e. it LOWERS confidence as it rises — the natural home for unexcluded alternatives) are in `trust.CONFIDENCE_COMPONENTS` and REQUIRED by `decision-record.schema.json`; `alternative_explanations` is `flip_conditions`, already mandatory in `decision.py:76`; `uncertainty` is ADR-0085's `limitations`. Only **confidence_reason** is genuinely new, and it is the field that answers \"why 72?\" rather than only \"72\". So this is applying the decision layer's confidence discipline to claims, not inventing a scoring system. **OWNER RULING 2026-08-01 — build the envelope WITH ER-0040, not before it** (BR-0023): an envelope with no consumer is the same abstraction-without-data this session refused three times. **DECISION TRACE is part of the target**: explainability must answer HOW, not only WHY — `Claim -> Evidence -> Classifier -> Decay Rule -> Confidence Components -> Limitations -> Flip Conditions -> Confidence -> Confidence Reason -> Decision Trace`, reading like \"this claim is a method so the evergreen rule fired; 2026 came from origin_path; missing_information subtracted 5; evidence_strength added 20; final confidence 82\". TWO STEPS ALREADY EXIST and were not built for this: `decay_rule` (ADR-0168) records which classifier rule fired, and `measured`/`ceiling` (ADR-0169) record what was looked at and what was reachable. The trace is accumulating from the components rather than needing to be invented. **COUNCIL ROUND RUN 2026-08-01 (gavadolar 2/2, yazilimcilar 4/4) — v1 IS SMALLER THAN PROPOSED.** gavadolar unanimous on all five: ER-0040 IS the ADR-0085 implementation (not a new trust system), ER-0040 BEFORE ER-0037 (explainability is solvable with today's data, causality needs new data and time), ER-0040 v1 closes in one sprint. yazilimcilar 4/4 on reduction: `unmeasured`, `coverage`, `ceiling` and `confidence_state` are ALL DERIVABLE from `measured` plus the weight table and must NOT be persisted — compute them at read time. Only `measured` is irreducible (it is what distinguishes a measured 0.0 from an absent one). **terra found a defect in the proposed envelope nobody else caught: `\"confidence\": 82` alongside `TrustScorer`'s `trust: 30.5` creates TWO confidence numbers for one claim** — the envelope's confidence must BE the trust score, not a second one. terra also argues the human-readable reason should be DERIVED deterministically from `measured` + config rather than stored as prose (\"3/9 components have data; the unmeasured ones cap the score at 50\"), which keeps it from going stale and needs no LLM. SPLIT RECORDED: Qwen says `trace` and `confidence_reason` do NOT overlap (machine vs human question); terra, DeepSeek and Gemini-Flash say they do. Not resolved here",
+      "state": "open",
+      "closed_by": "ADR-0085"
+    },
+    {
+      "id": "BR-0023",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "**ADR-0085 (Explainability Envelope) is an accepted decision with ZERO implementation.** It mandates that any section marked `generatedBy: ai` carry an envelope with `model`, `evidenceRefs`, `confidence`, `limitations` and `humanOverride`, enforced structurally by a section schema (validation rules V-005/V-006). Measured 2026-08-01: `grep -rn explainability odin/*.py` returns nothing and no envelope schema file exists",
+      "priority": "P2",
+      "status": "open. Found while mapping ER-0040's proposed Claim Assessment onto existing vocabulary — the owner's `uncertainty` field is this ADR's `limitations`, and its `confidence` + `evidenceRefs` are the same envelope. Implementing ER-0040 for claims would satisfy a mandate that has been unenforced since ADR-0085 was accepted; doing it under a NEW name would leave the mandate unmet AND create a second vocabulary. Whichever is built first should be built as the envelope",
+      "state": "open",
+      "closed_by": "ADR-0085"
+    },
+    {
+      "id": "BR-0024",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "`TrustScorer.score()` read components with `.get(name, 0.0)`, so a component nobody supplied entered the breakdown as a measured 0. Every claim published `historical_accuracy: 0.0` — reading as \"we checked its track record and it has none\" when the truth is \"nothing was ever measured\". Same defect class as ADR-0156's `ai_spend: 0.0` over three real calls",
+      "priority": "P1",
+      "status": "fixed (ADR-0169). Composite arithmetic UNCHANGED and pinned by a test — an unmeasured component still contributes nothing, because nothing was measured; only the reporting changed. Score now ships `measured`, `unmeasured`, `coverage` (\"3/9\") and `ceiling` (sum of supplied weights). Today's claims read coverage 3/9 ceiling 50.0; with an owner verdict, 5/9 and 60.0 — the numbers ADR-0164 had to derive by hand are now stated by the thing that produced them. `breakdown` keeps its numeric shape: turning absent values into `None` would break every consumer and force two types on each caller, so the distinction lives in the new fields. Owner proposed the value `unknown`/`not_measured`; right about the fact, wrong about the mechanism — a string in a weighted sum either raises or is coerced back to zero somewhere less visible. 4 tests; 1391 total green",
+      "state": "open",
+      "closed_by": "ADR-0169"
+    },
+    {
+      "id": "ER-0041",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "`coverage: \"3/9\"` and `ceiling: 50.0` are enough for a reader who knows the weight table, but a screen or another agent would each re-derive the same judgement and drift apart doing it",
+      "priority": "P2",
+      "status": "implemented v1 (ADR-0170). `confidence_state` ships with every score: `measured` (all supplied) / `partial` (ceiling >= 40) / `insufficient` (0 < ceiling < 40, can NEVER be citable whatever the values) / `unavailable` (nothing measured). Follows the existing `TRUST_BANDS` pattern of labelling a number rather than making consumers interpret it. THE BOUNDARY IS NOT A NEW NUMBER: 40 is already `TRUST_BANDS`' `provisional` line and the value `decision.CITABLE_MIN` enforces, and a test asserts the two stay equal so they cannot drift silently. State is about COVERAGE not value — a perfect 100 on one component reads `insufficient`, pinned by a test, because that is the exact confusion the field prevents. OWNER'S THRESHOLDS ADJUSTED WITH A REASON: the proposal keyed states off the count (9/9, 6/9, 3/9); weight is the honest basis since the nine components carry different weights (3-of-9 by count is 50-of-100 by weight for a claim) and weight determines what the score can reach — the count still ships as `coverage`. Today's claims read `partial`; nothing reads `measured`, correctly. 3 tests; 1394 total green",
+      "state": "done",
+      "closed_by": "ADR-0170"
+    },
+    {
+      "id": "BR-0025",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "**Derived trust fields are PERSISTED and have already drifted from the code that derives them.** `curate` and `owner_verdict` write the whole `TrustScorer.score()` dict into each claim's `curation.trust` block. Measured 2026-08-01 across all 283 staged claims: 283/283 carry `coverage` and `ceiling` (ADR-0169 fields) and **283/283 are MISSING `confidence_state`** (ADR-0170), because curation has not run since that field was added. A consumer reading stored records cannot tell which code version produced what",
+      "priority": "P2",
+      "status": "open. This is exactly the failure yazilimcilar 4/4 predicted in the ER-0040 round — a value computed from other values, frozen in storage, diverges from its function. NOT \"FIXED\" BY RE-RUNNING CURATION: that would re-freeze at today's version and reproduce the same drift on the next change. The fix is to stop persisting what can be derived, which is ER-0040's design decision and belongs to that ADR. Note the fields themselves are correct and useful in the SCORER OUTPUT (ADR-0169/0170 stand); the defect is copying them into stored records",
+      "state": "open",
+      "closed_by": "ADR-0169"
+    },
+    {
+      "id": "BR-0005",
+      "type": "BR",
+      "epic": "EPIC-0003",
+      "title": "Company Health Score was an average of four operational readings (stock 40, AI keys 100, workspace 50, staging queue 30 = \"CHS 55/100\") with no revenue, cash, profit, debt or customer in it — the briefing header, the proactive review and the cockpit all printed a readiness number under a company-health label",
+      "priority": "P1",
+      "status": "fixed (ADR-0129; company_health_score scores the business bucket only and is honestly None until a financial component is measured, operational_readiness_score is published under its own name, health_headline is the single line every surface prints; ADR-0121's financial floor kept on top; runtime.monitor event gains operational_readiness/_measured/_expected; challenge.py's \"don't spend while unhealthy\" objection stays on CHS and correctly stops firing — before the split it could object to a purchase because the staging queue was long; tests/test_math_audit.py TestChsNeverPublishesIgnoranceAsHealth rewritten to the new contract + headline assertion, 1131 green)",
+      "state": "open",
+      "closed_by": "ADR-0129"
+    },
+    {
+      "id": "BR-0006",
+      "type": "BR",
+      "epic": "EPIC-0001",
+      "title": "`no_movement` (ADR-0120) has been emitted by `stockout_risk()` since 2026-07-29 but neither consumer knows the value exists: the UI repo's TypeScript union enumerates the old four levels so an exhaustive switch has no arm for it, and the `feature/amazon-ads` branch reads the same structure. A consumer that folds it into `unknown` reinstates the exact bug ADR-0120 fixed — dead stock reported as a data gap",
+      "priority": "P2",
+      "status": "partially fixed (ADR-0130 publishes the enum as `odin.amazon_director.STOCK_LEVELS` with a test that fails if the producer outgrows it, and fixes consumer behaviour as fail-closed `unsupported` with no silent neighbour-mapping. OPEN: the two consumer-side changes — UI union type + explicit display, and the amazon-ads branch. Neither is live today [the UI has no fetch at all, amazon-ads is a branch] so nothing is currently misread)",
+      "state": "open",
+      "closed_by": "ADR-0130"
+    },
+    {
+      "id": "FR-0042",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Rejected-recommendation suppression — a stable fingerprint over (domain, recommendation_type, evidence_snapshot) so ODIN does not re-serve a recommendation the owner already rejected on the SAME evidence; when the evidence version changes it may return, and the surface must say \"reddedildi <tarih>; <X> degistigi icin yeniden hesaplandi\"",
+      "priority": "P2",
+      "status": "proposed (council design, deferred out of ADR-0131 because it needs recommendation-evidence plumbing that does not exist yet and would mix two capabilities in one commit per ADR-0048. Cost of not having it: ODIN re-proposes what the owner said no to, which reads as \"it is not listening\" and costs trust)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "BR-0007",
+      "type": "BR",
+      "epic": "EPIC-0003",
+      "title": "ADR-0046's feedback loop had run ZERO times: `lifecycle.verdict()` accepted a reasonless approval for every class, so the behaviour model had no signal to learn from, and `deferred` was a dateless status with no surface bringing it back — indistinguishable from closing the terminal",
+      "priority": "P1",
+      "status": "fixed (ADR-0131; reason mandatory >=8 chars for class B/C via executive.classify [class A needs no approval so needs no reason], `deferred` requires a future revisit_at, lifecycle.due_deferrals() + dashboard \"DEFERRED, DUE NOW\" section brings them back, CLI prints REDDEDILDI and exits non-zero rather than recording a verdict that teaches nothing; tests/test_lifecycle.py VerdictTeachesSomethingTest 7 cases, 1139 green)",
+      "state": "open",
+      "closed_by": "ADR-0131"
+    },
+    {
+      "id": "ER-0018",
+      "type": "ER",
+      "epic": "EPIC-0004",
+      "title": "Connect the Phase-09 Registry Layer (registry.py + _store/_search/_graph/_provider, ADR-0052..0059, ~570 lines) — CLI first (`registry status\\|search\\|promote`), heartbeat only after the CLI path is proven",
+      "priority": "P2",
+      "status": "accepted (ADR-0133 verdict: CONNECT. The commerce engines need a typed auditable entity/provenance store, and this is the only mechanism that makes promote something other than a manual act — graph.py is starved precisely because promote never happens. Heartbeat rule applies: timeout-bounded, idempotent, fail-isolated, no import-time side effects)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0019",
+      "type": "ER",
+      "epic": "EPIC-0004",
+      "title": "Connect execution.ActionExecutor + the X1/X2/X3 permission machine (ADR-0018) via CLI in DRY-RUN only — never wired into the heartbeat in this step",
+      "priority": "P2",
+      "status": "accepted (ADR-0133 verdict: CONNECT, dry-run. This is the safety gate every future automated action must pass, so it gets exercised where a human is watching. Council split on risk: one architect called heartbeat wiring high-risk-but-worth-it, one said park entirely; dry-run CLI is the fail-closed intersection)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0020",
+      "type": "ER",
+      "epic": "EPIC-0004",
+      "title": "`orchestration/planner.py` (233 lines, ADR-0038/0044) — PARKED",
+      "priority": "P3",
+      "status": "parked (ADR-0133. Un-park trigger: Registry connected AND the executor dry-run proven [ER-0018 + ER-0019]. A planner that plans without an executor produces plans nobody runs)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0021",
+      "type": "ER",
+      "epic": "EPIC-0004",
+      "title": "`orchestration/recovery.py` (ADR-0044) — PARKED",
+      "priority": "P3",
+      "status": "parked (ADR-0133. Un-park trigger: the first real executor failure. Retry/backoff/dead-letter policy written before a single observed failure mode is speculation)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "ER-0022",
+      "type": "ER",
+      "epic": "EPIC-0007",
+      "title": "`thinking.py` Executive Thinking Engine retrofit (ADR-0118) — PARKED. Zero references inside odin/",
+      "priority": "P3",
+      "status": "parked (ADR-0133. Un-park trigger: two or more commerce engines live AND their decision outputs cannot be compared side by side. COUNCIL DISAGREED THREE WAYS — one architect said connect now and route every recommendation through it, one said retire under a superseding ADR since the Options/Trade-offs/Risks/Confidence format will land in engine outputs anyway, one said park. Retiring declined: an accepted ADR with green tests and a real use case ahead of it is not a mistake to archive. Connecting declined: a nicer decision format has low marginal value while the decisions have no live commerce data behind them)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0043",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "ExecutiveKPI Level-2/3 sources — `sparkline`, `forecast`, `aiInsight`, `recommendedAction` have NO source in ODIN; sparkline+forecast need a retained time series ODIN does not keep today",
+      "priority": "P3",
+      "status": "proposed (ADR-0132; until then these fields are optional and render NoData. A KPI card with an empty insight panel is honest, a generated one is the exact failure the UI anti-fake rule exists to prevent)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "BR-0008",
+      "type": "BR",
+      "epic": "EPIC-0005",
+      "title": "UI `Mission` type (60 refs) has no ODIN backing — the word appears in odin/ exactly once, as a label inside assets/cockpit.html. Only 3 of its 9 fields map to the real `goals.py`: id<-id, title<-label, progressPercent<-progress_pct. `status` (planned/active/blocked/done), which drives the board's entire Kanban layout, has NO source, nor do ownerDirector/deadline/relatedDecisionId/blockedReason",
+      "priority": "P2",
+      "status": "decided (ADR-0132: Mission retires into Goal. cockpit.py already publishes {id, level, label, target, progress_pct} — that IS the contract. MissionBoard survives as a component fed goal data; columns group by real `level` not invented `status`; unsourced fields are DROPPED not defaulted. TRAP NAMED: goals.alignment() returns a neutral 50 when no goals are defined — that is \"not measured\", never 50% progress. Same class as the DirectorHeartbeat invented-fields incident, this time on 60 references. UI-repo implementation still open)",
+      "state": "open",
+      "closed_by": "ADR-0132"
+    },
+    {
+      "id": "BR-0009",
+      "type": "BR",
+      "epic": "EPIC-0002",
+      "title": "`TL` appears 122 times in odin-data and `TRY` zero times, while the code writes and compares `\"TRY\"`. quality.py had the right alias map but behind a PRIVATE `_norm_ccy()` used in exactly one validation check; every other site compared raw strings, so a cash snapshot written \"TL\" took the `!= \"TRY\"` branch in finance/director.py and got multiplied by fx_to_try. cost_import.py compounded it by DEFAULTING new cost lines to \"TL\"",
+      "priority": "P1",
+      "status": "fixed (ADR-0134; normalize_ccy() made public as the single canonicalisation point and called in finance/director.py, finance/cash_journal.py and finance/cost_import.py which now writes the canonical code; source documents are NOT rewritten per ADR-0005. Same class as the gavadolar \"TL->TRY false positive\" finding — it survived because the fix was applied at the validator, not where money is compared. tests/test_math_audit.py TestCurrencyHasOneCanonicalName 3 cases incl. a TL snapshot with fx_to_try 35.0 yielding fx 1.0, 1142 green)",
+      "state": "open",
+      "closed_by": "ADR-0134"
+    },
+    {
+      "id": "FR-0044",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "`GET /api/amazon` + a small availability stub in /api/state + a boundary adapter normalising every metric to {status, value, reason} where status is available\\|data_required\\|unavailable",
+      "priority": "P2",
+      "status": "proposed (ADR-0135. amazon_director computes stock/velocity/dead-stock/ad-economics/net-profit and NONE of it reaches the cockpit — /api/state has no Amazon at all. Separate endpoint for failure isolation [dashboard must not fail because a third-party report was late], currency boundary [USD vs TRY, ADR-0134] and cost [/api/state regenerates every 300s]. The literal \"Data Required\" stays INSIDE amazon_director but must not cross the API boundary: a string in a numeric field breaks typeof/toFixed and reads truthy)",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "FR-0045",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Staging promotion Wave 1 — verification manifest for the Ads report KO (account/currency/timezone/marketplace, report window + attribution, row-count agreement, single-profile scope, duplicates, required fields, impossible values, same-day revision) then owner promote",
+      "priority": "P1",
+      "status": "manifest DONE, owner promote pending (ADR-0136; tools/ads_promote_manifest.py — read-only, never promotes, `promote()` stays the owner's signature per ADR-0005. Run 2026-07-30 on KO-ads-ads_report-2026-07-30: ALL 12 GATES PASS. Scope USD / America~Los_Angeles / ATVPDKIKX0DER US, window 2026-07-01..07-30 sales7d, count 94=94 rows, single profile, 0 duplicates, no missing fields, no negative money, no clicks>impressions, 1 revision. Totals: spend 676.82 USD, sales7d 8,399.10 USD, ACOS 8.06%, ROAS 12.41x, 19 campaigns / 36 SKUs. ADVISORY (not a gate): the window ends today, inside the 7-day sales7d span, so recent sales are understated and ACOS reads WORSE than reality. tests/test_ads_manifest.py 16 cases drive every gate to FAIL on a doctored KO — a gate that cannot fail is not a gate; 1169 green)",
+      "state": "open",
+      "closed_by": "ADR-0136"
+    },
+    {
+      "id": "ER-0023",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "Reconcile the staging count discrepancy — `odin dashboard` reports 589 KOs awaiting promotion while a recursive scan of odin-data/staging finds 1192 records (some files hold lists). Establish which is the promote unit and make both surfaces say the same thing",
+      "priority": "P2",
+      "status": "proposed (ADR-0136 defines the promote unit as the KO; this row makes the counts agree so \"3 promotions\" is never mistaken for \"3 records\")",
+      "state": "open",
+      "closed_by": "—"
+    },
+    {
+      "id": "BR-0010",
+      "type": "BR",
+      "epic": "EPIC-0001",
+      "title": "Staged Ads KOs recorded no currency. The report says `cost: 682.89` and nothing states the unit — the Ads API returns `currencyCode` and `timezone` on /v2/profiles and the adapter fetched neither. Verified live: profile 3266928581405590 is countryCode US / currencyCode USD / timezone America/Los_Angeles. `sku_costs` in KO-jarvis-0001 (price 6.90, cogs 2.06, referral 3.24) is also USD, so `net_after_ads = gross_total - spend` is currency-consistent TODAY — by coincidence of both sides being USD, not by construction. FR-0041's SP-API fee adapter and the TRY-denominated finance ledger are what break it",
+      "priority": "P1",
+      "status": "fixed for new collections (ADR-0134/0136; AdsApiAdapter.account() reads currency/timezone/country/marketplace from the configured profile and staged_item stamps it into provenance.account for both ads_report and ads_campaigns; fail-closed — an unreachable profile yields currency None, never an assumed USD; tests/test_ads_report.py AdsRecordsItsOwnCurrency 5 cases, 1147 green. The three ALREADY-staged KOs predate the stamp; a fresh `ads report 30` was requested 2026-07-29 so the promoted record carries its own currency. CLOSED 2026-07-30: the cross-currency guard now lives in net_after_ads itself — the exact line where gross(cost-table money) − spend(ads money) mixes. read_cost_currency + read_ads_performance carry each record's DECLARED currency; normalize_ccy applies the TL/TRY alias; undeclared or differing → advertising section data_gated with reason, never an assumed USD. Council placement ruling (gavadolar): gate at the money-mixing boundary, financial_summary only carries the verdict. Live: USD=USD passes, net 1,802.63 now labeled USD; 5 new tests incl. TL/TRY-alias-must-not-gate, 1197 green)",
+      "state": "open",
+      "closed_by": "ADR-0134"
+    },
+    {
+      "id": "BR-0011",
+      "type": "BR",
+      "epic": "EPIC-0003",
+      "title": "`odin simulate` and `odin finance director` gave OPPOSITE answers the same day for the same company: ledger -70,188 TRY/month and \"Runway 1.3 ay\" versus baseline +4,384 USD/month and \"net positive - cash does not deplete\". `simulate` is the surface the owner would consult before committing cash to a reorder. Cause: `scenario._derive()` computes net = revenue - monthly_costs, and finance/director.py honours that by summing opex + debt_service into monthly_costs, but odin-data/baseline.json split debt into a separate `monthly_installments: 3738` that _derive() never reads. ADR-0122 unified the runway FORMULA and left the INPUT unguarded",
+      "priority": "P1",
+      "status": "fixed (ADR-0137; contract documented on _derive [monthly_costs = every monthly outflow], load_baseline folds separate debt via idempotent fold_debt_service, `debt_service_folded`/`debt_service_included` makes the moved amount auditable, note now reads \"net positive after debt service\". Live: monthly_net 4384 -> 646. THE OBVIOUS FIX WAS WRONG - subtracting inside _derive would double-count on the ledger path where debt is already in monthly_costs; gavadolar flagged that trap and a test pins a ledger-shaped baseline being left untouched. tests/test_math_audit.py TestDebtServiceIsNeverDroppedOrDoubleCounted 6 cases, 1153 green)",
+      "state": "open",
+      "closed_by": "ADR-0137"
+    },
+    {
+      "id": "ER-0024",
+      "type": "ER",
+      "epic": "EPIC-0003",
+      "title": "`simulate` must read the live ledger, or fail closed when its baseline's date, currency or scope cannot be reconciled with it. Folding the debt (ADR-0137) did NOT reconcile the surfaces: baseline still +646 USD/month vs ledger -70,188 TRY/month. baseline.json is a static 2026-07-22 USD snapshot of unclear scope; the ledger is live and TRY-native. Scope cannot explain it - if the baseline were US-Amazon-only and the ledger company-wide, the ledger's revenue would be the LARGER figure, and it is not (11,634 vs 6,161 USD-equivalent). Cash differs 4.7x",
+      "priority": "P1",
+      "status": "fixed as fail-closed (ADR-0140; council ruling — both gavadolar members: fail closed now, ledger-derived baseline is SEPARATE work; sign-comparison across currencies explicitly rejected as fake reconciliation. scenario.baseline_reconciliation gates on: undeclared currency/as_of, unreachable ledger, or baseline-vs-ledger currency mismatch after normalize_ccy; empty ledger runs. baseline.json now machine-declares currency USD / as_of 2026-07-22 [transcribed from its own _comment], so live `odin simulate` correctly answers Data Required + USD/TRY reason + pointer to `finance director` instead of +646/ay. tests/test_scenario.py ReconciliationGateTests 5 cases, 1202 green. OPEN follow-up: ledger-derived baseline needs its own row/ADR if taken up)",
+      "state": "open",
+      "closed_by": "ADR-0140"
+    },
+    {
+      "id": "BR-0012",
+      "type": "BR",
+      "epic": "EPIC-0003",
+      "title": "Staged SP-API records declare no period, and producer/consumer agreed by coincidence: `sku_units_sold(days=7)` stages a 7-day rolling window that says nothing about its window, while `merge_velocity` divided by the unrelated constant `DEFAULT_CFG[\"window_days\"]=7`. `spapi orders 30` would have inflated velocity 4.3x and driven wrong reorders. Same class as BR-0009/BR-0010 (accidental consistency), on time instead of money. Found by the council's Wave-2 review; also surfaced silent same-day revisions (04:30/05:30 both version:1, differing rows) — that gate is Wave-2 manifest scope",
+      "priority": "P1",
+      "status": "fixed for new collections (ADR-0138; staged_item stamps provenance.report_period [rolling_window+window_days / as_of] on both ingest and CLI paths; read_sku_sales returns units+declared window as one value; merge_velocity's cfg fallback REMOVED — undeclared window writes no velocity, SKU stays honestly unknown. Legacy promoted sku_sales KOs [07-22..24] predate the stamp, so live velocity is gated until a declaring record passes the Wave-2 manifest and the owner promotes. 1173 green)",
+      "state": "open",
+      "closed_by": "ADR-0138"
+    },
+    {
+      "id": "FR-0046",
+      "type": "FR",
+      "epic": "EPIC-0005",
+      "title": "Canonical contracts for the four UI product concepts — ExecutiveKPI, Alert, Opportunity, Mission. The UI repo verified (UI-ADR-098) that none of the four exists in ODIN; per the owner-approved gavadolar ruling the UI must NOT invent them, so the concepts either get canonical ODIN definitions (field list + requiredness matrix + one sample JSON each, published through the FR-0039 fixture channel) or the UI removes those screen sections. Council note: Alert-like and Opportunity-like output already exists piecemeal (improvement_detectors, finance/quality, amazon_director, innovation) — the request is to NAME and freeze a contract, not to build new engines. UI S6 (Amazon Director template, KPI strip) is gated on this decision",
+      "priority": "P1",
+      "status": "decided (ADR-0143, owner approved all four 2026-07-30: Alert=canonical envelope [ADR-0141 evaluator, requires_action filter is now a producer contract], KPI=FR-0044 {status,value,reason} envelope generalised [\"Data Required\" never crosses in a numeric field], Opportunity=view over recommendation records, Mission=view over monitoring decisions + due_deferrals. UI S6 UNGATED; envelopes publish via FR-0039 channel in S7; FR-0044 must emit the KPI envelope in S8)",
+      "state": "open",
+      "closed_by": "ADR-0143"
+    },
+    {
+      "id": "ER-0025",
+      "type": "ER",
+      "epic": "EPIC-0005",
+      "title": "`ceo` verb is absent from the cockpit command whitelist — `python -m odin ceo verdict <id> <approved\\|rejected\\|deferred> [reason]` exists and enforces ADR-0131 (class-B/C reason ≥8 chars, deferred requires a future date) but ALLOWED_COMMANDS in cockpit.py does not include `ceo`, so the UI cannot submit a verdict through POST /api/command. Council ruling (sistemciler, unanimous): verdicts flow through the EXISTING command whitelist, no new /api/verdict endpoint. Scope: add the verb (or a narrowed `ceo verdict`-only form), return the refusal text verbatim so the UI can show WHY a verdict was rejected, and document idempotency on re-submit",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0142; `ceo` added to ALLOWED_COMMANDS with all five subcommands — localhost single-user console already carries write verbs, subsetting adds a special case for no attacker; refusal text travels verbatim, UI tells a whitelist rejection [no exit key] from a refused verdict [exit!=0 + REDDEDİLDİ text]; tests/test_cockpit.py pins a dateless deferral coming back REFUSED, 7 green. Council split resolved: luna now-with-ADR vs terra S7 — luna's reasoning won because the ADR removes terra's governance objection)",
+      "state": "done",
+      "closed_by": "ADR-0142"
+    },
+    {
+      "id": "FR-0047",
+      "type": "FR",
+      "epic": "EPIC-0003",
+      "title": "Staging promotion Wave 2 — verification manifest for the three SP-API streams (orders / sku_sales / inventory), then owner promote. Ads manifest could not be copied: five of its twelve gates have no SP-API counterpart, and SP-API adds failure modes Ads lacks (silent hourly revisions, cross-stream run mismatch, undeclared window semantics)",
+      "priority": "P1",
+      "status": "DONE — manifest PASS + owner promote 2026-07-30 (ADR-0139; tools/spapi_promote_manifest.py — read-only, per-stream gates over a common core, bundle passes or nothing does. Revisions RESOLVABLE not forbidden [banning same-day revisions would ban the heartbeat]; candidate provable via max fetched_at. orders↔sku_sales must be the same run+window and shipped totals reconcile EXACTLY — live 2026-07-30: 37=37; the 04:30/05:30 runs differ by one unit, so mixing runs passes every within-stream gate and is still wrong. First live run: BUNDLE FAIL on period-undeclared pre-ADR-0138 records [correct verdict]. The stale runtime process was the blocker — it predated ADR-0138 and kept staging undeclared records; restarted 09:45, the 10:31 heartbeat staged declaring records, manifest re-run: 28/28 PASS, shipped=sold 38=38, all three streams same-run 10:31:40. Owner authorized promote-on-PASS in-session; promoted 2026-07-30 ~13:35 TR: orders 44 rows + sku_sales 19 + inventory 48, amazon-business KOs 16→19. Effect verified live: velocity restored from the DECLARED 7d window [stockout 3 critical/1 no_movement], realized profit $653.36/38 units, advertising unchanged $1,802.63 USD. tests/test_spapi_manifest.py 20 cases drive every gate to FAIL, 1202 green)",
+      "state": "done",
+      "closed_by": "ADR-0139"
+    },
+    {
+      "id": "ER-0026",
+      "type": "ER",
+      "epic": "EPIC-0002",
+      "title": "Stale KO-finance-model disposition — model says monthly installments 175,679 TL, ledger says 234,012 (+33%, 7 active purchases). \"Refresh the model\" was the phase-plan wording; the councils rejected it",
+      "priority": "P2",
+      "status": "decided, no refresh (yazılımcılar unanimous A2, gavadolar confirmed: a refreshed static copy just goes stale again — the exact bug class ADR-0102 closed. Ledger is authoritative on every live surface [verified: finance director and Amazon read 234,012]; the static KO stays as the owner's HISTORICAL declaration and remains the only source for fields the ledger does not carry [partnership, cards, platforms]; drift stays visible as the `reconciliation` warning in `odin finance quality`. Misleading message tail \"model güncellenmeli\" reworded to \"statik model tarihsel beyandır; defter otoritatif (ADR-0102)\". DISSENT logged: luna wanted a one-line finance-quality warning in the morning briefing; terra said the finance surfaces suffice — terra chosen (briefing has no finance section at all; an orphan line without context confuses), briefing integration stays a separate feature if the owner asks)",
+      "state": "open",
+      "closed_by": "ADR-0102"
+    },
+    {
+      "id": "ER-0027",
+      "type": "ER",
+      "epic": "EPIC-0001",
+      "title": "Phase-12 shared layer (roadmap §4 \"build once\") — the seam all five commerce engines score/alert/emit through, so each engine slice adds only formulas and rules",
+      "priority": "P1",
+      "status": "implemented v1 (ADR-0141; odin/commerce/ [scores.py + alerts.py + service.py] + schemas/commerce-score-set.schema.json. Reality audit folded two of the five roadmap pieces away: \"decision.compose_recommendation\" DOES NOT EXIST in code — the real, already-shipped decision.build_recommendation is the refuse-if-incomplete wrapper, zero new code, doc-name correction only; widget kit = UI repo Faz 5; confidence-mapping helper = YAGNI until a second engine repeats a mapping. gavadolar corrections built in: scores/components are decimal-STRINGS [floats refused at the door], score_cache_key has an explicit canonical input list [engine/algorithm/config/schema versions + entity + as_of + input_refs + params], suppression is never silent [active_suppressed logged with reason, no cooldown consumed, no recovery, exactly one fire on lift]. Store bus conflict resolved for terra: stores are pure persistence, CommerceService owns validate→append→scored→evaluate→threshold_crossed/recovered ordering, payload metadata-only. tests/test_commerce_shared.py 21 cases, 1223 green. Next: FR-0005 Listing consumes this)",
+      "state": "done",
+      "closed_by": "ADR-0141"
+    },
+    {
+      "id": "ER-0017",
+      "type": "ER",
+      "epic": "EPIC-0004",
+      "title": "`odin trace` reports ADR-0060..0068 and ADR-0070 as DANGLING because those decisions live INSIDE their phase packages (`docs/phases/phase-10-.../24-ADR.md`, `docs/phases/phase-12-.../09-ADR.md`) as `proposed`, ratified at phase closure — they are not missing files. Either teach trace to read phase-internal ADR indexes, or emit them under a separate 'proposed, phase-internal' heading so a reader does not chase them as breakage",
+      "priority": "P3",
+      "status": "proposed (pre-existing, not introduced by the phase-1 integration; recorded so the trace output is readable rather than quietly ignored)",
+      "state": "open",
+      "closed_by": "—"
+    }
+  ],
+  "by_epic": [
+    {
+      "name": "EPIC-0005",
+      "count": 47
+    },
+    {
+      "name": "EPIC-0003",
+      "count": 25
+    },
+    {
+      "name": "EPIC-0001",
+      "count": 23
+    },
+    {
+      "name": "EPIC-0002",
+      "count": 14
+    },
+    {
+      "name": "EPIC-0004",
+      "count": 12
+    },
+    {
+      "name": "EPIC-0006",
+      "count": 6
+    },
+    {
+      "name": "EPIC-0007",
+      "count": 2
+    }
+  ],
+  "by_type": [
+    {
+      "name": "FR",
+      "count": 61
+    },
+    {
+      "name": "ER",
+      "count": 41
+    },
+    {
+      "name": "BR",
+      "count": 25
+    },
+    {
+      "name": "RR",
+      "count": 2
+    }
+  ],
+  "by_state": [
+    {
+      "name": "open",
+      "count": 65
+    },
+    {
+      "name": "done",
+      "count": 63
+    },
+    {
+      "name": "dropped",
+      "count": 1
+    }
+  ],
+  "by_priority": [
+    {
+      "name": "P1",
+      "count": 82
+    },
+    {
+      "name": "P2",
+      "count": 37
+    },
+    {
+      "name": "P3",
+      "count": 10
+    }
+  ]
+}

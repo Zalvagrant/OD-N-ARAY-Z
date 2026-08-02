@@ -182,7 +182,6 @@ describe("envanter kapısı — çağıranı yoksa hikâyesi olacak (UI-ADR-148)
         "components/executive/telemetry-bar",
         "components/ui/avatar",
         "components/ui/chart",
-        "components/ui/filter",
         "components/ui/icon",
         "components/ui/sparkline",
         "components/ui/tabs",
