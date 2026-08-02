@@ -39,6 +39,7 @@ const REAL_MODE = process.env.NEXT_PUBLIC_ODIN_DATA_MODE === "odin";
 type AmazonMocks = typeof import("./amazon");
 type BriefingMocks = typeof import("./briefing");
 type FeedMocks = typeof import("./feed");
+type FinanceMocks = typeof import("./finance");
 type GoalMocks = typeof import("./goals");
 
 /** Anahtar → o anahtarın döndürdüğü zarf tipi. */
@@ -66,6 +67,7 @@ export interface MockMap {
   "knowledge.core": ReturnType<BriefingMocks["knowledgeCoreMock"]>;
   "system.health": ReturnType<BriefingMocks["systemHealthMock"]>;
   "feed.items": ReturnType<FeedMocks["feedMock"]>;
+  "finance.position": ReturnType<FinanceMocks["financePositionMock"]>;
   "goals.items": ReturnType<GoalMocks["goalsMock"]>;
 }
 
@@ -126,6 +128,8 @@ export async function loadMock<K extends MockKey>(key: K): Promise<MockMap[K] | 
       return (await import("./briefing")).timelineMock() as MockMap[K];
     case "feed.items":
       return (await import("./feed")).feedMock() as MockMap[K];
+    case "finance.position":
+      return (await import("./finance")).financePositionMock() as MockMap[K];
     case "goals.items":
       return (await import("./goals")).goalsMock() as MockMap[K];
   }

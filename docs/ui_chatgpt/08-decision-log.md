@@ -7772,3 +7772,37 @@ Kararlar (gavadolar 2/2 şartlı onay, dördü de uygulandı):
    düğmelerini kilitler; sonuç yalnız `variables.decisionId` eşleşen
    kartta gösterilir. Bayat veri kilidi decision-card'daki UI-ADR-092
    kuralının aynısı.
+
+---
+
+## UI-ADR-195 — Finance ekranı: core'a dokunmadan, defter pozisyonu ham aktarımla
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-116 · UI-ADR-128 · ODIN ADR-0094 · gavadolar 2/2
+
+Gece emri "cockpit'e finance projeksiyonu ekle" diyordu; ölçüm çürüttü:
+`finance_position` ZATEN yayınlanıyor (`finance/director.py
+current_position()` — nakit+provenance, aylık akış, operating/cash-flow
+net ayrımı, runway+hedefler, zorunlu rezerv, `source_not_connected`).
+Core'a SIFIR satır dokunuldu; `/finance` yalnız tüketir.
+
+Kilitlenen sınırlar (gavadolar 2/2):
+
+1. **Para birimi izolasyonu:** ekrandaki her tutar ODIN'in bildirdiği
+   birimde (bugün TRY). USD gelir/marj bu ekranda ÇİZİLMEZ — briefing
+   KPI'larında kendi birimleriyle yaşıyorlar. UI kur çevirmez; nakit
+   provenance'ı (USD × kur = TRY, sahip beyanı, tarih) olduğu gibi
+   gösterilir.
+2. **`operating_net` ≠ `cash_flow_net` ayrımı ekranda korunur** ve
+   ikisine de "net kâr" denmez (UI-ADR-116'nın kuralı) — notlar "borç
+   servisi ÖNCESİ/SONRASI" der.
+3. **Runway nötr:** runway ile sahip hedefi ham yan yana; renk/eşik/hüküm
+   yok (UI-ADR-111). ODIN bir gün `runway_status` yayınlarsa o render
+   edilir — yükseltme yolu budur.
+4. **`source_not_connected` ölçümün kendisidir:** 7 bağlı olmayan kaynak
+   adıyla listelenir (role="note"); onlardan türeyecek hiçbir alan
+   çizilmez.
+5. **`empty` demo durumu beyan edilmiyor:** pozisyon tek nesne; cockpit
+   "defter boş"u `null` yayınlar ve cockpit boş/okunamadı ayrımı
+   yapamadığı için dal sebepli HATA olarak çizilir.

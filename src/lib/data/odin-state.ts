@@ -1068,6 +1068,170 @@ export function useOdinDecisions(): OdinQueryResult<Decision[]> {
 }
 
 /* --------------------------------------------------------------------------
+   Finance — `/api/state.finance_position` (ODIN `odin/finance/director.py`)
+   -------------------------------------------------------------------------- */
+
+/**
+ * Sahibin defter pozisyonu — `current_position()` çekirdekte hesaplar,
+ * arayüz yalnız taşır (UI-ADR-195).
+ *
+ * HESAP YOK, KUR ÇEVİRİSİ YOK (gavadolar 2/2): `cash_try` TRY'dir ve
+ * provenance'ı (sahip beyanı USD × kur) olduğu gibi gösterilir. ODIN'in
+ * `operating_net` (borç servisi ÖNCESİ) / `cash_flow_net` (SONRASI)
+ * ayrımı korunur; ikisini "net kâr" diye adlandırmak yasak (UI-ADR-116
+ * ile aynı sınıf). `source_not_connected` ölçümün kendisidir: bağlı
+ * olmayan kaynak listesi ekranda açıkça durur, o alanlar çizilmez.
+ */
+const financeTargetSchema = z.object({
+  value: z.string(),
+  direction: z.string(),
+  source: z.string(),
+});
+
+export const financeStateSchema = z.object({
+  generated_at: z.string(),
+  /* `None` = defter boş YA DA okunamadı; cockpit ikisini ayıramıyor.
+     Boş ekran değil, sebepli hata basılır. */
+  finance_position: z
+    .object({
+      currency: z.string().min(1),
+      window_months: z.number(),
+      cash_try: z.number().nullable(),
+      cash_provenance: z
+        .object({
+          amount: z.number(),
+          currency: z.string(),
+          fx_to_try: z.number(),
+          opening_try: z.number(),
+          journal_net_try: z.number(),
+          as_of: z.string().nullable(),
+          source: z.string().nullable(),
+        })
+        .nullable(),
+      monthly_revenue: z.number(),
+      monthly_opex: z.number(),
+      monthly_debt_service: z.number(),
+      operating_net: z.number(),
+      cash_flow_net: z.number(),
+      remaining_debt: z.number(),
+      runway_months: z.number().nullable(),
+      runway_note: z.string().nullable(),
+      required_reserve: z
+        .object({
+          required_reserve: z.number(),
+          personal_floor: z.number(),
+          known_obligations: z.number(),
+          critical_reorder_cash: z.number(),
+          months_window: z.number(),
+        })
+        .nullable(),
+      source_not_connected: z.array(z.string()),
+      /* Yalnız kart limiti tanımlıyken yayınlanır. */
+      card_utilisation_pct: z.number().nullish(),
+      runway_target: financeTargetSchema.nullable(),
+      leverage_target: financeTargetSchema.nullable(),
+    })
+    .nullable(),
+});
+
+export type FinancePosition = {
+  currency: string;
+  windowMonths: number;
+  cashTry: number | null;
+  cashProvenance: {
+    amount: number;
+    currency: string;
+    fxToTry: number;
+    asOf: string | null;
+    source: string | null;
+  } | null;
+  monthlyRevenue: number;
+  monthlyOpex: number;
+  monthlyDebtService: number;
+  operatingNet: number;
+  cashFlowNet: number;
+  remainingDebt: number;
+  runwayMonths: number | null;
+  runwayNote: string | null;
+  requiredReserve: {
+    requiredReserve: number;
+    personalFloor: number;
+    knownObligations: number;
+    criticalReorderCash: number;
+    monthsWindow: number;
+  } | null;
+  sourceNotConnected: string[];
+  cardUtilisationPct: number | null;
+  runwayTarget: { value: string; direction: string; source: string } | null;
+  leverageTarget: { value: string; direction: string; source: string } | null;
+};
+
+/** snake_case → camelCase. Değer DÖNÜŞTÜRÜLMEZ. */
+export function adaptFinance(
+  p: NonNullable<z.infer<typeof financeStateSchema>["finance_position"]>
+): FinancePosition {
+  return {
+    currency: p.currency,
+    windowMonths: p.window_months,
+    cashTry: p.cash_try,
+    cashProvenance: p.cash_provenance
+      ? {
+          amount: p.cash_provenance.amount,
+          currency: p.cash_provenance.currency,
+          fxToTry: p.cash_provenance.fx_to_try,
+          asOf: p.cash_provenance.as_of,
+          source: p.cash_provenance.source,
+        }
+      : null,
+    monthlyRevenue: p.monthly_revenue,
+    monthlyOpex: p.monthly_opex,
+    monthlyDebtService: p.monthly_debt_service,
+    operatingNet: p.operating_net,
+    cashFlowNet: p.cash_flow_net,
+    remainingDebt: p.remaining_debt,
+    runwayMonths: p.runway_months,
+    runwayNote: p.runway_note,
+    requiredReserve: p.required_reserve
+      ? {
+          requiredReserve: p.required_reserve.required_reserve,
+          personalFloor: p.required_reserve.personal_floor,
+          knownObligations: p.required_reserve.known_obligations,
+          criticalReorderCash: p.required_reserve.critical_reorder_cash,
+          monthsWindow: p.required_reserve.months_window,
+        }
+      : null,
+    sourceNotConnected: p.source_not_connected,
+    cardUtilisationPct: p.card_utilisation_pct ?? null,
+    runwayTarget: p.runway_target,
+    leverageTarget: p.leverage_target,
+  };
+}
+
+export function useOdinFinance(): OdinQueryResult<FinancePosition> {
+  return useOdinQuery({
+    key: ["odin", "finance"],
+    module: "default",
+    schema: z.custom<FinancePosition>(),
+    load: IS_MOCK
+      ? async () => loadMock("finance.position")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const parsed = financeStateSchema.parse(raw);
+          if (parsed.finance_position === null) {
+            throw contractError(
+              "/api/state",
+              "ODIN finans pozisyonunu yayınlayamadı — defter boş ya da okunamadı."
+            );
+          }
+          return internalEnvelope(
+            parsed.generated_at,
+            adaptFinance(parsed.finance_position)
+          );
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
    Yönetici brifingi — `/api/state` (ODIN `odin/briefing.py`)
    -------------------------------------------------------------------------- */
 

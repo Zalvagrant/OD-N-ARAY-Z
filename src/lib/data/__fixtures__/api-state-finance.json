@@ -1,0 +1,60 @@
+{
+ "generated_at": "2026-08-02T11:05:56+00:00",
+ "finance_position": {
+  "currency": "TRY",
+  "window_months": 9,
+  "cash_try": 93600.0,
+  "cash_provenance": {
+   "amount": 2000.0,
+   "currency": "USD",
+   "fx_to_try": 46.8,
+   "opening_try": 93600.0,
+   "journal_net_try": 0.0,
+   "as_of": "2026-07-24",
+   "source": "owner-declared"
+  },
+  "monthly_revenue": 289544.69,
+  "monthly_opex": 125720.9,
+  "monthly_debt_service": 234012.05,
+  "operating_net": 163823.79,
+  "cash_flow_net": -70188.26,
+  "remaining_debt": 959126.95,
+  "runway_months": 1.3,
+  "runway_note": null,
+  "required_reserve": {
+   "required_reserve": 284012.05,
+   "personal_floor": 50000.0,
+   "known_obligations": 234012.05,
+   "critical_reorder_cash": 0.0,
+   "months_window": 1
+  },
+  "source_not_connected": [
+   "tax",
+   "bank_reconciliation",
+   "receivables_aging",
+   "card_outstanding_balance",
+   "fx_valuation",
+   "payroll",
+   "probabilistic_forecast"
+  ],
+  "card_utilisation_pct": 16.3,
+  "runway_target": {
+   "value": "5",
+   "currency": "USD",
+   "period": "2026",
+   "effective_date": "2026-01-01",
+   "direction": "floor",
+   "source": "owner-declared",
+   "entry_id": "24f3a5272f6a"
+  },
+  "leverage_target": {
+   "value": "4",
+   "currency": "USD",
+   "period": "2026",
+   "effective_date": "2026-01-01",
+   "direction": "ceiling",
+   "source": "owner-declared",
+   "entry_id": "4aa285c509cb"
+  }
+ }
+}
