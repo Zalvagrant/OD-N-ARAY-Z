@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "test:unit": "node scripts/verify-tests.mjs unit 499",
+    "test:unit": "node scripts/verify-tests.mjs unit 502",
     "test:storybook": "node scripts/verify-tests.mjs storybook 322",
     "test:ci": "npm run typecheck && npm run lint && npm run test:unit && npm run test:storybook",
     "storybook": "storybook dev -p 6006",

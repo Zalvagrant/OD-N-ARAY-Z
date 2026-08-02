@@ -8452,3 +8452,32 @@ bölümün boş durumu hiç çizilmiyordu — zarf artık boşaltılıyor, nulla
 
 **KANIT [00:42, üretim 3000]:** bekleyen karar / eylem isteyen alarm /
 ölçülemeyen bileşen sayıları canlı; altı geçiş bağlantısı çalışıyor.
+
+---
+
+## UI-ADR-214 — Navigasyon kapsama kapısı: menü büyürse ürün de büyüyecek
+
+**Durum:** DONDURULDU
+**Tarih:** 3 Ağustos 2026
+**İlgili:** UI-ADR-148 · UI-ADR-151 · sahip emri "eksik validation ara"
+
+**BU OPERASYONUN NEDEN GEREKTİĞİNİN AÇIKLAMASI BU KAPININ YOKLUĞUYDU.**
+`NAV_GROUPS`a bir hedef eklemek bedavaydı: ekran yazılmasa bile rota 200
+döner, `[[...slug]]` yakalayıcısı "Bu ekran henüz üretilmedi" basar ve
+hiçbir test kırılmaz. 18 boş hedef tam olarak böyle birikti — her biri
+tek tek eklendi, hiçbiri bir kapıyı kırmadı.
+
+**Kapı iki yönlü:**
+1. Menüdeki HER hedefin `app/(shell)/…/page.tsx` dosyası olacak.
+2. Yazılmış HER sayfa menüde bir yere bağlı olacak — erişilemeyen bir
+   ekran da kusurdur (yazıldı, kimse göremiyor).
+
+`[[...slug]]` kasıtlı olarak kapsam dışı: o bir ekran değil, menü-dışı
+yolları 404'e ayıran yönlendiricidir.
+
+**KAPI KIRMIZIYA DÖNÜYOR — kanıtlandı:** menüye sahte bir hedef eklendi,
+kapı ikisini birden yakaladı (*"Menüde olup ekranı olmayan hedefler:
+/sahte-hedef"* ve *"expected 31 to be 30"*); geri alındı, yeşile döndü.
+Hiç kırmızıya dönmeyen bir kapı dekordur.
+
+**BUGÜNKÜ DURUM: 30 nav hedefi = 30 sayfa rotası.**
