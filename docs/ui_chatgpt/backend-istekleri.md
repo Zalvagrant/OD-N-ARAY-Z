@@ -496,7 +496,7 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 | `/amazon/forecast` | Tahmin üreticisi yok (ADR-0149 stockout tahmini dahil 48/48 null; `probabilistic_forecast` finance'ta da "bağlı değil"). |
 | `/amazon/suppliers` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Gerekçe artık `GET /api/capabilities` probundan geliyor, UI'da sabit metin yok. |
 | `/amazon/returns` | ✅ AÇILDI (UI-ADR-203). İDDİA ÇÜRÜDÜ: `KO-amazon-customer-satisfaction-2026H1-0001` promote edilmiş, 43 satır ASIN bazlı iade. Aynı uçtan. |
-| `/system/security` | `health_score` Güvenlik bileşeni `value:null` — "güvenlik telemetrisi yayınlanmıyor" (çekirdeğin kendi beyanı). |
+| `/system/security` | ✅ AÇILDI (UI-ADR-209). PUAN hâlâ üretilmiyor (doğru karar) ama beş olgu ölçülüyordu: bağlama · sır envanteri · denetim izi · konsol yüzeyi · kapı. `GET /api/security` eklendi. |
 | `/system/ai-runtime` | ✅ AÇILDI (UI-ADR-205). Erteleme gerekçesi MALİYETE aitti, ölçüme değil: `ai.usage()` model/token/gecikme/hatayı zaten ölçüyordu. `GET /api/ai` eklendi; maliyet null kalır, $0 yazılmaz (meclis 2/2). |
 | `/system/storage` | ✅ AÇILDI (UI-ADR-200). Ölçüm eksikti: iki ekran "ne kadar dolu"yu, bu ekran "hangi dizin ne hızla büyüyor"u cevaplıyor. Core'a `odin/storage.py` + `GET /api/storage` eklendi. |
 | `/system/network` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Prob: telemetry.jsonl'de 0 adet `network.*` olayı. |

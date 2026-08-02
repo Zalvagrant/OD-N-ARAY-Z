@@ -8272,3 +8272,40 @@ yönde bir kırılma).
 bitti 63 / düşürüldü 1 · EPIC-0005 47 … EPIC-0007 2. Arama kutusuna
 "velocity" yazıldı → **"4 / 129 talep gösteriliyor"** ve liste dörde
 indi (ER-0012, ER-0003, FR-0005, …).
+
+---
+
+## UI-ADR-209 — System Security: puanı reddetmek ekranın ilk bilgisidir
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · ODIN ADR-0004 · ADR-0025/0028 · SEC2
+
+Gece taraması "`health_score` Güvenlik bileşeni `value:null` — güvenlik
+telemetrisi yayınlanmıyor" diyordu. Bu **PUAN için doğru ve öyle
+kalıyor**: ODIN'in tarayıcısı yok, 0-100'lük bir güvenlik sayısı en
+tehlikeli uydurma olurdu. Ama iddia FAZLA GENİŞTİ — beş olgu her gün
+ölçülüyordu ve hiçbiri görünmüyordu.
+
+**Ekranın İLK bölümü "Neden puan yok".** Reddin gerekçesi çekirdekten
+gelir (`score_reason`) ve en üstte durur; şema `score: z.null()` ile
+DONDURULMUŞTUR — bir gün puan yayınlanırsa şema patlar, çünkü puan
+yayınlamak ayrı bir karardır (test bunu yazıyor).
+
+**Ölçülenler:**
+- **Bağlama** — çalışan SOKETTEN okunur. "Kod 127.0.0.1 diyor" bir
+  iddia, "soket 127.0.0.1'e bağlı" bir ölçümdür; ekranda yalnız
+  ikincisi yazar ve `0.0.0.0` gelirse "DIŞA AÇIK" diye kırmızı yanar.
+- **Konsol yüzeyi** — beyaz listedeki 19 fiil, adlarıyla.
+- **Kimlik bilgileri** — yalnız AD ve DOLU MU (SEC2). Boş bir anahtar
+  dosyası "yapılandırılmış görünen bozuk kimlik" olarak ayrıca uyarılır.
+- **Denetim izi** — vault'un kendi kaydı; ISKALAMA da sayılır.
+- **Yönetişim kapısı** — incelenmemiş 376 kayıt: bir hata değil, bir
+  maruziyet.
+
+**BULGU:** `amazon-ads-region` ve `amazon-ads-share` **171'er kez**
+isteniyor ve vault'ta yok; `amazon-spapi` 15 kez ıskalanmış. 794
+erişime karşı 358 ıskalama. Yapılandırma eksiği artık ekranda.
+
+**KANIT [20:44, üretim 3000]:** 127.0.0.1:8765 · Yalnız loopback ·
+19 komut · 12 anahtar (boş yok) · 794/358 · kapıda 376.

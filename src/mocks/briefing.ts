@@ -19,6 +19,7 @@
 
 import type { TimelineItem } from "@/types/screens";
 import type { RequestLedger } from "@/lib/data/odin-requests";
+import type { SecurityPosture } from "@/lib/data/odin-security";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type {
   AIRecommendation,
@@ -1136,5 +1137,45 @@ export function requestsMock(): DataEnvelope<RequestLedger> {
       { name: "P2", count: 1 },
       { name: "P3", count: 1 },
     ],
+  });
+}
+
+/**
+ * `/api/security` mock'u — YALNIZ Storybook.
+ * Tip AÇIKÇA yazılı: UI-ADR-208'de mock sözleşmeden sapıp ekranı
+ * çökertmişti; bir daha derlemede yakalansın.
+ */
+export function securityMock(): DataEnvelope<SecurityPosture> {
+  return mockEnvelope<SecurityPosture>({
+    score: null,
+    scoreReason:
+      "MOCK — ODIN güvenlik taraması yapmıyor; puan üretmek uydurma olurdu.",
+    binding: {
+      host: "127.0.0.1",
+      port: 8765,
+      loopbackOnly: true,
+      measured: true,
+    },
+    console: { allowedCommands: ["ask", "brief", "promote"], count: 3 },
+    secrets: {
+      count: 3,
+      empty: ["mock-bos"],
+      files: [
+        { name: "nvidia", present: true, updatedAt: "2026-07-22T10:00:00Z" },
+        { name: "anthropic", present: true, updatedAt: "2026-07-22T10:00:00Z" },
+        { name: "mock-bos", present: false, updatedAt: "2026-07-22T10:00:00Z" },
+      ],
+    },
+    audit: {
+      accesses: 794,
+      misses: 358,
+      lastAccessAt: "2026-08-02T16:43:17.250120+00:00",
+      lastMissAt: "2026-08-02T16:43:17.251004+00:00",
+      missingNames: [
+        { name: "amazon-ads-region", count: 171 },
+        { name: "amazon-ads-share", count: 171 },
+      ],
+    },
+    gate: { stagedPending: 376 },
   });
 }

@@ -1,0 +1,128 @@
+{
+  "generated_at": "2026-08-02T17:39:43.760483+00:00",
+  "score": null,
+  "score_reason": "ODIN güvenlik taraması yapmıyor; puan üretmek uydurma olurdu. Aşağıdakiler ÖLÇÜLEN olgulardır.",
+  "binding": {
+    "host": "127.0.0.1",
+    "port": 8765,
+    "loopback_only": true,
+    "measured": true
+  },
+  "console": {
+    "allowed_commands": [
+      "ai",
+      "analyze",
+      "ask",
+      "brief",
+      "ceo",
+      "cogs",
+      "dashboard",
+      "extract",
+      "pending",
+      "promote",
+      "registry",
+      "replay",
+      "score",
+      "stage",
+      "techreport",
+      "trace",
+      "transcript",
+      "validate",
+      "watch"
+    ],
+    "count": 19
+  },
+  "secrets": {
+    "count": 12,
+    "empty": [],
+    "files": [
+      {
+        "name": "amazon-ads-client-id",
+        "present": true,
+        "updated_at": "2026-07-24T13:32:07.709093+00:00"
+      },
+      {
+        "name": "amazon-ads-client-secret",
+        "present": true,
+        "updated_at": "2026-07-24T13:32:15.362942+00:00"
+      },
+      {
+        "name": "amazon-ads-profile",
+        "present": true,
+        "updated_at": "2026-07-24T13:46:14.501590+00:00"
+      },
+      {
+        "name": "amazon-ads-refresh-token",
+        "present": true,
+        "updated_at": "2026-07-24T13:39:28.364342+00:00"
+      },
+      {
+        "name": "amazon-spapi",
+        "present": true,
+        "updated_at": "2026-07-23T12:33:12.178718+00:00"
+      },
+      {
+        "name": "anthropic",
+        "present": true,
+        "updated_at": "2026-07-20T18:47:47.017158+00:00"
+      },
+      {
+        "name": "nvidia",
+        "present": true,
+        "updated_at": "2026-07-20T18:53:14.935940+00:00"
+      },
+      {
+        "name": "openrouter",
+        "present": true,
+        "updated_at": "2026-07-20T18:45:43.816418+00:00"
+      },
+      {
+        "name": "scrapingbee",
+        "present": true,
+        "updated_at": "2026-07-21T15:12:27.504796+00:00"
+      },
+      {
+        "name": "scrapingdog",
+        "present": true,
+        "updated_at": "2026-07-21T15:08:28.346366+00:00"
+      },
+      {
+        "name": "supadata",
+        "present": true,
+        "updated_at": "2026-07-21T14:57:42.026660+00:00"
+      },
+      {
+        "name": "thunderbit",
+        "present": true,
+        "updated_at": "2026-07-21T14:51:23.862158+00:00"
+      }
+    ]
+  },
+  "audit": {
+    "accesses": 794,
+    "misses": 358,
+    "last_access_at": "2026-08-02T16:43:17.250120+00:00",
+    "last_miss_at": "2026-08-02T16:43:17.251004+00:00",
+    "missing_names": [
+      {
+        "name": "amazon-ads-region",
+        "count": 171
+      },
+      {
+        "name": "amazon-ads-share",
+        "count": 171
+      },
+      {
+        "name": "amazon-spapi",
+        "count": 15
+      },
+      {
+        "name": "amazon-ads-client-id",
+        "count": 1
+      }
+    ]
+  },
+  "gate": {
+    "staged_pending": 376
+  }
+}
