@@ -319,10 +319,23 @@ export function useOdinOpportunities(): OdinQueryResult<Opportunity[]> {
  * `title` olayın KENDİ adıdır (`runtime.monitor`), yeniden yazılmaz —
  * çeviri veya güzelleştirme, kaydın gerçek adını aramayı imkânsız kılar.
  */
-const timelineStateSchema = z.object({
+export const timelineStateSchema = z.object({
   generated_at: z.string(),
   timeline: z.array(timelineEventSchema).nullable(),
 });
+
+/** snake_case → `TimelineItem`. Değer DÖNÜŞTÜRÜLMEZ: `seq` kimlik olur,
+    olay adı olduğu gibi taşınır (yukarıdaki `title` notu). */
+export function adaptTimeline(
+  timeline: z.infer<typeof timelineEventSchema>[]
+): TimelineItem[] {
+  return timeline.map((e) => ({
+    id: String(e.seq),
+    at: e.ts,
+    title: e.event,
+    actor: e.actor,
+  }));
+}
 
 export function useOdinTimeline(): OdinQueryResult<TimelineItem[]> {
   return useOdinQuery({
@@ -344,15 +357,7 @@ export function useOdinTimeline(): OdinQueryResult<TimelineItem[]> {
           if (parsed.timeline === null) {
             throw contractError("/api/state", "ODIN olay akışını okuyamadı");
           }
-          return internalEnvelope(
-            parsed.generated_at,
-            parsed.timeline.map((e) => ({
-              id: String(e.seq),
-              at: e.ts,
-              title: e.event,
-              actor: e.actor,
-            }))
-          );
+          return internalEnvelope(parsed.generated_at, adaptTimeline(parsed.timeline));
         },
   });
 }

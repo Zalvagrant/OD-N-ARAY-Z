@@ -2,17 +2,24 @@
 
 /**
  * Executive Timeline — workspace altındaki yatay şerit.
- * Kaynak: 03-information-architecture.md §16
+ * Kaynak: 03-information-architecture.md §16 · UI-ADR-193
  *
- * Gösterilecek olaylar: Decision Approved · AI Learned · Risk Increased
- * · Evidence Added · Knowledge Updated · Automation Completed
- *
- * ANTI-FAKE: olay kaynağı (IEventBus) bağlı değil. Uydurma olay yerine
- * durumun ne olduğu açıkça yazılır.
+ * CANLI — `/api/state.timeline` (`useOdinTimeline`, intelligence-feed ile
+ * aynı 40 olaylık pencere). Şerit pencerenin SON olaylarını KRONOLOJİK
+ * basar; ton, öncelik ve "yönetici olayı" seçkisi ODIN'de yayınlanmıyor ve
+ * burada uydurulmaz (UI-ADR-111). Olay adı kaydın gerçek adıdır, çevrilmez.
  */
 
+import { useOdinTimeline } from "@/lib/data/odin-state";
+import { formatDate } from "@/lib/format/date";
+
+/** Şeride sığan olay sayısı — görsel kapasite, veri hükmü değil. */
+const STRIP_CAPACITY = 5;
+
 export function ExecutiveTimeline() {
-  const events: never[] = [];
+  const { envelope, error, loading } = useOdinTimeline();
+  /* API sırası (kronolojik) korunur; yalnız pencerenin sonu alınır. */
+  const events = (envelope?.data ?? []).slice(-STRIP_CAPACITY);
 
   return (
     <div
@@ -22,12 +29,30 @@ export function ExecutiveTimeline() {
       <span className="shrink-0 text-xs uppercase tracking-wide text-content-tertiary">
         Timeline
       </span>
-      {events.length === 0 ? (
+      {loading ? (
         <span className="truncate text-content-tertiary">
-          Olay akışı bağlı değil — ODIN event bus&apos;a bağlanınca son
-          yönetici olayları burada görünecek.
+          Olay akışı yükleniyor…
         </span>
-      ) : null}
+      ) : error ? (
+        /* Sebep gizlenmez: `classifyError` metni kaynağı söylüyor. */
+        <span role="note" className="truncate text-content-tertiary">
+          Olay akışı okunamadı — {error.message}
+        </span>
+      ) : events.length === 0 ? (
+        /* "Ölçüldü, sonuç boş" hâli — pencere gerçekten boş. */
+        <span className="truncate text-content-tertiary">Kayıtlı olay yok.</span>
+      ) : (
+        <ol className="flex min-w-0 items-center gap-4 overflow-hidden">
+          {events.map((e) => (
+            <li key={e.id} className="flex min-w-0 shrink items-center gap-1.5">
+              <span className="shrink-0 tabular-nums text-content-tertiary">
+                {formatDate(e.at, { hour: "2-digit", minute: "2-digit" }) ?? "—"}
+              </span>
+              <span className="truncate text-content-secondary">{e.title}</span>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }

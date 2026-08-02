@@ -7706,3 +7706,37 @@ localhost/tek-kullanıcı dağıtımıyla sınırlı olmak üzere
 arayüz 24 yeşil) ama **uçtan uca birlikte hiç koşmadılar**. Üretimde
 kullanmadan önce bir gerçek gönderim elle denenmeli — bu raporun bulduğu
 en pahalı hatanın sınıfı tam olarak buydu.
+
+---
+
+## UI-ADR-193 — Alt bar Timeline canlıya bağlandı: yeni uç değil, mevcut pencere
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-174 · 03-information-architecture.md §16
+
+`ExecutiveTimeline` (workspace altındaki şerit) `events: never[]` ile
+boştu — arayüzde `/api/events`in 0 tüketicisi vardı. Meclis (gavadolar
+2/2) ve ölçüm aynı yere çıktı: **yeni `/api/events` tüketicisi AÇILMADI**,
+şerit intelligence-feed'in zaten kullandığı `/api/state.timeline`
+penceresine bağlandı (`useOdinTimeline` — adaptör, şema ve politika
+hazırdı; ilk kez bir ekran tüketicisi oldu).
+
+- **Neden A değil B değil:** `/api/events?since=N` artımlı uç hazır ama
+  ilk tüketicisini 40px'lik bir şerit için açmak yeni transport + şema +
+  hata yüzeyi demekti; `/api/state` zaten her ekranda çekiliyor ve
+  request coalescing ile marjinal maliyet ~0. Artımlı akış gerektiren ilk
+  gerçek ihtiyaçta (ör. kesintisiz canlı akış ekranı) `/api/events`e
+  geçilir — yükseltme yolu budur.
+- **Sunum hükmü yok (UI-ADR-111):** şerit pencerenin SON 5 olayını API
+  sırasında basar; ton/öncelik/"yönetici olayı" seçkisi ODIN'de
+  yayınlanmıyor, arayüzde üretilmiyor. Olay adı kaydın gerçek adıdır.
+- **Adaptör dışa alındı:** `useOdinTimeline` içindeki satır içi eşleme
+  `adaptTimeline` olarak dışa çıkarıldı (`adaptGoals` deseninde) ve canlı
+  cockpit'ten alınan `api-state-timeline.json` fixture'ına karşı test
+  edildi (`odin-timeline.test.ts`, 4 test).
+- **Intelligence-feed NO-OP:** gece emri "intelligence-feed'i
+  /api/events'e bağla" diyordu; ölçüm feed'in ZATEN canlı olduğunu
+  gösterdi (`useOdinFeed` → `/api/state.timeline`, UI-ADR-174). Çalışan
+  entegrasyonu eşdeğer bir uca taşımak risk alıp değer katmazdı —
+  no-op, kanıtıyla burada kayıtlı.

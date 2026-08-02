@@ -1,0 +1,399 @@
+{
+ "generated_at": "2026-08-02T10:35:56+00:00",
+ "timeline": [
+  {
+   "seq": 34347,
+   "ts": "2026-08-02T10:31:52.110062+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "dispatch"
+   }
+  },
+  {
+   "seq": 34348,
+   "ts": "2026-08-02T10:31:52.111610+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 2,
+    "failed": 0
+   }
+  },
+  {
+   "seq": 34349,
+   "ts": "2026-08-02T10:32:22.115333+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 0,
+    "failed": 0
+   }
+  },
+  {
+   "seq": 34350,
+   "ts": "2026-08-02T10:32:52.145600+00:00",
+   "event": "workspace.connected",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004"
+   }
+  },
+  {
+   "seq": 34351,
+   "ts": "2026-08-02T10:32:52.147014+00:00",
+   "event": "workspace.sync_started",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004"
+   }
+  },
+  {
+   "seq": 34352,
+   "ts": "2026-08-02T10:32:52.154105+00:00",
+   "event": "workspace.sync_finished",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004",
+    "staged": 0,
+    "skipped": 7
+   }
+  },
+  {
+   "seq": 34353,
+   "ts": "2026-08-02T10:32:52.155641+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "drain"
+   }
+  },
+  {
+   "seq": 34354,
+   "ts": "2026-08-02T10:32:52.158303+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 1,
+    "failed": 0
+   }
+  },
+  {
+   "seq": 34355,
+   "ts": "2026-08-02T10:33:22.174613+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 0,
+    "failed": 0
+   }
+  },
+  {
+   "seq": 34356,
+   "ts": "2026-08-02T10:33:52.183328+00:00",
+   "event": "workspace.connected",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004"
+   }
+  },
+  {
+   "seq": 34357,
+   "ts": "2026-08-02T10:33:52.186590+00:00",
+   "event": "workspace.sync_started",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004"
+   }
+  },
+  {
+   "seq": 34358,
+   "ts": "2026-08-02T10:33:52.195700+00:00",
+   "event": "workspace.sync_finished",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004",
+    "staged": 0,
+    "skipped": 7
+   }
+  },
+  {
+   "seq": 34359,
+   "ts": "2026-08-02T10:33:52.459971+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "drain"
+   }
+  },
+  {
+   "seq": 34360,
+   "ts": "2026-08-02T10:33:52.461839+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "dispatch"
+   }
+  },
+  {
+   "seq": 34361,
+   "ts": "2026-08-02T10:33:52.464533+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 2,
+    "failed": 0
+   }
+  },
+  {
+   "seq": 34362,
+   "ts": "2026-08-02T10:34:22.520947+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 0,
+    "failed": 0
+   }
+  },
+  {
+   "seq": 34363,
+   "ts": "2026-08-02T10:34:52.556701+00:00",
+   "event": "workspace.connected",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004"
+   }
+  },
+  {
+   "seq": 34364,
+   "ts": "2026-08-02T10:34:52.583229+00:00",
+   "event": "workspace.sync_started",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004"
+   }
+  },
+  {
+   "seq": 34365,
+   "ts": "2026-08-02T10:34:52.619358+00:00",
+   "event": "workspace.sync_finished",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004",
+    "staged": 0,
+    "skipped": 7
+   }
+  },
+  {
+   "seq": 34366,
+   "ts": "2026-08-02T10:34:52.622320+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "drain"
+   }
+  },
+  {
+   "seq": 34367,
+   "ts": "2026-08-02T10:34:52.645226+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 1,
+    "failed": 0
+   }
+  },
+  {
+   "seq": 34368,
+   "ts": "2026-08-02T10:35:22.851148+00:00",
+   "event": "runtime.monitor",
+   "actor": "runtime",
+   "payload": {
+    "chs": 68,
+    "chs_measured": 6,
+    "chs_expected": 6,
+    "chs_coverage_ratio": 1.0,
+    "operational_readiness": 64,
+    "operational_measured": 4,
+    "operational_expected": 6,
+    "risks": 2,
+    "critical": 0
+   }
+  },
+  {
+   "seq": 34369,
+   "ts": "2026-08-02T10:35:23.087500+00:00",
+   "event": "risk.detected",
+   "actor": "director.risk",
+   "payload": {
+    "risk": "Workspace ulaÅŸÄ±lamÄ±yor: Amazon Jarvis Vault (Obsidian)",
+    "level": 60
+   }
+  },
+  {
+   "seq": 34370,
+   "ts": "2026-08-02T10:35:23.089061+00:00",
+   "event": "ceo.reacted",
+   "actor": "ceo",
+   "payload": {
+    "trigger": "risk.detected",
+    "severity": "HIGH",
+    "council_needed": false
+   }
+  },
+  {
+   "seq": 34371,
+   "ts": "2026-08-02T10:35:23.090582+00:00",
+   "event": "risk.detected",
+   "actor": "director.risk",
+   "payload": {
+    "risk": "Staging birikimi â€” 376 kayÄ±t onay bekliyor",
+    "level": 40
+   }
+  },
+  {
+   "seq": 34372,
+   "ts": "2026-08-02T10:35:23.092026+00:00",
+   "event": "ceo.reacted",
+   "actor": "ceo",
+   "payload": {
+    "trigger": "risk.detected",
+    "severity": "MEDIUM",
+    "council_needed": false
+   }
+  },
+  {
+   "seq": 34373,
+   "ts": "2026-08-02T10:35:23.185263+00:00",
+   "event": "amazon.stock_alert_raised",
+   "actor": "amazon.director",
+   "payload": {
+    "critical_skus": 4,
+    "level": "critical"
+   }
+  },
+  {
+   "seq": 34374,
+   "ts": "2026-08-02T10:35:23.186402+00:00",
+   "event": "amazon.promotion_recommended",
+   "actor": "amazon.director",
+   "payload": {
+    "count": 9
+   }
+  },
+  {
+   "seq": 34375,
+   "ts": "2026-08-02T10:35:23.187510+00:00",
+   "event": "amazon.assessment_completed",
+   "actor": "amazon.director",
+   "payload": {
+    "critical": true,
+    "decisions": 1,
+    "sources": 2
+   }
+  },
+  {
+   "seq": 34376,
+   "ts": "2026-08-02T10:35:23.190608+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "monitor"
+   }
+  },
+  {
+   "seq": 34377,
+   "ts": "2026-08-02T10:35:23.191463+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "dashboard"
+   }
+  },
+  {
+   "seq": 34378,
+   "ts": "2026-08-02T10:35:23.192260+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "dir_risk"
+   }
+  },
+  {
+   "seq": 34379,
+   "ts": "2026-08-02T10:35:23.193052+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "dir_amazon"
+   }
+  },
+  {
+   "seq": 34380,
+   "ts": "2026-08-02T10:35:23.195769+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 4,
+    "failed": 0
+   }
+  },
+  {
+   "seq": 34381,
+   "ts": "2026-08-02T10:35:53.205606+00:00",
+   "event": "workspace.connected",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004"
+   }
+  },
+  {
+   "seq": 34382,
+   "ts": "2026-08-02T10:35:53.207020+00:00",
+   "event": "workspace.sync_started",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004"
+   }
+  },
+  {
+   "seq": 34383,
+   "ts": "2026-08-02T10:35:53.213710+00:00",
+   "event": "workspace.sync_finished",
+   "actor": "adapter.WS-004",
+   "payload": {
+    "workspace": "WS-004",
+    "staged": 0,
+    "skipped": 7
+   }
+  },
+  {
+   "seq": 34384,
+   "ts": "2026-08-02T10:35:53.356522+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "drain"
+   }
+  },
+  {
+   "seq": 34385,
+   "ts": "2026-08-02T10:35:53.358069+00:00",
+   "event": "runtime.job_ran",
+   "actor": "runtime",
+   "payload": {
+    "job": "dispatch"
+   }
+  },
+  {
+   "seq": 34386,
+   "ts": "2026-08-02T10:35:53.361473+00:00",
+   "event": "runtime.heartbeat",
+   "actor": "runtime",
+   "payload": {
+    "ran": 2,
+    "failed": 0
+   }
+  }
+ ]
+}
