@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-08-02T16:13:23.259739+00:00",
+  "capabilities": [
+    {
+      "id": "amazon.suppliers",
+      "label": "Tedarikçiler",
+      "route": "/amazon/suppliers",
+      "available": false,
+      "reason": "Tedarikçi verisi hiçbir kayıtta yok: core/ altında KO-supplier-* yok ve tedarikçi kaydı üreten bir toplayıcı tanımlı değil.",
+      "requires": "Tedarikçi kayıtlarını (satıcı, teslim süresi, MOQ, birim fiyat) staging'e alan bir kaynak tanımlanmalı ve promote edilmeli.",
+      "evidence": [
+        "core/KO-supplier-*: 0 kayıt"
+      ],
+      "measured_at": "2026-08-02T16:13:23.239487+00:00"
+    },
+    {
+      "id": "system.backups",
+      "label": "Yedekler",
+      "route": "/system/backups",
+      "available": false,
+      "reason": "Yedek POLİTİKASI kaydı yok. archive/ dizini var (21 dosya, 3.85 MB) ama bir arşiv yedek değildir: neyin, hangi sıklıkta, nereye kopyalandığını söyleyen bir kayıt bulunmuyor.",
+      "requires": "Sahip bir yedek politikası beyan etmeli (kapsam, sıklık, hedef) ve yedek koşumları kayıt yazmalı.",
+      "evidence": [
+        "archive/: 21 dosya, 3.85 MB",
+        "backup-policy.json: YOK"
+      ],
+      "measured_at": "2026-08-02T16:13:23.244820+00:00"
+    },
+    {
+      "id": "system.network",
+      "label": "Ağ",
+      "route": "/system/network",
+      "available": false,
+      "reason": "Ağ telemetrisi hiç yayınlanmadı: telemetry.jsonl'de tek bir network.* olayı yok. Cockpit yalnız 127.0.0.1'e bağlıdır ve ölçülecek bir ağ yüzeyi bulunmuyor.",
+      "requires": "Bir ağ ölçer (dış uç erişilebilirliği, gecikme, hata) network.* olayı yazmaya başlamalı.",
+      "evidence": [
+        "telemetry.jsonl: 0 adet network.* olayı"
+      ],
+      "measured_at": "2026-08-02T16:13:23.258377+00:00"
+    },
+    {
+      "id": "trading",
+      "label": "Trading",
+      "route": "/trading",
+      "available": false,
+      "reason": "Trading verisi çekirdekte hiç yok: promote edilmiş kayıt yok, bağlı bir aracı kurum kaynağı yok ve anayasa gereği ODIN emir vermez (yalnız analiz/öneri).",
+      "requires": "Bir hesap özeti kaynağı bağlanmalı; ODIN yalnız OKUR — emir yetkisi anayasal olarak kapalıdır.",
+      "evidence": [
+        "core/KO-trading-*: 0 kayıt"
+      ],
+      "measured_at": "2026-08-02T16:13:23.259725+00:00"
+    }
+  ]
+}

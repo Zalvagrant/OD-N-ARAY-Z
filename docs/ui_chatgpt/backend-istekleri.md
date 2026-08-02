@@ -494,17 +494,17 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 | `/amazon/listings` | ✅ AÇILDI (UI-ADR-203). İDDİA ÇÜRÜDÜ: `KO-amazon-asin-catalog-2026H1-0001` promote edilmiş, 42 ASIN. `GET /api/catalog` eklendi. |
 | `/amazon/profit` | ✅ AÇILDI (UI-ADR-204). Bekleyen sahip kararı SKU KIRILIMI içinmiş; TOPLAM zincir 42/42 ASIN ile tamamen ölçülü. Çekirdek `gross_profit`/`contribution` tutarlarını da yayınlıyor. |
 | `/amazon/forecast` | Tahmin üreticisi yok (ADR-0149 stockout tahmini dahil 48/48 null; `probabilistic_forecast` finance'ta da "bağlı değil"). |
-| `/amazon/suppliers` | Tedarikçi verisi hiçbir uçta yok (goals'ta metin olarak geçiyor, yapılandırılmış kaynak değil). |
+| `/amazon/suppliers` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Gerekçe artık `GET /api/capabilities` probundan geliyor, UI'da sabit metin yok. |
 | `/amazon/returns` | ✅ AÇILDI (UI-ADR-203). İDDİA ÇÜRÜDÜ: `KO-amazon-customer-satisfaction-2026H1-0001` promote edilmiş, 43 satır ASIN bazlı iade. Aynı uçtan. |
 | `/system/security` | `health_score` Güvenlik bileşeni `value:null` — "güvenlik telemetrisi yayınlanmıyor" (çekirdeğin kendi beyanı). |
 | `/system/ai-runtime` | ✅ AÇILDI (UI-ADR-205). Erteleme gerekçesi MALİYETE aitti, ölçüme değil: `ai.usage()` model/token/gecikme/hatayı zaten ölçüyordu. `GET /api/ai` eklendi; maliyet null kalır, $0 yazılmaz (meclis 2/2). |
 | `/system/storage` | ✅ AÇILDI (UI-ADR-200). Ölçüm eksikti: iki ekran "ne kadar dolu"yu, bu ekran "hangi dizin ne hızla büyüyor"u cevaplıyor. Core'a `odin/storage.py` + `GET /api/storage` eklendi. |
-| `/system/network` | Ağ telemetrisi hiçbir uçta yok. |
-| `/system/backups` | Yedek kaydı/politikası yayınlanmıyor (`archive/` klasörü var ama projeksiyonu yok). |
+| `/system/network` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Prob: telemetry.jsonl'de 0 adet `network.*` olayı. |
+| `/system/backups` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Prob `archive/`i ölçüyor (21 dosya, 3,85 MB) ama arşiv yedek değildir: `backup-policy.json` YOK. |
 | `/system/version` | `version` + `phases` /system ekranında ZATEN görünüyor; ayrı sayfa kopya olur. |
 | `/hq` | Ayrı bir veri kaynağı yok — mevcut ekranların toplamı; kompozit ekran sahip kararı ister. |
 | `/projects` | Proje varlığı core'da yok (phases roadmap'i /system'de). |
 | `/automation` | Zamanlanmış işler `directors` yayınından /system/performance'ta AÇILDI; ayrı automation ekranı aynı verinin kopyası olur. |
-| `/trading` | Trading verisi core'da hiç yok. |
+| `/trading` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Prob: `core/KO-trading-*` 0 kayıt; ayrıca ODIN anayasal olarak emir vermez. |
 | `/memory` | ✅ AÇILDI (UI-ADR-201). "Zaten /decisions'ta" yanlıştı: /decisions ŞU AN açık olanı (31), hafıza BUGÜNE KADARKİ her şeyi (2.335) gösterir. Core'a `lifecycle.projection()` + `GET /api/memory` eklendi. |
 | `/settings` | Yazılabilir ayar ucu yok (POST /api/command beyaz listesi dışında yapılandırma yüzeyi yayınlanmıyor). |

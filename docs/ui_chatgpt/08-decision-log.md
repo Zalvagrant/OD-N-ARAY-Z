@@ -8146,3 +8146,46 @@ doğrulanır.
 token · ort. 49,9 sn gecikme · llama-3.3-70b 11 / gpt-oss-120b 1 ·
 maliyet "—" (0 çağrı fiyat bildirdi), fiyatsız çağrı 12 · 12 sağlayıcı
 anahtarlı · son hata 1 Ağu 03:01 nvidia HTTPError.
+
+---
+
+## UI-ADR-206 — Yetenek durumu: placeholder yerine ÖLÇÜLMÜŞ yokluk
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-096 · UI-ADR-203 · ODIN `odin/capability.py` · gavadolar 2/2
+
+Dört hedefin verisi GERÇEKTEN yok: `/amazon/suppliers` · `/trading` ·
+`/system/network` · `/system/backups`. Bugüne kadar hepsi tek bir genel
+yakalayıcıya düşüyordu: *"Bu ekran henüz üretilmedi… kendi sprintinde
+gelecek."*
+
+**O cümle neden bir yalandı:** ölçüme dayanmıyordu, hiç eskimiyordu ve
+kaynak indiği gün AYNI kalacaktı. Bir sprint vaadi, bir veri durumu
+değil.
+
+**Meclisin şartı (terra + luna, 2/2):** genel placeholder değil, gerçek
+bir **capability unavailable** ekranı; ve kritik olan — *"bu durum API
+tarafından üretilmeli; UI'da rotaya özel sabit metin olmamalı."*
+
+**Çekirdek:** `odin/capability.py` + `GET /api/capabilities[?id=]`. Her
+yetenek kendi PROBUNU taşır ve üç şey döner: `available` · `reason`
+(adıyla, ne eksik) · `evidence` (neye bakıldı — iddia denetlenebilsin).
+
+**Tek ekran, dört rota** (`features/capability/screen.tsx`): metin
+farkının tamamı çekirdekten gelir. Arayüzde tek bir rota-özel cümle yok.
+Kaynak indiği gün ekran kendiliğinden değişir — bu, kararın bütün amacı.
+
+**ARŞİV YEDEK DEĞİLDİR:** prob `archive/`i ÖLÇER (21 dosya, 3,85 MB) ve
+yine de yeteneği KAPALI sayar, çünkü neyin/hangi sıklıkta/nereye
+kopyalandığını söyleyen kayıt yok. İkisini karıştırmamak probun asıl işi.
+
+**Sahte metrik yok:** boş tablo, boş grafik, sıfır çizilmez. Yokluğun
+dürüst hâli boş bir grafik değil, açık bir cümledir. Story `queryByRole
+("table")`ın null olduğunu ve eski placeholder cümlesinin geçmediğini
+kilitler.
+
+**KANIT [19:22, üretim 3000]:** /system/backups → "Veri kaynağı bağlı
+değil · system.backups" + ölçülmüş gerekçe + "Ne gerekiyor" + kanıt
+(`archive/: 21 dosya, 3.85 MB` · `backup-policy.json: YOK`) + ölçüm anı.
+Dört rota da 200.

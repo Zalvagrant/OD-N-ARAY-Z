@@ -1038,3 +1038,20 @@ export function aiRuntimeMock() {
     ],
   });
 }
+
+/** `/api/capabilities` tek kayıt mock'u — YALNIZ Storybook. */
+export function capabilityMock() {
+  return mockEnvelope({
+    id: "system.backups",
+    label: "Yedekler",
+    route: "/system/backups",
+    available: false,
+    reason:
+      "MOCK — Yedek POLİTİKASI kaydı yok. archive/ dizini var (21 dosya) " +
+      "ama bir arşiv yedek değildir.",
+    requires:
+      "MOCK — Sahip bir yedek politikası beyan etmeli (kapsam, sıklık, hedef).",
+    evidence: ["MOCK archive/: 21 dosya", "MOCK backup-policy.json: YOK"],
+    measuredAt: "2026-08-02T16:00:00.000000+00:00",
+  });
+}
