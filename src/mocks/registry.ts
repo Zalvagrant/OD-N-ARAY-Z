@@ -68,6 +68,7 @@ export interface MockMap {
   "system.health": ReturnType<BriefingMocks["systemHealthMock"]>;
   "system.performance": ReturnType<BriefingMocks["performanceMock"]>;
   "system.latency": ReturnType<BriefingMocks["latencyMock"]>;
+  "system.storage": ReturnType<BriefingMocks["storageMock"]>;
   "feed.items": ReturnType<FeedMocks["feedMock"]>;
   "finance.position": ReturnType<FinanceMocks["financePositionMock"]>;
   "goals.items": ReturnType<GoalMocks["goalsMock"]>;
@@ -122,6 +123,8 @@ export async function loadMock<K extends MockKey>(key: K): Promise<MockMap[K] | 
       return (await import("./briefing")).performanceMock() as MockMap[K];
     case "system.latency":
       return (await import("./briefing")).latencyMock() as MockMap[K];
+    case "system.storage":
+      return (await import("./briefing")).storageMock() as MockMap[K];
     case "briefing.kpis":
       return (await import("./briefing")).kpisMock() as MockMap[K];
     case "briefing.opportunities":

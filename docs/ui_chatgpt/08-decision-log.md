@@ -7904,3 +7904,41 @@ GEREKMEDİ — üç kaynak zaten yayında ya da istemcide ölçülebilir:
 - **Ders:** `Stat` `<dt>/<dd>` basar; `<dl>` ebeveynsiz kullanım axe
   dlitem ihlali (kapı yakaladı, ilk koşum kırmızıydı — director-card
   deseni kopyalandı).
+
+---
+
+## UI-ADR-200 — System Storage: ölçülen büyüme, türetilmiş projeksiyon YOK
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-199 · ODIN `odin/storage.py`
+
+Gece taraması `/system/storage` için "üçüncü kopya ekran değer katmaz"
+demişti (`disk_used_pct` + günlük boyutları /system ve /system/performance'ta
+zaten var). **Bu ölçüm eksikti** ve bu ekran onu düzeltiyor: iki ekranın
+cevapladığı soru "ne kadar dolu", buranınki **hangi dizin büyüyor ve ne
+hızla** — ki `/api/state` her istekte `events.jsonl`i okuduğu için o
+dosyanın büyümesi bir gecikme bütçesidir, trivia değil.
+
+**Core geliştirildi (kaynak YOKTU, uydurulmadı):** `odin/storage.py` +
+`GET /api/storage`. `/api/state`e anahtar EKLENMEDİ — envanter veri
+dizinindeki ~3.000 dosyayı stat'lıyor (ölçüldü: 0,59 sn) ve `/api/state`
+her açık ekranın yokladığı sıcak yoldur. `/api/amazon` ile aynı gerekçe.
+
+**Büyüme ÖLÇÜMDÜR, tahmin değil:** ekleme-yalnız bir JSONL kendi ilk ve
+son `ts`ini taşır; bayt/gün = boyut / gözlenen süre. Bir saatten kısa
+gözlemde `null` döner — bir sabahın yazımı güne çarpılmaz.
+
+**PROJEKSİYON ÇİZİLMEDİ:** "şu kadar gün sonra dolar / N gün kaldı"
+yazılmaz. Ölçülen hız ile ölçülen boş alan YAN YANA durur; hüküm
+sahibindir (UI-ADR-111'in aynı kuralı). Story bunu kilitler —
+"dolar/kalan gün/tahmin" kelimeleri ekranda geçemez.
+
+**`empty` = "ölçüldü, veri dizini boş"**, "ölçülmedi" değil: zarf
+atılmaz, listeler boşaltılır. Disk ölçümü boşaltılMAZ — boş bir veri
+dizini diskin doluluğunu geçersiz kılmaz.
+
+**KANIT [17:19, üretim 3000, gerçek cockpit]:** 63,9 MB / 3.091 dosya ·
+disk %83 · 26,6 GB boş · events.jsonl **1,68 MB/gün** (4,62 günlük
+gözlem) · telemetry.jsonl 0,35 MB/gün · 49 satırlık döküm (staging 685
+dosya 20,1 MB en büyük kalem).

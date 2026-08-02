@@ -896,3 +896,45 @@ export function knowledgeCoreMock() {
     stagingAvgTrust: 56.1,
   });
 }
+
+/**
+ * `/api/storage` mock'u — YALNIZ Storybook. Şekil canlı uçtan alındı
+ * (2 Ağu 2026); sayılar o günün gerçek ölçümü, dondurulmuş kopyasıdır.
+ */
+export function storageMock() {
+  return mockEnvelope({
+    dataDir: "odin-data",
+    totalBytes: 63_850_000,
+    totalFiles: 3088,
+    entries: [
+      { name: "staging", kind: "dir" as const, files: 685, bytes: 20_070_000 },
+      { name: "amazon", kind: "dir" as const, files: 1279, bytes: 10_540_000 },
+      { name: "inbox", kind: "dir" as const, files: 280, bytes: 8_910_000 },
+      { name: "events.jsonl", kind: "file" as const, files: 1, bytes: 7_720_000 },
+      { name: "archive", kind: "dir" as const, files: 21, bytes: 3_850_000 },
+    ],
+    logs: [
+      {
+        name: "events.jsonl",
+        bytes: 7_720_000,
+        firstAt: "2026-07-28T22:00:00+00:00",
+        lastAt: "2026-08-02T14:03:41+00:00",
+        spanDays: 4.61,
+        bytesPerDay: 1_675_000,
+      },
+      {
+        name: "telemetry.jsonl",
+        bytes: 1_630_000,
+        firstAt: "2026-07-28T22:00:00+00:00",
+        lastAt: "2026-08-02T14:03:41+00:00",
+        spanDays: 4.61,
+        bytesPerDay: 354_000,
+      },
+    ],
+    disk: {
+      totalBytes: 511_000_000_000,
+      freeBytes: 26_600_000_000,
+      usedPct: 83,
+    },
+  });
+}

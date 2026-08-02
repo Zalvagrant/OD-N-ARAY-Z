@@ -498,7 +498,7 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 | `/amazon/returns` | İade verisi yayınlanmıyor (Return Intelligence çeyreklik hedef, henüz inşa edilmedi). |
 | `/system/security` | `health_score` Güvenlik bileşeni `value:null` — "güvenlik telemetrisi yayınlanmıyor" (çekirdeğin kendi beyanı). |
 | `/system/ai-runtime` | `ai_spend.total_usd=null`, 12/12 çağrı `cost_known:false` — maliyet paneli kural 2 ihlali olur; meclis kararı S9 sonraya (15-execution-plan). |
-| `/system/storage` | `disk_used_pct` + günlük boyutları /system ve /system/performance'ta ZATEN görünüyor; üçüncü kopya ekran değer katmaz. |
+| `/system/storage` | ✅ AÇILDI (UI-ADR-200). Ölçüm eksikti: iki ekran "ne kadar dolu"yu, bu ekran "hangi dizin ne hızla büyüyor"u cevaplıyor. Core'a `odin/storage.py` + `GET /api/storage` eklendi. |
 | `/system/network` | Ağ telemetrisi hiçbir uçta yok. |
 | `/system/backups` | Yedek kaydı/politikası yayınlanmıyor (`archive/` klasörü var ama projeksiyonu yok). |
 | `/system/version` | `version` + `phases` /system ekranında ZATEN görünüyor; ayrı sayfa kopya olur. |
