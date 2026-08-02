@@ -938,3 +938,49 @@ export function storageMock() {
     },
   });
 }
+
+/**
+ * `/api/memory` mock'u — YALNIZ Storybook. Şekil canlı uçtan (2 Ağu 2026);
+ * gerekçe metni MOCK olarak işaretli, gerçek deftere ait değildir.
+ */
+export function executiveMemoryMock() {
+  return mockEnvelope({
+    recommendations: {
+      total: 2329,
+      withVerdict: 1,
+      firstAt: "2026-07-29T18:18:02.249028+00:00",
+      lastAt: "2026-08-02T14:21:47.991343+00:00",
+      byTrigger: [
+        { name: "risk.detected", count: 2315 },
+        { name: "opportunity.data", count: 11 },
+        { name: "opportunity.risk", count: 2 },
+        { name: "opportunity.inventory", count: 1 },
+      ],
+      byClass: [
+        { name: "A", count: 2328 },
+        { name: "B", count: 1 },
+      ],
+      bySeverity: [
+        { name: "HIGH", count: 1422 },
+        { name: "MEDIUM", count: 893 },
+        { name: "INFO", count: 14 },
+      ],
+    },
+    verdicts: {
+      total: 1,
+      byVerdict: [{ name: "approved", count: 1 }],
+      recent: [
+        {
+          at: "2026-08-02T10:13:46.745931+00:00",
+          recId: "OPP-MOCK-0001",
+          verdict: "approved",
+          reason: "MOCK gerekçe",
+          recClass: "B",
+          revisitAt: null,
+          recommendation: "MOCK — 29 SKU kritik stokta",
+        },
+      ],
+    },
+    outcomes: { total: 0, lessons: [] },
+  });
+}

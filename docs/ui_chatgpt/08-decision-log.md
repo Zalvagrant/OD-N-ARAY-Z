@@ -7942,3 +7942,41 @@ dizini diskin doluluğunu geçersiz kılmaz.
 disk %83 · 26,6 GB boş · events.jsonl **1,68 MB/gün** (4,62 günlük
 gözlem) · telemetry.jsonl 0,35 MB/gün · 49 satırlık döküm (staging 685
 dosya 20,1 MB en büyük kalem).
+
+---
+
+## UI-ADR-201 — Memory: hafıza defteri, karar kuyruğunun kopyası değil
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-194 · ODIN ADR-0005 · ADR-0046 · ADR-0131
+
+Gece taraması `/memory` için "executive-memory dosyaları var ama
+projeksiyonu yok; karar/verdict zaten /decisions'ta" demişti. İkinci yarı
+YANLIŞTI: `/decisions` **şu an açık** olanı gösterir (31 kayıt), hafıza
+ise **bugüne kadarki her şeyi** (2.335 öneri). Farklı iki soru.
+
+**Core geliştirildi:** `lifecycle.projection()` + `GET /api/memory`. İki
+depo zaten vardı ve hiçbir şey yayınlamıyordu — `decisions.jsonl` (ODIN'in
+ürettiği her öneri) ve `lifecycle.jsonl` (sahibin verdiği her hüküm);
+`rec_id` ile birleşiyorlar. Yeni yazma yolu YOK, salt projeksiyon
+(ADR-0044).
+
+**FİLTRE YOK — kararın kendisi bu:** her verdict gerekçesiyle listelenir,
+zayıf gerekçeli olan da. Ekleme-yalnız defter (ADR-0005) ancak sahip
+içine bakabildiği sürece bir anlam taşır; kendi zayıf kaydını gizleyen
+bir defter, defter değildir.
+
+**ORAN YOK:** "2.335 öneri / 1 karar" ham ve yan yana durur. Arayüz bundan
+"karar verme yüzdesi" ya da kalite skoru türetmez (UI-ADR-111). Story
+bunu kelime sınırıyla kilitler.
+
+**Ekran ilk açılışta bir bulgu gösterdi:** defterdeki TEK verdict'in
+gerekçesi `"gerekçen"` — 2 Ağu 10:13'te gerçek deftere yazılmış bir TEST
+girdisi (gece raporu "gerçek deftere iz yok" diyordu; o iddia E2E'den
+ÖNCEKİ elle denemeyi kapsamıyormuş). Silinemez (ADR-0005); ekran onu
+gizlemez, sahip düzeltici bir hüküm yazabilir.
+
+**KANIT [17:37, üretim 3000]:** 2.335 öneri · 1 karar · 0 sonuç kaydı ·
+risk.detected 2321 / opportunity.* 14 · sınıf A 2334, B 1 · tek verdict
+gerekçesiyle listede.

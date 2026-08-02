@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-08-02T14:24:26.160137+00:00",
+  "recommendations": {
+    "total": 2329,
+    "with_verdict": 1,
+    "first_ts": "2026-07-29T18:18:02.249028+00:00",
+    "last_ts": "2026-08-02T14:21:47.991343+00:00",
+    "by_trigger": [
+      {
+        "name": "risk.detected",
+        "count": 2315
+      },
+      {
+        "name": "opportunity.data",
+        "count": 11
+      },
+      {
+        "name": "opportunity.risk",
+        "count": 2
+      },
+      {
+        "name": "opportunity.inventory",
+        "count": 1
+      }
+    ],
+    "by_class": [
+      {
+        "name": "A",
+        "count": 2328
+      },
+      {
+        "name": "B",
+        "count": 1
+      }
+    ],
+    "by_severity": [
+      {
+        "name": "HIGH",
+        "count": 1422
+      },
+      {
+        "name": "MEDIUM",
+        "count": 893
+      },
+      {
+        "name": "INFO",
+        "count": 14
+      }
+    ]
+  },
+  "verdicts": {
+    "total": 1,
+    "by_verdict": [
+      {
+        "name": "approved",
+        "count": 1
+      }
+    ],
+    "recent": [
+      {
+        "ts": "2026-08-02T10:13:46.745931+00:00",
+        "rec_id": "OPP-20260729-181802-251129-4ed2c2",
+        "verdict": "approved",
+        "reason": "gerekçen",
+        "rec_class": "B",
+        "revisit_at": null,
+        "recommendation": "29 SKU kritik stokta — yeniden siparis penceresi"
+      }
+    ]
+  },
+  "outcomes": {
+    "total": 0,
+    "lessons": []
+  }
+}

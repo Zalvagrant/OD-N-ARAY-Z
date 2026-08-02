@@ -506,5 +506,5 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 | `/projects` | Proje varlığı core'da yok (phases roadmap'i /system'de). |
 | `/automation` | Zamanlanmış işler `directors` yayınından /system/performance'ta AÇILDI; ayrı automation ekranı aynı verinin kopyası olur. |
 | `/trading` | Trading verisi core'da hiç yok. |
-| `/memory` | `executive-memory/` dosyaları var ama projeksiyonu yok; karar/verdict zaten /decisions'ta. |
+| `/memory` | ✅ AÇILDI (UI-ADR-201). "Zaten /decisions'ta" yanlıştı: /decisions ŞU AN açık olanı (31), hafıza BUGÜNE KADARKİ her şeyi (2.335) gösterir. Core'a `lifecycle.projection()` + `GET /api/memory` eklendi. |
 | `/settings` | Yazılabilir ayar ucu yok (POST /api/command beyaz listesi dışında yapılandırma yüzeyi yayınlanmıyor). |
