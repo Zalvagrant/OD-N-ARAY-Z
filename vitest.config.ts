@@ -19,6 +19,24 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.join(dirname, 'src') },
   },
+  /* VERİ MODU TESTTE SABİTLENİR — ÇALIŞTIRAN MAKİNEDEN OKUNMAZ.
+   *
+   * `.env.local` (NEXT_PUBLIC_ODIN_DATA_MODE=odin) launcher için gerekli ve
+   * doğru: `next start` onsuz sessizce mock servis eder. Ama Vite o dosyayı
+   * testte de okuyup `process.env.NEXT_PUBLIC_ODIN_DATA_MODE`i gömüyor,
+   * `IS_MOCK` false oluyor ve mock kayıt defteri gerçek modda bilerek `null`
+   * dönüyor: `registry.test.ts`in 25 testi + 14 story testi toptan düştü.
+   * Kapı `.env.local` yazılmadan önce yeşildi — yani yeşillik bir dosyanın
+   * YOKLUĞUNA bağlıydı ve bunu hiçbir kapı söylemiyordu.
+   *
+   * `define` ŞART, `test.env` YETMEZ: unit projesi node'da koşar ve
+   * `process.env`i görür, ama storybook projesi TARAYICIDA koşar — orada
+   * `process.env` diye bir şey yok, Vite değeri transform anında gömer.
+   * Yalnız `test.env` konsaydı unit yeşil, storybook kırmızı kalırdı
+   * (ölçüldü: 369 geçti / 234 geçti-14 düştü). */
+  define: {
+    'process.env.NEXT_PUBLIC_ODIN_DATA_MODE': JSON.stringify('mock'),
+  },
   test: {
     /* TARAYICI BAĞLANTI ZAMAN AŞIMI — KÖKTE OLMAK ZORUNDA.
      *
@@ -39,6 +57,9 @@ export default defineConfig({
      * işçileri CPU'yu tutunca bağlantı yine düşüyor. `npm run test:ci`
      * ikisini sırayla çalıştırır. */
     browser: { connectTimeout: 300_000 },
+    /* Node tarafı için ikinci kemer; tarayıcı tarafını yukarıdaki `define`
+       kapatır. İkisi de gerekli, biri diğerini kapsamıyor. */
+    env: { NEXT_PUBLIC_ODIN_DATA_MODE: 'mock' },
     projects: [
       {
         // Saf mantık testleri (chart ölçekleme gibi) — tarayıcı gerekmez.
