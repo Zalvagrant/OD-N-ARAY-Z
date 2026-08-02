@@ -1,0 +1,266 @@
+{
+  "generated_at": "2026-08-02T15:54:18+00:00",
+  "usage": {
+    "calls": 12,
+    "errors": 13,
+    "by_model": {
+      "openai/gpt-oss-120b": 1,
+      "meta/llama-3.3-70b-instruct": 11
+    },
+    "tokens_in": 34139,
+    "tokens_out": 4301,
+    "cost_usd": null,
+    "cost_known_calls": 0,
+    "latency_ms_avg": 49908,
+    "last_success": "2026-08-02T00:05:13.820959+00:00",
+    "last_error": {
+      "ts": "2026-08-01T00:01:40.867667+00:00",
+      "provider": "nvidia",
+      "error": "HTTPError"
+    },
+    "recent": [
+      {
+        "ts": "2026-07-31T00:00:18.334278+00:00",
+        "event": "provider.error",
+        "provider": "nvidia",
+        "error": "HTTPError"
+      },
+      {
+        "ts": "2026-07-31T00:00:20.734707+00:00",
+        "event": "provider.error",
+        "provider": "nvidia",
+        "error": "HTTPError"
+      },
+      {
+        "ts": "2026-07-31T00:00:23.150692+00:00",
+        "event": "provider.error",
+        "provider": "nvidia",
+        "error": "HTTPError"
+      },
+      {
+        "ts": "2026-07-31T00:00:25.528843+00:00",
+        "event": "provider.error",
+        "provider": "nvidia",
+        "error": "HTTPError"
+      },
+      {
+        "ts": "2026-07-31T00:00:27.925985+00:00",
+        "event": "provider.error",
+        "provider": "nvidia",
+        "error": "HTTPError"
+      },
+      {
+        "ts": "2026-07-31T11:00:23.633603+00:00",
+        "event": "provider.error",
+        "provider": "nvidia",
+        "error": "HTTPError"
+      },
+      {
+        "ts": "2026-07-31T11:00:34.125439+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "openai/gpt-oss-120b",
+        "stop_reason": "length",
+        "input_tokens": 70,
+        "output_tokens": 16,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 10489
+      },
+      {
+        "ts": "2026-07-31T11:00:41.999231+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 40,
+        "output_tokens": 2,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 7872
+      },
+      {
+        "ts": "2026-07-31T11:01:42.156845+00:00",
+        "event": "provider.error",
+        "provider": "nvidia",
+        "error": "TimeoutError"
+      },
+      {
+        "ts": "2026-07-31T11:04:53.527216+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 45,
+        "output_tokens": 7,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 14553
+      },
+      {
+        "ts": "2026-08-01T00:01:20.952786+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 4153,
+        "output_tokens": 464,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 70713
+      },
+      {
+        "ts": "2026-08-01T00:01:40.867667+00:00",
+        "event": "provider.error",
+        "provider": "nvidia",
+        "error": "HTTPError"
+      },
+      {
+        "ts": "2026-08-01T00:03:51.754547+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 4477,
+        "output_tokens": 554,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 128612
+      },
+      {
+        "ts": "2026-08-01T00:04:34.004301+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 4054,
+        "output_tokens": 443,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 39975
+      },
+      {
+        "ts": "2026-08-01T00:04:58.797752+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 4839,
+        "output_tokens": 370,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 22598
+      },
+      {
+        "ts": "2026-08-02T00:01:18.522772+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 3871,
+        "output_tokens": 420,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 76869
+      },
+      {
+        "ts": "2026-08-02T00:02:53.694225+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 3146,
+        "output_tokens": 403,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 93151
+      },
+      {
+        "ts": "2026-08-02T00:03:12.783377+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 2661,
+        "output_tokens": 467,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 17061
+      },
+      {
+        "ts": "2026-08-02T00:04:39.739836+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 3044,
+        "output_tokens": 513,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 84938
+      },
+      {
+        "ts": "2026-08-02T00:05:13.820959+00:00",
+        "event": "provider.call",
+        "provider": "nvidia",
+        "model": "meta/llama-3.3-70b-instruct",
+        "stop_reason": "stop",
+        "input_tokens": 3739,
+        "output_tokens": 642,
+        "cost_usd": null,
+        "cost_known": false,
+        "latency_ms": 32062
+      }
+    ]
+  },
+  "providers": [
+    {
+      "name": "amazon-ads-client-id",
+      "key_present": true
+    },
+    {
+      "name": "amazon-ads-client-secret",
+      "key_present": true
+    },
+    {
+      "name": "amazon-ads-profile",
+      "key_present": true
+    },
+    {
+      "name": "amazon-ads-refresh-token",
+      "key_present": true
+    },
+    {
+      "name": "amazon-spapi",
+      "key_present": true
+    },
+    {
+      "name": "anthropic",
+      "key_present": true
+    },
+    {
+      "name": "nvidia",
+      "key_present": true
+    },
+    {
+      "name": "openrouter",
+      "key_present": true
+    },
+    {
+      "name": "scrapingbee",
+      "key_present": true
+    },
+    {
+      "name": "scrapingdog",
+      "key_present": true
+    },
+    {
+      "name": "supadata",
+      "key_present": true
+    },
+    {
+      "name": "thunderbit",
+      "key_present": true
+    }
+  ]
+}

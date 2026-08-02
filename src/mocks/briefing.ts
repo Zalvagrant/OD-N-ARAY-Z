@@ -984,3 +984,57 @@ export function executiveMemoryMock() {
     outcomes: { total: 0, lessons: [] },
   });
 }
+
+/** `/api/ai` mock'u — YALNIZ Storybook. Maliyet null: gerçek durum bu. */
+export function aiRuntimeMock() {
+  return mockEnvelope({
+    calls: 12,
+    errors: 13,
+    byModel: [
+      { model: "meta/llama-3.3-70b-instruct", calls: 11 },
+      { model: "openai/gpt-oss-120b", calls: 1 },
+    ],
+    tokensIn: 34_139,
+    tokensOut: 4301,
+    costUsd: null,
+    costKnownCalls: 0,
+    unknownCostCalls: 12,
+    latencyMsAvg: 49_908,
+    lastSuccessAt: "2026-08-02T00:05:13.820959+00:00",
+    lastError: {
+      at: "2026-08-01T00:01:40.867667+00:00",
+      provider: "nvidia",
+      error: "HTTPError",
+    },
+    recent: [
+      {
+        at: "2026-08-02T00:05:13.820959+00:00",
+        event: "provider.call",
+        provider: "nvidia",
+        model: "meta/llama-3.3-70b-instruct",
+        inputTokens: 3739,
+        outputTokens: 642,
+        latencyMs: 32_062,
+        costKnown: false,
+        error: null,
+      },
+      {
+        at: "2026-08-01T00:01:40.867667+00:00",
+        event: "provider.error",
+        provider: "nvidia",
+        model: null,
+        inputTokens: null,
+        outputTokens: null,
+        latencyMs: null,
+        costKnown: false,
+        error: "HTTPError",
+      },
+    ],
+    note: null,
+    providers: [
+      { name: "nvidia", keyPresent: true },
+      { name: "anthropic", keyPresent: true },
+      { name: "openrouter", keyPresent: true },
+    ],
+  });
+}

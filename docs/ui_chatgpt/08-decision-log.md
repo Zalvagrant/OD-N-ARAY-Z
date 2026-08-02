@@ -8106,3 +8106,43 @@ bildiriyor; ekran bunu cümleyle yazıyor.
 35.831,92 brüt (%51,0) − 13.741,87 ücret = **22.090,05 katkı (%31,4)**,
 sahip tabanı %40. Reklam katmanı: 689,05 harcama / 8.380,43 satış /
 %8,20 ACOS / ROAS 12,16 / 1.733,38 reklam sonrası.
+
+---
+
+## UI-ADR-205 — System AI Runtime: ölçülen açılır, maliyet null kalır
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-156 · 15-execution-plan.md (S9) · gavadolar 2/2
+
+S9 "AI Gateway" **maliyet paneli yüzünden** ertelenmişti. Erteleme
+gerekçesi MALİYETE aitti, ÖLÇÜME değil — ve `odin/ai.py:usage()` model
+kırılımını, token'ları, gecikmeyi, hataları ve son çağrıları **başından
+beri ölçüyordu**; `/api/state` yalnız dört alanını (`ai_spend`)
+yayınlıyordu. Bu ekran ölçüleni açar, maliyeti açmaz.
+
+**Meclis sınırı (2/2, terra + luna):** gösterilebilir = sağlayıcı, model,
+çağrı sayısı, token, gecikme, hata kapsamı. Gösterilemez = toplam maliyet,
+ortalama maliyet, maliyet trendi, maliyete dayalı skor. **`$0` kesinlikle
+yasak.**
+
+**Core:** `GET /api/ai` = `ai.usage()` + `_providers()`. Yeni hesap yok.
+Sağlayıcı listesi yanında çünkü *"anahtar var ama hiç çağrılmamış"*
+ancak ikisi yan yanayken görünür. `_providers()` ortak yardımcıya
+çıkarıldı — iki ucun FARKLI sağlayıcı listesi yayınlaması, hiç
+yayınlamamaktan kötü olurdu.
+
+**BAŞARI ORANI TÜRETİLMİYOR:** 12 çağrıya 13 hata düşüyor. Bu bir
+yüzdeye sıkıştırılmaması gereken bir olgudur (UI-ADR-111); iki sayı ham
+ve yan yana durur.
+
+**Ders (ikinci kez bu oturumda):** kendi vaadini yakalayan negatif
+assertion. `/başarı oranı/` araması bölümün KENDİ açıklamasını buldu ve
+kapıyı yanlış yerden kırmızıya çevirdi — negatif iddia RAKAMLI yüzde
+arar (`/\d\s*%|%\s*\d/`), vaadin kelimeleri ayrıca pozitif olarak
+doğrulanır.
+
+**KANIT [18:57, üretim 3000]:** 12 çağrı / 13 hata · 34.139 + 4.301
+token · ort. 49,9 sn gecikme · llama-3.3-70b 11 / gpt-oss-120b 1 ·
+maliyet "—" (0 çağrı fiyat bildirdi), fiyatsız çağrı 12 · 12 sağlayıcı
+anahtarlı · son hata 1 Ağu 03:01 nvidia HTTPError.

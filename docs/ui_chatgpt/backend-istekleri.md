@@ -497,7 +497,7 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 | `/amazon/suppliers` | Tedarikçi verisi hiçbir uçta yok (goals'ta metin olarak geçiyor, yapılandırılmış kaynak değil). |
 | `/amazon/returns` | ✅ AÇILDI (UI-ADR-203). İDDİA ÇÜRÜDÜ: `KO-amazon-customer-satisfaction-2026H1-0001` promote edilmiş, 43 satır ASIN bazlı iade. Aynı uçtan. |
 | `/system/security` | `health_score` Güvenlik bileşeni `value:null` — "güvenlik telemetrisi yayınlanmıyor" (çekirdeğin kendi beyanı). |
-| `/system/ai-runtime` | `ai_spend.total_usd=null`, 12/12 çağrı `cost_known:false` — maliyet paneli kural 2 ihlali olur; meclis kararı S9 sonraya (15-execution-plan). |
+| `/system/ai-runtime` | ✅ AÇILDI (UI-ADR-205). Erteleme gerekçesi MALİYETE aitti, ölçüme değil: `ai.usage()` model/token/gecikme/hatayı zaten ölçüyordu. `GET /api/ai` eklendi; maliyet null kalır, $0 yazılmaz (meclis 2/2). |
 | `/system/storage` | ✅ AÇILDI (UI-ADR-200). Ölçüm eksikti: iki ekran "ne kadar dolu"yu, bu ekran "hangi dizin ne hızla büyüyor"u cevaplıyor. Core'a `odin/storage.py` + `GET /api/storage` eklendi. |
 | `/system/network` | Ağ telemetrisi hiçbir uçta yok. |
 | `/system/backups` | Yedek kaydı/politikası yayınlanmıyor (`archive/` klasörü var ama projeksiyonu yok). |
