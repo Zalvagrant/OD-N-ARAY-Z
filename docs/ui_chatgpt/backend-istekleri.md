@@ -504,7 +504,7 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 | `/system/version` | `version` + `phases` /system ekranında ZATEN görünüyor; ayrı sayfa kopya olur. |
 | `/hq` | Ayrı bir veri kaynağı yok — mevcut ekranların toplamı; kompozit ekran sahip kararı ister. |
 | `/projects` | ✅ AÇILDI (UI-ADR-208). İDDİA ÇÜRÜDÜ: R-006 talep defteri (ADR-0050) 129 tipli talep taşıyor. `GET /api/requests` eklendi. |
-| `/automation` | Zamanlanmış işler `directors` yayınından /system/performance'ta AÇILDI; ayrı automation ekranı aynı verinin kopyası olur. |
+| `/automation` | ✅ AÇILDI (UI-ADR-210). Aynı işler FARKLI soru: Performance "sağlıklı mı", Automation "ne/ne zaman/vadesi geldi mi". Cadence+vade hiç yayınlanmıyordu; `GET /api/automation` eklendi. |
 | `/trading` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Prob: `core/KO-trading-*` 0 kayıt; ayrıca ODIN anayasal olarak emir vermez. |
 | `/memory` | ✅ AÇILDI (UI-ADR-201). "Zaten /decisions'ta" yanlıştı: /decisions ŞU AN açık olanı (31), hafıza BUGÜNE KADARKİ her şeyi (2.335) gösterir. Core'a `lifecycle.projection()` + `GET /api/memory` eklendi. |
 | `/settings` | Yazılabilir ayar ucu yok (POST /api/command beyaz listesi dışında yapılandırma yüzeyi yayınlanmıyor). |

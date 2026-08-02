@@ -8309,3 +8309,37 @@ erişime karşı 358 ıskalama. Yapılandırma eksiği artık ekranda.
 
 **KANIT [20:44, üretim 3000]:** 127.0.0.1:8765 · Yalnız loopback ·
 19 komut · 12 anahtar (boş yok) · 794/358 · kapıda 376.
+
+---
+
+## UI-ADR-210 — Automation: aynı işler, farklı soru
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-199 · ODIN `runtime.schedule()`
+
+Gece taraması "zamanlanmış işler /system/performance'ta AÇILDI; ayrı
+automation ekranı aynı verinin kopyası olur" demişti. Aynı işler, **ama
+farklı soru**: Performance *"sağlıklı mı"* (director'ların kendi beyanı),
+Automation *"ne, ne zaman, vadesi geldi mi"*. Cadence, tetikleyici ve
+VADE hiçbir yerde yayınlanmıyordu — `runtime.status()` yalnız son-koşum
+haritasını döndürüyordu.
+
+**VADE ARAYÜZDE HESAPLANMAZ:** `due_now` scheduler'ın KENDİ `_due`'suyla
+üretilir. Ekranda bir zaman aritmetiği yapsaydım, neyin geciktiği
+konusunda runtime ile çelişebilirdi — ve çelişen taraf her zaman ekran
+olurdu. Test bunu tersinden kilitliyor: çekirdek "vadesi geldi" diyorsa,
+son koşum az önce olsa bile arayüz itiraz etmez.
+
+**Sürücü bölümü** watchdog'un gözettiği şeyi gösterir: heartbeat yaşı +
+eşik, cockpit portunun DİNLEYİP dinlemediği, autostart kurulu mu. Bu
+oturumun ilk bulgusu (canlı runtime + ölü cockpit) artık bir ekranda
+görünür — o gün görünseydi kimse fark etmemezlik edemezdi.
+
+**BULGU [21:03, üretim 3000]:** `ads_ingest` 70 koşum / **11 hata**,
+`ads_report` 73/**11**, `amazon_ingest` 66/**15** — üçünün de son hatası
+**PermissionError**. Üç ingest işi düzenli olarak düşüyor ve bu bugüne
+kadar hiçbir ekranda yazmıyordu.
+
+**KANIT:** 21 iş · 0 vadesi gelen · 2 hiç koşmamış · heartbeat 21 sn ·
+cockpit 8765 dinliyor · autostart kurulu.

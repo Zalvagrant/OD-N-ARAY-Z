@@ -20,6 +20,7 @@
 import type { TimelineItem } from "@/types/screens";
 import type { RequestLedger } from "@/lib/data/odin-requests";
 import type { SecurityPosture } from "@/lib/data/odin-security";
+import type { Automation } from "@/lib/data/odin-automation";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type {
   AIRecommendation,
@@ -1177,5 +1178,67 @@ export function securityMock(): DataEnvelope<SecurityPosture> {
       ],
     },
     gate: { stagedPending: 376 },
+  });
+}
+
+/** `/api/automation` mock'u — YALNIZ Storybook. Tip açıkça yazılı. */
+export function automationMock(): DataEnvelope<Automation> {
+  return mockEnvelope<Automation>({
+    total: 3,
+    dueNow: 1,
+    neverRun: 1,
+    runtime: {
+      alive: true,
+      heartbeatAgeS: 11,
+      staleThresholdS: 180,
+      tickSeconds: 30,
+    },
+    watchdog: {
+      autostartInstalled: true,
+      startupCmd: "MOCK\Startup\ODIN-runtime.cmd",
+      cockpitPort: 8765,
+      cockpitListening: true,
+    },
+    jobs: [
+      {
+        name: "weekly_digest",
+        agent: "cos-agent",
+        cadence: "haftalik",
+        kind: "weekly",
+        trigger: "(0, '09:00')",
+        lastRunAt: null,
+        dueNow: true,
+        runs: 0,
+        failures: 0,
+        avgMs: null,
+        lastError: null,
+      },
+      {
+        name: "amazon_ingest",
+        agent: "data-agent",
+        cadence: "saatlik",
+        kind: "every",
+        trigger: "3600",
+        lastRunAt: "2026-08-02T20:43:00+00:00",
+        dueNow: false,
+        runs: 66,
+        failures: 15,
+        avgMs: 4210,
+        lastError: "HTTPError",
+      },
+      {
+        name: "dashboard",
+        agent: "cos-agent",
+        cadence: "5dk",
+        kind: "every",
+        trigger: "300",
+        lastRunAt: "2026-08-02T20:48:00+00:00",
+        dueNow: false,
+        runs: 931,
+        failures: 0,
+        avgMs: 180,
+        lastError: null,
+      },
+    ],
   });
 }
