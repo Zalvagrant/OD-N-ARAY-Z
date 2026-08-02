@@ -8018,3 +8018,54 @@ ekran bunu saklamıyor.
 **KANIT [18:02, üretim 3000]:** 49 sipariş · 2.044,80 USD (42 tutarlı,
 7 tutarsız) · Shipped 42 / Pending 5 / Canceled 2 · Amazon.com 49 · AFN 49
 · 49 satırlık tablo, en yeni 31.07 19:58 Bekliyor (tutar "—").
+
+---
+
+## UI-ADR-203 — Listings + Returns: promote edilmiş iki kayıt, çekirdek beyanlı fail-closed
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-093 · UI-ADR-111 · UI-ADR-156 · UI-ADR-202 · gavadolar 2/2
+
+Gece taraması iki hedef için daha "veri yayınlanmıyor" demişti; **ikisi de
+core'da promote edilmiş halde duruyordu** (UI-ADR-202'den sonra ÜÇÜNCÜ ve
+DÖRDÜNCÜ çürüyen iddia):
+
+- `KO-amazon-asin-catalog-2026H1-0001` → 42 ASIN, oturum/adet/ciro/
+  dönüşüm/Buy Box + 1.542 birim stok → **Listings**
+- `KO-amazon-customer-satisfaction-2026H1-0001` → 43 satır yıldız/yorum/
+  iade oranı/sipariş → **Returns**
+
+**Core:** `amazon_api.build_catalog()` + `GET /api/catalog`. İki ekran tek
+yükü paylaşır, ayrı `queryKey` alır (KPI/Alert deseni).
+
+**İADE ORANI ÖLÇEĞİ — bu ekranın en tehlikeli hatası.** Kaydın sütunu
+"Refund rate (%)" adını taşıyor ama değeri **0-1** (0,0922). Çekirdek
+`refund_rate_scale: "0-1"` BEYAN eder, arayüz `toPercentUnit` ile okur.
+Beyan sözlük dışıysa değer **hiç basılmaz** (UI-ADR-093). Story bunu iki
+yönden kilitler: ekranda "9,22" VAR, "922,00" YOK.
+
+**"Total" satırı ürün listesinde değil:** kaydın kendi özet satırı ayrı
+kartta durur; listeye karışsaydı her toplam iki kez sayılırdı.
+
+**SIFIR YORUM SIFIR YILDIZ DEĞİLDİR:** kayıt yorumsuz ürüne 0 yazıyor;
+ekran onu "Henüz yorum yok" diye gösterir, "0/5" diye değil.
+
+**`derived_flags` ÖLÇÜM DEĞİL:** kaydı hazırlayan ajanın yorumları; ayrı
+bölümde "ÖLÇÜM DEĞİL" etiketiyle. KPI'a çevrilmez.
+
+**YENİ ORTAK PARÇA — `sourceUnavailable()` (gavadolar 2/2):** çekirdek
+`available:false` + `reason` gönderdiğinde bölüm hatasını üreten tek
+fonksiyon. Meclisin şartı buydu: *"fail-closed gerekçesi API tarafından
+üretilmeli; UI'da rotaya özel sabit metin olmamalı"* — yoksa kaynak
+durumu değiştiği gün ekran eski cümleyi söylemeye devam eder. Orders
+ekranı da bu fonksiyona taşındı (üç çağıran).
+
+**Ders:** `NoData` gerekçesi `aria-label`dır (UI-ADR-156) — story'de
+`getByText` DEĞİL `getByRole("note", {name})` ile aranır. İlk koşum bu
+yüzden kırmızıydı.
+
+**KANIT [18:22, üretim 3000]:** Listings 42 ASIN / 1.542 birim, ciro
+lideri B0GCHNCCXT 2.090 oturum → 82 adet → 19.963,54 (%3,92 dönüşüm,
+%98,9 Buy Box). Returns özet %9,22 iade · 5,0/5 · 26 yorum · 1.508 birim
+/ 72.171,34 USD; en yüksek iade %100,00 (7 birim), yorumsuz satır "—".

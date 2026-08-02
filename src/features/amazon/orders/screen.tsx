@@ -24,6 +24,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   demoError,
   screenState,
+  sourceUnavailable,
   type DemoState,
 } from "@/features/shell/screen-state";
 import { useOdinOrders, type OrderRow } from "@/lib/data/odin-orders";
@@ -187,17 +188,12 @@ export function AmazonOrders({
           fix: orders.error.fix,
         }
       : null) ??
-    /* Çekirdek "kayıt yok" diyorsa GEREKÇESİ ONUNDUR — arayüz metin
-       uydurmaz. Bu bir hata değil, ölçülmüş bir yokluktur; bölüm onu
-       aynı yerde ve aynı biçimde bildirir. */
-    (o && !o.available
-      ? {
-          what: "Sipariş kaydı yayınlanmadı",
-          why: o.reason ?? "Çekirdek gerekçe bildirmedi.",
-          impact: "Sipariş listesi ve toplamlar çizilemiyor.",
-          fix: "SP-API orders kaydını promote et, sonra yeniden dene.",
-        }
-      : null);
+    /* Gerekçe ÇEKİRDEĞİN — arayüz rota başına metin taşımaz (UI-ADR-203). */
+    sourceUnavailable(o, {
+      what: "Sipariş kaydı yayınlanmadı",
+      impact: "Sipariş listesi ve toplamlar çizilemiyor.",
+      fix: "SP-API orders kaydını promote et, sonra yeniden dene.",
+    });
 
   const donem =
     o?.period.basis === "rolling_window" && o.period.windowDays

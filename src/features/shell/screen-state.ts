@@ -86,6 +86,31 @@ export function emptied<T>(
 }
 
 /**
+ * ÇEKİRDEĞİN BEYAN ETTİĞİ YOKLUK — UI-ADR-203 (gavadolar 2/2).
+ *
+ * ODIN artık bazı yüklerde `available:false` + `reason` gönderiyor:
+ * "Promote edilmiş SP-API orders kaydı yok". Bu bir HATA değil, ölçülmüş
+ * bir yokluktur — ve gerekçesi ÇEKİRDEĞİNDİR. Arayüz rota başına sabit
+ * metin taşımaz: taşısaydı, kaynak durumu değiştiği gün ekran eski
+ * cümleyi söylemeye devam ederdi ve kimse fark etmezdi.
+ *
+ * `null` döner (yani bölüm normal çizilir) yalnızca kaynak GERÇEKTEN
+ * varsa. Üç ekran aynı deseni yazmıştı; dördüncüsü kopyalamasın.
+ */
+export function sourceUnavailable(
+  source: { available: boolean; reason: string | null } | null,
+  { what, impact, fix }: { what: string; impact: string; fix: string }
+): SectionError | null {
+  if (!source || source.available) return null;
+  return {
+    what,
+    why: source.reason ?? "Çekirdek gerekçe bildirmedi.",
+    impact,
+    fix,
+  };
+}
+
+/**
  * Sözleşmesi olmayan bölümlerin metni — UI-ADR-096.
  *
  * TEK ŞEKİL. Önceden iki ekran bunu farklı alan adlarıyla üretiyordu ve

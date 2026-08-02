@@ -1,0 +1,840 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-02T15:06:06.657591+00:00",
+  "listings": {
+    "available": true,
+    "reason": null,
+    "record_id": "KO-amazon-asin-catalog-2026H1-0001",
+    "as_of": "2026-07-22",
+    "source_detail": "By ASINDetail Page Sales and Traffic 7 CSV (child+SKU) + Top Performing ASINs.xlsx (stok). Detay-sayfa atif toplami 70,246.54 (siparis-bazli 72,171.34'ten kucuk — normal atif farki)",
+    "currency": "USD",
+    "asin_count": 42,
+    "inventory_units_total": 1542,
+    "notes": [
+      "Ciro lideri Phonak TV Connector (B0GCHNCCXT) $19,963 ama donusum yalniz %3.92 — sessions yuksek, PDP optimizasyon adayi",
+      "Receiver Wire ciftleri (M-Left/M-Right) %15-19 donusumle en verimli segment",
+      "Buy Box ortalama ~%99 — Buy Box kaybi sorunu yok"
+    ],
+    "rows": [
+      {
+        "asin": "B0GCHNCCXT",
+        "title": "Phonak TV Connector - Official Wireless Bluetooth Streamer for Marvel, Paradise,",
+        "sessions": 2090,
+        "units": 82,
+        "revenue": 19963.54,
+        "conversion_pct": 3.92,
+        "buybox_pct": 98.9
+      },
+      {
+        "asin": "B0GV1FFLKR",
+        "title": "Lillu Oticon TV Adapter 3.0 - Compatible with Oticon Intent, Real, Siya, Xceed, ",
+        "sessions": 573,
+        "units": 56,
+        "revenue": 10805.9,
+        "conversion_pct": 9.77,
+        "buybox_pct": 98.8
+      },
+      {
+        "asin": "B0GCP1VBYZ",
+        "title": "Phonak SDS 5.0 Receiver Wire Size 2 Medium (M) Right | 054-1215 | Compatible wit",
+        "sessions": 747,
+        "units": 118,
+        "revenue": 5413.5,
+        "conversion_pct": 15.8,
+        "buybox_pct": 98.9
+      },
+      {
+        "asin": "B0GCNMSWLZ",
+        "title": "Phonak SDS 5.0 Receiver Wire Size 2 Medium (M) Left | 054-12147 | Compatible wit",
+        "sessions": 618,
+        "units": 115,
+        "revenue": 5356.8,
+        "conversion_pct": 18.61,
+        "buybox_pct": 98.8
+      },
+      {
+        "asin": "B0GCRFDGNL",
+        "title": "Oticon Hearing Aid Receiver Wire Type 85, Genuine OEM MiniFit Speaker Unit Size ",
+        "sessions": 1221,
+        "units": 78,
+        "revenue": 4738.42,
+        "conversion_pct": 6.39,
+        "buybox_pct": 99.2
+      },
+      {
+        "asin": "B0GCPHCVMT",
+        "title": "Oticon Hearing Aids for Wire, Genuine OEM MiniFit Receiver Type 85 Size 3 Right ",
+        "sessions": 1085,
+        "units": 79,
+        "revenue": 4715.35,
+        "conversion_pct": 7.28,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GCQVZ6FB",
+        "title": "Oticon Hearing Aid Receiver Wire Type 85, Genuine OEM MiniFit Speaker Unit Size ",
+        "sessions": 977,
+        "units": 72,
+        "revenue": 4380.34,
+        "conversion_pct": 7.37,
+        "buybox_pct": 99.7
+      },
+      {
+        "asin": "B0GCSNN4HR",
+        "title": "Oticon Hearing Aids for Wire, MiniFit Receiver Type 85 Size 2 Left Blue - OEM He",
+        "sessions": 536,
+        "units": 44,
+        "revenue": 2680.14,
+        "conversion_pct": 8.21,
+        "buybox_pct": 98.6
+      },
+      {
+        "asin": "B0GCFZ99CZ",
+        "title": " ",
+        "sessions": 101,
+        "units": 7,
+        "revenue": 1319.3,
+        "conversion_pct": 6.93,
+        "buybox_pct": 94.4
+      },
+      {
+        "asin": "B0GBLLFGFZ",
+        "title": "10 pcs Phonak Open Smokey 5.0 Hearing Aid Domes Medium Size (0.35inch=9mm), Phon",
+        "sessions": 799,
+        "units": 106,
+        "revenue": 983.87,
+        "conversion_pct": 13.27,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBNFCQ19",
+        "title": "20 pcs Phonak Open Smokey 4.0 Hearing Aid Domes Medium Size, Phonak Hearing Aid ",
+        "sessions": 314,
+        "units": 56,
+        "revenue": 794.46,
+        "conversion_pct": 17.83,
+        "buybox_pct": 99.8
+      },
+      {
+        "asin": "B0GBMVCDPM",
+        "title": "10 pcs Phonak Vented 4.0 Hearing Aid Domes Small Size (0.29inch=7.5mm), Phonak H",
+        "sessions": 813,
+        "units": 70,
+        "revenue": 635.07,
+        "conversion_pct": 8.61,
+        "buybox_pct": 99.7
+      },
+      {
+        "asin": "B0GBLLTYDY",
+        "title": "Phonak Open Domes 4.0 Medium (M) 10mm | 10 Pack | Compatible with Phonak Audeo P",
+        "sessions": 539,
+        "units": 69,
+        "revenue": 606.27,
+        "conversion_pct": 12.8,
+        "buybox_pct": 99.8
+      },
+      {
+        "asin": "B0GW1BGXPR",
+        "title": "Phonak 5.0 Receiver – P Size – Level 2 – Right Ear (R) – (054-1223)– Compatible ",
+        "sessions": 74,
+        "units": 12,
+        "revenue": 551.9,
+        "conversion_pct": 16.22,
+        "buybox_pct": 96.5
+      },
+      {
+        "asin": "B0GBMCSS2G",
+        "title": "10 pcs Phonak Cap Dome 4.0 Hearing Aid Domes XS Size, Phonak Hearing Aid Accesso",
+        "sessions": 402,
+        "units": 62,
+        "revenue": 512.2,
+        "conversion_pct": 15.42,
+        "buybox_pct": 99.4
+      },
+      {
+        "asin": "B0GW1GPGCK",
+        "title": "Phonak 5.0 Receiver – M Size – Level 1 – Left Ear (L) – (054-1212) – Compatible ",
+        "sessions": 135,
+        "units": 10,
+        "revenue": 493.0,
+        "conversion_pct": 7.41,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GW161X5Y",
+        "title": "Phonak 5.0 Receiver – M Size – Level 1 – Right Ear (R) – (054-1213) – Compatible",
+        "sessions": 108,
+        "units": 10,
+        "revenue": 493.0,
+        "conversion_pct": 9.26,
+        "buybox_pct": 99.5
+      },
+      {
+        "asin": "B0GW1FD1ZX",
+        "title": "Phonak 5.0 Receiver – P Size – Level 1 – Left Ear (L) – (054-1220) – Compatible ",
+        "sessions": 94,
+        "units": 10,
+        "revenue": 489.0,
+        "conversion_pct": 10.64,
+        "buybox_pct": 99.3
+      },
+      {
+        "asin": "B0GBXBZR2N",
+        "title": "20 pcs Phonak Close Smokey Dome 5.0 Hearing Aid Domes Medium Size (0.35 inch=9mm",
+        "sessions": 293,
+        "units": 29,
+        "revenue": 428.1,
+        "conversion_pct": 9.9,
+        "buybox_pct": 99.8
+      },
+      {
+        "asin": "B0GBJXD7BY",
+        "title": "Phonak Power Dome 4.0 Small (S) 7.5mm | 10 Pack | Soft Silicone | Compatible wit",
+        "sessions": 410,
+        "units": 52,
+        "revenue": 406.38,
+        "conversion_pct": 12.68,
+        "buybox_pct": 99.2
+      },
+      {
+        "asin": "B0GW119G1R",
+        "title": "Phonak 5.0 Receiver – P Size – Level 2 – Left Ear (L) – (054-1222) – Compatible ",
+        "sessions": 117,
+        "units": 8,
+        "revenue": 391.2,
+        "conversion_pct": 6.84,
+        "buybox_pct": 99.5
+      },
+      {
+        "asin": "B0GBM9N4T3",
+        "title": "Phonak Cap Dome 4.0 Extra Small (XS) | 20 Pack | Soft Silicone | Compatible with",
+        "sessions": 264,
+        "units": 24,
+        "revenue": 347.6,
+        "conversion_pct": 9.09,
+        "buybox_pct": 98.9
+      },
+      {
+        "asin": "B0G142GJ9J",
+        "title": "Phonak Open Domes 4.0 Medium (M) 10mm | 20 Pack | Compatible with Phonak Audeo P",
+        "sessions": 144,
+        "units": 23,
+        "revenue": 336.7,
+        "conversion_pct": 15.97,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBNRRYVT",
+        "title": "Phonak Vented Dome 4.0 Medium (M) 10mm | 10 Pack | Soft Silicone | Compatible wi",
+        "sessions": 205,
+        "units": 33,
+        "revenue": 277.15,
+        "conversion_pct": 16.1,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBMXPNF4",
+        "title": "10 pcs Phonak Power 4.0 Hearing Aid Domes Medium Size (0.45inch=11.5mm), Phonak ",
+        "sessions": 237,
+        "units": 33,
+        "revenue": 275.78,
+        "conversion_pct": 13.92,
+        "buybox_pct": 99.8
+      },
+      {
+        "asin": "B0G153W15Y",
+        "title": "Phonak Vented Domes 4.0 – Small Size (S) – (054-0809) – 20 Pack – Compatible wit",
+        "sessions": 136,
+        "units": 20,
+        "revenue": 275.48,
+        "conversion_pct": 14.71,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBMMFNL4",
+        "title": "Phonak Vented Domes 4.0 – Medium Size (M) – 20 Pack – Compatible with Marvel, Pa",
+        "sessions": 137,
+        "units": 16,
+        "revenue": 246.4,
+        "conversion_pct": 11.68,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBM332Z6",
+        "title": "Phonak Power Dome 4.0 Large (L) 12mm | 10 Pack | Soft Silicone | Compatible with",
+        "sessions": 161,
+        "units": 28,
+        "revenue": 245.19,
+        "conversion_pct": 17.39,
+        "buybox_pct": 98.6
+      },
+      {
+        "asin": "B0GBMNV884",
+        "title": "Phonak Power Dome 4.0 Medium (M) 10mm | 20 Pack | Soft Silicone | Compatible wit",
+        "sessions": 151,
+        "units": 17,
+        "revenue": 236.78,
+        "conversion_pct": 11.26,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0G147J55J",
+        "title": "Phonak Open Domes 4.0 – Large Size (L) – (054-0787) – 20 Pack – Compatible with ",
+        "sessions": 76,
+        "units": 16,
+        "revenue": 228.4,
+        "conversion_pct": 21.05,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBLJQGFC",
+        "title": "Phonak Open Domes 4.0 – Large Size (L) – (054-0787) – 10 Pack – Compatible with ",
+        "sessions": 121,
+        "units": 30,
+        "revenue": 227.27,
+        "conversion_pct": 24.79,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBNRRYVV",
+        "title": "10 pcs Phonak Vented 4.0 Hearing Aid Domes Large Size (0.43inch=11mm), Phonak He",
+        "sessions": 253,
+        "units": 25,
+        "revenue": 210.94,
+        "conversion_pct": 9.88,
+        "buybox_pct": 99.4
+      },
+      {
+        "asin": "B0GW1B1565",
+        "title": "Phonak 5.0 Receiver – P Size – Level 1 – Right Ear (R) – (054-1221) – Compatible",
+        "sessions": 85,
+        "units": 4,
+        "revenue": 195.6,
+        "conversion_pct": 4.71,
+        "buybox_pct": 98.7
+      },
+      {
+        "asin": "B0GBL6ZQVH",
+        "title": "Phonak Power Domes 4.0 – Large Size (L) – 20 Pack – Compatible with Marvel, Para",
+        "sessions": 115,
+        "units": 10,
+        "revenue": 155.0,
+        "conversion_pct": 8.7,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBLLGL43",
+        "title": "Phonak Vented Domes 4.0 – Large Size (L) – (054-0811) – 20 Pack – Compatible wit",
+        "sessions": 128,
+        "units": 11,
+        "revenue": 150.38,
+        "conversion_pct": 8.59,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GVZZYZXL",
+        "title": "Phonak 5.0 Receiver – S Size – Level 2 – Right Ear (R) – Compatible with Lumity,",
+        "sessions": 56,
+        "units": 3,
+        "revenue": 149.7,
+        "conversion_pct": 5.36,
+        "buybox_pct": 98.3
+      },
+      {
+        "asin": "B0GVZXQTM1",
+        "title": "Phonak 5.0 Receiver – S Size – Level 1 – Right Ear (R) – (054-1205) – Compatible",
+        "sessions": 12,
+        "units": 3,
+        "revenue": 145.7,
+        "conversion_pct": 25.0,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBXPMCGK",
+        "title": "Phonak Closed Smokey Dome 4.0 Medium (M) 10mm | 10 Pack | Soft Silicone | Compat",
+        "sessions": 118,
+        "units": 7,
+        "revenue": 103.54,
+        "conversion_pct": 5.93,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBLT4L8R",
+        "title": "Phonak Power Domes 4.0 – Small Size (S) – (005-0592) – 20 Pack – Compatible with",
+        "sessions": 89,
+        "units": 7,
+        "revenue": 99.3,
+        "conversion_pct": 7.87,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GBX45KYZ",
+        "title": "Phonak Open Domes 4.0 Small (S) 7.5mm | 20 Pack | Compatible with Phonak Audeo P",
+        "sessions": 66,
+        "units": 5,
+        "revenue": 76.5,
+        "conversion_pct": 7.58,
+        "buybox_pct": 98.6
+      },
+      {
+        "asin": "B0G13YKRX9",
+        "title": "Phonak Open Domes 4.0 Small (S) 7.5mm | 10 Pack | Compatible with Phonak Audeo P",
+        "sessions": 36,
+        "units": 6,
+        "revenue": 55.49,
+        "conversion_pct": 16.67,
+        "buybox_pct": 100.0
+      },
+      {
+        "asin": "B0GW16RD5B",
+        "title": "Phonak 5.0 Receiver – S Size – Level 2 – Left Ear (L) – Compatible with Lumity, ",
+        "sessions": 18,
+        "units": 1,
+        "revenue": 49.9,
+        "conversion_pct": 5.56,
+        "buybox_pct": 94.7
+      }
+    ]
+  },
+  "returns": {
+    "available": true,
+    "reason": null,
+    "record_id": "KO-amazon-customer-satisfaction-2026H1-0001",
+    "as_of": "2026-07-22",
+    "source_detail": "Customer Satisfaction.xlsx (43 satir, ASIN-bazli yildiz+iade)",
+    "refund_rate_scale": "0-1",
+    "currency": "USD",
+    "total": {
+      "product_group": "Total",
+      "title": null,
+      "stars": 5,
+      "raw_stars": 5,
+      "reviews": 26,
+      "refund_rate": 0.0922,
+      "ordered_units": 1508,
+      "ordered_revenue": 72171.34
+    },
+    "rows": [
+      {
+        "product_group": "Biss",
+        "title": "TV Adapter 3.0 Bundle with ConnectClip - Wireless TV Audio Streaming Compatible with Oticon Hearing Aids - For Opn S, More, Real, Intent Models - 15M Range, Dolby Digital Support, Easy Setup - Complete Accessories Kit",
+        "stars": 1,
+        "raw_stars": 1,
+        "reviews": 1,
+        "refund_rate": 1,
+        "ordered_units": 7,
+        "ordered_revenue": 1319.3
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak 5.0 Receiver – S Size – Level 2 – Right Ear (R) – Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0.3333,
+        "ordered_units": 3,
+        "ordered_revenue": 149.7
+      },
+      {
+        "product_group": "Electronics",
+        "title": "Lillu Oticon TV Adapter 3.0 - Compatible with Oticon Intent, Real, Siya, Xceed, Own, Zircon, More, OPN, Engage, and Play PX Hearing Aids",
+        "stars": 0,
+        "raw_stars": 0,
+        "reviews": 0,
+        "refund_rate": 0.26789999999999997,
+        "ordered_units": 56,
+        "ordered_revenue": 10805.9
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak TV Connector - Official Wireless Bluetooth Streamer for Marvel, Paradise, Lumity, Life, Infinio Hearing Aids | TV Audio Adapter with Optical & Analog Cables | Direct Sound Streaming Device",
+        "stars": 4,
+        "raw_stars": 3.49,
+        "reviews": 2,
+        "refund_rate": 0.2073,
+        "ordered_units": 82,
+        "ordered_revenue": 19963.54
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak Open Domes 4.0 Medium (M) 10mm | 20 Pack | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Hearing Aid Accessories & Domes for Hearing Aids",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0.1739,
+        "ordered_units": 23,
+        "ordered_revenue": 336.7
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Cap Dome 4.0 Extra Small (XS) | 20 Pack | Soft Silicone | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Hearing Aid Accessories(0.19inch=4.5mm)",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 1,
+        "refund_rate": 0.16,
+        "ordered_units": 25,
+        "ordered_revenue": 361.5
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak Closed Smokey Dome 4.0 Medium (M) 10mm | 10 Pack | Soft Silicone | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Hearing Aid Accessories",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 1,
+        "refund_rate": 0.1429,
+        "ordered_units": 7,
+        "ordered_revenue": 103.54
+      },
+      {
+        "product_group": "Biss",
+        "title": "10 pcs Phonak Cap Dome 4.0 Hearing Aid Domes XS Size, Phonak Hearing Aid Accessories, Hearing Aid Domes for Phonak Audeo Marvel Paradise Lumity Accessory(0.19inch) (1 Pack - (XS-4.5mm / 0.19 Inch))",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 3,
+        "refund_rate": 0.1364,
+        "ordered_units": 66,
+        "ordered_revenue": 544
+      },
+      {
+        "product_group": "Biss",
+        "title": "Oticon Hearing Aids for Wire, Genuine OEM MiniFit Receiver Type 85 Size 3 Right (Red), Hearing Aid Replacement Parts Compatible with Oticon, Bernafon – 1 PCS (Minifit-Size-3-Right-Red)",
+        "stars": 4,
+        "raw_stars": 4.29,
+        "reviews": 13,
+        "refund_rate": 0.1325,
+        "ordered_units": 83,
+        "ordered_revenue": 4942.95
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Power Dome 4.0 Medium (M) 10mm | 20 Pack | Soft Silicone | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Domes for Hearing Aids",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0.1176,
+        "ordered_units": 17,
+        "ordered_revenue": 236.78
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "20 pcs Phonak Close Smokey Dome 5.0 Hearing Aid Domes Medium Size (0.35 inch=9mm), Phonak Hearing Aid Accessories, Hearing Aid Domes for Audeo Marvel Paradise Lumity Accessory",
+        "stars": 4,
+        "raw_stars": 4.24,
+        "reviews": 4,
+        "refund_rate": 0.10339999999999999,
+        "ordered_units": 29,
+        "ordered_revenue": 428.1
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak SDS 5.0 Receiver Wire Size 2 Medium (M) Left | 054-12147 | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Replacement Hearing Aid Receiver",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0.1032,
+        "ordered_units": 126,
+        "ordered_revenue": 5870.7
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak 5.0 Receiver – M Size – Level 1 – Left Ear (L) – (054-1212) – Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0.1,
+        "ordered_units": 10,
+        "ordered_revenue": 493
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak 5.0 Receiver – M Size – Level 1 – Right Ear (R) – (054-1213) – Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0.1,
+        "ordered_units": 10,
+        "ordered_revenue": 493
+      },
+      {
+        "product_group": "Biss",
+        "title": "Oticon Hearing Aid Receiver Wire Type 85, Genuine OEM MiniFit Speaker Unit Size 2 Left Blue for Moderate Hearing Loss - Compatible with Oticon Bernafon Hearing Aid Supplies - 1 PCS (Minifit-Size-2-Right-Red)",
+        "stars": 4,
+        "raw_stars": 4.29,
+        "reviews": 13,
+        "refund_rate": 0.0959,
+        "ordered_units": 73,
+        "ordered_revenue": 4442.34
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Vented Domes 4.0 – Large Size (L) – (054-0811) – 20 Pack – Compatible with Phonak Marvel, Paradise, Lumity RIC Hearing Aids – Vented Fit – Original Phonak Replacements",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0.0909,
+        "ordered_units": 11,
+        "ordered_revenue": 150.38
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak SDS 5.0 Receiver Wire Size 2 Medium (M) Right | 054-1215 | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Replacement Hearing Aid Receiver",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0.0787,
+        "ordered_units": 127,
+        "ordered_revenue": 5833.6
+      },
+      {
+        "product_group": "Biss",
+        "title": "Oticon Hearing Aid Receiver Wire Type 85, Genuine OEM MiniFit Speaker Unit Size 2 Left Blue for Moderate Hearing Loss - Compatible with Oticon Bernafon Hearing Aid Supplies - 1 PCS (Minifit-Size-3-Left-Blue)",
+        "stars": 4,
+        "raw_stars": 4.29,
+        "reviews": 13,
+        "refund_rate": 0.0732,
+        "ordered_units": 82,
+        "ordered_revenue": 4986.42
+      },
+      {
+        "product_group": "Biss",
+        "title": "20 pcs Phonak Open Smokey 4.0 Hearing Aid Domes Medium Size, Phonak Hearing Aid Accessories, Hearing Aid Domes for Phonak Audeo Marvel Paradise Lumity Accessory (0.35inch=9mm)",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0.07139999999999999,
+        "ordered_units": 56,
+        "ordered_revenue": 794.46
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Vented Domes 4.0 – Medium Size (M) – 20 Pack – Compatible with Marvel, Paradise, Lumity RIC Hearing Aids – Closed Fit – Original Phonak Replacements",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0.0625,
+        "ordered_units": 16,
+        "ordered_revenue": 246.4
+      },
+      {
+        "product_group": "Biss",
+        "title": "10 pcs Phonak Power 4.0 Hearing Aid Domes Medium Size (0.45inch=11.5mm), Phonak Hearing Aid Accessories, Hearing Aid Domes for Audeo Marvel Paradise Lumity Accessory",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 3,
+        "refund_rate": 0.060599999999999994,
+        "ordered_units": 33,
+        "ordered_revenue": 275.78
+      },
+      {
+        "product_group": "Biss",
+        "title": "Oticon Hearing Aids for Wire, MiniFit Receiver Type 85 Size 2 Left Blue - OEM Hearing Aid Replacement Parts Compatible with Oticon, Bernafon Hearing Aid Accessories-1PCS",
+        "stars": 4,
+        "raw_stars": 4.29,
+        "reviews": 13,
+        "refund_rate": 0.0588,
+        "ordered_units": 51,
+        "ordered_revenue": 3087.64
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Open Domes 4.0 Medium (M) 10mm | 10 Pack | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Hearing Aid Accessories & Domes for Hearing Aids",
+        "stars": 5,
+        "raw_stars": 4.89,
+        "reviews": 25,
+        "refund_rate": 0.057999999999999996,
+        "ordered_units": 69,
+        "ordered_revenue": 606.27
+      },
+      {
+        "product_group": "Biss",
+        "title": "10 pcs Phonak Open Smokey 5.0 Hearing Aid Domes Medium Size (0.35inch=9mm), Phonak Hearing Aid Accessories, Hearing Aid Domes for Audeo Marvel Paradise Lumity Accessory",
+        "stars": 4,
+        "raw_stars": 4.16,
+        "reviews": 9,
+        "refund_rate": 0.056600000000000004,
+        "ordered_units": 106,
+        "ordered_revenue": 983.87
+      },
+      {
+        "product_group": "Biss",
+        "title": "10 pcs Phonak Vented 4.0 Hearing Aid Domes Large Size (0.43inch=11mm), Phonak Hearing Aid Accessories, Hearing Aid Domes for Audeo Marvel Paradise Lumity Accessory",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 3,
+        "refund_rate": 0.04,
+        "ordered_units": 25,
+        "ordered_revenue": 210.94
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Power Dome 4.0 Small (S) 7.5mm | 10 Pack | Soft Silicone | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Domes for Hearing Aids",
+        "stars": 4,
+        "raw_stars": 4.34,
+        "reviews": 10,
+        "refund_rate": 0.0385,
+        "ordered_units": 52,
+        "ordered_revenue": 406.38
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Power Dome 4.0 Large (L) 12mm | 10 Pack | Soft Silicone | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Domes for Hearing Aids",
+        "stars": 5,
+        "raw_stars": 4.67,
+        "reviews": 3,
+        "refund_rate": 0.035699999999999996,
+        "ordered_units": 28,
+        "ordered_revenue": 245.19
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Open Domes 4.0 – Large Size (L) – (054-0787) – 10 Pack – Compatible with Phonak Marvel, Paradise, Lumity RIC Hearing Aids – Open Fit – Original Phonak Replacements",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 3,
+        "refund_rate": 0.0333,
+        "ordered_units": 30,
+        "ordered_revenue": 227.27
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Vented Dome 4.0 Medium (M) 10mm | 10 Pack | Soft Silicone | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Domes for Hearing Aids",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 5,
+        "refund_rate": 0.030299999999999997,
+        "ordered_units": 33,
+        "ordered_revenue": 277.15
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak Vented Domes 4.0 – Small Size (S) – (054-0809) – 20 Pack – Compatible with Phonak Marvel, Paradise, Lumity RIC Hearing Aids – Vented Fit – Original Phonak Replacements",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0,
+        "ordered_units": 20,
+        "ordered_revenue": 275.48
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak 5.0 Receiver – S Size – Level 2 – Left Ear (L) – Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0,
+        "ordered_units": 1,
+        "ordered_revenue": 49.9
+      },
+      {
+        "product_group": "Biss",
+        "title": "10 pcs Phonak Vented 4.0 Hearing Aid Domes Small Size (0.29inch=7.5mm), Phonak Hearing Aid Accessories, Hearing Aid Domes for Phonak Audeo Marvel Paradise Lumity Accessory",
+        "stars": 5,
+        "raw_stars": 4.86,
+        "reviews": 26,
+        "refund_rate": 0,
+        "ordered_units": 70,
+        "ordered_revenue": 635.07
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak Open Domes 4.0 – Large Size (L) – (054-0787) – 20 Pack – Compatible with Phonak Marvel, Paradise, Lumity RIC Hearing Aids – Open Fit – Original Phonak Replacements",
+        "stars": 0,
+        "raw_stars": 0,
+        "reviews": 0,
+        "refund_rate": 0,
+        "ordered_units": 16,
+        "ordered_revenue": 228.4
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak 5.0 Receiver – P Size – Level 1 – Right Ear (R) – (054-1221) – Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0,
+        "ordered_units": 4,
+        "ordered_revenue": 195.6
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Power Domes 4.0 – Small Size (S) – (005-0592) – 20 Pack – Compatible with Phonak Marvel, Paradise, Lumity RIC Hearing Aids – Closed Fit – Original Phonak Replacements",
+        "stars": 4,
+        "raw_stars": 4.46,
+        "reviews": 3,
+        "refund_rate": 0,
+        "ordered_units": 7,
+        "ordered_revenue": 99.3
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak 5.0 Receiver – P Size – Level 2 – Right Ear (R) – (054-1223)– Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0,
+        "ordered_units": 12,
+        "ordered_revenue": 551.9
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak Open Domes 4.0 Small (S) 7.5mm | 20 Pack | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Hearing Aid Accessories & Domes for Hearing Aids",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0,
+        "ordered_units": 5,
+        "ordered_revenue": 76.5
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak 5.0 Receiver – P Size – Level 2 – Left Ear (L) – (054-1222) – Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0,
+        "ordered_units": 8,
+        "ordered_revenue": 391.2
+      },
+      {
+        "product_group": "Health & Personal Care",
+        "title": "Phonak Open Domes 4.0 Small (S) 7.5mm | 10 Pack | Compatible with Phonak Audeo Paradise, Marvel & Lumity RIC Hearing Aids | Hearing Aid Accessories & Domes for Hearing Aids",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0,
+        "ordered_units": 6,
+        "ordered_revenue": 55.49
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak Power Domes 4.0 – Large Size (L) – 20 Pack – Compatible with Marvel, Paradise, Lumity RIC Hearing Aids – Closed Fit – Original Phonak Replacements",
+        "stars": 5,
+        "raw_stars": 5,
+        "reviews": 2,
+        "refund_rate": 0,
+        "ordered_units": 10,
+        "ordered_revenue": 155
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak 5.0 Receiver – P Size – Level 1 – Left Ear (L) – (054-1220) – Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0,
+        "ordered_units": 10,
+        "ordered_revenue": 489
+      },
+      {
+        "product_group": "Biss",
+        "title": "Phonak 5.0 Receiver – S Size – Level 1 – Right Ear (R) – (054-1205) – Compatible with Lumity, Paradise, Marvel RIC Hearing Aids – Original Phonak Replacement",
+        "stars": 4,
+        "raw_stars": 4.5,
+        "reviews": 15,
+        "refund_rate": 0,
+        "ordered_units": 3,
+        "ordered_revenue": 145.7
+      }
+    ]
+  }
+}

@@ -906,3 +906,92 @@ export function ordersMock() {
     ],
   });
 }
+
+/** `/api/catalog.listings` mock'u — YALNIZ Storybook. */
+export function listingsMock() {
+  return mockEnvelope({
+    available: true,
+    reason: null,
+    recordId: "KO-amazon-asin-catalog-MOCK",
+    asOf: "2026-07-22",
+    sourceDetail: "MOCK — Seller Central dışa aktarımı",
+    currency: "USD",
+    asinCount: 3,
+    inventoryUnitsTotal: 1542,
+    notes: ["MOCK — kaydın kendi notu"],
+    rows: [
+      {
+        asin: "BMOCK00001",
+        title: "MOCK — Ciro lideri",
+        sessions: 2090,
+        units: 82,
+        revenue: 19963.54,
+        conversionPct: 3.92,
+        buyboxPct: 98.9,
+      },
+      {
+        asin: "BMOCK00002",
+        title: "MOCK — Verimli segment",
+        sessions: 210,
+        units: 38,
+        revenue: 4120.0,
+        conversionPct: 18.1,
+        buyboxPct: 99.4,
+      },
+      {
+        asin: "BMOCK00003",
+        title: "MOCK — Dönüşümü ölçülmemiş",
+        sessions: 64,
+        units: 0,
+        revenue: 0,
+        conversionPct: null,
+        buyboxPct: null,
+      },
+    ],
+  });
+}
+
+/** `/api/catalog.returns` mock'u — YALNIZ Storybook. Oran 0-1. */
+export function returnsMock() {
+  return mockEnvelope({
+    available: true,
+    reason: null,
+    recordId: "KO-amazon-customer-satisfaction-MOCK",
+    asOf: "2026-07-22",
+    sourceDetail: "MOCK — Seller Central dışa aktarımı",
+    refundRateScale: "0-1" as const,
+    currency: "USD",
+    total: {
+      productGroup: "Total",
+      title: null,
+      stars: 5,
+      rawStars: 5,
+      reviews: 26,
+      refundRate: 0.0922,
+      orderedUnits: 1508,
+      orderedRevenue: 72171.34,
+    },
+    rows: [
+      {
+        productGroup: "Biss",
+        title: "MOCK — Yüksek iade",
+        stars: 1,
+        rawStars: 1,
+        reviews: 1,
+        refundRate: 0.5,
+        orderedUnits: 7,
+        orderedRevenue: 1319.3,
+      },
+      {
+        productGroup: "Electronics",
+        title: "MOCK — Düşük iade",
+        stars: 4,
+        rawStars: 4.5,
+        reviews: 15,
+        refundRate: 0.1,
+        orderedUnits: 3,
+        orderedRevenue: 149.7,
+      },
+    ],
+  });
+}
