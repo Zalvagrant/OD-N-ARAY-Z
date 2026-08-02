@@ -25,7 +25,7 @@ const STANCE = {
   neutral: { glyph: "○", label: "Nötr", cls: "text-content-tertiary border-line" },
 } as const;
 
-const TYPE_LABEL: Record<EvidenceRef["type"], string> = {
+const TYPE_LABEL: Record<NonNullable<EvidenceRef["type"]>, string> = {
   document: "Belge",
   metric: "Metrik",
   decision: "Karar",
@@ -74,7 +74,10 @@ export function EvidenceChain({
       <ul className="flex flex-col gap-2">
         {sorted.map((e) => {
           const stance = STANCE[e.supportsOrContradicts] ?? STANCE.neutral;
-          const age = relativeTime(e.freshness, now);
+          /* Ölçülmemiş tazelik/tür ÇİZİLMEZ (sourceQuality meter'ının
+             zaten uyguladığı kural). ODIN'in karar kanıtı bu iki alanı
+             taşımaz; uydurmak yerine satır kısalır. */
+          const age = e.freshness ? relativeTime(e.freshness, now) : null;
           return (
             <li key={e.id} className={`border-l-2 pl-3 ${stance.cls}`}>
               <p className="flex flex-wrap items-baseline gap-2">
@@ -92,7 +95,7 @@ export function EvidenceChain({
                 ) : (
                   <span className="text-content">{e.title}</span>
                 )}
-                <Caption>{TYPE_LABEL[e.type]}</Caption>
+                {e.type && <Caption>{TYPE_LABEL[e.type]}</Caption>}
               </p>
 
               {e.excerpt && (

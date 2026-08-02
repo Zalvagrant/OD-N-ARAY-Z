@@ -88,11 +88,18 @@ export function AIBrief({
                 </Step>
 
                 <Step icon="🧠" title="Interpretation">
-                  <Text tone="secondary">{brief.interpretation}</Text>
+                  {brief.interpretation ? (
+                    <Text tone="secondary">{brief.interpretation}</Text>
+                  ) : (
+                    /* Bastırma gerçeği, Recommendation adımıyla aynı kural. */
+                    <Text size="sm" tone="tertiary">
+                      Yorum üretilmedi.
+                    </Text>
+                  )}
                 </Step>
 
                 <Step icon="🎯" title="Recommendation">
-                  {recOk ? (
+                  {recOk && brief.recommendation ? (
                     <AIRecommendationView rec={brief.recommendation} compact />
                   ) : (
                     /* Bastırma gerçeği — sahte içerik değil, eksik olanın adı. */
@@ -103,7 +110,10 @@ export function AIBrief({
                 </Step>
 
                 <Step icon="📑" title="Evidence">
-                  <EvidenceChain evidence={brief.evidence} title="Brifing kanıt zinciri" />
+                  <EvidenceChain
+                    evidence={brief.evidence ?? []}
+                    title="Brifing kanıt zinciri"
+                  />
                 </Step>
               </div>
             </CardBody>

@@ -42,14 +42,20 @@ export interface Money {
 
 export interface EvidenceRef {
   id: string;
-  type: "document" | "metric" | "decision" | "external" | "conversation";
+  /* İSTEĞE BAĞLI, çünkü ODIN'in `evidence_snapshot`ında YOK.
+     Kanıtın türü ve tazeliği bu arayüzün zenginleştirmesiydi; gerçek
+     karar kayıtları `knowledge_id · knowledge_version · trust_at_decision ·
+     role · summary` taşır, o kadar. Zorunlu bırakılsaydı adaptörün ikisini
+     de UYDURMASI gerekirdi — kural 2'nin tam yasakladığı şey. Yokken
+     `EvidenceChain` alanı ÇİZMEZ; "bilinmiyor" da yazmaz, susar. */
+  type?: "document" | "metric" | "decision" | "external" | "conversation";
   title: string;
   excerpt?: string;
   sourceUrl?: string;
   /** 0–100 */
   sourceQuality: number;
   /** ISO 8601 */
-  freshness: string;
+  freshness?: string;
   supportsOrContradicts: "supports" | "contradicts" | "neutral";
 }
 
@@ -378,12 +384,18 @@ export interface ExecutiveBrief {
   numbers: Record<string, number | string>;
   /** 🔍 Analysis — neden oldu? */
   analysis: string;
-  /** 🧠 Interpretation — ne anlama geliyor? */
-  interpretation: string;
-  /** 🎯 Recommendation */
-  recommendation: AIRecommendation;
-  /** 📑 Evidence */
-  evidence: EvidenceRef[];
+  /* AŞAĞIDAKİ ÜÇÜ İSTEĞE BAĞLI, çünkü ODIN bugün ÜRETMİYOR.
+     Günlük brifing (`odin/briefing.py`) ölçülen sayıları ve kritik durum
+     cümlelerini yazar; yorum, açıklanabilirlik-seviyesinde bir öneri ve
+     kanıt zinciri üretmez. Zorunlu bırakılsalardı adaptörün üçünü de
+     UYDURMASI gerekirdi. `AIBrief` zaten eksik öneriyi ADIYLA söylüyor
+     ("Eksik: ..."), yani doğru davranış hazırdı — tip onu engelliyordu. */
+  /** 🧠 Interpretation — ne anlama geliyor? ODIN üretmiyor. */
+  interpretation?: string;
+  /** 🎯 Recommendation — ODIN brifing için üretmiyor. */
+  recommendation?: AIRecommendation;
+  /** 📑 Evidence — ODIN brifing için üretmiyor. */
+  evidence?: EvidenceRef[];
 }
 
 /* --------------------------------------------------------------------------

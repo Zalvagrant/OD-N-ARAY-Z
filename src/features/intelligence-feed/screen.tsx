@@ -8,8 +8,7 @@
  * yalnızca içerik sağlayıcısı değişir. Bu dosya o sağlayıcıdır.
  */
 
-import { MockBadge } from "@/components/ui/mock-badge";
-import { useOdinFixture } from "@/lib/data/odin-fixture";
+import { useOdinFeed } from "@/lib/data/odin-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ActivityFeed } from "@/components/executive/activity-feed";
 
@@ -32,7 +31,9 @@ export function IntelligenceFeed({
   /** Yalnızca Storybook/görsel doğrulama için durum zorlaması. */
   demo?: "loading";
 }) {
-  const feed = useOdinFixture("feed.items");
+  /* CANLI — `/api/state.timeline` (S10 · G3). Öncelik sinyali ODIN'de
+     yok, bu yüzden akış kronolojik; uydurulmuş bir aciliyet sırası yok. */
+  const feed = useOdinFeed();
 
   return (
     <div className="flex flex-col gap-3">
@@ -40,7 +41,6 @@ export function IntelligenceFeed({
         <span className="text-xs uppercase tracking-wide text-content-tertiary">
           Intelligence Feed
         </span>
-        <MockBadge />
       </div>
 
       {demo === "loading" || feed.loading ? (

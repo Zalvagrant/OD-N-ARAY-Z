@@ -29,15 +29,18 @@ import {
   type DemoState,
 } from "@/features/shell/screen-state";
 import { greeting } from "@/features/executive/presentation/greeting";
-import { useOdinFixture } from "@/lib/data/odin-fixture";
 /* CANLI fırsat görünümü main'den (S16 / UI-ADR-141) — mock'a GERİ
    DÖNDÜRÜLMEDİ. `useMockData` ve `@/mocks/mock-badge` ise S13'ün tek veri
    borusuyla (UI-ADR-135) değiştirildi: main o borudan önceki hâldeydi. */
 import {
   useOdinAlerts,
+  useOdinBrief,
   useOdinCompanyKpis,
+  useOdinDecisions,
   useOdinDirectors,
+  useOdinHero,
   useOdinOpportunities,
+  useOdinPulse,
   useOdinTimeline,
   type Opportunity,
 } from "@/lib/data/odin-state";
@@ -220,8 +223,14 @@ export function ExecutiveBriefing({
      iki gerçek kaynağı olurdu ve biri diğerinden ayrışırdı. Linter öksüzü
      yakaladı — kapının çalıştığının kanıtı. */
 
-  const hero = useOdinFixture("briefing.hero");
-  const decisions = useOdinFixture("briefing.decisions");
+  /* CANLI — `/api/state.health_score` (S10 · G3). Özet ODIN'in KENDİ
+     `critical[].label` cümlelerinden aktarılıyor; arayüz cümle kurmuyor. */
+  const hero = useOdinHero();
+  /* CANLI — `/api/state.decisions` (ODIN FileDecisionLog). Fixture
+     KALDIRILDI: kaynak baştan beri vardı, eksik olan projeksiyonun
+     genişliğiydi. Bugün sıfır kayıt var; bu bir eksiklik değil ölçüm —
+     sahip henüz hiçbir kararı kayda geçirmedi, ekran da onu söylüyor. */
+  const decisions = useOdinDecisions();
   /* CANLI — ODIN ADR-0151 kanonik Alert zarfı (`/api/state.alerts`).
      Mission Control bunu zaten okuyordu; brifing mock'ta kalmıştı.
      BUGÜN LİSTE BOŞ ve bu DOĞRU cevaptır: ölçüldü, üst üste patlayan iş
@@ -244,7 +253,10 @@ export function ExecutiveBriefing({
      `contribution_margin` iadeleri ve reklamı HARİÇ tutuyor — katkı
      marjını "net kâr" diye yayınlamak UI-ADR-116'nın yasağı. */
   const kpis = useOdinCompanyKpis();
-  const brief = useOdinFixture("briefing.brief");
+  /* CANLI — `/api/state` (ODIN `odin/briefing.py`). Fixture KALDIRILDI.
+     Beş adımın ikisi ölçülen veriyle dolu; yorum/öneri/kanıt ODIN'de
+     ÜRETİLMİYOR ve `AIBrief` eksik olanı adıyla söylüyor. */
+  const brief = useOdinBrief();
   /* CANLI — ODIN ADR-0148 (`/api/state.directors`, 8 kayıt).
      `AgentHealth` mock'u BIRAKILDI: gecikme, başarı oranı, token, maliyet,
      kuyruk gibi alanları `AgentHealthMonitor.snapshot()` üretir ve ODIN onu
@@ -256,7 +268,9 @@ export function ExecutiveBriefing({
      kesiliyor). `tone` ve `description` BOŞ: ODIN olay için ton
      yayınlamıyor ve arayüz onu türetmez (UI-ADR-111 eşik yasağı). */
   const timeline = useOdinTimeline();
-  const pulse = useOdinFixture("briefing.pulse");
+  /* CANLI — `/api/state` (S10 · G3). ODIN AI kanalı yayınlamıyor; boş
+     küme ÖLÇÜMÜN kendisi, halka çizilmiyor. */
+  const pulse = useOdinPulse();
 
   const { loading, error, isEmpty, reloadAll } = screenState({
     demo,

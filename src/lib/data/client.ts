@@ -19,7 +19,6 @@ import {
   contractError,
   formatIssues,
   httpError,
-  isAbortError,
   offlineError,
   OdinError,
 } from "./errors";
@@ -79,6 +78,26 @@ export function parseEnvelope<T>(
 }
 
 /**
+ * UÇUŞTAKİ İSTEKLER — aynı yola aynı anda giden çağrılar TEK istekte birleşir.
+ *
+ * Bu bir önbellek DEĞİLDİR: yanıt saklanmaz, TTL yoktur, geçersizleştirme
+ * yoktur. Kayıt yalnızca istek uçarken yaşar ve biter bitmez silinir.
+ *
+ * Neden gerekli (ÖLÇÜLDÜ): sekiz kanca — hedefler, direktörler, alarmlar,
+ * fırsatlar, akış, KPI, hero, nabız — aynı `/api/state` yükünü okur ama her
+ * biri KENDİ `queryKey`ine sahiptir, dolayısıyla React Query onları
+ * tekilleştiremez. Sekiz eşzamanlı istek ODIN'in tek iş parçacıklı
+ * projeksiyonunu sekiz kez koşturuyordu: tek istek 1,2 sn, sekizi 8,6 sn —
+ * ve 15 sn'lik zaman aşımı sınırının altına ancak sunucu hızlandıktan sonra
+ * indi. Öncesinde dördü zaman aşımına uğrayıp ekranda BOŞ bölüm bırakıyordu.
+ *
+ * Anahtarları birleştirmek yerine burada birleştirilmesinin sebebi: sekiz
+ * kancanın her biri aynı ham yükten FARKLI şema doğrular ve farklı uyarlama
+ * yapar. Paylaşılan olması gereken şey ağ isteğidir, ayrıştırma değil.
+ */
+const inFlight = new Map<string, Promise<unknown>>();
+
+/**
  * ODIN'e HTTP isteği. S8'de gerçek uç noktalara bağlanacak olan budur;
  * S7'de yazıldı ve testle doğrulandı ama henüz hiçbir ekran çağırmıyor.
  */
@@ -90,10 +109,44 @@ export async function httpLoad(
     throw offlineError();
   }
 
-  /* Zaman aşımı ve çağıranın iptali tek sinyalde birleşir: route değişince
-     eski istek ölmezse, geç gelen yanıt yeni ekranın verisini ezer. */
-  const timeout = AbortSignal.timeout(timeoutMs);
-  const merged = signal ? AbortSignal.any([signal, timeout]) : timeout;
+  let shared = inFlight.get(path);
+  if (!shared) {
+    /* Paylaşılan isteğe HİÇBİR çağıranın sinyali verilmez: A'nın route
+       değiştirip iptal etmesi, aynı yükü bekleyen B'nin isteğini
+       öldürmemelidir. İptal aşağıda, çağıran BAŞINA ele alınır. */
+    shared = fetchOnce(path, timeoutMs);
+    inFlight.set(path, shared);
+    /* Kayıt yanıt gelir gelmez silinir — bir sonraki çağrı yeni istek açar.
+       Temizlik `then(f, f)` ile yazılır, `finally` ile DEĞİL: `finally`
+       aynı hatayla reddeden YENİ bir promise döndürür ve onu kimse
+       beklemediği için "unhandled rejection" olarak sızar (testte görüldü).
+       Bu biçim hem temizler hem reddi yutar — hatayı çağıranlar zaten
+       kendi `shared` referanslarından alır. */
+    const clear = () => {
+      if (inFlight.get(path) === shared) inFlight.delete(path);
+    };
+    void shared.then(clear, clear);
+  }
+
+  if (!signal) return shared;
+  /* Çağıranın iptali paylaşılan isteği beklemez (UI-ADR-121 önceliği
+     korunur): terk edilmiş ekran kendi AbortError'ını alır, istek diğerleri
+     için uçmaya devam eder. */
+  return Promise.race([
+    shared,
+    new Promise<never>((_, reject) => {
+      if (signal.aborted) return reject(signal.reason);
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    }),
+  ]);
+}
+
+async function fetchOnce(path: string, timeoutMs: number): Promise<unknown> {
+  /* Yalnız zaman aşımı: çağıranın iptali `httpLoad`taki yarışta ele alınır
+     ve buraya HİÇ ulaşmaz — biri iptal etti diye ortak istek ölmez.
+     Zaman aşımı ilk çağıranın değerinden gelir; sekiz kancanın hepsi
+     varsayılanı kullandığı için pratikte tek bir değer var. */
+  const merged = AbortSignal.timeout(timeoutMs);
 
   let res: Response;
   try {
@@ -105,23 +158,17 @@ export async function httpLoad(
     /*
      * ÇAĞIRANIN İPTALİ HER ZAMAN KAZANIR — UI-ADR-121.
      *
-     * Önceki koşul `signal?.aborted && !timeout.aborted` idi: ikisi birden
-     * olduğunda (kullanıcı route değiştirirken istek de zaman aşımına
-     * uğradığında) zaman aşımı kazanıyor ve TERK EDİLMİŞ ekranın hata
-     * kutusu açılıyordu. `timedOut` diye bir bayrakla düzeltmeye çalışmak
-     * da aynı hatayı koruyordu — sorun hangi sinyalin okunduğu değil,
-     * ÖNCELİK sırasıydı.
+     * Bu kural artık BURADA değil, `httpLoad`taki yarışta uygulanır ve
+     * yapısal olarak garantidir: iptal eden çağıran kendi `signal.reason`ı
+     * ile ANINDA reddedilir, buradaki hatayı hiç görmez. Eskiden aynı
+     * `catch` içinde iki sinyalin önceliğini ayırt etmek gerekiyordu —
+     * `signal?.aborted && !timeout.aborted` koşulu, kullanıcı route
+     * değiştirirken istek de zaman aşımına uğrayınca TERK EDİLMİŞ ekranın
+     * hata kutusunu açıyordu. Sinyaller ayrıldığı için o çakışma yok.
      *
-     * Doğru kural tek cümle: çağıran iptal ettiyse — zaman aşımı da olsa —
-     * bu bizim raporlayacağımız bir hata değildir. Kullanıcı o ekrandan
-     * ayrıldı; React Query iptali zaten sessizce düşürür.
-     *
-     * AMA yalnız GERÇEK iptal hatası yutulur (meclis ikinci turu): ağ
-     * kopması ile kullanıcının iptali aynı ana denk gelirse, `aborted`
-     * bayrağına bakıp her hatayı yutmak ağ hatasını GİZLERDİ. Hata tipi
-     * de kontrol edilir; iptal olmayan bir hata her zaman sınıflandırılır.
+     * Geriye kalan tek durum gerçek bir ağ/zaman aşımı hatasıdır ve
+     * yutulmaz: bunu bekleyen çağıranların GÖRMESİ gerekir.
      */
-    if (signal?.aborted && isAbortError(err, signal)) throw err;
     throw classifyError(err, path);
   }
 

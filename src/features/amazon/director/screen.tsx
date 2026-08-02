@@ -24,6 +24,7 @@
  */
 
 import { useState } from "react";
+import type { AIRecommendation, AmazonSnapshot } from "@/types/executive";
 import { remainingTime, useNow } from "@/lib/clock/tick";
 import { useUiStore } from "@/lib/store/ui";
 import { MockBadge } from "@/components/ui/mock-badge";
@@ -40,7 +41,6 @@ import {
   useAmazonPpc,
   useAmazonSkus,
 } from "@/lib/data/odin-amazon";
-import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/table";
@@ -163,7 +163,10 @@ export function AmazonDirector({
   const kpis = useAmazonKpis();
   const alerts = useAmazonAlerts();
 
-  const snapshot = useOdinFixture("amazon.snapshot");
+  /* ODIN KARŞILIĞI YOK (S10 · G3): AmazonSnapshot zorunlu alanlarının
+     çoğu yayınlanmıyor (revenue · orders · tacos · buyBoxRate ·
+     inventoryHealth · inventoryValue · intelligence). Yayında olanlar
+     ZATEN KPI Strip ve SKU tablosunda canlı. */
   /* CANLI — ODIN ADR-0149 (UI-ADR-128). 48 SKU: kimlik, stok,
      gün-kapsamı, satılan adet, reklam, fiyat. Skor YOK ve
      türetilmiyor; durum kendi eşik provenance'ıyla geliyor. */
@@ -174,9 +177,21 @@ export function AmazonDirector({
      kartta gerekçesiyle boş. Beş kalemden biri ölçülmemişse kart yarım
      çizilmez, hata döner. */
   const ppc = useAmazonPpc();
-  const campaigns = useOdinFixture("amazon.campaigns");
-  const simulations = useOdinFixture("amazon.simulations");
-  const opportunities = useOdinFixture("amazon.opportunities");
+  /* FIXTURE KALDIRILDI — ODIN'de yayınlanmış kampanya kırılımı YOK.
+     `/api/amazon` reklam KPI'larını TOPLAM olarak yayınlıyor; kampanya
+     başına ayrıştırma bir kayıt olarak yok. Fixture, release modunda
+     `enabled: IS_MOCK` yüzünden sorguyu hiç açmıyor ve bölüm BOŞ
+     kalıyordu — mock modda dolu, üretimde boş bir bölüm, sahte veriden
+     daha kötüdür: fark yalnız üretimde görülür.
+
+     ODIN'de yayınlanmış simülasyon da YOK ve
+     uydurulamaz. Motor var (`odin/scenario.py: apply_scenario`) ama
+     saklanan sonuç yok: hangi senaryonun çalıştırılacağı (hangi kalem,
+     yüzde kaç) SAHİP BEYANIDIR — eşiklerin beyan edilmesi gibi
+     (ADR-0146). Delta'yı arayüzün seçmesi cevabı değil SORUYU
+     uydurmak olurdu. `DataGuard` "Simülasyon verisi yok" basar;
+     üretimde zaten bu görünüyordu, artık mock modda da aynısı. */
+  const simulations = null;
 
   /* Canlı bölümün hatası SUSTURULMAZ (S8 dersi, main CLAUDE.md kural 6):
      bir bölüm gerçek uç noktadan besleniyorsa, o uç nokta düştüğünde
@@ -187,8 +202,8 @@ export function AmazonDirector({
 
   const { loading, error, isEmpty, reloadAll } = screenState({
     demo,
-    primary: snapshot,
-    sources: [snapshot, kpis, skus, ppc, campaigns, simulations, alerts, opportunities],
+    primary: kpis,
+    sources: [kpis, skus, ppc, alerts],
     error: DEMO_ERROR,
   });
 
@@ -221,10 +236,7 @@ export function AmazonDirector({
      §1.6 Feed'de yaşar; PPC Katman 3 gerekçeli boş durum gösterir. Kategori/
      domain alanı sorusu 13-...md §17'de (FR-0042 fingerprint'i zaten
      (domain, recommendation_type, …) kullanıyor — alan gelirse ayrım döner). */
-  const measuredOpportunities = isEmpty
-    ? []
-    : (opportunities.envelope?.data ?? null);
-  const feedOpportunities = measuredOpportunities ?? [];
+  const feedOpportunities: AIRecommendation[] = [];
 
   /* ODIN sözlüğü (UI-ADR-128). `unknown` BU LİSTEYE GİRMEZ: hızı
      ölçülemeyen bir SKU riskli değildir, ÖLÇÜLMEMİŞTİR — ikisini
@@ -243,7 +255,7 @@ export function AmazonDirector({
            "senkron yok" diyordu. Önce gerçekten bağlı olan kaynağın zamanı
            yazılır; ikisi de yoksa `—` kalır ve bu dürüsttür. */
         lastSync={
-          kpis.envelope?.meta.lastUpdated ?? snapshot.envelope?.meta.lastUpdated ?? null
+          kpis.envelope?.meta.lastUpdated ?? null
         }
         actions={
           <>
@@ -269,7 +281,7 @@ export function AmazonDirector({
       ) : error ? (
         <Section title="Executive Glance" error={error} onRetry={reloadAll} />
       ) : (
-        <DataGuard env={isEmpty ? null : snapshot.envelope} reason="Amazon anlık görüntüsü üretilmedi">
+        <DataGuard<AmazonSnapshot> env={null} reason="Amazon anlık görüntüsü üretilmedi">
           {(s, meta) => <GlanceView s={s} meta={meta} />}
         </DataGuard>
       )}
@@ -425,7 +437,7 @@ export function AmazonDirector({
           loadingCount={2}
           error={error}
           onRetry={reloadAll}
-          empty={measuredOpportunities !== null && feedOpportunities.length === 0}
+          empty={feedOpportunities.length === 0}
           emptyTitle="Fırsat üretilmedi"
           emptyDescription="Bu dönem için ölçülmüş bir ürün/fiyat fırsatı yok."
         >
@@ -459,9 +471,7 @@ export function AmazonDirector({
         >
           <AIBrief
             env={
-              isEmpty || !snapshot.envelope
-                ? null
-                : { data: snapshot.envelope.data.intelligence, meta: snapshot.envelope.meta }
+              null
             }
             title="Amazon Executive Intelligence"
           />
@@ -524,7 +534,7 @@ export function AmazonDirector({
         onRetry={reloadAll}
       >
         <div className="grid gap-8 xl:grid-cols-3 [&>*]:min-w-0">
-          <CampaignIntelligenceList env={isEmpty ? emptied(campaigns.envelope) : campaigns.envelope} />
+          <CampaignIntelligenceList env={null} />
 
           <div className="flex flex-col gap-4">
             <Text size="sm" tone="secondary">
@@ -541,7 +551,7 @@ export function AmazonDirector({
             </Text>
           </div>
 
-          <SimulationPanel env={isEmpty ? emptied(simulations.envelope) : simulations.envelope} />
+          <SimulationPanel env={simulations} />
         </div>
       </Section>
 

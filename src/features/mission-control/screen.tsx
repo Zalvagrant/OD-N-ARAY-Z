@@ -20,9 +20,10 @@
 import { useState } from "react";
 import { activeTelemetryChannels, TELEMETRY_CHANNELS } from "@/lib/telemetry/registry";
 import {
-  useOdinAlerts,
-  useOdinDirectors,
   type RuntimeDirectorParsed,
+  useOdinAlerts,
+  useOdinDecisions,
+  useOdinDirectors,
 } from "@/lib/data/odin-state";
 import { MockBadge } from "@/components/ui/mock-badge";
 import {
@@ -32,7 +33,6 @@ import {
   screenState,
   type DemoState,
 } from "@/features/shell/screen-state";
-import { useOdinFixture } from "@/lib/data/odin-fixture";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Search } from "@/components/ui/search";
@@ -155,7 +155,9 @@ export function MissionControl({
      filtreyi de, izlenen/vadesi-gelen ayrımını da görmüyordu. */
   const [filteredCount, setFilteredCount] = useState<number | null>(null);
 
-  const decisions = useOdinFixture("briefing.decisions");
+  /* CANLI — `/api/state.decisions`. Fixture KALDIRILDI (briefing ile
+     aynı kaynak; pano `status === "monitoring"` olanları süzer). */
+  const decisions = useOdinDecisions();
   /* CANLI — ODIN ADR-0148 (UI-ADR-127). Bu bölüm artık ZAMANLANMIŞ
      runtime işlerini gösteriyor, görev-kuyruğu ajanlarını değil: kuyruk
      hiç kullanılmadı (`agents` boş), oysa 18 iş heartbeat üstünde
