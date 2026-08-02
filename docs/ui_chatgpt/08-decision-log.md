@@ -7854,3 +7854,23 @@ net after ads $1.733,38; canlı sayfada doğrulandı).
   (UI-ADR-156); durum story'leri metinle değil `getByRole("note",
   {name})` ile sorgular. İlk yazım metinle sorguladı ve kapı koşumu
   durdurulup düzeltildi.
+
+---
+
+## UI-ADR-198 — Today's Mission + Current Focus canlı: seçim çekirdekte
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** ODIN cockpit `executive_focus` (core 0595180) · 13-backend-recommendations.md §14.1
+
+Briefing'in üç boş alanının İKİSİ doldu. UI tarafında seçim yapılmadı:
+cockpit `executive_focus` yayınlıyor — `todays_mission` sahibin urgent
+hedeflerinin BİRLEŞİMİ (sıralama yok), `current_focus` roadmap'in active
+fazı. Hero adaptörü okur; eski çekirdek yayınlamıyorsa alan `nullish` ve
+"—" kalır. Header'daki Mission çipi de AYNI kancaya bağlandı (istek
+coalescing ile ekranlarınkiyle birleşir) — "veri kaynağı bağlı değil"
+notu üstbilgiden kalktı.
+
+**AI Readiness bilerek "—" KALDI:** ölçen kaynak yayınlanmıyor
+(13-backend-recommendations.md §14.1) — üç alandan biri dolu OLMAMAYI
+sürdürür; dürüstlük budur.

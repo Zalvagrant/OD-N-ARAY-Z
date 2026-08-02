@@ -848,6 +848,13 @@ export function useOdinHealthKpis(): OdinQueryResult<ExecutiveKpiParsed[]> {
 
 const heroStateSchema = z.object({
   generated_at: z.string(),
+  /* Eski çekirdek bu anahtarı hiç yayınlamaz — opsiyonel (UI-ADR-198). */
+  executive_focus: z
+    .object({
+      todays_mission: z.string().nullable(),
+      current_focus: z.string().nullable(),
+    })
+    .nullish(),
   health_score: z
     .object({
       score: z.number().nullable(),
@@ -885,11 +892,12 @@ export function useOdinHero(): OdinQueryResult<ExecutiveHero> {
               labels.length > 0
                 ? labels.join(" · ")
                 : `Şirket sağlığı ${hs.score ?? "ölçülmedi"} · kapsam ${hs.coverage}`,
-            /* ODIN'de "günün hedefi" / "şu anki odak" diye bir kavram YOK.
-               `goals` sekiz kayıt taşıyor ama hiçbiri "bugün" demiyor —
-               birini seçmek arayüzün öncelik icat etmesi olurdu. */
-            todaysMission: null,
-            currentFocus: null,
+            /* SEÇİM ÇEKİRDEKTE (UI-ADR-198): `executive_focus` sahibin
+               urgent hedeflerinin BİRLEŞİMİ + roadmap'in active fazı —
+               cockpit okur, sıralamaz. Arayüz burada seçim yapmaz; eski
+               çekirdek alanı yayınlamıyorsa "—" kalır. */
+            todaysMission: parsed.executive_focus?.todays_mission ?? null,
+            currentFocus: parsed.executive_focus?.current_focus ?? null,
             systemHealthScore: hs.score,
             /* 13-backend-recommendations.md §14.1 — karşılığı YOK. */
             aiReadiness: null,

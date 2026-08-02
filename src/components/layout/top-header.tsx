@@ -8,8 +8,10 @@
  * Sağda EN FAZLA 4 görünür ikon: Alerts · Tasks · AI Status · Profile.
  * Kalanlar "More" menüsünde. Weather ve Time YOK — karar üretmiyorlar.
  *
- * ANTI-FAKE: Mission, Universe ve AI Pulse'ın veri kaynağı henüz bağlı
- * değil. Uydurma değer yerine NoData gösterilir, AI Pulse animasyon almaz.
+ * ANTI-FAKE: Universe ve AI Pulse'ın veri kaynağı henüz bağlı değil.
+ * Uydurma değer yerine NoData gösterilir, AI Pulse animasyon almaz.
+ * Mission CANLI (UI-ADR-198): cockpit'in `executive_focus.todays_mission`
+ * yayını — sahibin urgent hedeflerinin birleşimi, seçim çekirdekte.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -24,6 +26,7 @@ import {
   User,
 } from "lucide-react";
 import { activePulseChannels } from "@/lib/telemetry/registry";
+import { useOdinHero } from "@/lib/data/odin-state";
 import { useUiStore } from "@/lib/store/ui";
 import { NoData } from "@/components/ui/no-data";
 
@@ -55,6 +58,9 @@ function HeaderIconButton({
 
 export function TopHeader({ crumbs }: { crumbs: Crumb[] }) {
   const setCommandPalette = useUiStore((s) => s.setCommandPalette);
+  /* Timeline şeridiyle aynı desen: kabuk bileşeni kanonik kancayı okur,
+     istek coalescing ile ekranlarınkiyle birleşir (UI-ADR-198). */
+  const hero = useOdinHero();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +88,16 @@ export function TopHeader({ crumbs }: { crumbs: Crumb[] }) {
 
         <div className="hidden items-center gap-2 text-sm lg:flex">
           <span className="text-content-tertiary">Mission</span>
-          <NoData reason="Aktif mission verisi bağlı değil" />
+          {hero.envelope?.data.todaysMission ? (
+            <span
+              className="max-w-[40ch] truncate text-content-secondary"
+              title={hero.envelope.data.todaysMission}
+            >
+              {hero.envelope.data.todaysMission}
+            </span>
+          ) : (
+            <NoData reason="ODIN acil hedef yayınlamadı" />
+          )}
         </div>
 
         <div className="hidden items-center gap-2 text-sm lg:flex">
