@@ -7806,3 +7806,27 @@ Kilitlenen sınırlar (gavadolar 2/2):
 5. **`empty` demo durumu beyan edilmiyor:** pozisyon tek nesne; cockpit
    "defter boş"u `null` yayınlar ve cockpit boş/okunamadı ayrımı
    yapamadığı için dal sebepli HATA olarak çizilir.
+
+---
+
+## UI-ADR-196 — Amazon Inventory sayfası: aynı boru, envanter odaklı geniş görünüm
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-128 · UI-ADR-183 · ODIN ADR-0149 · 03-information-architecture.md §7
+
+`/amazon/inventory` nav'da vardı, ekranı yoktu. Yeni boru AÇILMADI:
+Director'ın kanonik `useAmazonSkus` kancası tüketildi (48 gerçek SKU).
+Sayfa envanter odaklı GENİŞ görünüm — Director'daki dar kolon 6 sütunla
+sınırlı ve ürün adı taşımıyor.
+
+- **Kolon seçimi ölçümdür (UI-ADR-128):** `reorder_units`,
+  `estimated_stockout_at`, `sales.revenue` canlı veride 48/48 null
+  (ADR-0149 — üretici politikaları yok) → kolonları YOK. Ölçülen altı
+  kolon: SKU · Ürün · Durum · Stok · Kalan gün · Satılan (7g). Üretici
+  kazanan alan, kolonunu o gün geri alır.
+- **Sabit kolon referansı** (UI-ADR-183 dersi) modül sabitinde.
+- **Satır seçimi Director'la AYNI sağ paneli açar** — kabuk sabit,
+  içerik sağlayıcısı değişken (§7); ikinci bir SKU detayı yazılmadı.
+- **Boş tablo bir cevaptır:** "SP-API'den SKU gelmedi" der, "katalog
+  boş" iddiasına çevrilmez (story kilitledi).
