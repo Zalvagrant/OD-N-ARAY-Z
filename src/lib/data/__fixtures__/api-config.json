@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-08-02T20:53:53.113538+00:00",
+  "version": {
+    "odin": "0.21.0",
+    "python": "3.13.12",
+    "commit": "051b9ac",
+    "branch": "fix/master-operation",
+    "committed_at": "2026-08-02T23:52:47+03:00",
+    "working_tree_clean": false,
+    "adr_count": 155,
+    "schema_count": 16,
+    "phases": [
+      {
+        "name": "Phase 0-7 — Foundation → Automation",
+        "progress": 100,
+        "status": "done"
+      },
+      {
+        "name": "Phase 8 — Implementation (aktif)",
+        "progress": 70,
+        "status": "active"
+      },
+      {
+        "name": "Phase 9 — Optimization",
+        "progress": 0,
+        "status": "planned"
+      },
+      {
+        "name": "Phase 10 — Beta/Release (S-027 kapıları)",
+        "progress": 0,
+        "status": "planned"
+      }
+    ]
+  },
+  "settings": {
+    "writable": false,
+    "writable_reason": "ODIN yazılabilir bir ayar ucu yayınlamıyor. POST /api/command yalnız beyaz listeli CLI fiillerini çalıştırır; seçenek yazmaz. Ayarlar dosya ve ortam değişkeniyle değişir.",
+    "data_dir": "odin-data",
+    "data_dir_source": "varsayılan",
+    "repo": "C:\\Users\\PackardBell\\Desktop\\ODIN",
+    "ui_dir": "C:\\Users\\PackardBell\\Desktop\\ODIN\\OD-N-ARAY-Z",
+    "ui_dir_source": "canonical",
+    "cockpit_port": 8765,
+    "ui_port": 3000,
+    "bind_host": "127.0.0.1",
+    "heartbeat_tick_s": 30,
+    "stale_threshold_s": 180,
+    "autostart_installed": true,
+    "autostart_cmd": "C:\\Users\\PackardBell\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\ODIN-runtime.cmd",
+    "allowed_commands": [
+      "ai",
+      "analyze",
+      "ask",
+      "brief",
+      "ceo",
+      "cogs",
+      "dashboard",
+      "extract",
+      "pending",
+      "promote",
+      "registry",
+      "replay",
+      "score",
+      "stage",
+      "techreport",
+      "trace",
+      "transcript",
+      "validate",
+      "watch"
+    ],
+    "env_overrides": [
+      {
+        "name": "ODIN_DATA_DIR",
+        "set": false,
+        "value": null
+      },
+      {
+        "name": "ODIN_UI_DIR",
+        "set": false,
+        "value": null
+      },
+      {
+        "name": "ODIN_ALLOW_MIXED",
+        "set": false,
+        "value": null
+      }
+    ]
+  }
+}

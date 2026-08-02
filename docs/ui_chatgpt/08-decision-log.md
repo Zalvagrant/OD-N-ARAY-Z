@@ -8343,3 +8343,44 @@ kadar hiçbir ekranda yazmıyordu.
 
 **KANIT:** 21 iş · 0 vadesi gelen · 2 hiç koşmamış · heartbeat 21 sn ·
 cockpit 8765 dinliyor · autostart kurulu.
+
+---
+
+## UI-ADR-211 — Version + Settings: tek ölçüm, iki ekran, sıfır ölü kontrol
+
+**Durum:** DONDURULDU
+**Tarih:** 2–3 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-209 · ODIN ADR-0028 · `odin/config_api.py`
+
+İki hedefin gerekçesi de eksikti. `/system/version` için "kopya olur"
+denmişti — kopya OLURDU, eğer ekran yalnız sürüm dizesini gösterseydi;
+buradaki soru daha dar: **çalışan kod tam olarak hangi commit?**
+`/settings` için "yazılabilir uç yok" denmişti — bu DOĞRU, ama bundan
+"ekran olamaz" çıkmaz: sahibin "hangi dizin, hangi port, hangi komutlar,
+açılışta başlıyor mu" sorusunun cevabı hiçbir yerde yoktu.
+
+**Core:** `GET /api/config` → `{version, settings}`. İki ekran TEK ölçüm
+pasından beslenir; farklı commit gösteren iki ekran, hiç ekran
+olmamasından kötüdür.
+
+**KİRLİ AĞAÇ GİZLENMİYOR:** `working_tree_clean:false` ise ekran
+"çalışan kod yukarıdaki commit DEĞİLDİR" diye uyarır. Üretimde şu anda
+tam da bu görünüyor ve doğrusu bu.
+
+**SETTINGS'TE KAYDET DÜĞMESİ YOK VE OLMAYACAK.** Şema `writable:
+z.literal(false)` ile donduruldu — yazılabilir bir yüzey eklemek ayrı bir
+karardır ve şemayı patlatır. Story ekrandaki düğme listesinin **tam
+olarak `["Yenile"]`** olduğunu iddia ediyor: ölü kontrol bu ekrana
+giremez.
+
+**ÇEKİRDEKTE KENDİ YAZDIĞIM KUSUR, ÖLÇÜMLE YAKALANDI:** ilk sürüm her
+istekte DÖRT `git` süreci açıyordu — spawn başına ~1,2 sn, uç toplam
+**2,03 sn**. Düzeltmenin asıl gerekçesi hız değil: blok "hangi kod
+çalışıyor" diye soruyor ve çalışan Python süreç başlarken import edildi;
+her istekte git okumak, o import'tan SONRAKİ bir commit'i bildirirdi.
+Git olguları artık süreç başına sabit. **2,03 sn → 0,002 sn.**
+
+**KANIT [00:14, üretim 3000, gerçek tarayıcı]:** Version → ODIN 0.21.0 ·
+commit `4021fd8` (fix/master-operation) · Python 3.13.12 · KİRLİ ağaç
+uyarısı görünür · 155 ADR / 16 şema · 4 faz. Settings → 8765/3000 ·
+heartbeat 30 sn (bayat 180) · autostart kurulu · 19 komut.

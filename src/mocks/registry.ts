@@ -79,6 +79,8 @@ export interface MockMap {
   "projects.requests": ReturnType<BriefingMocks["requestsMock"]>;
   "system.security": ReturnType<BriefingMocks["securityMock"]>;
   "system.automation": ReturnType<BriefingMocks["automationMock"]>;
+  "system.version": ReturnType<BriefingMocks["versionMock"]>;
+  "system.settings": ReturnType<BriefingMocks["settingsMock"]>;
   "feed.items": ReturnType<FeedMocks["feedMock"]>;
   "finance.position": ReturnType<FinanceMocks["financePositionMock"]>;
   "goals.items": ReturnType<GoalMocks["goalsMock"]>;
@@ -155,6 +157,10 @@ export async function loadMock<K extends MockKey>(key: K): Promise<MockMap[K] | 
       return (await import("./briefing")).securityMock() as MockMap[K];
     case "system.automation":
       return (await import("./briefing")).automationMock() as MockMap[K];
+    case "system.version":
+      return (await import("./briefing")).versionMock() as MockMap[K];
+    case "system.settings":
+      return (await import("./briefing")).settingsMock() as MockMap[K];
     case "briefing.kpis":
       return (await import("./briefing")).kpisMock() as MockMap[K];
     case "briefing.opportunities":

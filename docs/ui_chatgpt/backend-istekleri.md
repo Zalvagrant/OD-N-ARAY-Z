@@ -501,10 +501,10 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 | `/system/storage` | ✅ AÇILDI (UI-ADR-200). Ölçüm eksikti: iki ekran "ne kadar dolu"yu, bu ekran "hangi dizin ne hızla büyüyor"u cevaplıyor. Core'a `odin/storage.py` + `GET /api/storage` eklendi. |
 | `/system/network` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Prob: telemetry.jsonl'de 0 adet `network.*` olayı. |
 | `/system/backups` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Prob `archive/`i ölçüyor (21 dosya, 3,85 MB) ama arşiv yedek değildir: `backup-policy.json` YOK. |
-| `/system/version` | `version` + `phases` /system ekranında ZATEN görünüyor; ayrı sayfa kopya olur. |
+| `/system/version` | ✅ AÇILDI (UI-ADR-211). Soru daha dar: çalışan kod hangi commit? `GET /api/config` eklendi; kirli ağaç uyarısı dahil. |
 | `/hq` | Ayrı bir veri kaynağı yok — mevcut ekranların toplamı; kompozit ekran sahip kararı ister. |
 | `/projects` | ✅ AÇILDI (UI-ADR-208). İDDİA ÇÜRÜDÜ: R-006 talep defteri (ADR-0050) 129 tipli talep taşıyor. `GET /api/requests` eklendi. |
 | `/automation` | ✅ AÇILDI (UI-ADR-210). Aynı işler FARKLI soru: Performance "sağlıklı mı", Automation "ne/ne zaman/vadesi geldi mi". Cadence+vade hiç yayınlanmıyordu; `GET /api/automation` eklendi. |
 | `/trading` | ⚠️ ÖLÇÜLMÜŞ YOKLUK ekranı (UI-ADR-206). Prob: `core/KO-trading-*` 0 kayıt; ayrıca ODIN anayasal olarak emir vermez. |
 | `/memory` | ✅ AÇILDI (UI-ADR-201). "Zaten /decisions'ta" yanlıştı: /decisions ŞU AN açık olanı (31), hafıza BUGÜNE KADARKİ her şeyi (2.335) gösterir. Core'a `lifecycle.projection()` + `GET /api/memory` eklendi. |
-| `/settings` | Yazılabilir ayar ucu yok (POST /api/command beyaz listesi dışında yapılandırma yüzeyi yayınlanmıyor). |
+| `/settings` | ✅ AÇILDI (UI-ADR-211). "Yazılabilir uç yok" doğru ama ekran olamaz demek değil: salt-okunur yapılandırma yüzeyi. Kaydet düğmesi YOK — şema `writable:false` ile donduruldu. |

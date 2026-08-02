@@ -21,6 +21,7 @@ import type { TimelineItem } from "@/types/screens";
 import type { RequestLedger } from "@/lib/data/odin-requests";
 import type { SecurityPosture } from "@/lib/data/odin-security";
 import type { Automation } from "@/lib/data/odin-automation";
+import type { OdinSettings, OdinVersion } from "@/lib/data/odin-config";
 import type { DataEnvelope } from "@/types/data-envelope";
 import type {
   AIRecommendation,
@@ -1239,6 +1240,54 @@ export function automationMock(): DataEnvelope<Automation> {
         avgMs: 180,
         lastError: null,
       },
+    ],
+  });
+}
+
+/** `/api/config.version` mock'u — YALNIZ Storybook. Tip açıkça yazılı. */
+export function versionMock(): DataEnvelope<OdinVersion> {
+  return mockEnvelope<OdinVersion>({
+    odin: "0.21.0",
+    python: "3.13.12",
+    commit: "mock123",
+    branch: "mock/dal",
+    committedAt: "2026-08-02T21:07:15+03:00",
+    /* Kirli ağaç MOCK'ta da gösterilir: uyarı dalının story'de
+       uyandırılabilmesi için (UI-ADR-211). */
+    workingTreeClean: false,
+    adrCount: 155,
+    schemaCount: 16,
+    phases: [
+      { name: "Phase 0-7 — Foundation → Automation", progress: 100, status: "done" },
+      { name: "Phase 8 — Implementation (aktif)", progress: 70, status: "active" },
+      { name: "Phase 9 — Optimization", progress: 0, status: "planned" },
+    ],
+  });
+}
+
+/** `/api/config.settings` mock'u — YALNIZ Storybook. */
+export function settingsMock(): DataEnvelope<OdinSettings> {
+  return mockEnvelope<OdinSettings>({
+    writable: false,
+    writableReason:
+      "MOCK — ODIN yazılabilir bir ayar ucu yayınlamıyor. POST /api/command " +
+      "yalnız beyaz listeli CLI fiillerini çalıştırır; seçenek yazmaz.",
+    dataDir: "MOCK\odin-data",
+    dataDirSource: "varsayılan",
+    repo: "MOCK\ODIN",
+    uiDir: "MOCK\OD-N-ARAY-Z",
+    uiDirSource: "canonical",
+    cockpitPort: 8765,
+    uiPort: 3000,
+    bindHost: "127.0.0.1",
+    heartbeatTickS: 30,
+    staleThresholdS: 180,
+    autostartInstalled: true,
+    autostartCmd: "MOCK\Startup\ODIN-runtime.cmd",
+    allowedCommands: ["ask", "brief", "ceo", "promote"],
+    envOverrides: [
+      { name: "ODIN_DATA_DIR", set: false, value: null },
+      { name: "ODIN_UI_DIR", set: false, value: null },
     ],
   });
 }
