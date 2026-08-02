@@ -9,6 +9,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, waitFor, within } from "storybook/test";
 
+import { expectRefreshWorks } from "@/features/shell/story-helpers";
+
 import { SystemAiRuntime } from "./screen";
 
 const meta: Meta<typeof SystemAiRuntime> = {
@@ -71,6 +73,10 @@ export const AiRuntime: Story = {
     await expect(
       canvas.getByText(/başarı oranı türetilmez/)
     ).toBeInTheDocument();
+
+    /* BUTON GERÇEKTEN ÇALIŞIYOR: tıklanır ve ekran veri
+       durumunda kalır (UI-ADR-207). Varlık, çalıştığını kanıtlamaz. */
+    await expectRefreshWorks(canvas, "AI Runtime");
   },
 };
 

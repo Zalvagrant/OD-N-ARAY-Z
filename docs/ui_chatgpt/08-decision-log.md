@@ -8189,3 +8189,37 @@ kilitler.
 değil · system.backups" + ölçülmüş gerekçe + "Ne gerekiyor" + kanıt
 (`archive/: 21 dosya, 3.85 MB` · `backup-policy.json: YOK`) + ölçüm anı.
 Dört rota da 200.
+
+---
+
+## UI-ADR-207 — Yenile düğmesi sekiz ekranda YOKTU ve hiçbir yerde tıklanmıyordu
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-131 · UI-ADR-151 · sahip emri "çalışmayan buton bırakma"
+
+Sahip ekran tamamlama ölçütünü genişletti (Route · Navigation · Data
+Source · API · Context · State · Loading · Empty · Error · **Refresh** ·
+**Actions** · **Butonlar** · Telemetry · Runtime · Tests · Release).
+Kendi işimi bu ölçüte vurunca **iki eksik** çıktı:
+
+1. **Bu oturumda açtığım sekiz ekranın hiçbirinde Yenile düğmesi yoktu**
+   ve hiçbir `Section` `onRetry` almıyordu — yani hata durumundaki
+   "Yeniden dene" düğmesi de ölüydü. `screenState` `reloadAll`ı zaten
+   üretiyordu; briefing onu kullanıyordu, yenileri kullanmıyordu.
+2. **Düğme hiçbir yerde TIKLANMIYORDU** — briefing'inki de dahil. Bu
+   repoda "Yenile" bir yıl boyunca test edilmemiş bir düğmeydi. Bir
+   düğmenin VARLIĞI çalıştığını kanıtlamaz.
+
+**Kapatıldı:** sekiz ekranın hepsine `actions={<Button …
+onClick={reloadAll}>Yenile</Button>}` ve **24 `Section`ın tamamına**
+`onRetry={reloadAll}`.
+
+**`story-helpers.ts` — `expectRefreshWorks()`:** düğmeyi GERÇEKTEN
+tıklar, yeniden getirme bitene kadar bekler, başlığın yerinde ve
+`role="alert"`in yok olduğunu doğrular. Sekiz ana story bunu çağırıyor.
+
+**KANIT [19:41, üretim 3000, gerçek tarayıcı tıklaması]:** /system/storage
+— tıklamadan önce **3.091 dosya / 63,9 MB**, tıklamadan sonra **3.133
+dosya / 64,9 MB**. Düğme gerçekten yeniden ölçtü; ekran arada bir kez
+çalışan sistemin büyümesini yakaladı.

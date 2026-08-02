@@ -26,6 +26,7 @@ import { useAmazonPpc } from "@/lib/data/odin-amazon";
 import { formatDate } from "@/lib/format/date";
 import { toPercentUnit } from "@/lib/format/percent";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
@@ -98,6 +99,11 @@ export function AmazonProfit({
         title="Profit"
         context="Ciro → maliyet → ücretler → KATKI. Net kâr değildir; hariç tutulanlar aşağıda."
         lastSync={profit.envelope?.meta.lastUpdated ?? null}
+        actions={
+          <Button variant="tertiary" size="sm" onClick={zorlama.reloadAll}>
+            Yenile
+          </Button>
+        }
       />
 
       <Section
@@ -107,6 +113,7 @@ export function AmazonProfit({
         loadingLayout="kpi"
         loadingCount={5}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={!zorlama.loading && !error && p === null}
         emptyTitle="Kâr kaydı ölçülemedi"
         emptyDescription="Katalog ya da maliyet kaydı promote edilmemiş; çekirdek katkı marjı yayınlamıyor."
@@ -197,6 +204,7 @@ export function AmazonProfit({
               }
             : null)
         }
+        onRetry={zorlama.reloadAll}
       >
         {ads && (
           <Card>
@@ -262,6 +270,7 @@ export function AmazonProfit({
         loadingLayout="list"
         loadingCount={2}
         error={error}
+        onRetry={zorlama.reloadAll}
       >
         {p && (
           <Card>

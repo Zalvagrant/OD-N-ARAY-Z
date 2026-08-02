@@ -23,6 +23,7 @@ import {
 import { useOdinMemory } from "@/lib/data/odin-memory";
 import { formatDate } from "@/lib/format/date";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Caption, Mono, Num, Text } from "@/components/ui/typography";
@@ -106,6 +107,11 @@ export function Memory({
         title="Memory"
         context="ODIN'in hatırladığı her öneri ve sahibin verdiği her karar"
         lastSync={memory.envelope?.meta.lastUpdated ?? null}
+        actions={
+          <Button variant="tertiary" size="sm" onClick={zorlama.reloadAll}>
+            Yenile
+          </Button>
+        }
       />
 
       <Section
@@ -115,6 +121,7 @@ export function Memory({
         loadingLayout="kpi"
         loadingCount={4}
         error={error}
+        onRetry={zorlama.reloadAll}
       >
         {m && (
           <Card>
@@ -166,6 +173,7 @@ export function Memory({
         loadingLayout="list"
         loadingCount={3}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={m !== null && m.recommendations.total === 0}
         emptyTitle="Hafıza boş"
         emptyDescription="ODIN henüz hiç öneri üretmedi."
@@ -197,6 +205,7 @@ export function Memory({
         loadingLayout="list"
         loadingCount={3}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={m !== null && m.verdicts.recent.length === 0}
         emptyTitle="Henüz hiç karar verilmedi"
         emptyDescription="Hafızada bir öneri var ama sahip hiçbirine hüküm yazmadı."
@@ -260,6 +269,7 @@ export function Memory({
         loadingLayout="list"
         loadingCount={2}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={m !== null && m.outcomes.lessons.length === 0}
         emptyTitle="Henüz ders yok"
         emptyDescription="Hiçbir öneri için gerçekleşen sonuç kaydedilmedi — davranış modeli bu yüzden boş."

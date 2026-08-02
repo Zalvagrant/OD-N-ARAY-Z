@@ -10,6 +10,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, waitFor, within } from "storybook/test";
 
+import { expectRefreshWorks } from "@/features/shell/story-helpers";
+
 import { AmazonProfit } from "./screen";
 
 const meta: Meta<typeof AmazonProfit> = {
@@ -59,6 +61,10 @@ export const KarZinciri: Story = {
     await expect(
       canvas.getByText(/tarihlemesini eksik bildiriyor/)
     ).toBeInTheDocument();
+
+    /* BUTON GERÇEKTEN ÇALIŞIYOR: tıklanır ve ekran veri
+       durumunda kalır (UI-ADR-207). Varlık, çalıştığını kanıtlamaz. */
+    await expectRefreshWorks(canvas, "Profit");
   },
 };
 

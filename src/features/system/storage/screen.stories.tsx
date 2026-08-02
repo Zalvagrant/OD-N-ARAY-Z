@@ -10,6 +10,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, waitFor, within } from "storybook/test";
 
+import { expectRefreshWorks } from "@/features/shell/story-helpers";
+
 import { SystemStorage } from "./screen";
 
 const meta: Meta<typeof SystemStorage> = {
@@ -55,6 +57,10 @@ export const Depolama: Story = {
     await expect(
       canvas.getByText("ODIN'in değil, diskin tamamı")
     ).toBeInTheDocument();
+
+    /* BUTON GERÇEKTEN ÇALIŞIYOR: tıklanır ve ekran veri
+       durumunda kalır (UI-ADR-207). Varlık, çalıştığını kanıtlamaz. */
+    await expectRefreshWorks(canvas, "Storage");
   },
 };
 

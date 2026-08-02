@@ -30,6 +30,7 @@ import {
 import { useOdinOrders, type OrderRow } from "@/lib/data/odin-orders";
 import { formatDate } from "@/lib/format/date";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
@@ -215,6 +216,11 @@ export function AmazonOrders({
             : "Promote edilmiş SP-API sipariş kaydı"
         }
         lastSync={orders.envelope?.meta.lastUpdated ?? null}
+        actions={
+          <Button variant="tertiary" size="sm" onClick={zorlama.reloadAll}>
+            Yenile
+          </Button>
+        }
       />
 
       <Section
@@ -224,6 +230,7 @@ export function AmazonOrders({
         loadingLayout="kpi"
         loadingCount={3}
         error={error}
+        onRetry={zorlama.reloadAll}
       >
         {o && o.available && (
           <Card>
@@ -286,6 +293,7 @@ export function AmazonOrders({
         loadingLayout="list"
         loadingCount={8}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={o !== null && o.available && o.orders.length === 0}
         emptyTitle="Pencerede sipariş yok"
         emptyDescription="Kayıt promote edilmiş ama beyan ettiği pencerede hiç sipariş yok."

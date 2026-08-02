@@ -26,6 +26,7 @@ import {
 import { useOdinCapability } from "@/lib/data/odin-capability";
 import { formatDate } from "@/lib/format/date";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Caption, Mono, Text } from "@/components/ui/typography";
 import { Section, type SectionError } from "@/components/layout/section";
@@ -77,6 +78,11 @@ export function CapabilityScreen({
         title={title}
         context={context}
         lastSync={cap.envelope?.meta.lastUpdated ?? null}
+        actions={
+          <Button variant="tertiary" size="sm" onClick={zorlama.reloadAll}>
+            Yenile
+          </Button>
+        }
       />
 
       <Section
@@ -86,6 +92,7 @@ export function CapabilityScreen({
         loadingLayout="card"
         loadingCount={1}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={!zorlama.loading && !error && c === null}
         emptyTitle="Bu yetenek çekirdekte tanımlı değil"
         emptyDescription="ODIN bu kimlik için bir prob tanımıyor; menüdeki hedef çekirdekle eşleşmiyor."
@@ -132,6 +139,7 @@ export function CapabilityScreen({
         loadingLayout="list"
         loadingCount={2}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={c !== null && c.evidence.length === 0}
         emptyTitle="Kanıt bildirilmedi"
         emptyDescription="Prob bir gerekçe verdi ama neye baktığını yazmadı."

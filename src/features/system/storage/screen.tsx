@@ -20,6 +20,7 @@ import {
 } from "@/features/shell/screen-state";
 import { useOdinStorage } from "@/lib/data/odin-storage";
 import { formatDate } from "@/lib/format/date";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
@@ -88,6 +89,11 @@ export function SystemStorage({
         title="Storage"
         context="ODIN'in veri dizini — ölçülen boyut ve ölçülen büyüme"
         lastSync={storage.envelope?.meta.lastUpdated ?? null}
+        actions={
+          <Button variant="tertiary" size="sm" onClick={zorlama.reloadAll}>
+            Yenile
+          </Button>
+        }
       />
 
       <Section
@@ -97,6 +103,7 @@ export function SystemStorage({
         loadingLayout="kpi"
         loadingCount={4}
         error={error}
+        onRetry={zorlama.reloadAll}
       >
         {s && (
           <Card>
@@ -147,6 +154,7 @@ export function SystemStorage({
         loadingLayout="list"
         loadingCount={2}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={s !== null && s.logs.length === 0}
         emptyTitle="Ekleme-yalnız günlük yok"
         emptyDescription="Veri dizininde events.jsonl / telemetry.jsonl bulunamadı."
@@ -205,6 +213,7 @@ export function SystemStorage({
         loadingLayout="list"
         loadingCount={6}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={s !== null && s.entries.length === 0}
         emptyTitle="Veri dizini boş"
         emptyDescription="Veri dizininin altında hiçbir dosya yok."

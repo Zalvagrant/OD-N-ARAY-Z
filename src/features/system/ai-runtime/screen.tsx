@@ -27,6 +27,7 @@ import { useOdinAi } from "@/lib/data/odin-ai";
 import { formatDate } from "@/lib/format/date";
 import { relativeTime, useNow } from "@/lib/clock/tick";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
@@ -93,6 +94,11 @@ export function SystemAiRuntime({
         title="AI Runtime"
         context="Ölçülen model kullanımı — maliyet ölçülmediği için yazılmıyor"
         lastSync={ai.envelope?.meta.lastUpdated ?? null}
+        actions={
+          <Button variant="tertiary" size="sm" onClick={zorlama.reloadAll}>
+            Yenile
+          </Button>
+        }
       />
 
       <Section
@@ -102,6 +108,7 @@ export function SystemAiRuntime({
         loadingLayout="kpi"
         loadingCount={4}
         error={error}
+        onRetry={zorlama.reloadAll}
       >
         {a && (
           <Card>
@@ -170,6 +177,7 @@ export function SystemAiRuntime({
         loadingLayout="kpi"
         loadingCount={2}
         error={error}
+        onRetry={zorlama.reloadAll}
       >
         {a && (
           <Card>
@@ -206,6 +214,7 @@ export function SystemAiRuntime({
         loadingLayout="list"
         loadingCount={3}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={a !== null && a.byModel.length === 0}
         emptyTitle="Hiç model çağrılmadı"
         emptyDescription="Telemetride tek bir provider.call kaydı yok."
@@ -236,6 +245,7 @@ export function SystemAiRuntime({
         loadingLayout="list"
         loadingCount={4}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={a !== null && a.providers.length === 0}
         emptyTitle="Sağlayıcı anahtarı yok"
         emptyDescription="secrets/ dizininde hiçbir anahtar dosyası yok."
@@ -264,6 +274,7 @@ export function SystemAiRuntime({
         loadingLayout="list"
         loadingCount={5}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={a !== null && a.recent.length === 0}
         emptyTitle="Kayıtlı çağrı yok"
         emptyDescription="Telemetride son çağrı penceresi boş."

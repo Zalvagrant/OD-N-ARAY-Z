@@ -35,6 +35,7 @@ import {
 } from "@/lib/data/odin-catalog";
 import { formatDate } from "@/lib/format/date";
 import { PERCENT_SCALE_MISSING, toPercentUnit } from "@/lib/format/percent";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
@@ -190,6 +191,11 @@ export function AmazonReturns({
             : "Promote edilmiş müşteri memnuniyeti kaydı"
         }
         lastSync={returns.envelope?.meta.lastUpdated ?? null}
+        actions={
+          <Button variant="tertiary" size="sm" onClick={zorlama.reloadAll}>
+            Yenile
+          </Button>
+        }
       />
 
       <Section
@@ -199,6 +205,7 @@ export function AmazonReturns({
         loadingLayout="kpi"
         loadingCount={4}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={r !== null && r.available && r.total === null}
         emptyTitle="Özet satırı yok"
         emptyDescription="Kayıt bir Total satırı taşımıyor."
@@ -271,6 +278,7 @@ export function AmazonReturns({
         loadingLayout="list"
         loadingCount={8}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={r !== null && r.available && r.rows.length === 0}
         emptyTitle="Ürün satırı yok"
         emptyDescription="Kayıt promote edilmiş ama içinde ürün satırı yok."

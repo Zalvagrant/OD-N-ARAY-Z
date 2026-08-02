@@ -27,6 +27,7 @@ import {
 } from "@/features/shell/screen-state";
 import { useOdinListings, type ListingRow } from "@/lib/data/odin-catalog";
 import { formatDate } from "@/lib/format/date";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { NoData } from "@/components/ui/no-data";
 import { Stat } from "@/components/ui/stat";
@@ -165,6 +166,11 @@ export function AmazonListings({
             : "Promote edilmiş ASIN katalog kaydı"
         }
         lastSync={listings.envelope?.meta.lastUpdated ?? null}
+        actions={
+          <Button variant="tertiary" size="sm" onClick={zorlama.reloadAll}>
+            Yenile
+          </Button>
+        }
       />
 
       <Section
@@ -174,6 +180,7 @@ export function AmazonListings({
         loadingLayout="kpi"
         loadingCount={3}
         error={error}
+        onRetry={zorlama.reloadAll}
       >
         {l && l.available && (
           <Card>
@@ -225,6 +232,7 @@ export function AmazonListings({
         loadingLayout="list"
         loadingCount={8}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={l !== null && l.available && l.rows.length === 0}
         emptyTitle="Katalog boş"
         emptyDescription="Kayıt promote edilmiş ama içinde hiç ASIN yok."
@@ -246,6 +254,7 @@ export function AmazonListings({
         loadingLayout="list"
         loadingCount={2}
         error={error}
+        onRetry={zorlama.reloadAll}
         empty={l !== null && l.available && l.notes.length === 0}
         emptyTitle="Not yok"
         emptyDescription="Kayıt hiçbir yorum taşımıyor."
