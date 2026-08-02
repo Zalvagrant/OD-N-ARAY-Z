@@ -478,3 +478,33 @@ sozlesme hatasi verilir.
 Yani bu duzeltilene kadar `sales_change_pct` ekranda **"Veri
 dogrulanamadi"** olarak gorunecek. Bu bilincli: yanlis bir yuzde, eksik bir
 yuzdeden tehlikelidir.
+
+---
+
+## Gece mesaisi taraması — 2 Ağu 2026: kalan nav hedeflerinin veri kaynağı ölçümü
+
+Gece emri gereği her boş hedef için ÖNCE ölçüldü: core'da gerçek kaynak
+var mı? VARSA ekran bağlandı (finance · amazon/inventory · amazon/ppc ·
+system/performance bu gece açıldı). YOKSA ekran uydurulmadı — placeholder
+kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
+
+| Hedef | Tek satır gerekçe (ölçüm 2 Ağu 2026) |
+|---|---|
+| `/amazon/orders` | `/api/state` ve `/api/amazon`da sipariş listesi anahtarı YOK; SP-API orders KO'su promote edilmemiş. |
+| `/amazon/listings` | Listing verisi hiçbir uçta yayınlanmıyor (FR-0005 Listing işi sırada, Faz 4 notu). |
+| `/amazon/profit` | SKU bazlı gerçek kâr COGS ister; COGS kapsamı SAHİP KARARI bekliyor (math-audit) — `PROFIT_NEEDS_COGS` zaten UI'da. |
+| `/amazon/forecast` | Tahmin üreticisi yok (ADR-0149 stockout tahmini dahil 48/48 null; `probabilistic_forecast` finance'ta da "bağlı değil"). |
+| `/amazon/suppliers` | Tedarikçi verisi hiçbir uçta yok (goals'ta metin olarak geçiyor, yapılandırılmış kaynak değil). |
+| `/amazon/returns` | İade verisi yayınlanmıyor (Return Intelligence çeyreklik hedef, henüz inşa edilmedi). |
+| `/system/security` | `health_score` Güvenlik bileşeni `value:null` — "güvenlik telemetrisi yayınlanmıyor" (çekirdeğin kendi beyanı). |
+| `/system/ai-runtime` | `ai_spend.total_usd=null`, 12/12 çağrı `cost_known:false` — maliyet paneli kural 2 ihlali olur; meclis kararı S9 sonraya (15-execution-plan). |
+| `/system/storage` | `disk_used_pct` + günlük boyutları /system ve /system/performance'ta ZATEN görünüyor; üçüncü kopya ekran değer katmaz. |
+| `/system/network` | Ağ telemetrisi hiçbir uçta yok. |
+| `/system/backups` | Yedek kaydı/politikası yayınlanmıyor (`archive/` klasörü var ama projeksiyonu yok). |
+| `/system/version` | `version` + `phases` /system ekranında ZATEN görünüyor; ayrı sayfa kopya olur. |
+| `/hq` | Ayrı bir veri kaynağı yok — mevcut ekranların toplamı; kompozit ekran sahip kararı ister. |
+| `/projects` | Proje varlığı core'da yok (phases roadmap'i /system'de). |
+| `/automation` | Zamanlanmış işler `directors` yayınından /system/performance'ta AÇILDI; ayrı automation ekranı aynı verinin kopyası olur. |
+| `/trading` | Trading verisi core'da hiç yok. |
+| `/memory` | `executive-memory/` dosyaları var ama projeksiyonu yok; karar/verdict zaten /decisions'ta. |
+| `/settings` | Yazılabilir ayar ucu yok (POST /api/command beyaz listesi dışında yapılandırma yüzeyi yayınlanmıyor). |
