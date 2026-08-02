@@ -7740,3 +7740,35 @@ hazırdı; ilk kez bir ekran tüketicisi oldu).
   gösterdi (`useOdinFeed` → `/api/state.timeline`, UI-ADR-174). Çalışan
   entegrasyonu eşdeğer bir uca taşımak risk alıp değer katmazdı —
   no-op, kanıtıyla burada kayıtlı.
+
+---
+
+## UI-ADR-194 — Karar kuyruğu kartlarına verdict eylemi: form Decision'dan koparıldı
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-192 · UI-ADR-156 · UI-ADR-092 · ODIN ADR-0131 · ADR-0017 · ADR-0005
+
+UI-ADR-192 boruyu döşedi (`useVerdictMutation` + `VerdictStatus`) ama tek
+tüketici briefing'deki `DecisionCard` idi ve o `/api/state.decisions`tan
+beslenir — bugün BOŞ. Yani sahibin kararını yazabildiği hiçbir canlı yüzey
+yoktu; karar CLI'dan veriliyordu. `/decisions` (Decision Center) kuyruğu
+kendi kartlarıyla çiziyor (`DecisionQueueItem`) ve `VerdictForm`
+`decision: Decision` istiyordu — tip uyuşmazlığı yüzeyi kilitliyordu.
+
+Kararlar (gavadolar 2/2 şartlı onay, dördü de uygulandı):
+
+1. **Prop daraltıldı:** `VerdictForm` artık `recClass?: OdinRecClass`
+   alır — formun TEK veri bağımlılığı zaten buydu. `Decision` istemek,
+   farklı tipte beslenen meşru bir tüketiciyi dışarıda bırakıyordu.
+2. **`toRecClass` fail-closed:** ODIN'in serbest `klass` alanından yalnız
+   A/B/C geçer; `null`/bilinmeyen `undefined` olur ve gerekçe ZORUNLU
+   kalır (UI-ADR-156). Sessizce sınıfa dönüştürme yok.
+3. **Eylem alanı yalnız karara bağlanmamış kartta** (`decided=false` ve
+   `verdict=null`). `decided=true` ama verdict'siz eski kayıt yeniden
+   karar VERİLEMEZ yapılmadı — "ayrıntı yayınlanmadı" diye işaretlenir;
+   ikinci kayıt geri alınamaz (ODIN ADR-0005 no-delete).
+4. **Tek mutation, çift emir koruması:** `isPending` tüm kartların
+   düğmelerini kilitler; sonuç yalnız `variables.decisionId` eşleşen
+   kartta gösterilir. Bayat veri kilidi decision-card'daki UI-ADR-092
+   kuralının aynısı.

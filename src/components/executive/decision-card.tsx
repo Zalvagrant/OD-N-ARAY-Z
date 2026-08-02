@@ -319,7 +319,7 @@ function DecisionView({
                * yok etmemeli. Form kalır, yalnız GÖNDERİM kilitlenir.
                */
               <VerdictForm
-                decision={decision}
+                recClass={decision.recommendation.recClass}
                 pending={pending}
                 blocked={stale}
                 blockedReason="Veri bu işlem sürerken bayatladı — kayıt için yenile. Yazdığın gerekçe duruyor."

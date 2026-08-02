@@ -22,10 +22,10 @@
 
 import { useState } from "react";
 
-import type { Decision } from "@/types/executive";
 import {
   ODIN_MIN_REASON_CHARS,
   ODIN_REASON_REQUIRED_CLASSES,
+  type OdinRecClass,
   type OdinVerdict,
 } from "@/types/odin";
 import { useNow } from "@/lib/clock/tick";
@@ -47,14 +47,20 @@ export interface VerdictInput {
    -------------------------------------------------------------------------- */
 
 export function VerdictForm({
-  decision,
+  recClass,
   pending,
   onSubmit,
   onCancel,
   blocked = false,
   blockedReason,
 }: {
-  decision: Decision;
+  /**
+   * ODIN öneri sınıfı (A/B/C). Formun TEK veri bağımlılığı budur —
+   * UI-ADR-194: `Decision` almak, karar kuyruğu kartlarını (ayrı tip)
+   * dışarıda bırakıyordu. Bilinmeyen/boş sınıf `undefined` geçirilir ve
+   * gerekçe ZORUNLU kalır (UI-ADR-156 fail-closed).
+   */
+  recClass?: OdinRecClass;
   pending: OdinVerdict;
   onSubmit: (v: VerdictInput) => void;
   onCancel: () => void;
@@ -70,7 +76,6 @@ export function VerdictForm({
   const [revisitAt, setRevisitAt] = useState("");
   const now = useNow(); // merkezi saat (UI-ADR-089) — render'da Date.now() yok
 
-  const recClass = decision.recommendation.recClass;
   /**
    * BİLİNMİYORSA ZORUNLU — fail-CLOSED (UI-ADR-156).
    *

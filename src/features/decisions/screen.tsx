@@ -19,6 +19,8 @@
  * gibi taşınır; arayüz ondan bir "aciliyet" TÜRETMEZ.
  */
 
+import { useState } from "react";
+
 import {
   demoError,
   emptied,
@@ -26,7 +28,11 @@ import {
   type DemoState,
 } from "@/features/shell/screen-state";
 import { useOdinDecisionQueue } from "@/lib/data/odin-state";
+import { useVerdictMutation } from "@/lib/data/use-verdict";
 import { relativeTime, useNow } from "@/lib/clock/tick";
+import { toRecClass, type OdinVerdict } from "@/types/odin";
+import { VerdictForm } from "@/components/executive/verdict-form";
+import { VerdictStatus } from "@/components/executive/verdict-status";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -57,6 +63,18 @@ const VERDICT = {
 export function DecisionCenter({ demo }: { demo?: DemoState }) {
   const queue = useOdinDecisionQueue();
   const now = useNow();
+  const verdictMutation = useVerdictMutation();
+  /* Hangi kartta hangi karar formu açık. TEK form: sahip tek kişi ve iki
+     kararı aynı anda YAZAMAZ zaten (mutation kilidi aşağıda). */
+  const [pendingFor, setPendingFor] = useState<{
+    recId: string;
+    verdict: OdinVerdict;
+  } | null>(null);
+  /* Bayat veriyle karar verilmez — decision-card'daki UI-ADR-092 kilidi. */
+  const stale = queue.envelope?.meta.freshness === "stale";
+  /* Gönderimin sonucu YALNIZ gönderilen kartta gösterilir; 31 kartlık
+     listede paylaşılan mutation'ın durumu başka karta sızmaz. */
+  const activeId = verdictMutation.variables?.decisionId ?? null;
 
   const { loading, error, isEmpty, reloadAll } = screenState({
     demo,
@@ -185,6 +203,91 @@ export function DecisionCenter({ demo }: { demo?: DemoState }) {
                     {relativeTime(d.firstSeen, now) ?? "—"} · sınıf{" "}
                     {d.klass ?? "—"}
                   </Caption>
+
+                  {/* KARAR SAHİBİNDEN (ADR-0017, UI-ADR-194). Eylem alanı
+                      yalnız karara bağlanmamış öneride: `decided` ya da
+                      `verdict` doluysa karar VERİLMİŞTİR, ikinci kayıt
+                      geri alınamaz (ODIN ADR-0005 no-delete). */}
+                  {!d.decided && !d.verdict ? (
+                    <div className="flex flex-col items-start gap-2">
+                      {stale ? (
+                        <Text size="sm" tone="tertiary">
+                          Veri bayat — karar verilemez. Önce senkronu tazele
+                          (UI-ADR-092).
+                        </Text>
+                      ) : null}
+                      {pendingFor?.recId !== d.recId ? (
+                        <div className="flex flex-wrap gap-2">
+                          {/* `isPending` TÜM kartları kilitler: refetch
+                              gelmeden ikinci bir komut açılamaz
+                              (gavadolar 2/2 — çift emir koruması). */}
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={stale || verdictMutation.isPending}
+                            onClick={() =>
+                              setPendingFor({ recId: d.recId, verdict: "approved" })
+                            }
+                          >
+                            Onayla
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            disabled={stale || verdictMutation.isPending}
+                            onClick={() =>
+                              setPendingFor({ recId: d.recId, verdict: "rejected" })
+                            }
+                          >
+                            Reddet
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={stale || verdictMutation.isPending}
+                            onClick={() =>
+                              setPendingFor({ recId: d.recId, verdict: "deferred" })
+                            }
+                          >
+                            Ertele
+                          </Button>
+                        </div>
+                      ) : (
+                        <VerdictForm
+                          recClass={toRecClass(d.klass)}
+                          pending={pendingFor.verdict}
+                          blocked={stale}
+                          blockedReason="Veri bu işlem sürerken bayatladı — kayıt için yenile. Yazdığın gerekçe duruyor."
+                          onCancel={() => setPendingFor(null)}
+                          onSubmit={(v) => {
+                            setPendingFor(null);
+                            verdictMutation.mutate({
+                              decisionId: d.recId,
+                              input: v,
+                            });
+                          }}
+                        />
+                      )}
+                    </div>
+                  ) : null}
+
+                  {d.decided && !d.verdict ? (
+                    <Caption>
+                      <NoData reason="Karara bağlanmış görünüyor ama sahip kararının ayrıntısı yayınlanmadı — eski kayıt; yeniden karar verilmez" />
+                    </Caption>
+                  ) : null}
+
+                  {activeId === d.recId ? (
+                    <VerdictStatus
+                      pending={verdictMutation.isPending}
+                      outcome={verdictMutation.data}
+                      error={verdictMutation.error}
+                      onRetry={() =>
+                        verdictMutation.variables &&
+                        verdictMutation.mutate(verdictMutation.variables)
+                      }
+                    />
+                  ) : null}
                 </CardBody>
               </Card>
             );

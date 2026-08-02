@@ -18,7 +18,7 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
 
-import type { Decision } from "@/types/executive";
+import type { OdinRecClass } from "@/types/odin";
 import { decision } from "./stories.fixtures";
 import { VerdictForm, type VerdictInput } from "./verdict-form";
 
@@ -31,11 +31,12 @@ const meta: Meta<Args> = {
 };
 export default meta;
 
-/** `recClass: "B"` — gerekçe ZORUNLU sınıf (fixture'ın kendi değeri). */
-const gerekceZorunlu = decision;
+/** `recClass: "B"` — gerekçe ZORUNLU sınıf (fixture'ın kendi değeri).
+    Form artık yalnız sınıfı alıyor (UI-ADR-194); fixture bağı korunuyor. */
+const gerekceZorunlu = decision.recommendation.recClass;
 
 /**
- * Gerekçe zorunlu OLMAYAN karar — sınıf "A".
+ * Gerekçe zorunlu OLMAYAN sınıf — "A".
  *
  * ⚠️ Bu fixture `recClass: undefined` idi ve YANLIŞTI: sınıfın YOKLUĞU
  * "gerekçe isteğe bağlı" demek değildir, "sınıf bilinmiyor" demektir.
@@ -43,23 +44,17 @@ const gerekceZorunlu = decision;
  * düşerse kural sessizce kalkar) doğru davranış diye kilitliyordu.
  * Gerçekten isteğe bağlı olan hâl, ODIN'in B/C dışındaki bir sınıfıdır.
  */
-const gerekceIstege: Decision = {
-  ...decision,
-  recommendation: { ...decision.recommendation, recClass: "A" },
-};
+const gerekceIstege: OdinRecClass = "A";
 
 /** Sınıf BİLİNMİYOR — gerekçe yine de İSTENİR (fail-closed, UI-ADR-156). */
-const sinifBilinmiyor: Decision = {
-  ...decision,
-  recommendation: { ...decision.recommendation, recClass: undefined },
-};
+const sinifBilinmiyor = undefined;
 
 function Harness({
-  d,
+  recClass,
   pending,
   onSubmit,
 }: {
-  d: Decision;
+  recClass?: OdinRecClass;
   pending: "approved" | "rejected" | "deferred";
   onSubmit: (v: VerdictInput) => void;
 }) {
@@ -68,7 +63,7 @@ function Harness({
     <p data-testid="cancelled">vazgeçildi</p>
   ) : (
     <VerdictForm
-      decision={d}
+      recClass={recClass}
       pending={pending}
       onSubmit={onSubmit}
       onCancel={() => setCancelled(true)}
@@ -81,7 +76,7 @@ export const GerekcesizKapanmaz: Story = {
   args: { onSubmit: fn() },
   render: (args) => (
     <Harness
-      d={gerekceZorunlu}
+      recClass={gerekceZorunlu}
       pending="approved"
       onSubmit={args.onSubmit}
     />
@@ -116,7 +111,7 @@ export const GerekceIstegeBagliysa: Story = {
   args: { onSubmit: fn() },
   render: (args) => (
     <Harness
-      d={gerekceIstege}
+      recClass={gerekceIstege}
       pending="approved"
       onSubmit={args.onSubmit}
     />
@@ -142,7 +137,7 @@ export const TarihsizErtelemeSessizHayirdir: Story = {
   args: { onSubmit: fn() },
   render: (args) => (
     <Harness
-      d={gerekceIstege}
+      recClass={gerekceIstege}
       pending="deferred"
       onSubmit={args.onSubmit}
     />
@@ -178,7 +173,7 @@ export const VazgecmeKayitBirakmaz: Story = {
   args: { onSubmit: fn() },
   render: (args) => (
     <Harness
-      d={gerekceIstege}
+      recClass={gerekceIstege}
       pending="rejected"
       onSubmit={args.onSubmit}
     />
@@ -195,7 +190,7 @@ export const SinifBilinmiyorsaGerekceZORUNLU: Story = {
   name: "Sınıf BİLİNMİYORSA gerekçe zorunlu (fail-closed)",
   args: { onSubmit: fn() },
   render: (args) => (
-    <Harness d={sinifBilinmiyor} pending="approved" onSubmit={args.onSubmit} />
+    <Harness recClass={sinifBilinmiyor} pending="approved" onSubmit={args.onSubmit} />
   ),
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);

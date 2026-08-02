@@ -17,6 +17,7 @@ import {
   ODIN_MIN_REASON_CHARS,
   ODIN_VERDICTS,
   odinConfidenceLevel,
+  toRecClass,
   type OdinConfidenceBreakdown,
   type OdinDecisionRecord,
 } from "./odin";
@@ -97,5 +98,18 @@ describe("ODIN sözleşme fixture'ı", () => {
   it("disagreement türetilmiştir: 100 - consensus (consensus.py)", () => {
     const r = record.recommendation;
     expect(r.consensus_score + r.disagreement_score).toBeCloseTo(100, 1);
+  });
+
+  it("toRecClass fail-closed: yalnız A/B/C geçer, gerisi undefined (UI-ADR-194)", () => {
+    expect(toRecClass("A")).toBe("A");
+    expect(toRecClass("B")).toBe("B");
+    expect(toRecClass("C")).toBe("C");
+    /* `undefined` = "sınıf bilinmiyor" → VerdictForm gerekçeyi ZORUNLU
+       kılar (UI-ADR-156). Sessizce bir sınıfa dönüştürme yok. */
+    expect(toRecClass(null)).toBeUndefined();
+    expect(toRecClass(undefined)).toBeUndefined();
+    expect(toRecClass("D")).toBeUndefined();
+    expect(toRecClass("a")).toBeUndefined();
+    expect(toRecClass("")).toBeUndefined();
   });
 });

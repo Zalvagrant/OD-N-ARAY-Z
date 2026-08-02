@@ -119,6 +119,18 @@ export const ODIN_MIN_REASON_CHARS = 8;
 /** B ve C gerekçe ister; A bilgilendirmedir, onay bile gerektirmez. */
 export const ODIN_REASON_REQUIRED_CLASSES: readonly OdinRecClass[] = ["B", "C"];
 
+/**
+ * ODIN'in serbest `klass` alanı → sınıf sözlüğü. Yalnız A/B/C geçer;
+ * `null` ve bilinmeyen değer `undefined` olur — yani gerekçe ZORUNLU
+ * kalır (UI-ADR-156 fail-closed). Sessizce bir sınıfa dönüştürme yok
+ * (UI-ADR-194, gavadolar 2/2).
+ */
+export function toRecClass(
+  klass: string | null | undefined
+): OdinRecClass | undefined {
+  return klass === "A" || klass === "B" || klass === "C" ? klass : undefined;
+}
+
 /* --------------------------------------------------------------------------
    Confidence bantları — odin/trust.py CONFIDENCE_LEVELS
    -------------------------------------------------------------------------- */
