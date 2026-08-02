@@ -1076,6 +1076,78 @@ export function useOdinDecisions(): OdinQueryResult<Decision[]> {
 }
 
 /* --------------------------------------------------------------------------
+   Performance — `/api/state.health` + istemci gecikme ölçümü (UI-ADR-199)
+   -------------------------------------------------------------------------- */
+
+/** Çekirdek nabzı + günlük boyutları. HESAP YOK: alanlar ham taşınır. */
+const performanceStateSchema = z.object({
+  generated_at: z.string(),
+  health: z.object({
+    last_event_ts: z.string().nullable(),
+    last_seq: z.number(),
+    event_log_bytes: z.number(),
+    /* Eski çekirdek yayınlamıyordu — opsiyonel. */
+    telemetry_bytes: z.number().nullish(),
+  }),
+  events_today: z.number().nullish(),
+});
+
+export type OdinPerformance = {
+  lastEventAt: string | null;
+  lastSeq: number;
+  eventLogBytes: number;
+  telemetryBytes: number | null;
+  eventsToday: number | null;
+};
+
+export function useOdinPerformance(): OdinQueryResult<OdinPerformance> {
+  return useOdinQuery({
+    key: ["odin", "performance"],
+    module: "runtime",
+    schema: z.custom<OdinPerformance>(),
+    load: IS_MOCK
+      ? async () => loadMock("system.performance")
+      : async (signal) => {
+          const raw = await httpLoad("/api/state", { signal });
+          const p = performanceStateSchema.parse(raw);
+          return internalEnvelope(p.generated_at, {
+            lastEventAt: p.health.last_event_ts,
+            lastSeq: p.health.last_seq,
+            eventLogBytes: p.health.event_log_bytes,
+            telemetryBytes: p.health.telemetry_bytes ?? null,
+            eventsToday: p.events_today ?? null,
+          });
+        },
+  });
+}
+
+/**
+ * `/api/state` bekleme süresi — İSTEMCİNİN KENDİ ÖLÇÜMÜ.
+ *
+ * Bu bir ODIN yayını DEĞİLDİR ve öyle etiketlenmez: ekran "bu istemcinin
+ * son isteği" der. Coalescing yüzünden ölçülen şey paylaşılan isteğin
+ * bekleme süresi olabilir — kullanıcının gerçekte beklediği süre tam
+ * olarak budur. Sunucu tarafı bir süre yayını gelirse o ayrıca gösterilir.
+ */
+export function useOdinStateLatency(): OdinQueryResult<{ ms: number }> {
+  return useOdinQuery({
+    key: ["odin", "state-latency"],
+    module: "runtime",
+    schema: z.custom<{ ms: number }>(),
+    load: IS_MOCK
+      ? async () => loadMock("system.latency")
+      : async (signal) => {
+          const t0 = performance.now();
+          const raw = await httpLoad("/api/state", { signal });
+          const p = z.object({ generated_at: z.string() }).parse(raw);
+          return internalEnvelope(p.generated_at, {
+            ms: Math.round(performance.now() - t0),
+          });
+        },
+  });
+}
+
+/* --------------------------------------------------------------------------
    Finance — `/api/state.finance_position` (ODIN `odin/finance/director.py`)
    -------------------------------------------------------------------------- */
 

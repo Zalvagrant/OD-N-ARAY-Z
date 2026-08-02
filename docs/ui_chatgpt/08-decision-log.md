@@ -7874,3 +7874,33 @@ notu üstbilgiden kalktı.
 **AI Readiness bilerek "—" KALDI:** ölçen kaynak yayınlanmıyor
 (13-backend-recommendations.md §14.1) — üç alandan biri dolu OLMAMAYI
 sürdürür; dürüstlük budur.
+
+---
+
+## UI-ADR-199 — System Performance: ham nabız, ham iş sayıları, etiketli istemci ölçümü
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-129 · ODIN ADR-0148
+
+`/system/performance` nav'da vardı, ekranı yoktu. Core değişikliği
+GEREKMEDİ — üç kaynak zaten yayında ya da istemcide ölçülebilir:
+
+1. **Çekirdek nabzı** `/api/state.health`ten ham: son olay, sıra no,
+   `events.jsonl` / `telemetry.jsonl` boyutları. Günlük boyutu bilinen
+   performans sürücüsüdür (/api/state o dosyayı okur) — artık ekranda.
+2. **Zamanlanmış işler** `directors` yayınından; şema iş başına
+   `runs`/`failuresTotal`ı DÜŞÜRÜYORDU, opsiyonel olarak eklendi.
+   Sayılar KÜMÜLATİF ve YAN YANA ham gösterilir — arayüz başarı ORANI
+   türetmez (UI-ADR-111); story bunu kilitler ("başarı" kelimesi ekranda
+   geçemez).
+3. **`/api/state` bekleme süresi** istemcinin KENDİ ölçümüdür ve öyle
+   etiketlenir ("ODIN yayını değil") — coalescing yüzünden paylaşılan
+   isteğin beklemesi ölçülebilir; kullanıcının beklediği süre tam olarak
+   budur. Sunucu kendi süresini yayınlarsa ayrıca gösterilir.
+
+- **Uptime/CPU/RAM ÇİZİLMEDİ** — hiçbir uçta yayınlanmıyor (system
+  ekranındaki kararın aynısı); story yokluklarını da kilitler.
+- **Ders:** `Stat` `<dt>/<dd>` basar; `<dl>` ebeveynsiz kullanım axe
+  dlitem ihlali (kapı yakaladı, ilk koşum kırmızıydı — director-card
+  deseni kopyalandı).

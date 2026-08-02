@@ -295,6 +295,11 @@ export const runtimeDirectorSchema = z.object({
       lastBeat: isoDate.nullable(),
       cadence: z.string().nullable().optional(),
       lastError: z.string().nullable().optional(),
+      /* KÜMÜLATİF koşum sayısı — ODIN yayınlıyor, şema düşürüyordu
+         (UI-ADR-199). failuresTotal ile YAN YANA ham gösterilir; arayüz
+         oran TÜRETMEZ. Eski çekirdekte yoksa opsiyonel. */
+      runs: z.number().int().min(0).optional(),
+      failuresTotal: z.number().int().min(0).optional(),
     })
   ),
 });

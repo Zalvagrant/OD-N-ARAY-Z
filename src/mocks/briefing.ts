@@ -757,6 +757,22 @@ export function systemHealthMock() {
   });
 }
 
+/** Çekirdek nabzı mock'u — `/api/state.health`in şekli (UI-ADR-199). */
+export function performanceMock() {
+  return mockEnvelope({
+    lastEventAt: new Date().toISOString(),
+    lastSeq: 25_395,
+    eventLogBytes: 5_886_744,
+    telemetryBytes: 1_200_000,
+    eventsToday: 37,
+  });
+}
+
+/** İstemci gecikme mock'u — gerçek modda değer İSTEMCİDE ölçülür. */
+export function latencyMock() {
+  return mockEnvelope({ ms: 412 });
+}
+
 /** ODIN `panel_log`un mock ikizi — alanlar birebir (oy var, gerekçe YOK). */
 export function councilPanelsMock() {
   return mockEnvelope([
