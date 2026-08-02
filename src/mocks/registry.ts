@@ -51,6 +51,7 @@ export interface MockMap {
   "amazon.campaigns": ReturnType<AmazonMocks["campaignsMock"]>;
   "amazon.simulations": ReturnType<AmazonMocks["simulationsMock"]>;
   "amazon.alerts": ReturnType<AmazonMocks["amazonAlertsMock"]>;
+  "amazon.orders": ReturnType<AmazonMocks["ordersMock"]>;
   "amazon.opportunities": ReturnType<AmazonMocks["amazonOpportunitiesMock"]>;
   "briefing.brief": ReturnType<BriefingMocks["briefMock"]>;
   "briefing.decisions": ReturnType<BriefingMocks["decisionsMock"]>;
@@ -100,6 +101,8 @@ export async function loadMock<K extends MockKey>(key: K): Promise<MockMap[K] | 
       return (await import("./amazon")).simulationsMock() as MockMap[K];
     case "amazon.alerts":
       return (await import("./amazon")).amazonAlertsMock() as MockMap[K];
+    case "amazon.orders":
+      return (await import("./amazon")).ordersMock() as MockMap[K];
     case "amazon.opportunities":
       return (await import("./amazon")).amazonOpportunitiesMock() as MockMap[K];
     case "briefing.brief":

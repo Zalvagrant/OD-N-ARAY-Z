@@ -842,3 +842,67 @@ export function skusMock(): DataEnvelope<SkuHealth[]> {
     }),
   ] satisfies SkuHealth[]);
 }
+
+/**
+ * `/api/orders` mock'u — YALNIZ Storybook. Şekil canlı uçtan (2 Ağu 2026);
+ * sipariş numaraları MOCK, gerçek siparişe ait değildir.
+ */
+export function ordersMock() {
+  return mockEnvelope({
+    available: true,
+    reason: null,
+    recordId: "KO-spapi-orders-MOCK",
+    asOf: "2026-07-31T19:40:13.049955+00:00",
+    period: { basis: "rolling_window", windowDays: 7, end: "2026-07-31" },
+    count: 3,
+    currency: "USD",
+    totals: { amount: 143.7, ordersWithTotal: 2, ordersWithoutTotal: 1 },
+    byStatus: [
+      { name: "Shipped", count: 2 },
+      { name: "Pending", count: 1 },
+    ],
+    byChannel: [{ name: "Amazon.com", count: 3 }],
+    byFulfillment: [{ name: "AFN", count: 3 }],
+    orders: [
+      {
+        id: "MOCK-000-0000001",
+        purchasedAt: "2026-07-31T16:58:00Z",
+        status: "Pending",
+        channel: "Amazon.com",
+        fulfillment: "AFN",
+        shipService: "Expedited",
+        itemsShipped: 0,
+        itemsUnshipped: 1,
+        isPrime: false,
+        isBusiness: false,
+        total: null,
+      },
+      {
+        id: "MOCK-000-0000002",
+        purchasedAt: "2026-07-30T11:02:00Z",
+        status: "Shipped",
+        channel: "Amazon.com",
+        fulfillment: "AFN",
+        shipService: "Standard",
+        itemsShipped: 1,
+        itemsUnshipped: 0,
+        isPrime: true,
+        isBusiness: false,
+        total: { amount: 95.8, currency: "USD" },
+      },
+      {
+        id: "MOCK-000-0000003",
+        purchasedAt: "2026-07-28T08:15:00Z",
+        status: "Shipped",
+        channel: "Amazon.com",
+        fulfillment: "AFN",
+        shipService: "Standard",
+        itemsShipped: 1,
+        itemsUnshipped: 0,
+        isPrime: false,
+        isBusiness: true,
+        total: { amount: 47.9, currency: "USD" },
+      },
+    ],
+  });
+}

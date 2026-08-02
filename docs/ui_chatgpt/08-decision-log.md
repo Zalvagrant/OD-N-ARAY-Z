@@ -7980,3 +7980,41 @@ gizlemez, sahip düzeltici bir hüküm yazabilir.
 **KANIT [17:37, üretim 3000]:** 2.335 öneri · 1 karar · 0 sonuç kaydı ·
 risk.detected 2321 / opportunity.* 14 · sınıf A 2334, B 1 · tek verdict
 gerekçesiyle listede.
+
+---
+
+## UI-ADR-202 — Amazon Orders: taramanın çürüyen iddiası, gerçek sipariş tablosu
+
+**Durum:** DONDURULDU
+**Tarih:** 2 Ağustos 2026
+**İlgili:** UI-ADR-111 · UI-ADR-128 · UI-ADR-158 · ODIN ADR-0138 · ADR-0147
+
+Gece taraması `/amazon/orders` için "sipariş listesi anahtarı YOK; SP-API
+orders KO'su promote edilmemiş" yazmıştı. **Kaynaktan çürüdü:** core/
+altında YEDİ `KO-spapi-orders-*` var, en yenisi **49 gerçek sipariş**
+(7 günlük kayan pencere, 2026-07-24→31). Kayıt vardı; yayınlayan uç yoktu
+— ADR-0147'nin gerekçesinin birebir tekrarı, bir yıl sonra aynı yerde.
+
+**Ders (üçüncü kez):** iddia kaynaktan doğrulanmadan planlanmaz. Bu
+oturumda taramanın üç satırından biri yanlış çıktı.
+
+**Core:** `amazon_api.build_orders()` + `GET /api/orders`. Ayrı yüzey —
+satır listesi `/api/amazon`ın ~10 katı, tek ekran istiyor; aynı
+`AmazonProjection` önbelleğinin ikinci örneği.
+
+**TUTARSIZ SİPARİŞ 0 DEĞİLDİR:** Pending/Canceled siparişlerde
+`OrderTotal` yok. Toplama 0 olarak katılmaz; ayrı sayılır ve kart
+"42 siparişin toplamı · 7 siparişte tutar yok" der. Tabloda "—" görünür.
+Story bunu kilitler. (UI-ADR-158'in "eksik ≠ sıfır" kuralının para hâli.)
+
+**Para çekirdekte `Decimal`:** tutarlar dize gelir ("47.90"); float
+toplamı kuruş kaybeder. Arayüz tek satır okurken `Number()` ile taşır ve
+ayrıştıramazsa **null** yazar, 0 değil.
+
+**YAŞ GİZLENMEZ:** kaydın tarihi (31 Tem 22:40) ve KENDİ beyan ettiği
+pencere başlıkta durur. Bugün 2 Ağustos — anlık görüntü iki günlük ve
+ekran bunu saklamıyor.
+
+**KANIT [18:02, üretim 3000]:** 49 sipariş · 2.044,80 USD (42 tutarlı,
+7 tutarsız) · Shipped 42 / Pending 5 / Canceled 2 · Amazon.com 49 · AFN 49
+· 49 satırlık tablo, en yeni 31.07 19:58 Bekliyor (tutar "—").

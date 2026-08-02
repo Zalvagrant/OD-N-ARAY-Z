@@ -490,7 +490,7 @@ kaldı ve gerekçesi burada. Kaynak yayınlandığı gün ekran bağlanır.
 
 | Hedef | Tek satır gerekçe (ölçüm 2 Ağu 2026) |
 |---|---|
-| `/amazon/orders` | `/api/state` ve `/api/amazon`da sipariş listesi anahtarı YOK; SP-API orders KO'su promote edilmemiş. |
+| `/amazon/orders` | ✅ AÇILDI (UI-ADR-202). İDDİA ÇÜRÜDÜ: core/'da 7 adet `KO-spapi-orders-*` var (en yenisi 49 sipariş). Kayıt vardı, uç yoktu — `GET /api/orders` eklendi. |
 | `/amazon/listings` | Listing verisi hiçbir uçta yayınlanmıyor (FR-0005 Listing işi sırada, Faz 4 notu). |
 | `/amazon/profit` | SKU bazlı gerçek kâr COGS ister; COGS kapsamı SAHİP KARARI bekliyor (math-audit) — `PROFIT_NEEDS_COGS` zaten UI'da. |
 | `/amazon/forecast` | Tahmin üreticisi yok (ADR-0149 stockout tahmini dahil 48/48 null; `probabilistic_forecast` finance'ta da "bağlı değil"). |

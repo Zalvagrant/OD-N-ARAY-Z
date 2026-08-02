@@ -1,0 +1,811 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-02T14:45:00.753571+00:00",
+  "available": true,
+  "reason": null,
+  "record_id": "KO-spapi-orders-2026-07-31",
+  "as_of": "2026-07-31T19:40:13.049955+00:00",
+  "period": {
+    "basis": "rolling_window",
+    "window_days": 7,
+    "end": "2026-07-31"
+  },
+  "count": 49,
+  "currency": "USD",
+  "totals": {
+    "amount": 2044.8,
+    "orders_with_total": 42,
+    "orders_without_total": 7
+  },
+  "by_status": [
+    {
+      "name": "Shipped",
+      "count": 42
+    },
+    {
+      "name": "Pending",
+      "count": 5
+    },
+    {
+      "name": "Canceled",
+      "count": 2
+    }
+  ],
+  "by_channel": [
+    {
+      "name": "Amazon.com",
+      "count": 49
+    }
+  ],
+  "by_fulfillment": [
+    {
+      "name": "AFN",
+      "count": 49
+    }
+  ],
+  "orders": [
+    {
+      "AmazonOrderId": "111-7459851-7217055",
+      "PurchaseDate": "2026-07-31T16:58:00Z",
+      "OrderStatus": "Pending",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 0,
+      "NumberOfItemsUnshipped": 1,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": null
+    },
+    {
+      "AmazonOrderId": "112-5271166-3360252",
+      "PurchaseDate": "2026-07-31T16:00:19Z",
+      "OrderStatus": "Pending",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 0,
+      "NumberOfItemsUnshipped": 1,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": null
+    },
+    {
+      "AmazonOrderId": "114-1786800-0605825",
+      "PurchaseDate": "2026-07-31T04:09:26Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "52.93"
+      }
+    },
+    {
+      "AmazonOrderId": "113-7872736-1103452",
+      "PurchaseDate": "2026-07-30T22:14:31Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "10.99"
+      }
+    },
+    {
+      "AmazonOrderId": "112-3187653-3603436",
+      "PurchaseDate": "2026-07-30T17:46:13Z",
+      "OrderStatus": "Pending",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 0,
+      "NumberOfItemsUnshipped": 1,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": null
+    },
+    {
+      "AmazonOrderId": "111-1785611-0964227",
+      "PurchaseDate": "2026-07-30T15:35:05Z",
+      "OrderStatus": "Pending",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Standard",
+      "NumberOfItemsShipped": 0,
+      "NumberOfItemsUnshipped": 1,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": null
+    },
+    {
+      "AmazonOrderId": "114-3890725-2453800",
+      "PurchaseDate": "2026-07-30T14:52:06Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "10.14"
+      }
+    },
+    {
+      "AmazonOrderId": "111-6115112-3183402",
+      "PurchaseDate": "2026-07-30T12:43:27Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "53.89"
+      }
+    },
+    {
+      "AmazonOrderId": "112-4597257-6877866",
+      "PurchaseDate": "2026-07-30T12:16:56Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    },
+    {
+      "AmazonOrderId": "113-9857679-0186610",
+      "PurchaseDate": "2026-07-29T23:09:53Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    },
+    {
+      "AmazonOrderId": "112-8773504-6247436",
+      "PurchaseDate": "2026-07-29T22:13:48Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "11.20"
+      }
+    },
+    {
+      "AmazonOrderId": "113-7762541-3369864",
+      "PurchaseDate": "2026-07-29T21:44:13Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    },
+    {
+      "AmazonOrderId": "112-8808033-9587429",
+      "PurchaseDate": "2026-07-29T18:34:54Z",
+      "OrderStatus": "Pending",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 0,
+      "NumberOfItemsUnshipped": 1,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": null
+    },
+    {
+      "AmazonOrderId": "112-0727565-1359452",
+      "PurchaseDate": "2026-07-29T16:47:43Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "8.99"
+      }
+    },
+    {
+      "AmazonOrderId": "111-2988282-2890615",
+      "PurchaseDate": "2026-07-29T14:43:13Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    },
+    {
+      "AmazonOrderId": "114-1291249-0932210",
+      "PurchaseDate": "2026-07-29T03:29:31Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "67.90"
+      }
+    },
+    {
+      "AmazonOrderId": "111-9575023-4098607",
+      "PurchaseDate": "2026-07-29T01:54:00Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "10.14"
+      }
+    },
+    {
+      "AmazonOrderId": "112-2452597-4281836",
+      "PurchaseDate": "2026-07-28T23:43:15Z",
+      "OrderStatus": "Canceled",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 0,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": null
+    },
+    {
+      "AmazonOrderId": "114-0941340-7426658",
+      "PurchaseDate": "2026-07-28T21:44:54Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "49.90"
+      }
+    },
+    {
+      "AmazonOrderId": "113-4317504-7265835",
+      "PurchaseDate": "2026-07-28T18:11:20Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "260.65"
+      }
+    },
+    {
+      "AmazonOrderId": "114-7931034-8450645",
+      "PurchaseDate": "2026-07-28T17:41:38Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "12.06"
+      }
+    },
+    {
+      "AmazonOrderId": "111-8296665-6696214",
+      "PurchaseDate": "2026-07-28T13:42:32Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "51.73"
+      }
+    },
+    {
+      "AmazonOrderId": "114-9247841-8698612",
+      "PurchaseDate": "2026-07-28T04:46:02Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "13.13"
+      }
+    },
+    {
+      "AmazonOrderId": "113-2797165-2914634",
+      "PurchaseDate": "2026-07-28T03:14:05Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "67.90"
+      }
+    },
+    {
+      "AmazonOrderId": "113-6475325-2769009",
+      "PurchaseDate": "2026-07-28T01:49:40Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    },
+    {
+      "AmazonOrderId": "112-5604659-8109849",
+      "PurchaseDate": "2026-07-28T01:41:49Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "11.20"
+      }
+    },
+    {
+      "AmazonOrderId": "112-5149785-5896268",
+      "PurchaseDate": "2026-07-27T21:41:37Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    },
+    {
+      "AmazonOrderId": "114-8771565-8366644",
+      "PurchaseDate": "2026-07-27T21:33:45Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "10.14"
+      }
+    },
+    {
+      "AmazonOrderId": "114-9193763-8886633",
+      "PurchaseDate": "2026-07-27T17:42:44Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "53.77"
+      }
+    },
+    {
+      "AmazonOrderId": "113-1485066-0474669",
+      "PurchaseDate": "2026-07-27T17:41:44Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "SecondDay",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "18.36"
+      }
+    },
+    {
+      "AmazonOrderId": "112-9985938-7121069",
+      "PurchaseDate": "2026-07-27T16:06:07Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "73.33"
+      }
+    },
+    {
+      "AmazonOrderId": "112-0838914-1669859",
+      "PurchaseDate": "2026-07-27T16:04:56Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "73.33"
+      }
+    },
+    {
+      "AmazonOrderId": "113-7219060-3476201",
+      "PurchaseDate": "2026-07-27T15:45:54Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Standard",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "67.90"
+      }
+    },
+    {
+      "AmazonOrderId": "112-3811430-3669044",
+      "PurchaseDate": "2026-07-27T14:28:47Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "52.09"
+      }
+    },
+    {
+      "AmazonOrderId": "114-4334288-5020233",
+      "PurchaseDate": "2026-07-27T12:46:11Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "67.90"
+      }
+    },
+    {
+      "AmazonOrderId": "111-1953408-7791419",
+      "PurchaseDate": "2026-07-27T12:28:51Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    },
+    {
+      "AmazonOrderId": "113-6766852-2165021",
+      "PurchaseDate": "2026-07-26T22:50:03Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "11.84"
+      }
+    },
+    {
+      "AmazonOrderId": "112-4814528-9990654",
+      "PurchaseDate": "2026-07-26T20:35:20Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "11.20"
+      }
+    },
+    {
+      "AmazonOrderId": "112-4698511-2929012",
+      "PurchaseDate": "2026-07-26T19:44:40Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "67.90"
+      }
+    },
+    {
+      "AmazonOrderId": "114-1561305-4113812",
+      "PurchaseDate": "2026-07-26T19:26:34Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Standard",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "17.98"
+      }
+    },
+    {
+      "AmazonOrderId": "114-0302465-8134627",
+      "PurchaseDate": "2026-07-26T16:47:48Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "8.99"
+      }
+    },
+    {
+      "AmazonOrderId": "114-5742156-6777860",
+      "PurchaseDate": "2026-07-26T16:20:40Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "67.90"
+      }
+    },
+    {
+      "AmazonOrderId": "113-6639254-9166630",
+      "PurchaseDate": "2026-07-25T18:42:47Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "245.90"
+      }
+    },
+    {
+      "AmazonOrderId": "112-6640988-2853055",
+      "PurchaseDate": "2026-07-25T15:51:17Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "11.13"
+      }
+    },
+    {
+      "AmazonOrderId": "114-7799992-2432220",
+      "PurchaseDate": "2026-07-25T15:29:00Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    },
+    {
+      "AmazonOrderId": "112-0219597-4034673",
+      "PurchaseDate": "2026-07-25T15:19:36Z",
+      "OrderStatus": "Canceled",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 0,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": null
+    },
+    {
+      "AmazonOrderId": "111-2855532-9441046",
+      "PurchaseDate": "2026-07-25T13:12:45Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "50.30"
+      }
+    },
+    {
+      "AmazonOrderId": "112-4706707-7245050",
+      "PurchaseDate": "2026-07-24T21:11:00Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "10.99"
+      }
+    },
+    {
+      "AmazonOrderId": "111-1113309-9013036",
+      "PurchaseDate": "2026-07-24T19:54:16Z",
+      "OrderStatus": "Shipped",
+      "SalesChannel": "Amazon.com",
+      "FulfillmentChannel": "AFN",
+      "ShipServiceLevel": "Expedited",
+      "NumberOfItemsShipped": 1,
+      "NumberOfItemsUnshipped": 0,
+      "IsPrime": false,
+      "IsBusinessOrder": false,
+      "OrderTotal": {
+        "CurrencyCode": "USD",
+        "Amount": "47.90"
+      }
+    }
+  ]
+}
