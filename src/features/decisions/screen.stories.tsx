@@ -67,6 +67,21 @@ export const Kuyruk: Story = {
       canvas.getAllByRole("note", { name: "ODIN bu öneri için gerekçe kaydetmedi" })
         .length
     ).toBeGreaterThan(0);
+
+    /* ASIL İDDİA 4 — SAHİBİN KARARI GÖRÜNÜR.
+       Bu, ODIN çekirdeğinde kapatılan bir kusurun yüzeyi: `ceo verdict`
+       lifecycle.jsonl'e yazıyordu ama kuyruk onu hiç okumuyordu, yani
+       onaylanan öneri ekranda onaylanmamış duruyordu. Kararı KAYDEDEN
+       bir sistemde kaydın görünmemesi, kaydın olmamasıyla aynı şeydir. */
+    /* İKİ yüzey: başlıktaki rozet ve gövdedeki cümle. Sayı 2'dir ve 2
+       kalmalı — mock'un üç önerisinden YALNIZ BİRİ karara bağlanmış.
+       3'e çıkarsa karar verilmemiş bir öneri karar verilmiş görünüyor
+       demektir; 1'e düşerse iki yüzeyden biri sessizce kaybolmuştur. */
+    await expect(canvas.getAllByText("onaylandı")).toHaveLength(2);
+    /* Gerekçe de görünür — ADR-0046'nın öğrendiği şey odur, gizlenmez. */
+    await expect(
+      canvas.getByText(/marj yeterli, pencere dar/)
+    ).toBeInTheDocument();
   },
 };
 

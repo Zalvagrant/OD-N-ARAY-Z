@@ -450,7 +450,11 @@ export const councilPanelSchema = z.object({
 
 /**
  * Karara bağlanmayı BEKLEYEN öneri. Karar KAYDI değildir (`decisions`
- * ayrı anahtar): `decided` ODIN'in kendi alanı ve bugün hepsi `false`.
+ * ayrı anahtar, FileDecisionLog).
+ *
+ * `verdict` sahibin `ceo verdict` ile KENDİ yazdığı karardır (ODIN
+ * lifecycle.jsonl). `null` = henüz karara bağlanmadı; ODIN asla kendi
+ * kararını buraya yazmaz. `decided` verdict varsa true olur.
  *
  * `signal` `null` OLABİLİR — her öneri bir sinyalden doğmuyor (ölçüldü:
  * iki şekil var, `null` ve `{level, risk}`). Zorunlu kılmak, ODIN'in
@@ -469,6 +473,12 @@ export const decisionQueueItemSchema = z.object({
   ownerApprovalRequired: z.boolean(),
   councilNeeded: z.boolean(),
   decided: z.boolean(),
+  /** Sahibin kararı. `null` = henüz karara bağlanmadı. */
+  verdict: z.enum(["approved", "rejected", "deferred"]).nullable(),
+  verdictReason: z.string().nullable(),
+  verdictAt: isoDate.nullable(),
+  /** Yalnız `deferred` için: geri dönülecek tarih (ADR-0131). */
+  revisitAt: z.string().nullable(),
   firstSeen: isoDate,
   lastSeen: isoDate,
   /** Aynı önerinin kaç kez yazıldığı. 1 ile 696 aynı şey değildir. */

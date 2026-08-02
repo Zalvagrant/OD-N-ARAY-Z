@@ -647,6 +647,12 @@ const decisionQueueStateSchema = z.object({
         owner_approval_required: z.boolean(),
         council_needed: z.boolean(),
         decided: z.boolean(),
+        /* Sahibin kendi kararı (ODIN lifecycle.jsonl). Eski bir çekirdek
+           bu alanları hiç yayınlamaz — o yüzden opsiyonel, zorunlu değil. */
+        verdict: z.enum(["approved", "rejected", "deferred"]).nullish(),
+        verdict_reason: z.string().nullish(),
+        verdict_ts: z.string().nullish(),
+        revisit_at: z.string().nullish(),
         first_seen: z.string(),
         last_seen: z.string(),
         occurrences: z.number(),
@@ -683,6 +689,10 @@ export function useOdinDecisionQueue(): OdinQueryResult<DecisionQueueItem[]> {
               ownerApprovalRequired: d.owner_approval_required,
               councilNeeded: d.council_needed,
               decided: d.decided,
+              verdict: d.verdict ?? null,
+              verdictReason: d.verdict_reason ?? null,
+              verdictAt: d.verdict_ts ?? null,
+              revisitAt: d.revisit_at ?? null,
               firstSeen: d.first_seen,
               lastSeen: d.last_seen,
               occurrences: d.occurrences,

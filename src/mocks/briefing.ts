@@ -788,7 +788,13 @@ export function decisionQueueMock() {
       rationale: null,
       ownerApprovalRequired: true,
       councilNeeded: false,
+      /* Henüz karara bağlanmamış: gerçek veride 31 grubun 31'i de böyle
+         (ölçüldü — lifecycle.jsonl'de bugüne kadar tek verdict yok). */
       decided: false,
+      verdict: null,
+      verdictReason: null,
+      verdictAt: null,
+      revisitAt: null,
       firstSeen: "2026-07-29T18:18:02.251167+00:00",
       lastSeen: "2026-07-29T18:18:02.251167+00:00",
       occurrences: 1,
@@ -805,9 +811,36 @@ export function decisionQueueMock() {
       ownerApprovalRequired: false,
       councilNeeded: false,
       decided: false,
+      verdict: null,
+      verdictReason: null,
+      verdictAt: null,
+      revisitAt: null,
       firstSeen: "2026-07-24T09:00:00.000000+00:00",
       lastSeen: "2026-08-01T21:31:15.802086+00:00",
       occurrences: 696,
+    },
+    {
+      /* KARARA BAĞLANMIŞ öneri. Kuyrukta kalması doğrudur: ODIN'in
+         `open_recommendations`ı karar verileni listeden ÇIKARMAZ, yalnız
+         kararı işaretler — "ne karar verdim" sorusunun cevabı da kuyrukta
+         durur. Bu kayıt verdict yüzeyinin tek mock tüketicisidir. */
+      recId: "REC-20260730-101500-000000-a1b2c3",
+      trigger: "opportunity.pricing",
+      signal: null,
+      recommendation: "TR-4482 fiyatini 3 gun icin %5 dusur — rakip stoksuz",
+      severity: "MEDIUM" as const,
+      klass: "B",
+      rationale: "Rakip 3 gundur stoksuz; pencere kapanmadan pay alinabilir.",
+      ownerApprovalRequired: false,
+      councilNeeded: false,
+      decided: true,
+      verdict: "approved" as const,
+      verdictReason: "marj yeterli, pencere dar",
+      verdictAt: "2026-07-30T12:05:00.000000+00:00",
+      revisitAt: null,
+      firstSeen: "2026-07-30T10:15:00.000000+00:00",
+      lastSeen: "2026-07-30T10:15:00.000000+00:00",
+      occurrences: 2,
     },
   ]);
 }

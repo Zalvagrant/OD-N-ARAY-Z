@@ -47,6 +47,13 @@ const SEVERITY = {
   INFO: { variant: "secondary" as const, label: "Bilgi" },
 };
 
+/** Sahibin kararı — ODIN'in değil. Arayüz yalnız GÖSTERİR (ADR-0017). */
+const VERDICT = {
+  approved: { variant: "success" as const, label: "onaylandı" },
+  rejected: { variant: "danger" as const, label: "reddedildi" },
+  deferred: { variant: "info" as const, label: "ertelendi" },
+};
+
 export function DecisionCenter({ demo }: { demo?: DemoState }) {
   const queue = useOdinDecisionQueue();
   const now = useNow();
@@ -116,6 +123,11 @@ export function DecisionCenter({ demo }: { demo?: DemoState }) {
                           konsey gerekli
                         </Badge>
                       ) : null}
+                      {d.verdict ? (
+                        <Badge variant={VERDICT[d.verdict].variant} size="xs">
+                          {VERDICT[d.verdict].label}
+                        </Badge>
+                      ) : null}
                     </span>
                   }
                   actions={
@@ -146,6 +158,24 @@ export function DecisionCenter({ demo }: { demo?: DemoState }) {
                       <NoData reason="ODIN bu öneri için gerekçe kaydetmedi" />
                     </Caption>
                   )}
+
+                  {d.verdict ? (
+                    <Text size="sm">
+                      {/* Kararı SAHİP verdi; arayüz onu yorumlamaz, aktarır.
+                          Gerekçe ADR-0046'nın öğrendiği şeydir — gizlenmez. */}
+                      Kararın: <strong>{VERDICT[d.verdict].label}</strong>
+                      {d.verdictAt ? (
+                        <Caption> ({relativeTime(d.verdictAt, now) ?? "—"})</Caption>
+                      ) : null}
+                      {d.verdictReason ? ` — ${d.verdictReason}` : null}
+                      {d.verdict === "deferred" && d.revisitAt ? (
+                        <Caption>
+                          {" "}· yeniden bakılacak:{" "}
+                          <time dateTime={d.revisitAt}>{d.revisitAt}</time>
+                        </Caption>
+                      ) : null}
+                    </Text>
+                  ) : null}
 
                   <Caption>
                     {/* Tekrar sayısı BİLGİDİR: 696 kez yazılmış bir uyarı
